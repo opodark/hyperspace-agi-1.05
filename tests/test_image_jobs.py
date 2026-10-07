@@ -168,6 +168,20 @@ class CodaTests(unittest.TestCase):
             ripresa = ImmagineQueue(clock=self.orologio, state_path=percorso)
             self.assertEqual(ripresa.prossimo()["id"], job["id"])
 
+    def test_pausa_persistente_ferma_i_claim_e_conserva_la_coda(self):
+        with tempfile.TemporaryDirectory() as directory:
+            percorso = str(Path(directory) / "image-jobs.json")
+            queue = ImmagineQueue(clock=self.orologio, state_path=percorso, ttl_s=60)
+            job = queue.accoda(nuovo_job("un faro", adesso=self.orologio()))
+            queue.set_paused(True)
+            self.orologio.avanza(100)
+            restored = ImmagineQueue(clock=self.orologio, state_path=percorso, ttl_s=60)
+            self.assertTrue(restored.stato()["paused"])
+            self.assertIsNone(restored.prossimo())
+            self.assertEqual(restored.stato()["in_coda"], 1)
+            restored.set_paused(False)
+            self.assertEqual(restored.prossimo()["id"], job["id"])
+
     def test_un_job_running_torna_pending_dopo_scadenza_claim(self):
         with tempfile.TemporaryDirectory() as directory:
             percorso = str(Path(directory) / "image-jobs.json")
@@ -437,6 +451,13 @@ class GrafoSdxlTests(unittest.TestCase):
     def test_non_applica_un_corpo_singolo_a_due_persone(self):
         self.assertEqual(scegli_pose_preset("a couple sitting on a sofa"), "")
 
+    def test_non_forza_un_preset_senza_dita_su_una_scena_con_mani(self):
+        for scene in ("Anna sdraiata, dita vicino al viso",
+                      "Anna seduta con una mano sul fianco",
+                      "lying down, fingers touching the cheek"):
+            with self.subTest(scene=scene):
+                self.assertEqual(scegli_pose_preset(scene), "")
+
     def test_un_preset_non_dichiarato_non_entra_nel_grafo(self):
         """La posa non si mette da sola: `nuovo_job` non deduce dal testo.
 
@@ -663,6 +684,26 @@ class CodaFamiglieTests(unittest.TestCase):
         self.coda.prossimo(capace_di=FAMIGLIA_SD15)
         self.assertEqual(len(self.coda.running_ids(FAMIGLIE_CHECKPOINT)), 1)
         self.assertEqual(self.coda.running_ids("qwen-image-2.1"), [])
+
+
+class CodaPatchTests(unittest.TestCase):
+    def test_corregge_solo_un_job_pending(self):
+        coda = ImmagineQueue(max_jobs=2)
+        job = coda.accoda(nuovo_job("vecchio prompt"))
+        corretto = coda.aggiorna_pending(
+            job["id"], prompt="nuovo prompt", reference_strength=0.45)
+        self.assertEqual(corretto["prompt"], "nuovo prompt")
+        self.assertEqual(corretto["reference_strength"], 0.45)
+        coda.prossimo()
+        self.assertIsNone(coda.aggiorna_pending(job["id"], prompt="troppo tardi"))
+
+    def test_rimuove_solo_pending(self):
+        coda = ImmagineQueue(max_jobs=2)
+        running = coda.accoda(nuovo_job("da mantenere"))
+        coda.prossimo()
+        pending = coda.accoda(nuovo_job("da eliminare"))
+        self.assertTrue(coda.rimuovi_pending(pending["id"]))
+        self.assertFalse(coda.rimuovi_pending(running["id"]))
 
 
 if __name__ == "__main__":

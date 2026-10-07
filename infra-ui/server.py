@@ -29,12 +29,18 @@ SERVICES = [
      "internal_url": "http://localhost:8099/dashboard", "public_port": 8099, "path": "/dashboard"},
     {"name": "onboarding", "label": "Onboarding / Setup",
      "internal_url": "http://onboarding:8088/", "public_port": 8088, "path": "/"},
-    {"name": "control_plane", "label": "Control Plane",
-     "internal_url": "http://control-plane:8085/health", "public_port": 8085, "path": "/health"},
+    # `path` e' cio' che il BROWSER apre: qui deve stare la dashboard, non
+    # /health. Puntando a /health l'utente atterrava su {"status":"ok"} e la
+    # dashboard sembrava sparita ("non riesco a trovare la pagina"). La sonda
+    # (internal_url) resta /health: e' il suo mestiere, un 200 economico.
+    {"name": "control_plane", "label": "Control Plane \u2014 Dashboard",
+     "internal_url": "http://control-plane:8085/health", "public_port": 8085, "path": "/dashboard"},
+    # Deep-link diretto alla scheda: la dashboard legge l'hash (#autogen) e apre
+    # il pannello, cosi' sogni e DAG sono a un clic dalla home del bridge.
+    {"name": "autogen", "label": "\u2728 Autogenerazione (sogni \u00b7 DAG)",
+     "internal_url": "http://control-plane:8085/health", "public_port": 8085, "path": "/dashboard#autogen"},
     {"name": "open_webui", "label": "Chat (Open WebUI)",
      "internal_url": "http://open-webui:8080/", "public_port": 3000, "path": "/"},
-    {"name": "obsidian", "label": "Note (Obsidian)",
-     "internal_url": "http://obsidian:3000/", "public_port": 8091, "path": "/"},
     {"name": "searxng", "label": "Ricerca (SearXNG)",
      "internal_url": "http://searxng:8080/", "public_port": 8092, "path": "/"},
     # Progetto Docker separato (minimesh-net): nessuna garanzia di ordering/
@@ -452,6 +458,34 @@ async def serve_dashboard_alias() -> FileResponse:
 @app.get("/dashboard.html")
 async def serve_dashboard_html() -> FileResponse:
     return FileResponse(DASHBOARD_HTML, media_type="text/html")
+
+
+# ── Ragnatela (Web Crawlers) — vedi docs/spider.md ────────────────────────────
+# La bridge non tiene una copia dei file: li chiede al control-plane e li
+# rimanda come se fossero suoi. Cosi' la riga da mettere nelle pagine e' la
+# stessa qui e sul CP (`/spider/bootstrap.js`), stessa origine per il browser,
+# nessun file di terzi da copiare in questa immagine. Se il CP non risponde, la
+# rotta risponde 404 con un commento JS e la pagina resta identica.
+async def _spider_asset(nome: str) -> Response:
+    try:
+        async with httpx.AsyncClient(timeout=6) as client:
+            resp = await client.get(f"{CP_URL}/spider/{nome}")
+        return Response(content=resp.content, status_code=resp.status_code,
+                        media_type="application/javascript")
+    except Exception:
+        return Response(
+            content="/* ragnatela non raggiungibile dal control-plane: vedi docs/spider.md */\n",
+            status_code=404, media_type="application/javascript")
+
+
+@app.get("/spider/bootstrap.js")
+async def spider_bootstrap() -> Response:
+    return await _spider_asset("bootstrap.js")
+
+
+@app.get("/spider/spider.js")
+async def spider_vendored() -> Response:
+    return await _spider_asset("spider.js")
 
 
 @app.get("/events")

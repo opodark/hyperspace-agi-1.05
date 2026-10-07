@@ -13,7 +13,10 @@ from pathlib import Path
 import os
 
 from flask import Flask, jsonify, request
-from shared.forge_skills import ECC_BUNDLE_DIR, attach_skills, load_ecc_bundle, source_hash
+from shared.forge_skills import (ANYDOC_BUNDLE_DIR, ECC_BUNDLE_DIR, attach_skills,
+                                 load_anydoc_bundle, load_ecc_bundle, source_hash)
+from shared.forge_skills import (FIRECRAWL_SKILLS_BUNDLE_DIR,
+                                 load_firecrawl_skills_bundle)
 
 
 def _symlink_creation_available() -> bool:
@@ -147,6 +150,146 @@ class ForgeRoutesTests(unittest.TestCase):
         self.assertIn("provenance", edited)
         rejected = self.client.post("/v1/chat/completions", json={"hyperspace_skills": [artifact_id]})
         self.assertEqual(rejected.status_code, 400)
+
+
+class AnydocBundleTests(unittest.TestCase):
+    def test_pinned_bundle_has_one_verified_office_skill(self):
+        items = load_anydoc_bundle(ANYDOC_BUNDLE_DIR)
+        self.assertEqual(len(items), 1)
+        item = items[0]
+        self.assertEqual(item["type"], "skill")
+        self.assertEqual(item["generator"], "anydoc-import")
+        self.assertTrue(item["id"].startswith("anydoc-convert-documents-to-markdown-"))
+        self.assertEqual(item["provenance"]["repository"], "https://github.com/firecrawl/anydoc")
+        self.assertRegex(item["provenance"]["commit"], r"^[0-9a-f]{40}$")
+        self.assertEqual(item["provenance"]["license"], "MIT")
+        self.assertEqual(source_hash(item["source"]), item["provenance"]["sha256"])
+        self.assertIn("Permission is hereby granted", item["provenance"]["license_text"])
+
+    def test_tampering_and_wrong_provenance_rejected(self):
+        for change in ("tamper", "repository"):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / "anydoc"
+                shutil.copytree(ANYDOC_BUNDLE_DIR, root)
+                if change == "tamper":
+                    (root / "skills/convert-documents-to-markdown/SKILL.md").write_text("changed")
+                else:
+                    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+                    manifest["repository"] = "https://example.com/other"
+                    (root / "manifest.json").write_text(json.dumps(manifest))
+                with self.assertRaises(ValueError):
+                    load_anydoc_bundle(root)
+
+
+class AnydocForgeRouteTests(unittest.TestCase):
+    """`POST /forge/import/anydoc` eseguito davvero, non solo letto nel sorgente."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        app = Flask(__name__)
+        app.testing = True
+        self.ns = dict(globals(), app=app, FORGE_DIR=self.tmp.name, FORGE_ADMIN_TOKEN="test-token",
+                       _forge_lock=threading.Lock(), _FORGE_TYPES={"tool", "skill", "patch"},
+                       _FORGE_STATES={"draft", "review", "approved", "disabled"},
+                       load_anydoc_bundle=load_anydoc_bundle, ANYDOC_BUNDLE_DIR=ANYDOC_BUNDLE_DIR,
+                       push_log=lambda *args, **kwargs: None)
+        source = Path(__file__).parents[1] / "control-plane/main.py"
+        names = {"_forge_path", "_forge_write", "_forge_authorized", "_forge_validate",
+                 "_forge_read_skill", "forge_import_anydoc"}
+        # encoding esplicito: il file ha caratteri non-ASCII (i banner di sezione).
+        nodes = [node for node in ast.parse(source.read_text(encoding="utf-8")).body
+                 if isinstance(node, ast.FunctionDef) and node.name in names]
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), "exec"), self.ns)
+        self.client = app.test_client()
+        self.headers = {"X-Hyperspace-Forge-Token": "test-token"}
+
+    def test_import_requires_token_and_is_idempotent(self):
+        self.assertEqual(self.client.post("/forge/import/anydoc", json={}).status_code, 403)
+        response = self.client.post("/forge/import/anydoc", headers=self.headers, json={})
+        self.assertEqual(response.status_code, 200)
+        entry = response.json["artifacts"][0]
+        self.assertTrue(entry["created"])
+        item = self.ns["_forge_read_skill"](entry["id"])
+        self.assertEqual(item["status"], "draft")
+        self.assertEqual(item["type"], "skill")
+        self.assertTrue(item["validation"]["valid"])
+        again = self.client.post("/forge/import/anydoc", headers=self.headers, json={})
+        self.assertFalse(any(item["created"] for item in again.json["artifacts"]))
+
+
+class FirecrawlSkillsBundleTests(unittest.TestCase):
+    """Il catalogo testuale Firecrawl: quattro voci, verificate e inerti."""
+
+    def test_catalogue_bundle_has_four_verified_reference_skills(self):
+        items = load_firecrawl_skills_bundle(FIRECRAWL_SKILLS_BUNDLE_DIR)
+        self.assertEqual(len(items), 4)
+        self.assertEqual({item["id"].rsplit("-", 1)[0] for item in items},
+                         {f"firecrawl-skills-{name}" for name in (
+                             "firecrawl-search", "firecrawl-scrape",
+                             "firecrawl-research-index", "firecrawl-developer-index")})
+        for item in items:
+            self.assertEqual(item["type"], "skill")
+            self.assertEqual(item["generator"], "firecrawl-skills-import")
+            self.assertEqual(item["permissions"], [])
+            self.assertEqual(item["provenance"]["repository"], "https://github.com/firecrawl/skills")
+            self.assertRegex(item["provenance"]["commit"], r"^[0-9a-f]{40}$")
+            self.assertEqual(item["provenance"]["license"], "ISC")
+            self.assertEqual(source_hash(item["source"]), item["provenance"]["sha256"])
+            self.assertIn("Permission to use, copy, modify", item["provenance"]["license_text"])
+
+    def test_tampering_and_wrong_provenance_rejected(self):
+        for change in ("tamper", "repository"):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / "firecrawl-skills"
+                shutil.copytree(FIRECRAWL_SKILLS_BUNDLE_DIR, root)
+                if change == "tamper":
+                    (root / "skills/firecrawl-search/SKILL.md").write_text("changed")
+                else:
+                    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+                    manifest["repository"] = "https://example.com/other"
+                    (root / "manifest.json").write_text(json.dumps(manifest))
+                with self.assertRaises(ValueError):
+                    load_firecrawl_skills_bundle(root)
+
+
+class FirecrawlSkillsForgeRouteTests(unittest.TestCase):
+    """`POST /forge/import/firecrawl-skills` eseguito davvero, non solo letto nel sorgente."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        app = Flask(__name__)
+        app.testing = True
+        self.ns = dict(globals(), app=app, FORGE_DIR=self.tmp.name, FORGE_ADMIN_TOKEN="test-token",
+                       _forge_lock=threading.Lock(), _FORGE_TYPES={"tool", "skill", "patch"},
+                       _FORGE_STATES={"draft", "review", "approved", "disabled"},
+                       load_firecrawl_skills_bundle=load_firecrawl_skills_bundle,
+                       FIRECRAWL_SKILLS_BUNDLE_DIR=FIRECRAWL_SKILLS_BUNDLE_DIR,
+                       push_log=lambda *args, **kwargs: None)
+        source = Path(__file__).parents[1] / "control-plane/main.py"
+        names = {"_forge_path", "_forge_write", "_forge_authorized", "_forge_validate",
+                 "_forge_read_skill", "forge_import_firecrawl_skills"}
+        # encoding esplicito: il file ha caratteri non-ASCII (i banner di sezione).
+        nodes = [node for node in ast.parse(source.read_text(encoding="utf-8")).body
+                 if isinstance(node, ast.FunctionDef) and node.name in names]
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), "exec"), self.ns)
+        self.client = app.test_client()
+        self.headers = {"X-Hyperspace-Forge-Token": "test-token"}
+
+    def test_import_requires_token_and_is_idempotent(self):
+        self.assertEqual(self.client.post("/forge/import/firecrawl-skills", json={}).status_code, 403)
+        response = self.client.post("/forge/import/firecrawl-skills", headers=self.headers, json={})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json["artifacts"]), 4)
+        entry = response.json["artifacts"][0]
+        self.assertTrue(entry["created"])
+        item = self.ns["_forge_read_skill"](entry["id"])
+        self.assertEqual(item["status"], "draft")
+        self.assertEqual(item["type"], "skill")
+        self.assertTrue(item["validation"]["valid"])
+        again = self.client.post("/forge/import/firecrawl-skills", headers=self.headers, json={})
+        self.assertFalse(any(item["created"] for item in again.json["artifacts"]))
 
 
 if __name__ == "__main__":

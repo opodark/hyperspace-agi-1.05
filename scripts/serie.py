@@ -7,9 +7,12 @@ Ma per scegliere una posa, un abito, un'inquadratura o un ambiente servono le
 varianti, e farle a mano una per volta vuol dire perdere il filo — quale seed,
 quale scena, quale file — o cambiare volto a ogni tentativo.
 
-La serie invece è deterministica: **stile e seed restano quelli dichiarati nel
-documento** e cambia solo la `scena`. Il volto resta lo stesso perché la richiesta
-è la stessa, non perché il modello se lo ricordi.
+La serie invece è deterministica: **lo stile resta quello dichiarato nel documento**
+e cambia la `scena` — e con la scena il **seed**, che dal 2026-10-01 si sposta di un
+offset calcolato sulla scena (`accoda_ritratto`): con un seed solo, dodici scene
+diverse riciclano composizione e palette, e la serie diventa dodici volte la stessa
+fotografia con un abito diverso. Il volto non lo tiene il seed — lo tiene il
+**riferimento**.
 
 Dal 2026-09-30 «la richiesta è la stessa» non basta più a dire il volto: il seed
 tiene fermo il *disegno*, non l'identità, e due scene diverse disegnano due volti
@@ -439,8 +442,13 @@ def main(argv=None) -> int:
         if args.prova:
             print(f"  {prompt_ritratto(variante)}")
             continue
-        stato, dati = cli.accoda_ritratto(base, token, variante, seed=args.seed,
-                                          creatore=args.creatore)
+        # La scena va passata come ARGOMENTO, non solo dentro la variante: è da lì
+        # che `accoda_ritratto` calcola l'offset del seed. Con la scena sola nel
+        # dizionario il prompt era giusto e il seed restava quello dichiarato, uno
+        # per tutte e dodici le varianti: la serie del 2026-10-01 è uscita così —
+        # otto immagini, un seed solo, la stessa palette in tutte.
+        stato, dati = cli.accoda_ritratto(base, token, variante, scena=scena,
+                                          seed=args.seed, creatore=args.creatore)
         if stato != 201 or not dati.get("ok"):
             motivo = str(dati.get("error") or dati.get("errore") or "")[:160]
             print(f"  accodamento fallito (HTTP {stato}): {motivo}")

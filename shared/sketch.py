@@ -21,8 +21,8 @@ from shared.showcase import DICHIARAZIONE
 # Lo stile dello sketch: dichiaratamente non fotografico, così la regola
 # "figura digitale" di showcase è soddisfatta senza doverla chiedere ogni volta.
 STILE_SKETCH = (
-    "monochrome pencil and ink line art, editorial illustration, no color, "
-    "not a photo, rough artist sketch"
+    "single full-frame scene, monochrome pencil and ink line art, no color, "
+    "not a photo, rough artist sketch, no magazine layout, no caption"
 )
 
 # CyberRealistic Pony richiede 30+ passi; 30 è il minimo consigliato e contiene
@@ -39,10 +39,14 @@ def prompt_sketch(idea: str, *, autore: str = "") -> str:
     La dichiarazione ("si vede che è una costruzione digitale") sta in coda come
     nel ritratto: con Qwen va detto, e con SDXL non fa male.
     """
-    pezzi = [STILE_SKETCH]
+    # La scena viene prima: e' il soggetto dell'immagine, non un dettaglio dello
+    # stile. Inoltre evitiamo "editorial illustration", che con Pony produceva
+    # spesso una pagina di rivista con ritratto e testo inventato.
+    pezzi = []
     testo = " ".join(str(idea or "").split())
     if testo:
         pezzi.append(testo)
+    pezzi.append(STILE_SKETCH)
     pezzi.append(DICHIARAZIONE)
     return ". ".join(p.strip(".") for p in pezzi if p.strip())
 

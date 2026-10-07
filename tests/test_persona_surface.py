@@ -127,13 +127,15 @@ class IdentitaPrevistaTests(unittest.TestCase):
     token, con il tono delle stanze che vince sul contesto del mezzo).
     """
 
-    def test_workbench_non_vuole_l_identita(self):
-        self.assertEqual(SURFACES_WITHOUT_IDENTITY, frozenset({"workbench"}))
+    def test_console_non_vuole_l_identita(self):
+        self.assertEqual(SURFACES_WITHOUT_IDENTITY,
+                         frozenset({"openwebui", "workbench"}))
         self.assertFalse(identity_expected("workbench"))
+        self.assertFalse(identity_expected("openwebui"))
         self.assertEqual(normalize_surface("workbench"), "workbench")
 
     def test_tutte_le_altre_si(self):
-        for superficie in ("openwebui", "web-node", "terminal", "comfyui",
+        for superficie in ("web-node", "terminal", "comfyui",
                            "channel-chat", "telegram-chat", "discord-pm"):
             with self.subTest(superficie=superficie):
                 self.assertTrue(identity_expected(superficie))
@@ -162,7 +164,9 @@ class IdentitaPrevistaTests(unittest.TestCase):
         `tool_call: persona_get` e "Sono Aurora, un'IA che tiene compagnia a una
         cerchia ristretta…"."""
         self.assertEqual(identity_tools_hidden("workbench"), IDENTITY_TOOLS)
-        self.assertEqual(identity_tools_hidden("openwebui"), frozenset())
+        self.assertEqual(identity_tools_hidden("openwebui"), IDENTITY_TOOLS)
+        # Il modulo puro resta fail-safe sulle superfici mancanti/sconosciute;
+        # la route traduce l'assenza in `openwebui` prima di arrivare qui.
         self.assertEqual(identity_tools_hidden(None), frozenset())
         self.assertEqual(IDENTITY_TOOLS, frozenset({"persona_get", "persona_note"}))
         # un canale non è mai workbench
@@ -199,13 +203,20 @@ class SurfaceWiringTests(unittest.TestCase):
 
     def test_il_catalogo_dei_tool_si_filtra_per_superficie(self):
         """Il catalogo nativo passa da `_catalogo_nativi`, che chiede al modulo
-        quali tool nascondere: tre punti lo usano (loop, non-stream, stream) e
-        nessuno deve tornare a leggere `BUILTIN_TOOLS` per conto suo."""
+        quali tool nascondere: il loop (stream e non-stream), la chat e il worker
+        di Mission Control — che poi interseca il manifest del ruolo, un filtro
+        piu' stretto, non piu' largo — e nessuno deve tornare a leggere
+        `BUILTIN_TOOLS` per conto suo."""
         corpo = ast.unparse(self.functions["_catalogo_nativi"])
         self.assertIn("identity_tools_hidden(superficie)", corpo)
         sorgente = MAIN_SOURCE.read_text(encoding="utf-8")
-        self.assertEqual(sorgente.count("_catalogo_nativi("), 4,
-                         "una definizione + i tre punti che offrono i tool")
+        self.assertEqual(sorgente.count("_catalogo_nativi("), 5,
+                         "una definizione + i quattro punti che offrono i tool")
+        # Mission Control non legge il catalogo per conto proprio: manifest ∩
+        # catalogo, e i tool dell'identita' non sono in nessun manifest.
+        worker = ast.unparse(self.functions["_mission_worker"])
+        self.assertIn("_catalogo_nativi()", worker)
+        self.assertNotIn("BUILTIN_TOOLS", worker)
         # la superficie viaggia con la richiesta, o il loop non la saprebbe
         chat = ast.unparse(self.functions["v1_chat_completions"])
         self.assertIn("_hyperspace_surface", chat)

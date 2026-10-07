@@ -228,6 +228,7 @@ def _esegui_stage(comfy_url: str, percorso: str, nome: str = "") -> int:
         return 1
     log(f"riferimento in ComfyUI/input: {riferimento}")
     log(f'  in un job:    "reference_image": "{riferimento}"')
+    log(f'  in Anna Batch: "pose_image": "{riferimento}"')
     log(f'  in Anna:      "vetrina": {{"riferimento": "{riferimento}"}}')
     return 0
 
@@ -529,11 +530,11 @@ def main(argv=None) -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Ponte HyperSpace -> ComfyUI.")
     parser.add_argument("--check", action="store_true", help="verifica e basta")
-    parser.add_argument("--stage-riferimento", default="", metavar="FILE",
+    parser.add_argument("--stage-riferimento", "--stage-posa", default="", metavar="FILE",
                         help="copia un'immagine in ComfyUI/input e stampa il nome da "
-                             "usare come riferimento (non genera nulla, non serve "
+                             "usare come riferimento o posa (non genera nulla, non serve "
                              "il token)")
-    parser.add_argument("--nome-riferimento", default="",
+    parser.add_argument("--nome-riferimento", "--nome-posa", default="",
                         help="nome con cui salvare il riferimento (default: quello "
                              "del file di partenza)")
     parser.add_argument("--once", action="store_true", help="esegui un job ed esci")

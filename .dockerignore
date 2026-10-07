@@ -7,6 +7,11 @@
 !.env.example
 .acl-backup-*
 data
+# graphify caches are regenerable build junk (see .gitignore): they carry
+# owner-only modes and must never end up in the sandbox seed, where the
+# unprivileged runner would be unable to copy them.
+graphify-out*/
+.graphify-venv
 **/__pycache__
 **/*.pyc
 node_modules

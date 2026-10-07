@@ -12,6 +12,20 @@ The authority layer is the trust and seed boundary of the system. It is responsi
 
 The control plane is the orchestration core. It routes tasks, manages connectors, presents dashboards, and coordinates the agent fabric.
 
+The Python service in `control-plane/main.py` is the deployed control plane. Its
+new **Mission Control** path accepts an operator objective, plans a task DAG,
+dispatches workers under role-specific tool manifests and budgets, verifies
+results, and can replan. Mission artifacts stay in disposable code sandboxes;
+review records a decision but does not apply a diff. The mission loop is off by
+default, and `/missions*` is restricted to the internal operator surface. See
+[Mission Control](mission-control.md) for routes, token and limits.
+
+The same `/v1/chat/completions` endpoint also serves the text-only
+[Hermes Gadget simulator](hermes-gadget-prototype.md). That bridge uses the
+normal model routing in the control plane with tools disabled for the gadget
+prototype. It is separate from Hermes Agent's memory backend and from the
+Gadget's eventual voice integration.
+
 ### Node / Worker
 
 The node and worker layers are the execution runtime of the mesh. They handle task execution, model access, and lower-level agent behavior.
@@ -30,6 +44,20 @@ The memory graph is the persistence and retrieval layer for shared agent memory 
 ### Infra UI
 
 The infra UI is the operational view of the mesh. It is separate from the control plane so that administrators and operators can inspect the network without touching execution logic.
+
+## Pole Motion project (separate private repository)
+
+`pole-motion` is developed in its **own private repository**
+(`github.com:opodark/pole-motion`), separate from this one. Its optional
+MuJoCo/Mink `sim` extra builds a physical reference body and checks draft poses
+for static plausibility. It is not a control-plane service or an RL trainer, and
+its results are not safety certification.
+
+HyperSpace relates to it only as an **internal development tool** — a place to
+build, review and run things — never as a host for the project, its models or
+its assets. Keeping the code in a separate private repository keeps authors,
+dates and provenance of models and contributions intact, and keeps third-party
+asset licences reviewable on their own before any commercial use.
 
 ## Connector fabric
 

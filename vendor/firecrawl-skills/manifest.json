@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/firecrawl/skills",
+  "commit": "d0ffd7c85e75497682a62fa39df876882c40a21e",
+  "files": {
+    "LICENSE": "8db975b9d59274cd37f19d3f7fec9ce0f2d96daf71e0c69d48dc5358f55dd691",
+    "skills/firecrawl-search/SKILL.md": "ff454007e73053a64aee4996c414d780891122fab2e202012c0e38b47097be0b",
+    "skills/firecrawl-scrape/SKILL.md": "afb5885258595b1ee606da7d24c568aa69f435612a566fac35b27b2402360f15",
+    "skills/firecrawl-research-index/SKILL.md": "39c6a6cff3fdb1c684c3212834e68bc6168f374b57d3acd002523b8c4fe3d07a",
+    "skills/firecrawl-developer-index/SKILL.md": "4d0d1f53a6ccbd182311ba7d4a686ddc53b9628fe893b4a947d66ecc30178aad"
+  },
+  "upstream_paths": {
+    "LICENSE": "LICENSE",
+    "skills/firecrawl-search/SKILL.md": "skills/core/firecrawl-search/SKILL.md",
+    "skills/firecrawl-scrape/SKILL.md": "skills/core/firecrawl-scrape/SKILL.md",
+    "skills/firecrawl-research-index/SKILL.md": "skills/core/firecrawl-research-index/SKILL.md",
+    "skills/firecrawl-developer-index/SKILL.md": "skills/core/firecrawl-developer-index/SKILL.md"
+  }
+}

@@ -9,12 +9,22 @@ COPY control-plane/main.py .
 COPY control-plane/routing.py .
 COPY control-plane/dashboard.html .
 COPY control-plane/desktop.html .
+COPY control-plane/activity.html .
 COPY control-plane/conversations.html .
 COPY control-plane/diario.html .
+COPY control-plane/intimo.html .
+COPY control-plane/sites.html .
+COPY control-plane/comics.html .
+COPY control-plane/spider ./spider
+COPY control-plane/vendor ./vendor
 COPY control-plane/connectors ./connectors
 
 COPY shared ./shared
 COPY vendor/ecc ./vendor/ecc
+COPY vendor/anydoc ./vendor/anydoc
+COPY vendor/wayfinder ./vendor/wayfinder
+COPY vendor/firecrawl-skills ./vendor/firecrawl-skills
+COPY integrations/wayfinder ./integrations/wayfinder
 
 ENV PYTHONPATH=/app:/app/shared
 

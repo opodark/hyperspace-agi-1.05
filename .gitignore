@@ -58,3 +58,9 @@ reports/
 # graphify (vedi docs/graphify.md): si rigenera, non si committa.
 graphify-out*/
 .graphify-venv/
+
+# La ragnatela (Web Crawlers) — codice di terzi SENZA licenza: mai versionata
+# (docs/spider.md). Sta sotto data/control-plane/ perche' e' l'unica cartella di
+# dati che il container del control-plane vede, via il volume /app/data: il
+# .gitignore generale (**/data/) la copre gia', e questa riga lo dice a chi legge.
+data/control-plane/vendor/web-crawlers/

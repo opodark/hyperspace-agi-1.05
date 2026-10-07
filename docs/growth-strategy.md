@@ -127,7 +127,9 @@ vips, diario). Un piccolo script di report (lo stesso pattern di
 
 **30 giorni — accendi la casa principale**
 - Instagram: cadenza quotidiana (sogno) + serie poesia/dialogo a rotazione.
-- Attivare `INSTAGRAM_DREAM_PUBLISH_ENABLED` e pubblicare il sogno ogni notte.
+- Attivare `INSTAGRAM_DREAM_PUBLISH_ENABLED` e pubblicare il sogno ogni notte
+  (su questa installazione è già `true` e le ultime voci del diario risultano
+  `published`: il monitor di `docs/dream-nightly.md` dice se smette).
 - Rispondere a ogni DM; cominciare i commenti nella nicchia (5-10/giorno).
 - Telegram: stesso contenuto, per collaudare tono/ritmo senza rischiare IG.
 - KPI: follower, engagement rate, DM→musa.
@@ -157,3 +159,15 @@ vips, diario). Un piccolo script di report (lo stesso pattern di
    (logica pura in `shared/growth_metrics.py`) legge diario e VIP e stampa i KPI.
 4. ~~Pagina di destinazione della newsletter~~ — **fatto**: `public-site/aurora-anna/index.html`
    (link-in-bio; il link di iscrizione va collegato alla piattaforma scelta, es. polsia.com).
+5. ~~Monitor e scheduler del sogno notturno~~ — **fatto**: `docs/dream-nightly.md`.
+   `shared/dream_log.py` registra ogni passo legato alla stessa voce (scritto →
+   sketch → disegnato → pubblicato) e i giri a vuoto con il motivo;
+   `scripts/dream_monitor.py` e `GET /dreams/nightly/status` dicono in una
+   schermata che fine ha fatto lo sketch e perché una notte è passata senza
+   sogni, con il verdetto `ok`/`attenzione`/`muto`; `scripts/dream_scheduler.py` +
+   `integrations/sogni/com.hyperspace.dream-nightly.plist` tengono vivo il ciclo
+   ogni 30 minuti quando il thread del control-plane tace (stesse guardie del
+   loop, quindi nessun sogno doppio). **Da fare dall'operatore**: `docker compose
+   restart control-plane`, perché le due rotte nuove entrino in servizio (oggi
+   rispondono 404).
+

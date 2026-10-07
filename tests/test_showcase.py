@@ -11,6 +11,7 @@ ritirare. Qui i conflitti si vedono **prima** di generare, e i confini assoluti
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import io
 import json
@@ -33,6 +34,7 @@ from shared.showcase import (CONFLITTI_IDENTITA, MARCATORI_DIGITALI,  # noqa: E4
                              vetrina_con_quadro_erotismo, vetrina_dal_documento)
 
 CLI = ROOT / "scripts" / "ritratto.py"
+SERIE = ROOT / "scripts" / "serie.py"
 PERSONA = json.loads((ROOT / "data" / "persona-aurora.json").read_text(encoding="utf-8"))
 ANNA = json.loads((ROOT / "data" / "persona-anna.json").read_text(encoding="utf-8"))
 
@@ -810,6 +812,100 @@ class RichiestaDiSeTests(unittest.TestCase):
     def test_il_nome_non_si_legge_nei_soggetti_altrui(self):
         self.assertFalse(richiesta_di_se("di una sconosciuta", "fammi un disegno di una sconosciuta",
                                          "Anna"))
+
+
+
+class SerieTests(unittest.TestCase):
+    """La serie NON ricicla il seed: ogni scena porta il suo.
+
+    Il caso reale (2026-10-01, la serie di Anna): l'offset del seed per scena nasce in
+    `accoda_ritratto`, che lo calcola dalla scena, ma `serie.py` passava solo
+    `seed=args.seed` — la scena viaggiava dentro la variante, non come argomento — e
+    l'offset non si applicava mai. Il prompt era giusto (la scena c'era) e le otto
+    immagini sono uscite con lo stesso seed: stessa composizione, stessa palette,
+    abiti e pose diversi. Il test guarda il payload che parte davvero, non il commento
+    che promette il contrario.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        specifica = importlib.util.spec_from_file_location("serie_sotto_test", SERIE)
+        cls.serie = importlib.util.module_from_spec(specifica)
+        specifica.loader.exec_module(cls.serie)
+
+    def _run(self, argv):
+        """La serie con la coda finta: torna il codice, l'uscita e i payload accodati."""
+        accodati = []
+
+        def chiama(url, *args, **kwargs):
+            if str(url).endswith("/image/status"):
+                return 200, {"in_coda": 0, "in_esecuzione": 0}
+            payload = kwargs.get("payload") or {}
+            accodati.append(payload)
+            return 201, {"ok": True, "job": {
+                "id": "job" + str(len(accodati)),
+                "larghezza": payload.get("larghezza"), "altezza": payload.get("altezza"),
+                "passi": payload.get("passi"), "seed": payload.get("seed"),
+                "fix": payload.get("fix")}}
+
+        def aspetta(*args, **kwargs):
+            return {"stato": "done", "esito": {}}
+
+        cli = self.serie.cli
+        originali = cli.token_canale, cli.chiama, cli.aspetta_job
+        cli.token_canale = lambda *a, **k: "token"
+        cli.chiama = chiama
+        cli.aspetta_job = aspetta
+        try:
+            uscita = io.StringIO()
+            with redirect_stdout(uscita):
+                codice = self.serie.main(argv)
+        finally:
+            cli.token_canale, cli.chiama, cli.aspetta_job = originali
+        return codice, uscita.getvalue(), accodati
+
+    def _scene(self, nomi):
+        return [scena for nome, scena, _posa in self.serie.SCENE if nome in nomi]
+
+    def _seed_atteso(self, scena):
+        base = vetrina_dal_documento(ANNA)["seed"]
+        return base + int(hashlib.sha256(scena.encode()).hexdigest()[:8], 16)
+
+
+    def test_ogni_scena_ha_il_suo_seed(self):
+        """E la stessa scena resta ripetibile: l'offset è della scena, non della volta."""
+        argv = ["--persona", str(ROOT / "data" / "persona-anna.json"), "--solo", "05,06"]
+        codice, testo, accodati = self._run(argv)
+        self.assertEqual(codice, 0, testo)
+        self.assertEqual(len(accodati), 2, testo)
+        attesi = [self._seed_atteso(scena) for scena in self._scene({"05-busto-vestito",
+                                                                    "06-seduta"})]
+        self.assertEqual([p["seed"] for p in accodati], attesi)
+        self.assertNotEqual(attesi[0], attesi[1], "due scene con un seed solo: è il difetto")
+        _codice, _testo, ancora = self._run(argv)
+        self.assertEqual([p["seed"] for p in ancora], attesi,
+                         "la stessa scena deve dare lo stesso seed")
+
+    def test_il_seed_chiesto_a_mano_vince_su_tutto(self):
+        """`--seed N` è un'altra persona: l'offset non si somma a un seed scelto."""
+        codice, testo, accodati = self._run(
+            ["--persona", str(ROOT / "data" / "persona-anna.json"),
+             "--solo", "05,06", "--seed", "4242"])
+        self.assertEqual(codice, 0, testo)
+        self.assertEqual([p["seed"] for p in accodati], [4242, 4242])
+
+    def test_il_prompt_della_variante_non_cambia(self):
+        """Il seed si sposta, la richiesta no: scena, stile e dichiarazione restano."""
+        codice, testo, accodati = self._run(
+            ["--persona", str(ROOT / "data" / "persona-anna.json"), "--solo", "05"])
+        self.assertEqual(codice, 0, testo)
+        vetrina = vetrina_dal_documento(ANNA)
+        prompt = accodati[0]["prompt"]
+        self.assertIn(vetrina["stile"], prompt)
+        self.assertIn(self._scene({"05-busto-vestito"})[0], prompt)
+        self.assertTrue(prompt.endswith("nessun essere umano in carne"), prompt)
+        self.assertEqual(accodati[0]["reference_image"], vetrina["riferimento"],
+                         "il volto lo tiene il riferimento, e il seed non lo tocca")
 
 
 

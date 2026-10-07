@@ -14,6 +14,7 @@ HyperSpace
 ├── Dev Sandbox
 ├── Test e benchmark
 ├── Debug e profiling
+├── Knowledge graph (graphify)
 ├── Security review
 ├── Browser testing
 └── Pentest di laboratorio
@@ -45,11 +46,29 @@ privilegi del runtime.
 | Dependency audit | pip-audit, inventario e futura SBOM | accesso controllato alle fonti advisory | pianificato |
 | Browser worker | Playwright, screenshot e Trace Viewer | browser preinstallato, URL del job | pianificato |
 | Security Lab | Nmap, ZAP e diagnostica di rete | rete privata/laboratorio, target dichiarati | pianificato |
+| Reverse engineering host | REA su artefatti locali | copia temporanea del target; analisi statica iniziale | candidato per prova |
 
 Bandit e gli altri controlli statici restano nella Dev Sandbox. Nmap e ZAP
 sono utili anche durante lo sviluppo, ma appartengono al Security Lab perché
 generano traffico verso altri processi o host. Playwright usa un browser worker
 separato per non appesantire l'immagine offline di base.
+REA richiede un confine diverso: ispeziona app e binari locali tramite provider
+host; alcune operazioni avviano il target con i permessi dell'utente. La prima
+prova usa solo analisi statica su una fixture nostra, come descritto in
+[development-security-tools.md](development-security-tools.md#candidato-rea-per-reverse-engineering).
+
+### Knowledge graph del repository (graphify)
+
+`graphify` mappa codice e documenti del monorepo in un grafo locale
+(`graphify-out/graph.json`, `GRAPH_REPORT.md`, `graph.html`) interrogabile da CLI
+(`query`/`path`/`explain`/`god-nodes`) oppure esposto come server MCP al coding
+agent. Il codice è analizzato con tree-sitter in locale; solo l'estrazione dai
+documenti usa un LLM, da puntare sul backend locale (Ollama) così nessun
+contenuto lascia la macchina. È uno **strumento di sviluppo**, non un worker di
+produzione: gira sul checkout del repository, non in un container e non apre
+porte nello stack (`docker-compose.yml` non cambia; l'MCP è stdio, e il
+transport HTTP opzionale resta loopback-only). Dettagli e installazione in
+[`graphify.md`](graphify.md).
 
 ## Contratto comune
 
@@ -116,4 +135,3 @@ separazione di processo e privilegi non richiede oggi una separazione Git.
    normalizzati.
 6. Hardening completo prima di esposizione pubblica, multiutente o esecuzione
    autonoma oltre il laboratorio fidato.
-

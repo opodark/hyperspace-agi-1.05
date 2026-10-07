@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import urllib.error
 import urllib.request
 
@@ -28,7 +29,12 @@ def traduci_scena_immagine(testo: str, *, base_url: str | None = None,
            os.getenv("LIBRETRANSLATE_URL", "http://libretranslate:5000")).rstrip("/")
     if not url:
         return originale
-    corpo = json.dumps({"q": originale, "source": "it", "target": "en",
+    # Argos traduce meglio prompt nominali brevi separati dalla subordinata. Non è
+    # un dizionario di contenuti: diamo semplicemente al segmentatore una frase in
+    # più, utile anche per pose non erotiche ("in piedi mentre guarda il mare").
+    segmentato = re.sub(r"\s+(mentre|durante)\s+", r". \1 ", originale,
+                        flags=re.IGNORECASE)
+    corpo = json.dumps({"q": segmentato, "source": "it", "target": "en",
                         "format": "text"}, ensure_ascii=False).encode("utf-8")
     richiesta = urllib.request.Request(
         f"{url}/translate", data=corpo,

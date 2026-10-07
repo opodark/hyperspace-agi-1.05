@@ -26,6 +26,8 @@ Apache-2.0, quindi non impongono nulla sulle scelte di licenza del progetto.
 | google-api-python-client | Apache-2.0 | pypi |
 | google-auth-httplib2 | Apache-2.0 | pypi |
 | google-auth-oauthlib | Apache-2.0 | pypi |
+| firecrawl-anydoc | MIT | pypi |
+| pdf-inspector | MIT | pypi |
 
 > **Aperto:** `O365` non dichiara la licenza nel metadata PyPI. E' l'unica
 > dipendenza di questo progetto di cui non si conosce la licenza, e va verificata
@@ -61,7 +63,7 @@ Nessuna dipendenza: solo codice del progetto (`package.json` non ha
 
 ## Immagini dei servizi di terze parti
 
-Open WebUI, SearXNG, Obsidian (KasmVNC), Caddy, Ollama e OmniRoute sono
+Open WebUI, SearXNG, Caddy, Ollama e OmniRoute sono
 **scaricate** dalle rispettive registry a runtime e **non ridistribuite** da
 questo repository: ciascuna immagine porta con se' la propria licenza, e la
 responsabilita' di rispettarla e' di chi la esegue.
@@ -75,6 +77,70 @@ Copyright (c) 2026 Affaan Mustafa. La licenza integrale è conservata in
 `vendor/ecc/LICENSE`; provenienza e SHA-256 sono in `vendor/ecc/manifest.json`.
 Le skill sono distribuite senza modifiche; l'adattamento a Hyperspace è aggiunto
 dal loader come contesto separato. Nessun hook o runtime ECC è incluso.
+
+## anydoc — conversione di documenti d'ufficio
+
+`vendor/anydoc` contiene la Agent Skill `convert-documents-to-markdown` dal
+repository ufficiale [firecrawl/anydoc](https://github.com/firecrawl/anydoc),
+commit `261fc257d17c3eab0f673be31c408fd9fdc2171a`, sotto licenza MIT.
+Copyright (c) 2026 Sideguide Technologies Inc. (Firecrawl). La licenza integrale
+è conservata in `vendor/anydoc/LICENSE`; provenienza e SHA-256 sono in
+`vendor/anydoc/manifest.json`. La skill è distribuita senza modifiche;
+l'adattamento a Hyperspace è aggiunto dal loader come contesto separato, e
+l'import resta inerte (nessuna esecuzione, nessun fetch). La conversione
+eseguibile usa la libreria `firecrawl-anydoc` (MIT), installata nell'immagine del
+control-plane e dichiarata nella tabella qui sopra.
+
+## firecrawl/skills — catalogo di skill testuali
+
+`vendor/firecrawl-skills` contiene quattro Agent Skill di consultazione/metodo
+(`firecrawl-search`, `firecrawl-scrape`, `firecrawl-research-index`,
+`firecrawl-developer-index`) dal repository ufficiale
+[firecrawl/skills](https://github.com/firecrawl/skills), commit
+`d0ffd7c85e75497682a62fa39df876882c40a21e`, sotto licenza ISC.
+Copyright (c) Firecrawl. La licenza integrale è conservata in
+`vendor/firecrawl-skills/LICENSE`; provenienza e SHA-256 sono in
+`vendor/firecrawl-skills/manifest.json`. Le skill sono distribuite senza
+modifiche; l'adattamento a Hyperspace è aggiunto dal loader come contesto
+separato, e l'import resta inerte (nessuna esecuzione, nessun fetch). Hyperspace
+non include né esegue il runtime Firecrawl, non usa `FIRECRAWL_API_KEY` e non
+effettua chiamate di rete per queste skill: sono solo testo di metodo.
+
+## pdf-inspector — classificazione dei PDF
+
+`pdf-inspector` (PyPI, MIT) è il binding Python della libreria Rust omonima di
+Firecrawl: classifica un PDF (`text_based`/`scanned`/`image_based`/`mixed`) e
+dice quali pagine non hanno testo estraibile. È installato nell'immagine del
+control-plane (riga in tabella sopra) ed è usato dal tool locale
+`classifica_pdf`. Il wheel non incorpora modelli OCR, PDFium o ONNX Runtime: le
+funzioni native usate dal tool non eseguono OCR e non scaricano nulla.
+
+## Strumenti di sviluppo (non distribuiti)
+
+`graphify` (pacchetto PyPI `graphifyy`) e' uno strumento di sviluppo per agenti
+di coding: costruisce un grafo di conoscenza locale del repository. **Non** fa
+parte dello stack di runtime e **non** viene distribuito con i container;
+l'installazione e' documentata in [`docs/graphify.md`](docs/graphify.md).
+
+| Pacchetto | Licenza | Fonte |
+|---|---|---|
+| graphifyy | Apache-2.0 | meta |
+| tree-sitter + grammar per linguaggio | MIT (elixir: Apache-2.0) | meta |
+| networkx | BSD-3-Clause | meta |
+| numpy | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | meta |
+| pydantic, pydantic_core | MIT | meta |
+| openai | Apache-2.0 | meta |
+| httpx2, httpcore2, idna | BSD-3-Clause | meta |
+| RapidFuzz, jiter, h11, anyio, truststore | MIT | meta |
+| sniffio | MIT OR Apache-2.0 | meta |
+| typing-extensions | PSF-2.0 | meta |
+
+Verifica del 03/10/2026 sul metadata dell'ambiente locale (`uv tool`, versione
+pinnata 0.9.74): nessuna dipendenza copyleft. La licenza di `graphifyy` e'
+confermata anche dal file `LICENSE` del repository
+[Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify). Queste
+dipendenze sono installate solo nell'ambiente di sviluppo, mai nelle immagini di
+servizio.
 
 ## Non coperto da questo file
 
@@ -108,3 +174,23 @@ dal loader come contesto separato. Nessun hook o runtime ECC è incluso.
   con HyperSpace.
 - **Le dipendenze di sviluppo** (vitest, typescript nel web-node; pytest nella
   sandbox): presenti solo negli ambienti di test, non nelle immagini di servizio.
+
+## Matt Pocock skills — Wayfinder
+
+Selected Markdown workflows and supporting formats from
+https://github.com/mattpocock/skills, commit
+`6fd947921b935b7e1e69293a200400f0fdd5c15f`, are bundled in `vendor/wayfinder/`.
+Copyright (c) 2026 Matt Pocock; MIT License. The complete upstream license is
+preserved in `vendor/wayfinder/LICENSE`; original paths and SHA-256 values are
+recorded in `vendor/wayfinder/manifest.json`. HyperSpace's adapter is separate in
+`integrations/wayfinder/SKILL.md`. No upstream executable or installer is run.
+
+## Skill activation hook reference (diet103)
+
+- Upstream: https://github.com/diet103/claude-code-infrastructure-showcase
+- Commit: `07f75ce3c301259e857343596e7883b8ce5a9f50`
+- License: MIT; copyright (c) 2025 Claude Code Infrastructure Contributors.
+- Original reference: `vendor/skill-hooks/skill-activation-prompt.ts`.
+- Full license: `vendor/skill-hooks/LICENSE`; checksums: `vendor/skill-hooks/manifest.json`.
+- Used as a design reference for the local Python skill selector. The upstream
+  TypeScript script is not executed and its provider dependencies are not installed.

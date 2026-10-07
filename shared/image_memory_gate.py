@@ -86,6 +86,14 @@ class ImageMemoryGate:
                 self._expires = 0.0
                 self._condition.notify_all()
 
+    def release_queue(self):
+        """Release the between-jobs reservation when the queue is paused."""
+        with self._condition:
+            if self._owner == self._CODA_IMMAGINI:
+                self._owner = ""
+                self._expires = 0.0
+                self._condition.notify_all()
+
     def status(self):
         with self._condition:
             self._expire_locked()

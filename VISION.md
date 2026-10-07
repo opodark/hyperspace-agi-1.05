@@ -8,6 +8,8 @@ La piattaforma assegna agli agenti ruoli, contesto e capability, instrada il lav
 
 ## Obiettivo di prodotto
 
+**Scelta distintiva e non negoziabile:** HyperSpace usa esclusivamente modelli non censurati per l'inferenza, indipendentemente da ruolo, modalità (testo, codice, visione, immagini, voce), nodo o provider. Non è prevista una variante di prodotto che impieghi modelli censurati, né un fallback silenzioso verso di essi.
+
 Un **Primary Brain** sempre acceso costituisce il centro operativo: coordina inferenza, task, strumenti, stato e accesso alla memoria. Il profilo Windows su Asus resta il punto di partenza da consolidare, con accesso remoto tramite rete privata e Tailscale nella fase transitoria.
 
 Il sistema deve permettere a persone e agenti di lavorare attraverso interfacce web, canali esterni e integrazioni con sistemi aziendali. Le dashboard rendono visibili risorse, code, risultati e controlli; i canali mantengono un'identità agentica dichiarata e policy condivise con il control plane.
@@ -17,13 +19,15 @@ Gli agenti possono operare sull'host attraverso capability abilitate esplicitame
 ## Principi architetturali
 
 1. **Runtime prima delle interfacce** — routing, code, gestione delle risorse, memoria, osservabilità e recovery sono il fondamento del prodotto. Le interfacce devono rendere queste capacità utilizzabili e controllabili.
-2. **Modelli specializzati e risorse esplicite** — favorire modelli piccoli e medi cooperativi, scegliendo il modello in funzione del compito, delle capability e dei limiti reali di memoria e calcolo del nodo. La coppia generalista/coder è una configurazione di riferimento, non un vincolo permanente.
+2. **Modelli non censurati e risorse esplicite** — usare soltanto modelli non censurati, favorendo modelli piccoli e medi cooperativi e scegliendoli in funzione del compito, delle capability e dei limiti reali di memoria e calcolo del nodo. Il requisito vale anche per modelli specializzati e fallback. La coppia generalista/coder è una configurazione di riferimento, non un vincolo permanente.
 3. **Nodi eterogenei, profili chiari** — isolare le differenze tra host Windows, Linux e altri profili in configurazione e bootstrap. Includere worker browser per i carichi compatibili, senza richiedere Docker a ogni partecipante.
 4. **Interoperabilità attraverso contratti espliciti** — Ollama resta il backend locale di riferimento; API OpenAI-compatible, MCP e connector permettono di integrare strumenti e runtime esterni. Routing e policy restano responsabilità del control plane.
 5. **Autonomia delimitata e verificabile** — ogni capability operativa deve avere scope, autorizzazioni, limiti e tracciabilità. L'accesso all'host e ai sistemi esterni passa attraverso superfici controllate.
 6. **Sviluppo isolato e revisione umana** — gli agenti di sviluppo interni lavorano nel Code Sandbox e consegnano diff e verifiche. Applicazione al repository operativo, pubblicazione e deployment restano passaggi distinti e autorizzati.
 7. **Memoria con provenienza** — distinguere fatti, stato operativo e ipotesi. I risultati dei Dream restano candidati fino a revisione e promozione esplicita; fonti e decisioni devono essere ricostruibili.
 8. **Estensione controllata delle capacità** — Tool & Skill Forge prepara draft da validare e approvare esplicitamente. Generare uno strumento o una skill non equivale ad abilitarne l'esecuzione o pubblicarlo.
+
+La dicitura «uncensored» o «abliterated» nel nome di un modello non basta da sola a dimostrarne l'idoneità: provenienza e comportamento vanno verificati prima di inserirlo nel catalogo e nel routing automatico. Se non esiste un modello idoneo, il sistema deve segnalare l'indisponibilità invece di ripiegare su un modello censurato. Questo requisito riguarda l'inferenza; autenticazione, autorizzazioni, audit, limiti delle capability e obblighi legali restano responsabilità distinte del runtime.
 
 ## Memoria ed evoluzione del sistema
 

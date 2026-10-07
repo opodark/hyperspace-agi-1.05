@@ -367,13 +367,13 @@ SURFACE_CONTEXTS = {
 # stanza sopra — prefisso "Aurora:" compreso.
 #
 # La superficie la DICHIARA il client (`surface` nel corpo o l'header
-# `X-Hyperspace-Surface`): la WebUI lo fa con un header personalizzato della sua
-# connessione al control-plane. Chi non dichiara niente resta `openwebui`, dove
-# l'identità continua a valere — il default non cambia.
+# `X-Hyperspace-Surface`). Open WebUI resta neutrale anche senza header: la
+# configurazione personalizzata può sparire durante un upgrade, e la perdita di
+# metadata di trasporto non deve trasformare di nuovo il banco di lavoro in Anna.
 #
 # Perché un elenco esplicito e non una convenzione sui nomi: spegnere l'identità è
 # una decisione, e una decisione si legge (e si testa) in un posto solo.
-SURFACES_WITHOUT_IDENTITY = frozenset({"workbench"})
+SURFACES_WITHOUT_IDENTITY = frozenset({"openwebui", "workbench"})
 
 # Le superfici riconosciute: quelle con un contesto del mezzo, più quelle che
 # esistono proprio per non avere l'identità (e quindi non hanno un contesto da
@@ -384,7 +384,7 @@ KNOWN_SURFACES = frozenset(SURFACE_CONTEXTS) | SURFACES_WITHOUT_IDENTITY
 def identity_expected(surface=None, *, channel=None) -> bool:
     """L'identità si inietta per questa superficie? (default: sì)
 
-    `workbench` è l'unica che dice no: la console usata come banco di lavoro.
+    `openwebui` e `workbench` dicono no: sono la console usata come banco di lavoro.
     Una superficie sconosciuta, o nessuna superficie, resta "sì": l'identità è il
     caso normale, e dimenticarsi di dichiarare una superficie non deve spegnere
     niente.

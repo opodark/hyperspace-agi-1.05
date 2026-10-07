@@ -115,6 +115,7 @@ implementata una redazione generale dei segreti né persistenza dei report.
 | Test browser e debug UI | Playwright e Trace Viewer | browser worker con tracce e screenshot conservati localmente |
 | Inventario di rete | Nmap | Security Lab con target e porte definiti nel job |
 | Verifica web iniziale | ZAP Baseline | Security Lab con report JSON/HTML; spider più analisi passiva |
+| Analisi di app e binari locali | REA | Adapter opzionale per ispezione statica con Evidence; runtime host dedicato, fuori dalla sandbox e dal Kali di rete |
 
 ZAP Baseline genera traffico di crawling, pur senza eseguire una scansione
 attiva di attacco. Un profilo di pentest attivo richiede una fase successiva con
@@ -127,6 +128,42 @@ laboratorio o ai sistemi inclusi nello scope del job. Nella fase fidata iniziale
 il modello propone target espliciti e il server applica i limiti del worker;
 prima di ampliare l'esposizione, identità, redirect e risoluzione DNS devono
 essere vincolati end-to-end allo stesso scope.
+
+### Candidato: REA per reverse engineering
+
+[REA](https://github.com/morluto/rea) offre CLI e MCP per ispezionare binari
+nativi, app JavaScript/Electron, .NET e siti, con risultati accompagnati da
+evidenze e limiti dichiarati. È utile per capire una dipendenza opaca, una
+release compilata o un comportamento sospetto; non sostituisce Bandit per il
+nostro sorgente, né Nmap/ZAP per la rete. La sua analisi statica JavaScript non
+esegue i moduli estratti; la cattura di processi invece avvia il target con i
+permessi dell'utente host. L'analisi nativa richiede Hopper o Ghidra e il
+supporto Ghidra su Windows è ancora sperimentale/non disponibile. Vedi
+[capacità e requisiti REA](https://github.com/morluto/rea#current-status) e
+[modello di sicurezza](https://github.com/morluto/rea#security-model).
+
+**Prima prova proposta:** su macOS, installare REA in un ambiente separato e
+usare solo `doctor`, `capabilities` e l'analisi statica di una copia temporanea
+di una piccola app JavaScript di nostra proprietà. Confrontare le funzioni e i
+file rilevati con il sorgente noto; conservare output JSON, versione REA,
+hash del target e lacune dichiarate come artefatti di un job. La prova è
+riuscita se almeno un percorso funzionale viene ricostruito con riferimenti
+verificabili e l'analisi non lancia l'app. Nessun `rea setup` automatico:
+quel comando modifica la configurazione MCP degli agenti e può proporre
+l'installazione di Hopper. Una fase distinta potrà valutare Ghidra e i binari
+su fixture compilate di nostra proprietà.
+
+Un futuro adapter HyperSpace dovrebbe esporre solo operazioni esplicite su
+percorsi in un workspace temporaneo, produrre report nel contratto comune e
+tenere `capture-process`, browser runtime, annotazioni e avvio dei provider
+fuori dal profilo statico. Non collegare subito l'intero server MCP REA al
+catalogo dei tool del modello: molte operazioni hanno prerequisiti e accessi
+diversi, che la nostra policy deve poter distinguere.
+
+La [prima prova statica sul web-node](rea-pilot.md) è stata eseguita con REA
+3.2.1. Ha prodotto un inventario verificabile, ma anche etichette Electron e
+"endpoint" non valide per quel target; quindi il risultato grezzo non è un
+report di vulnerabilità e richiede normalizzazione prima dell'integrazione.
 
 ## Integrazione ECC: selettiva
 
@@ -170,9 +207,10 @@ esempio ZAP distingue segnalazioni WARN/FAIL dagli errori di esecuzione.
 
 ## Modelli locali e benchmark
 
-Mantenere la scelta del modello configurabile, inclusi modelli dichiarati
-uncensored. L'etichetta non misura precisione, capacità di usare strumenti o
-qualità delle patch: queste proprietà vanno misurate separatamente.
+Mantenere la scelta del modello configurabile solo fra modelli non censurati
+verificati, in coerenza con [VISION.md](../VISION.md). La sola etichetta
+«uncensored» non ne prova l'idoneità e non misura precisione, capacità di usare
+strumenti o qualità delle patch: queste proprietà vanno misurate separatamente.
 
 Affiancare al benchmark esistente una suite di task su fixture locali: produrre
 una tool call valida, interpretare un traceback, riparare un test, rilevare una
@@ -220,3 +258,4 @@ strumenti realmente disponibili senza introdurre ancora accesso di rete.
 - [Playwright Trace Viewer](https://playwright.dev/docs/trace-viewer).
 - [Nmap Reference Guide](https://nmap.org/book/man.html).
 - [ZAP Baseline](https://www.zaproxy.org/docs/docker/baseline-scan/).
+- [REA README](https://github.com/morluto/rea).

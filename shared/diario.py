@@ -91,6 +91,19 @@ class Diario:
                 return True
         return False
 
+    def aggiorna_sogno_da_immagine(self, voce_id: str, testo: str) -> bool:
+        """Sostituisce il racconto pubblico conservando il sogno che generò l'immagine."""
+        nuovo = " ".join(str(testo or "").split())[:MAX_TESTO_CHARS]
+        if not nuovo:
+            return False
+        for v in self._voci:
+            if v.get("id") == str(voce_id) and v.get("tipo") == "sogno":
+                v.setdefault("testo_generativo", str(v.get("testo") or ""))
+                v["testo"] = nuovo
+                v["testo_source"] = "vision"
+                return True
+        return False
+
     def get(self, voce_id: str) -> dict | None:
         """Restituisce una copia della voce, se presente."""
         for v in self._voci:

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HyperSpace Sites Builder</title>
+<style>
+:root{color-scheme:dark;--bg:#090b10;--panel:#131722;--line:#272d3b;--text:#eef1f7;--muted:#929bac;--a:#72e6c1;--b:#9b8cff;--bad:#ff6b7a}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#14252b 0,transparent 34%),var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}header{height:64px;padding:0 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px}header h1{font-size:17px;margin:0}header a{margin-left:auto;color:var(--a);text-decoration:none}.layout{display:grid;grid-template-columns:380px minmax(0,1fr);min-height:calc(100vh - 64px)}aside{padding:22px;border-right:1px solid var(--line);overflow:auto}.preview{padding:22px;display:flex;flex-direction:column;gap:14px}label{display:block;color:var(--muted);font-size:12px;margin:13px 0 5px}input,textarea,select{width:100%;border:1px solid var(--line);border-radius:9px;background:#0d1119;color:var(--text);padding:10px 12px;font:inherit}textarea{min-height:105px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;gap:9px;margin-top:17px}button,.button{border:0;border-radius:9px;padding:10px 14px;background:var(--a);color:#07110e;font-weight:700;cursor:pointer;text-decoration:none}.button.secondary{background:var(--panel);color:var(--text);border:1px solid var(--line)}#status{min-height:24px;color:var(--muted);margin-top:10px}.token{display:flex;gap:6px}.token button{padding:8px 10px}.projects{margin-top:25px}.project{border-top:1px solid var(--line);padding:11px 0;cursor:pointer}.project b{display:block}.project small{color:var(--muted)}iframe{width:100%;flex:1;min-height:690px;border:1px solid var(--line);border-radius:13px;background:white}.previewbar{display:flex;align-items:center;gap:9px}.previewbar strong{flex:1}@media(max-width:850px){.layout{grid-template-columns:1fr}aside{border-right:0}.preview{min-height:700px}}
+</style><script defer src="/spider/bootstrap.js"></script></head><body>
+<header><span>◈</span><h1>Sites Builder</h1><a href="/">HyperSpace Desktop</a></header>
+<main class="layout"><aside>
+  <label>Token amministrativo</label><div class="token"><input id="token" type="password" placeholder="X-Hyperspace-Network-Token"><button id="saveToken">salva</button></div>
+  <form id="form">
+    <label>Nome progetto</label><input name="name" required placeholder="Atelier Aurora">
+    <label>Headline</label><input name="headline" placeholder="Idee che diventano presenza">
+    <label>Brief</label><textarea name="brief" required placeholder="Cosa deve comunicare il sito, pubblico e tono…"></textarea>
+    <div class="row"><div><label>Template</label><select name="template"><option value="showcase">Showcase</option><option value="landing">Landing page</option></select></div><div><label>Pulsante</label><input name="call_to_action" value="Contattaci"></div></div>
+    <label>Raccolta immagini di Anna</label><select name="source_html" id="source"><option value="">Nessuna raccolta</option></select>
+    <div class="actions"><button type="submit">Crea bozza</button><button type="button" class="button secondary" id="refresh">Aggiorna</button></div>
+  </form><div id="status"></div>
+  <section class="projects"><h3>Progetti</h3><div id="projects"></div></section>
+</aside><section class="preview"><div class="previewbar"><strong id="current">Nessuna anteprima</strong><a id="open" class="button secondary" hidden target="_blank">Apri</a><a id="download" class="button" hidden>ZIP</a></div><iframe id="frame" title="Anteprima sito"></iframe></section></main>
+<script>
+const $=s=>document.querySelector(s), token=$('#token'), status=$('#status'), frame=$('#frame');
+token.value=localStorage.getItem('hs-network-token')||'';
+$('#saveToken').onclick=()=>{localStorage.setItem('hs-network-token',token.value.trim());status.textContent='Token salvato in questo browser.'};
+const headers=()=>({'Content-Type':'application/json','X-Hyperspace-Network-Token':token.value.trim()});
+function show(p){$('#current').textContent=p.name||p.id;frame.src=p.preview;$('#open').href=p.preview;$('#open').hidden=false;$('#download').href=p.download;$('#download').hidden=false}
+async function load(){try{const r=await fetch('/website/projects',{headers:headers()});const d=await r.json();if(!r.ok)throw Error(d.error||r.status);$('#source').innerHTML='<option value="">Nessuna raccolta</option>'+d.sources.map(x=>`<option>${x}</option>`).join('');$('#projects').innerHTML=d.projects.map((p,i)=>`<div class="project" data-i="${i}"><b>${p.name}</b><small>${p.template} · ${p.created_at||''} · ${(p.files||[]).length} file</small></div>`).join('')||'<small>Nessun progetto.</small>';document.querySelectorAll('.project').forEach(x=>x.onclick=()=>show(d.projects[+x.dataset.i]));status.textContent=`${d.projects.length} progetti disponibili`;return d}catch(e){status.textContent='Errore: '+e.message}}
+$('#refresh').onclick=load;
+$('#form').onsubmit=async e=>{e.preventDefault();status.textContent='Creazione in corso…';const body=Object.fromEntries(new FormData(e.target));try{const r=await fetch('/website/projects',{method:'POST',headers:headers(),body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error||r.status);show({id:d.project_id,name:body.name,preview:d.preview,download:d.download});status.textContent='Bozza creata.';await load()}catch(err){status.textContent='Errore: '+err.message}};
+load();
+</script></body></html>

@@ -36,8 +36,9 @@ from integrations.comfyui import comfy_bridge  # noqa: E402
 from integrations.comfyui.comfy_bridge import carica_riferimento  # noqa: E402
 from shared.image_jobs import (FAMIGLIA_DEFAULT, FAMIGLIA_SD15,  # noqa: E402
                                FAMIGLIA_SDXL, MODELLO_SD15,
-                               RIFERIMENTO_FORZA_DEFAULT, nuovo_job,
-                               posa_supportata, riferimento_supportato, workflow)
+                               RIFERIMENTO_FINE_DEFAULT, RIFERIMENTO_FORZA_DEFAULT,
+                               nuovo_job, posa_supportata, riferimento_supportato,
+                               workflow)
 from shared.showcase import verifica_vetrina, vetrina_dal_documento  # noqa: E402
 
 MANIFEST = ROOT / "integrations" / "comfyui" / "modelli-riferimento.json"
@@ -203,7 +204,28 @@ class GrafoRiferimentoTests(unittest.TestCase):
         self.assertEqual(nodo["weight_type"], "linear")
         self.assertEqual(nodo["combine_embeds"], "concat")
         self.assertEqual(nodo["embeds_scaling"], "V only")
-        self.assertEqual((nodo["start_at"], nodo["end_at"]), (0.0, 1.0))
+        self.assertEqual((nodo["start_at"], nodo["end_at"]),
+                         (0.0, RIFERIMENTO_FINE_DEFAULT))
+
+    def test_l_adattatore_non_ha_l_ultima_parola_sul_colore(self):
+        """Il riferimento sta acceso all'inizio e tace alla fine, e non e' un dettaglio.
+
+        Il caso reale (2026-10-02, la serie notturna di Anna, trenta scene e trenta
+        seed diversi): saturazione media 0.14 e diciannove immagini su trenta con un
+        verde come tinta dominante — l'abito chiesto viola uscito bianco con la fascia
+        verde, il bomber chiesto teal uscito verde. Non era il seed (erano tutti
+        diversi): con l'adattatore acceso fino a 1.0 il fondo verde del disegno
+        canonico entrava a ogni passo, e il colore della scena arrivava solo dove il
+        riferimento taceva. L'identita' si fissa nei primi passi; l'ultimo tratto di
+        campionamento resta al testo, che e' l'unico a sapere di che colore e' l'abito.
+        """
+        nodo = workflow(job_anna(reference_image="f.png"))["468"]["inputs"]
+        self.assertEqual(nodo["start_at"], 0.0,
+                         "l'identita' si impone dal primo passo, o il volto vaga")
+        self.assertGreater(RIFERIMENTO_FINE_DEFAULT, 0.0,
+                           "a 0.0 l'adattatore non arriverebbe mai al modello")
+        self.assertLess(RIFERIMENTO_FINE_DEFAULT, 1.0,
+                        "a 1.0 l'adattatore decide anche l'ultimo passo: la palette")
 
     def test_il_peso_e_quello_del_job_e_il_default_e_uno_solo(self):
         """Il peso lo decide il job. Il default e' UNA costante condivisa

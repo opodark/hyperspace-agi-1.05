@@ -80,6 +80,8 @@ The native `web_search` tool asks the SearXNG instance (`SEARXNG_URL`) and hands
 
 All variables live in one section of the Setup tab (or in `.env`, same keys):
 
+The Setup tab now groups credentials by connector. Save a connector, then use **Prova connessione** to select one of its active read tools and supply JSON arguments. This sends a real API request and shows its result. The test catalogue and execution endpoint (`GET/POST /connectors/test`) require `NETWORK_ADMIN_TOKEN`; write tools are never accepted there. A connector with missing credentials remains listed as disabled in the status panel, and cannot be tested until configured.
+
 | Connector | Variables | Minimum privileges |
 |---|---|---|
 | GitHub | `GITHUB_TOKEN`, `CONNECTOR_GITHUB_ENABLED` | PAT with `repo` scope |

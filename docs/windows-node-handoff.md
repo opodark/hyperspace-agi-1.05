@@ -36,11 +36,10 @@ git pull
 Valori che `.env` deve avere su questa macchina:
 
 ```powershell
-Select-String -Path .env -Pattern 'NODE_TIER|^VRAM_GB|HS_MODEL_GENERAL|TITLER_ENABLED'
+Select-String -Path .env -Pattern 'NODE_TIER|^VRAM_GB|HS_MODEL_GENERAL'
 # NODE_TIER=hub          <- altrimenti il CP lo tratta come nodo piu' debole
 # VRAM_GB=8              <- con 0 (o assente) la GPU non riceve lavoro
 # HS_MODEL_GENERAL=qwen3:8b      <- installato e dentro gli 8 GB
-# TITLER_ENABLED=false   <- non ruba VRAM al modello di servizio
 ```
 
 ## 1. Aggiornare (branch `main`, e `--build` obbligatorio)
@@ -229,9 +228,7 @@ installati**, e **un 14B Q4 non entra in 8 GB di VRAM** (vedi sezione 5).
 
 Corrette nel repo (commit `1eaba92`): `HS_MODEL_GENERAL=qwen3:8b`, modelli coder
 commentati (nessuno installato), `HOST_NAME`/`TS_HOSTNAME` valorizzati con
-l'hostname reale, `VRAM_GB=8` e `NODE_TIER=hub` dichiarati, `TITLER_ENABLED=false`
-(era rimasto `true` su questo profilo: il fix precedente era arrivato solo al
-compose generico).
+l'hostname reale, `VRAM_GB=8` e `NODE_TIER=hub` dichiarati.
 
 Attenzione: sono correzioni a `.env.windows`. Perche' arrivino anche al processo
 in esecuzione serve riconciliare `.env` — vedi sezione 0.

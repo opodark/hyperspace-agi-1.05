@@ -13,7 +13,11 @@ COPY . /seed
 
 RUN mkdir -p /exchange/jobs /exchange/results /workspaces \
     && chown -R sandbox:sandbox /exchange /workspaces \
-    && chmod -R a-w /seed
+    # Il seed deve essere LEGGIBILE dall'utente non privilegiato che esegue i job:
+    # `COPY` conserva i permessi dell'host, quindi un file 0600 nel repo faceva
+    # fallire ogni `create` con "Permission denied" (shutil.copytree sul seed).
+    && chmod -R a-w /seed \
+    && chmod -R a+rX /seed
 
 USER sandbox
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1

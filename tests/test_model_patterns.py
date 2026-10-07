@@ -49,7 +49,9 @@ def _load(tool_override="", native_override=""):
 class ToolCapablePatternTests(unittest.TestCase):
     def test_known_tool_capable_models_are_detected(self):
         s = _load()
-        for model in ("qwen3:8b", "gemma4:e4b", "deepseek-r1:8b", "llama3.1:8b", "phi4:14b"):
+        for model in ("qwen3:8b", "gemma4:e4b", "huihui_ai/gemma-4-abliterated:12b",
+                      "🕸️ huihui_ai/gemma-4-abliterated:12b", "deepseek-r1:8b",
+                      "llama3.1:8b", "phi4:14b"):
             self.assertTrue(s["_model_supports_tools"](model), model)
 
     def test_vision_variants_are_excluded(self):

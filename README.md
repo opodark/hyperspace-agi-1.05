@@ -28,18 +28,20 @@ See the [HIP section of ROADMAP.md](ROADMAP.md#visione-a-lungo-termine--hyperspa
 
 - `registry/` — service discovery, node registry, public landing/dashboard.
 - `control-plane/` — orchestration, OpenAI-compatible API, tool calling loop, connector fabric, dashboard, task management.
+- `pole-motion` — pole dance pose catalog, video studio, and experimental MuJoCo feasibility checks; developed in its **own private repository** (`github.com:opodark/pole-motion`), not part of this tree. HyperSpace uses it only as an internal development tool.
+- Mission Control — operator objectives become bounded task DAGs with verification and human review; see [`docs/mission-control.md`](docs/mission-control.md). The loop is disabled by default.
+- Hermes Gadget — a text-only simulator prototype connected to Anna through the control plane; see [`docs/hermes-gadget-prototype.md`](docs/hermes-gadget-prototype.md).
 - Tool & Skill Forge — dashboard workflow for generating, editing, validating and explicitly approving inert tool or skill drafts; see [`docs/tool-skill-forge.md`](docs/tool-skill-forge.md).
 - Dev Sandbox and development tooling — one HyperSpace workflow for editing, tests, debugging, security review and future laboratory pentest workers, with execution isolated by runtime; see [`docs/development-tooling-architecture.md`](docs/development-tooling-architecture.md).
+- Knowledge graph for coding agents — `graphify` (package `graphifyy`, Apache-2.0) maps this repository (code, docs, PDFs) into a local, queryable graph: tree-sitter AST locally for the code, a local Ollama backend for the docs pass. A **development tool**, not a runtime service; see [`docs/graphify.md`](docs/graphify.md).
 - `node/` — agent worker runtime (ECDSA identity, PEX, `/execute`).
-- `memory-graph/` — exports control-plane memory to the Obsidian vault; note titling is routed through the control-plane task queue (`/task/create` + `/task/assign`), reusing the same node scoring as any other task.
-- `obsidian/` — Obsidian in the browser (KasmVNC) for browsing the memory vault.
 - `federation-gateway/` — the only component meant to be exposed publicly for confederated control planes; forwards solely the whitelisted `/federate/execute` and `/federation/identity` routes to the internal control-plane.
 - `infra-ui/` — real-time dashboard bridge (SSE, log viewer, mesh topology).
 - `authority/`, `worker/` — trust/seed services and execution workers from the earlier multi-worker layout (`legacy/docker-compose-2full.yml`).
 - `web-node/` — browser-side node subtree for lightweight clients.
 - `shared/` — shared models, events, identity, database helpers, registry client.
 - `docs/` — architecture and deployment notes.
-- `data/` — mounted volumes (Obsidian vault, SearXNG config, node data).
+- `data/` — mounted volumes (SearXNG config, node data, runtime state).
 
 ## Current focus (Phase 1 — Windows Primary Brain)
 - Stabilize the Asus Windows host as the primary node.
@@ -137,8 +139,6 @@ After boot, services are reachable on `localhost`:
 | Infra-UI Bridge         | http://localhost:8099           |
 | Registry                | http://localhost:8086/nodes     |
 | Node 1                  | http://localhost:8081/status    |
-| Memory Graph            | http://localhost:8090/status    |
-| Obsidian GUI             | http://localhost:8091           |
 | SearXNG                 | http://localhost:8092           |
 | Federation Gateway       | http://localhost:8095           |
 
@@ -160,6 +160,8 @@ npx ts-node control-plane/index.ts
 
 HyperSpace-AGI is not another chat app. It's an operational runtime: process management, model routing, queues, memory, observability and recovery come before dashboards and UX (see [VISION.md](VISION.md) principle #1). The Intent Protocol above is where the runtime is headed once multi-node mesh becomes the active phase — it does not describe today's architecture.
 
+HyperSpace uses **uncensored inference models only** across roles and modalities; a censored model is not an acceptable automatic fallback. This is a product requirement, not a claim that every currently configurable provider has already been verified. Model eligibility and the distinction from operational access controls are defined in [VISION.md](VISION.md).
+
 ## Suggested next steps
 
 1. Wire the browser node into the control plane registry.
@@ -171,7 +173,7 @@ See [ROADMAP.md](ROADMAP.md#deliverable-prioritari) for the full prioritized del
 
 ## Notes
 
-This repository is the 1.04 evolution of the HyperSpace stack: the working 1.02/1.03 mesh (registry, control-plane, node workers, memory graph, Obsidian, SearXNG) repositioned as an operational agent runtime, with Open WebUI as the default interface and the Intent Protocol (HIP) as long-term direction rather than current architecture.
+This repository is the 1.04 evolution of the HyperSpace stack: the working 1.02/1.03 mesh (registry, control-plane, node workers, SearXNG) repositioned as an operational agent runtime, with Open WebUI as the default interface and the Intent Protocol (HIP) as long-term direction rather than current architecture.
 
 ## Licenza
 

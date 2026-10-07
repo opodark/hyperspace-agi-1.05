@@ -15,7 +15,7 @@ version: '3.9'
 #    funzionante; il routing generale/coder e i path HS_* restano
 #    predisposti per quando control-plane verrà aggiornato al nuovo
 #    schema 1.04.
-#  - registry / node-1 / searxng / bridge / memory-graph / obsidian sono
+#  - registry / node-1 / searxng / bridge sono
 #    lo stesso stack mesh di v1.02, portato qui e riletto sui path/env
 #    Windows (host.docker.internal, .env.windows).
 #    Tutte le variabili "mesh" non definite in .env.windows (REGISTRY_
@@ -45,10 +45,8 @@ version: '3.9'
 # Node 1:              http://localhost:8081/status
 # SearXNG:             http://localhost:8092
 # Infra-UI Bridge:     http://localhost:8099
-# Memory Graph:        http://localhost:8090/status
 # OmniRoute:           http://localhost:20128
 # Federation Gateway:  http://localhost:8095
-# Obsidian GUI:      http://localhost:8091
 # ============================================================
 
 services:
@@ -155,6 +153,22 @@ services:
       NIGHTLY_DEV_IDLE_SECONDS: "${NIGHTLY_DEV_IDLE_SECONDS:-3600}"
       NIGHTLY_DEV_MODEL: "${NIGHTLY_DEV_MODEL:-}"
       NIGHTLY_DEV_DATA_DIR: /app/data
+      # Mission Control: da un obiettivo a un DAG di task eseguito da worker con
+      # manifest di tool ristretti. Spento di default; le rotte /missions* sono
+      # protette da DREAM_REVIEW_TOKEN e nessuna applica un artifact.
+      MISSION_LOOP_ENABLED: "${MISSION_LOOP_ENABLED:-false}"
+      MISSION_MODEL: "${MISSION_MODEL:-}"
+      MISSION_PLANNER_MODEL: "${MISSION_PLANNER_MODEL:-}"
+      MISSION_DATA_DIR: /app/data
+      MISSION_TICK_SECONDS: "${MISSION_TICK_SECONDS:-15}"
+      MISSION_FOREGROUND_PAUSE_S: "${MISSION_FOREGROUND_PAUSE_S:-120}"
+      MISSION_MAX_STEPS: "${MISSION_MAX_STEPS:-40}"
+      MISSION_MAX_WALL_SECONDS: "${MISSION_MAX_WALL_SECONDS:-3600}"
+      MISSION_MAX_TOKENS_PER_TASK: "${MISSION_MAX_TOKENS_PER_TASK:-4096}"
+      MISSION_MAX_CONCURRENCY: "${MISSION_MAX_CONCURRENCY:-2}"
+      MISSION_MAX_REPLANS: "${MISSION_MAX_REPLANS:-3}"
+      MISSION_MAX_TASK_ATTEMPTS: "${MISSION_MAX_TASK_ATTEMPTS:-2}"
+      MISSION_OPS_AGENT_ENABLED: "${MISSION_OPS_AGENT_ENABLED:-false}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -395,34 +409,6 @@ services:
       retries: 3
       start_period: 15s
 
-  # -- Memory Graph (esporta memoria CP -> vault Obsidian) --------------------
-  # La titolazione NON usa più un'istanza Ollama dedicata: passa da
-  # /task/create + /task/assign del control-plane, riusando lo stesso
-  # scoring/routing di qualsiasi altro task della mesh.
-  hyperspace-memory-graph:
-    build:
-      context: ./memory-graph
-      dockerfile: Dockerfile
-    container_name: hyperspace-memory-graph
-    restart: ${RESTART_POLICY}
-    depends_on:
-      - hyperspace-core
-    env_file:
-      - ./.env
-    environment:
-      CP_URL: http://hyperspace-core:8085
-      VAULT_PATH: /vault
-      EXPORT_INTERVAL: "${MEMORY_EXPORT_INTERVAL:-30}"
-      TITLER_ENABLED: "${TITLER_ENABLED:-false}"
-      TITLER_MODEL: "${TITLER_MODEL:-qwen2:0.5b}"
-      PYTHONUNBUFFERED: "1"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - ./data/obsidian-vault:/vault
-    ports:
-      - "${MESH_BIND_IP:-127.0.0.1}:8090:8090"
-
   # -- Gateway (front door unico per core/registry/node-1) --------------------
   # Consolida qui il bind multi-IP (localhost/Tailscale/WireGuard): vedi
   # gateway/Caddyfile per il perche'. docker-compose.tailscale.yml e
@@ -465,26 +451,6 @@ services:
     ports:
       - "127.0.0.1:${CODE_SERVER_PORT:-8443}:8080"
 
-  # -- Obsidian nel browser (KasmVNC) -----------------------------------------
-  hyperspace-obsidian:
-    image: lscr.io/linuxserver/obsidian:latest
-    container_name: hyperspace-obsidian
-    restart: ${RESTART_POLICY}
-    depends_on:
-      - hyperspace-memory-graph
-    environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: ${TZ}
-    security_opt:
-      - seccomp:unconfined
-    volumes:
-      - ./data/obsidian-vault:/config/vaults
-      - obsidian_config:/config
-    ports:
-      - "${MESH_BIND_IP:-127.0.0.1}:8091:3000"
-    shm_size: "1gb"
-
   # -- Web Node (hosting statico della pagina browser) -------------------------
   # Il nodo gira nel BROWSER del client; qui si servono solo i file statici
   # (index.html + src/). Porta 8790 su MESH_BIND_IP, cosi' e' raggiungibile come
@@ -506,7 +472,6 @@ services:
       start_period: 5s
 
 volumes:
-  obsidian_config:
   omniroute_data:
   sandbox_exchange:
   sandbox_workspaces:

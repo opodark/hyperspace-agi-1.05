@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/diet103/claude-code-infrastructure-showcase",
+  "commit": "07f75ce3c301259e857343596e7883b8ce5a9f50",
+  "files": {
+    "LICENSE": "d3acd3d582674bcc698cffe2a35e63ec6a70ae54c47ff331a980858040dce6b0",
+    "skill-activation-prompt.ts": "f1455e70917e28842eb19e72dbb1c9792e6f92a86828269eee0b7c9ef1241284"
+  },
+  "usage": "Reference only; no upstream scripts executed."
+}

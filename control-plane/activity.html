@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HyperSpace · Attività Anna Batch</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:24px;background:#0b0e13;color:#e8edf4;font:14px system-ui,-apple-system,sans-serif}
+main{max-width:980px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:1.45rem;margin:0}a{color:#6ce3d4}p{color:#aab5c4;line-height:1.5;margin:8px 0}
+.status{font:12px ui-monospace,SFMono-Regular,monospace;color:#8fd8cc}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+section{background:#171d27;border:1px solid #344054;border-radius:12px;padding:16px}h2{font-size:1rem;margin:0 0 10px;color:#b9f7ed}
+.value{font:13px ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.jobs{margin-top:12px}.job{border-top:1px solid #344054;padding:8px 0;display:flex;justify-content:space-between;gap:12px;font:12px ui-monospace,SFMono-Regular,monospace}
+.job:first-child{border-top:0}.bad{color:#ff9b9b}.good{color:#84e5b0}.muted{color:#aab5c4}
+button{background:#1f6c66;color:white;border:0;border-radius:7px;padding:8px 12px;cursor:pointer}button:disabled{opacity:.45;cursor:default}.controls{display:flex;gap:8px;margin-top:12px}.stop{background:#8a4242}
+label{display:block;color:#aab5c4;font-size:12px}input{display:block;width:min(330px,100%);background:#10151d;color:#e8edf4;border:1px solid #455268;border-radius:7px;padding:8px;margin-top:4px}
+#terminal{height:260px;overflow:auto;background:#080c11;border:1px solid #344054;border-radius:8px;padding:12px;color:#a6e8c9;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+<script defer src="/spider/bootstrap.js"></script>
+</head>
+<body><main>
+<header><div><h1>📟 Attività HyperSpace</h1><p>Coda immagini e selezioni Anna. Stop mette in pausa dopo il lavoro già avviato.</p><label>Token WebUI per Start / Stop<input id="token" type="password" autocomplete="off" placeholder="WEBUI_TOOLS_TOKEN"></label></div>
+<div><button id="refresh" type="button">Aggiorna ora</button><div class="status" id="clock">Connessione…</div></div></header>
+<div class="grid">
+  <section><h2>Coda immagini / Anna Batch</h2><div class="value" id="queue">Caricamento…</div><div class="controls"><button data-target="images" data-action="start">Start</button><button class="stop" data-target="images" data-action="stop">Stop</button></div></section>
+  <section><h2>Selezione Anna</h2><div class="value" id="anna">Caricamento…</div><div class="controls"><button data-target="anna" data-action="start">Start</button><button class="stop" data-target="anna" data-action="stop">Stop</button></div></section>
+  <section><h2>Secondo passaggio</h2><div class="value" id="second">Caricamento…</div><div class="controls"><button data-target="anna_second_pass" data-action="start">Start</button><button class="stop" data-target="anna_second_pass" data-action="stop">Stop</button></div></section>
+</div>
+<section class="jobs"><h2>Ultimi job</h2><div id="jobs" class="value">Caricamento…</div></section>
+<section class="jobs"><h2>Terminale attività</h2><div id="terminal" role="log" aria-live="polite"></div></section>
+<p>Si aggiorna ogni 3 secondi. Il terminale mostra eventi di stato, non una shell. Il token resta solo nella memoria di questa pagina. I dettagli dei file e degli errori restano nei tool autorizzati di WebUI.</p>
+<p><a href="/">← Desktop HyperSpace</a></p>
+</main><script>
+function selection(x){return `${x.status||'non avviato'}\n${x.processed||0}/${x.total||0} esaminate · ${x.selected||0} selezionate · ${x.to_review||0} da rivedere · ${x.errors||0} errori`}
+const previous=new Map();let refreshing=false;
+function log(message){const box=document.getElementById('terminal');const line=document.createElement('div');line.textContent=`[${new Date().toLocaleTimeString('it-IT')}] ${message}`;box.append(line);while(box.childElementCount>150)box.firstElementChild.remove();box.scrollTop=box.scrollHeight}
+function changed(key,value,message){if(previous.get(key)!==value){previous.set(key,value);log(message)}}
+async function refresh(){
+  if(refreshing)return;refreshing=true;
+  try{
+    const response=await fetch('/activity/data',{cache:'no-store'});
+    if(!response.ok)throw Error(`HTTP ${response.status}`);
+    const data=await response.json(),images=data.images||{};
+    document.getElementById('queue').textContent=`${images.paused?'IN PAUSA':'attiva'} · ${images.in_coda||0} in coda · ${images.in_esecuzione||0} in esecuzione\nCapacità: ${images.max_jobs||0} job`;
+    document.getElementById('anna').textContent=selection(data.anna||{});
+    document.getElementById('second').textContent=selection(data.anna_second_pass||{});
+    const jobs=document.getElementById('jobs');jobs.replaceChildren();
+    for(const job of [...(images.attivi||[]),...(images.ultimi||[])]){
+      const row=document.createElement('div');row.className='job';
+      const id=document.createElement('span');id.textContent=job.id||'—';
+      const state=document.createElement('span');state.textContent=job.stato||'—';
+      state.className=job.error?'bad':job.stato==='done'?'good':'muted';
+      row.append(id,state);jobs.append(row);
+    }
+    if(!jobs.childElementCount)jobs.textContent='Nessun job recente.';
+    changed('images',`${images.paused}:${images.in_coda}:${images.in_esecuzione}`,`Immagini: ${images.paused?'in pausa':'attiva'}, ${images.in_coda||0} in coda, ${images.in_esecuzione||0} in esecuzione`);
+    for(const [key,label,value] of [['anna','Selezione Anna',data.anna||{}],['anna_second_pass','Secondo passaggio',data.anna_second_pass||{}]])changed(key,`${value.status}:${value.processed}:${value.total}`,`${label}: ${value.status||'non avviato'}, ${value.processed||0}/${value.total||0}`);
+    for(const job of [...(images.attivi||[]),...(images.ultimi||[])])changed(`job:${job.id}`,job.stato,`Job ${job.id}: ${job.stato}${job.error?' (errore)':''}`);
+    for(const button of document.querySelectorAll('[data-target]')){const target=button.dataset.target;const paused=target==='images'?images.paused:['paused','pausing'].includes((data[target]||{}).status);const running=target==='images'?!paused:(data[target]||{}).status==='running';button.disabled=button.dataset.action==='start'?(target==='images'?!paused:running):(target==='images'?paused:['paused','not_started','completed','completed_with_errors'].includes((data[target]||{}).status));}
+    document.getElementById('clock').textContent='Aggiornato alle '+new Date().toLocaleTimeString('it-IT');
+  }catch(error){document.getElementById('clock').textContent='Non disponibile: '+error.message;changed('connection',error.message,'Connessione: '+error.message)}finally{refreshing=false}
+}
+async function control(button){const token=document.getElementById('token').value.trim();if(!token){log('Inserisci WEBUI_TOOLS_TOKEN per usare Start / Stop.');return}button.disabled=true;try{const response=await fetch('/activity/control',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({target:button.dataset.target,action:button.dataset.action})});const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||`HTTP ${response.status}`);log(`${button.dataset.target}: ${button.dataset.action} richiesto.`);await refresh()}catch(error){log(`Comando fallito: ${error.message}`)}finally{button.disabled=false}}
+document.querySelectorAll('[data-target]').forEach(button=>button.addEventListener('click',()=>control(button)));
+document.getElementById('refresh').addEventListener('click',refresh);refresh();setInterval(refresh,3000);
+</script></body></html>

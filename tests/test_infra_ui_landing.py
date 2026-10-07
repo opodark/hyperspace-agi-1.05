@@ -118,5 +118,32 @@ class LandingContractTests(unittest.TestCase):
                       "'non raggiungibile' per il motivo sbagliato")
 
 
+    def test_la_card_control_plane_apre_la_dashboard_non_l_health(self):
+        """`/health` e' un JSON: puntandoci, l'utente atterra su {"status":"ok"}
+        e la dashboard sembra sparita (successo davvero: "non riesco a trovare
+        la pagina"). La sonda resta /health — e' il suo mestiere, un 200
+        economico — ma l'apertura (path) deve essere la dashboard."""
+        svc = next(s for s in _services_literal() if s["name"] == "control_plane")
+        self.assertEqual(svc["path"], "/dashboard")
+        self.assertIn("/health", svc["internal_url"])
+
+    def test_la_card_autogen_deep_linka_la_scheda(self):
+        """La card deve aprire la *scheda*, non solo la dashboard: se il path
+        perde l'hash, l'utente arriva sul pannello di default (Mesh Nodes) e
+        deve ritrovare Autogenerazione a mano — di nuovo il sintomo di
+        partenza."""
+        svc = next(s for s in _services_literal() if s["name"] == "autogen")
+        self.assertEqual(svc["path"], "/dashboard#autogen")
+        self.assertEqual(svc["public_port"], 8085)
+
+    def test_la_dashboard_legge_il_deep_link_che_la_home_promette(self):
+        """Il path `#autogen` e' una promessa: la dashboard deve avere il codice
+        che la mantiene (lettura dell'hash + reazione a hashchange), altrimenti
+        il link apre la dashboard ma resta sul pannello di default."""
+        dash = (ROOT / "control-plane" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn("panelFromHash", dash)
+        self.assertIn("hashchange", dash)
+
+
 if __name__ == "__main__":
     unittest.main()

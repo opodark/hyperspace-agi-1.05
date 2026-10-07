@@ -178,7 +178,14 @@ main{padding:18px 20px;display:grid}
 /* diag */
 .diag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .diag-out{margin-top:8px;padding:9px;border-radius:var(--radius);background:var(--surface2);font-family:var(--font-mono);font-size:.75rem;color:var(--text-muted);white-space:pre-wrap;min-height:44px;border:1px solid var(--divider);max-height:220px;overflow-y:auto}
+#hostShellConfirm[hidden]{display:none}
 .dream-inbox{display:grid;gap:8px;margin-top:10px}.dream-review-item{padding:10px;border:1px solid var(--divider);border-radius:var(--radius);background:var(--surface2)}.dream-review-meta{font:600 .66rem var(--font-mono);color:var(--text-muted);margin-bottom:6px}.dream-review-summary{font-size:.78rem;line-height:1.45;white-space:pre-wrap}.dream-review-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.mission-flow{margin-top:12px;padding:10px;border:1px solid var(--divider);border-radius:var(--radius);background:var(--surface2)}
+.mission-flow-head{display:flex;align-items:center;gap:8px;font:600 .66rem var(--font-mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.mission-canvas{height:250px;border:1px solid var(--divider);border-radius:var(--radius);background:var(--bg)}
+.mission-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;font:500 .68rem var(--font-mono);color:var(--text-faint)}
+.mission-legend span{display:flex;align-items:center;gap:5px}
+.mission-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .mx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .mx-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px}
 .mx-tile-key{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
@@ -271,6 +278,7 @@ main,.panel,.card{min-width:0}
   .topo-sidebar{width:100%;max-height:320px}
 }
 </style>
+<script defer src="/spider/bootstrap.js"></script>
 </head>
 <body>
 <header>
@@ -287,8 +295,9 @@ main,.panel,.card{min-width:0}
     <button onclick="showPanel('metrics',this)">&#9889; Metrics</button>
     <button onclick="showPanel('forge',this)">&#128736; Forge</button>
     <button onclick="showPanel('sandbox',this)">&#129514; Dev Sandbox</button>
+    <button onclick="showPanel('autogen',this)">&#10024; Autogenerazione</button>
     <button onclick="showPanel('diag',this)">&#128295; Diagnostics</button>
-    <button onclick="showPanel('network',this)">&#128225; Network</button>
+    <button onclick="showPanel('network',this)">&#128225; Network / OS</button>
     <button onclick="showPanel('social',this)">&#128172; Social</button>
     <button onclick="showPanel('setup',this)">&#9881;&#65039; Setup</button>
   </nav>
@@ -471,6 +480,25 @@ main,.panel,.card{min-width:0}
     <div class="card"><div class="card-title">&#128202; Topology Raw</div><button class="btn btn-primary btn-sm" onclick="diagTopology()">Fetch</button><div class="diag-out" id="dTopo"></div></div>
     <div class="card"><div class="card-title">&#128196; Registry Raw</div><button class="btn btn-reg btn-sm" onclick="diagRegistry()">Fetch</button><div class="diag-out" id="dReg"></div></div>
     <div class="card"><div class="card-title">&#129302; Ollama Status</div><button class="btn btn-success btn-sm" onclick="checkOllama()">Check</button><div class="diag-out" id="dOllama"></div></div>
+    <div class="card"><div class="card-title">&#128172; Simulate Chat</div><p class="hint">Inserisce un evento di prova: non invia una richiesta al modello.</p>
+      <div class="diag-node-fields"><label class="fg">From<select id="chFrom" class="inp" aria-label="Nodo mittente"></select></label><label class="fg">To<select id="chTo" class="inp" aria-label="Nodo destinatario"></select></label><input id="chMsg" class="inp" placeholder="Message..." style="flex:1"/></div>
+      <button class="btn btn-chat btn-sm" id="sendChatButton" onclick="sendChat()">Simula evento Chat</button><div class="diag-out" id="dChat"></div>
+    </div>
+    <div class="card"><div class="card-title">&#9881;&#65039; HB Status</div><button class="btn btn-ghost btn-sm" onclick="checkHb()">Refresh</button><div class="diag-out" id="dHb"></div></div>
+    <div class="card"><div class="card-title">&#128202; Ping All Nodes</div><button class="btn btn-ghost btn-sm" onclick="pingAll()">Ping All</button><div class="diag-out" id="dPing"></div></div>
+    <div class="card"><div class="card-title">&#9878;&#65039; Routing Weights</div><button class="btn btn-ghost btn-sm" onclick="diagRoutingWeights()">Fetch</button><div class="diag-out" id="dRoutingWeights"></div></div>
+  </div>
+</div>
+
+<!-- AUTOGENERAZIONE — il ciclo che si scrive da solo:
+     sogno -&gt; revisione in memoria -&gt; development dream -&gt; Mission Control (DAG).
+     Un tempo queste card vivevano sparse dentro Diagnostics: qui sono una
+     storia sola, con il flusso del DAG in fondo. Vedi docs/hermes.md e la
+     sezione Mission Control di docs/tiktok-editor.md. -->
+<div id="panel-autogen" class="panel">
+  <div class="sec-title">&#10024; Autogenerazione</div>
+  <p class="hint">Il ciclo che si scrive da solo, dall'ipotesi al codice: un <b>sogno</b> lascia una nota &#8594; la <b>revisione</b> la promuove in memoria &#8594; il <b>development dream</b> notturno propone un patch in una sandbox isolata &#8594; la <b>Mission Control</b> trasforma un obiettivo in un DAG di task che pianifica, esegue, verifica e ripianifica. Nessuna rotta applica da sola il codice: l'ultima parola resta a un operatore.</p>
+  <div class="diag-grid">
     <div class="card"><div class="card-title">&#128173; Simulate Dream</div><p class="hint">Inserisce un evento di prova nei log. I sogni automatici vengono generati dal worker quando &egrave; libero.</p>
       <div class="diag-node-fields"><label class="fg">Nodo<select id="drNode" class="inp" aria-label="Nodo del sogno"></select></label><input id="drText" class="inp" placeholder="Dream text..." style="flex:1"/></div>
       <button class="btn btn-dream btn-sm" id="sendDreamButton" onclick="sendDream()">Simula evento Dream</button><div class="diag-out" id="dDream"></div><button class="btn btn-ghost btn-sm" onclick="checkDreamWorker()">Stato sogni automatici del nodo</button><div class="diag-out" id="dDreamWorker"></div>
@@ -487,19 +515,49 @@ main,.panel,.card{min-width:0}
       <div class="diag-out" id="developmentDreamEngine">Stato non caricato.</div>
       <div id="developmentDreamInbox" class="dream-inbox"><div class="hint">Carica le proposte di sviluppo.</div></div>
     </div>
-    <div class="card"><div class="card-title">&#128172; Simulate Chat</div><p class="hint">Inserisce un evento di prova: non invia una richiesta al modello.</p>
-      <div class="diag-node-fields"><label class="fg">From<select id="chFrom" class="inp" aria-label="Nodo mittente"></select></label><label class="fg">To<select id="chTo" class="inp" aria-label="Nodo destinatario"></select></label><input id="chMsg" class="inp" placeholder="Message..." style="flex:1"/></div>
-      <button class="btn btn-chat btn-sm" id="sendChatButton" onclick="sendChat()">Simula evento Chat</button><div class="diag-out" id="dChat"></div>
+    <div class="card" id="wayfinderCard"><div class="card-title">Wayfinder — decisioni prima del codice</div>
+      <p class="hint">Conserva le scelte tra sessioni. Usa il token revisione di Mission Control. Quando tutte le domande sono risolte, consegna la mappa al DAG.</p>
+      <button class="btn btn-ghost btn-sm" onclick="wfLoad()">Carica mappe</button>
+      <button class="btn btn-ghost btn-sm" onclick="wfNew()">Nuova mappa</button>
+      <label class="fg">Mappa<select class="inp" id="wfMap" onchange="wfSelect()"><option value="">Nuova mappa</option></select></label>
+      <label class="fg">Destinazione<textarea class="inp" id="wfDestination" maxlength="2000" placeholder="Che risultato vogliamo ottenere?"></textarea></label>
+      <label class="fg">Note<textarea class="inp" id="wfNotes" maxlength="4000"></textarea></label>
+      <label class="fg">Da chiarire (una voce per riga)<textarea class="inp" id="wfFog"></textarea></label>
+      <label class="fg">Fuori ambito (una voce per riga)<textarea class="inp" id="wfScope"></textarea></label>
+      <button class="btn btn-ghost btn-sm" onclick="wfSave()">Salva mappa</button>
+      <div id="wfTickets" class="dream-inbox"></div>
+      <details><summary>Aggiungi una domanda</summary>
+        <label class="fg">Titolo<input class="inp" id="wfTitle" maxlength="200"/></label>
+        <label class="fg">Domanda<textarea class="inp" id="wfQuestion" maxlength="4000"></textarea></label>
+        <label class="fg">Tipo<select class="inp" id="wfKind"><option value="grilling">Decisione con l’utente</option><option value="research">Ricerca autonoma</option><option value="prototype">Prototipo da discutere</option><option value="task">Attività preliminare autonoma</option></select></label>
+        <label class="fg">Prerequisiti<select class="inp" id="wfDeps" multiple aria-label="Domande prerequisite"></select></label>
+        <button class="btn btn-ghost btn-sm" onclick="wfAdd()">Aggiungi e salva</button>
+      </details>
+      <button class="btn btn-dream btn-sm" id="wfHandoff" onclick="wfHandoff()" disabled>Consegna a Mission Control</button>
+      <div id="wfOutput" class="diag-out" role="status">Nessuna mappa caricata.</div>
     </div>
-    <div class="card"><div class="card-title">&#9881;&#65039; HB Status</div><button class="btn btn-ghost btn-sm" onclick="checkHb()">Refresh</button><div class="diag-out" id="dHb"></div></div>
-    <div class="card"><div class="card-title">&#128202; Ping All Nodes</div><button class="btn btn-ghost btn-sm" onclick="pingAll()">Ping All</button><div class="diag-out" id="dPing"></div></div>
-    <div class="card"><div class="card-title">&#9878;&#65039; Routing Weights</div><button class="btn btn-ghost btn-sm" onclick="diagRoutingWeights()">Fetch</button><div class="diag-out" id="dRoutingWeights"></div></div>
+    <div class="card"><div class="card-title">&#127919; Mission Control</div><p class="hint">Un obiettivo entra, un DAG di task esce: pianifica, esegue, verifica, ripianifica. Il codice resta in sandbox e in attesa di revisione &mdash; nessuna rotta applica mai un artifact.</p>
+      <div class="diag-node-fields"><label class="fg">Stato<select id="missionStatusFilter" class="inp"><option value="">Tutti</option><option value="planned">Pianificate</option><option value="running">In corso</option><option value="done">Concluse</option><option value="failed">Fallite</option><option value="cancelled">Annullate</option></select></label><label class="fg">Obiettivo<input id="missionObjective" class="inp" maxlength="2000" placeholder="Es. costruisci la pagina di Anna con la galleria"/></label></div>
+      <div class="diag-node-fields"><label class="fg">Token operatore<input id="missionToken" class="inp" type="password" autocomplete="off" placeholder="DREAM_REVIEW_TOKEN"/></label><span class="hint" style="align-self:flex-end">Tutte le rotte <code>/missions*</code> vogliono questo token: senza, la card non legge nulla.</span></div>
+      <div class="diag-node-fields"><label class="fg">Criteri, uno per riga<textarea id="missionCriteria" class="inp" rows="2" placeholder="i test passano"></textarea></label></div>
+      <button class="btn btn-dream btn-sm" onclick="loadMissions()">Aggiorna</button>
+      <button class="btn btn-dream btn-sm" onclick="createMission(false)">Pianifica</button>
+      <button class="btn btn-ghost btn-sm" onclick="createMission(true)">Pianifica e avvia</button>
+      <div class="diag-out" id="missionEngine">Stato non caricato.</div>
+      <div id="missionInbox" class="dream-inbox"><div class="hint">Carica le missioni.</div></div>
+      <div class="mission-flow">
+        <div class="mission-flow-head"><span>&#128640; Flusso del DAG</span><span id="missionFlowLabel" class="hint">nessuna missione</span><button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="missionFlowReLayout()">Riposiziona</button></div>
+        <div id="cyMission" class="mission-canvas"></div>
+        <div class="mission-legend"><span><i class="mission-dot" style="background:#272b33"></i>in attesa</span><span><i class="mission-dot" style="background:#4f98a3"></i>pronto</span><span><i class="mission-dot" style="background:#e8af34"></i>in corso (pulsa)</span><span><i class="mission-dot" style="background:#6daa45"></i>fatto</span><span><i class="mission-dot" style="background:#dd6974"></i>fallito</span><span><i class="mission-dot" style="background:#596170"></i>saltato</span></div>
+        <div id="missionDetail" class="diag-out mission-detail">Clicca un task nel grafo per i dettagli.</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- NETWORK -->
 <div id="panel-network" class="panel">
-  <div class="sec-title">Network</div>
+  <div class="sec-title">Network e sistema operativo</div>
   <p class="hint">
     WireGuard/Tailscale/ngrok girano sull'host, non in questo container: questo
     pannello parla con <code>hostctl/agent.py</code>, un processo separato che
@@ -557,6 +615,24 @@ main,.panel,.card{min-width:0}
     </div>
   </div>
   <div class="diag-out" id="netActionOut" style="margin-top:10px"></div>
+  <div class="card" id="hostShellCard" style="margin-top:12px">
+    <div class="card-title">Comandi sul sistema operativo</div>
+    <p class="hint">Esegue un comando sull'host tramite hostctl. Inserisci gli argomenti come array JSON: nessuna shell o pipe. Sono applicate le liste di eseguibili e directory consentiti.</p>
+    <div id="hostShellStatus" class="hint">Caricamento stato host-agent…</div>
+    <div class="setup-grid" style="margin-top:8px">
+      <label class="fg">Programma<select id="hostShellExe" class="inp" onchange="clearHostPending()"></select></label>
+      <label class="fg">Directory<select id="hostShellCwd" class="inp" onchange="clearHostPending()"></select></label>
+    </div>
+    <div class="setup-grid" style="margin-top:8px">
+      <label class="fg">Argomenti JSON<input id="hostShellArgs" class="inp inp-mono" value='["status","--short"]' oninput="clearHostPending()" autocomplete="off"/></label>
+      <label class="fg">Timeout (secondi)<input id="hostShellTimeout" class="inp inp-mono" type="number" min="1" max="60" value="20" oninput="clearHostPending()"/></label>
+    </div>
+    <div class="row" style="gap:8px;margin-top:8px">
+      <button class="btn btn-primary btn-sm" id="hostShellRun" onclick="runHostCommand()" disabled>Esegui sull'host</button>
+      <button class="btn btn-danger btn-sm" id="hostShellConfirm" onclick="confirmHostCommand()" hidden>Conferma ed esegui</button>
+    </div>
+    <pre class="diag-out" id="hostShellOutput" style="white-space:pre-wrap;overflow-wrap:anywhere">Nessun comando eseguito.</pre>
+  </div>
 
   <div class="sec-title" style="margin-top:20px">Bottiglie (discovery firmato)</div>
   <p class="hint">
@@ -603,6 +679,9 @@ main,.panel,.card{min-width:0}
       <p class="hint" style="margin-top:6px">Stati artefatto: <b>draft</b> (bozza) → <b>review</b> (in revisione) → <b>approved</b> (approvata, usabile con <code>hyperspace_skills</code>) oppure <b>disabled</b>. Una modifica al sorgente resetta l'approvazione.</p>
       <label class="fg" title="FORGE_ADMIN_TOKEN: serve solo per approvare/disabilitare e per importare ECC">Token approvazione<input id="forgeToken" type="password" class="inp" autocomplete="off" placeholder="FORGE_ADMIN_TOKEN"/></label>
       <button class="btn btn-ghost btn-sm" onclick="forgeImportEcc()" title="Importa i workflow ECC (security-review, verification-loop) dal bundle locale pinnato, come draft">Importa skill ECC come draft</button>
+      <button class="btn btn-ghost btn-sm" onclick="forgeImportAnydoc()" title="Importa la skill anydoc (documenti Office in Markdown) dal bundle locale pinnato, come draft">Importa skill anydoc come draft</button>
+      <button class="btn btn-ghost btn-sm" onclick="forgeImportWayfinder()">Importa Wayfinder e skill di supporto come draft</button>
+      <button class="btn btn-ghost btn-sm" onclick="forgeImportFirecrawlSkills()" title="Importa le skill testuali Firecrawl (search, scrape, indici di ricerca) dal bundle locale pinnato, come draft inerti">Importa skill Firecrawl come draft</button>
       <div id="forgeList" class="forge-list"><div class="hint">Caricamento...</div></div>
     </div>
   </div>
@@ -731,12 +810,21 @@ main,.panel,.card{min-width:0}
     </div>
   </div>
   <div class="card"><div class="card-title">&#128268; Connettori</div>
-    <div class="env-note">Tool enterprise (GitHub, Microsoft 365, Google Workspace) pubblicati verso il modello, MCP e /tools/execute. Un connettore senza credenziali resta <b>spento</b>: i suoi tool non vengono nemmeno elencati, e qui sotto se ne legge il motivo. I tool di <b>scrittura</b> (inviare email, creare issue ed eventi) sono bloccati di default: restano fuori dal catalogo finché non si abilitano in "Control-Plane Env" &rarr; sezione "Connettori".</div>
+    <div class="env-note">Configura le credenziali, salva e scegli un tool di lettura per verificare la connessione. Il test usa il token amministrativo inserito in Setup. I tool di scrittura restano governati dalla policy sotto.</div>
     <div class="row" style="justify-content:space-between;align-items:center">
       <span class="hint" id="connSummary">Caricamento&hellip;</span>
       <button class="btn btn-ghost btn-sm" onclick="loadConnectors()">&#8634; Ricarica stato</button>
     </div>
     <div id="connList" style="margin-top:8px"></div>
+    <div id="connConfig"></div>
+    <div class="env-sec">Prova connessione</div>
+    <div class="setup-grid">
+      <div class="fg"><label class="label" for="connTestTool">Tool di lettura</label><select id="connTestTool" class="inp" onchange="selectConnectorTest()"></select></div>
+      <div class="fg"><label class="label" for="connTestArgs">Argomenti JSON</label><textarea id="connTestArgs" class="inp inp-mono" rows="3">{}</textarea></div>
+    </div>
+    <div class="hint" id="connTestHint"></div>
+    <button class="btn btn-ghost btn-sm" onclick="runConnectorTest()">&#9654; Esegui test di lettura</button>
+    <pre class="diag-out" id="connTestResult" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:8px"></pre>
   </div>
   <div class="card">
     <div class="legacy-toggle" onclick="toggleLegacy()">
@@ -787,7 +875,13 @@ function showPanel(name,btn){
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
   document.getElementById('panel-'+name).classList.add('active');
-  btn.classList.add('active');
+  if(btn)btn.classList.add('active');
+  // L'hash porta il nome della scheda (#autogen, #nodes, ...): cosi' una scheda
+  // e' indirizzabile da fuori — la home del bridge punta qui con #autogen.
+  // replaceState non rilancia 'hashchange' (niente anello col listener sotto) e
+  // non accumula una voce di cronologia per ogni tab: il tasto indietro riporta
+  // alla pagina da cui sei arrivato, non alla scheda prima.
+  if(location.hash!=='#'+name)history.replaceState(null,'','#'+name);
   if(name==='nodes'||name==='diag')refreshNodes();
   if(name==='nodes')webLoad();
   if(name==='topology')loadTopology();
@@ -797,6 +891,7 @@ function showPanel(name,btn){
   if(name==='metrics')refreshMetrics();
   if(name==='forge')forgeLoad();
   if(name==='sandbox')sandboxLoad();
+  if(name==='autogen'){refreshNodes();if(missionToken())loadMissions();}
   if(name==='setup'){loadCfg();loadEnv();loadConnectors();}
   if(name==='social')loadSocial();
   if(name==='network'){
@@ -804,6 +899,31 @@ function showPanel(name,btn){
     refreshNetwork();refreshBottles();
   }
 }
+
+// ── Deep-link di scheda (#autogen, #nodes, ...) ──────────────────────────────
+// Prima di qui la dashboard ignorava l'hash: una scheda si apriva solo a mano,
+// cliccando la voce nel menu. Ora la home del bridge (8099) manda a
+// /dashboard#autogen e la scheda si apre da sola; l'hash resta anche nella
+// barra degli indirizzi, quindi un deep-link si puo' copiare o mettere nei
+// preferiti. showPanel riscrive l'hash con replaceState (vedi sopra).
+function panelFromHash(){
+  var h=(location.hash||'').slice(1);
+  return (h&&document.getElementById('panel-'+h))?h:'';
+}
+function activatePanelByName(name){
+  var btn=null;
+  document.querySelectorAll('nav button').forEach(function(b){
+    if((b.getAttribute('onclick')||'').indexOf("showPanel('"+name+"'")!==-1)btn=b;
+  });
+  showPanel(name,btn);
+}
+window.addEventListener('hashchange',function(){
+  var n=panelFromHash();
+  if(n)activatePanelByName(n);
+});
+// All'apertura: se c'e' un hash valido si apre quella scheda, se no resta il
+// default (panel-nodes, gia' 'active' nel markup).
+if(panelFromHash())activatePanelByName(panelFromHash());
 
 // ── WEB NODE (lavoratore nel browser) ──────────────────────────────────────
 // Un tab del browser che si registra nella mesh e riceve SOLO task web-safe. La
@@ -1059,7 +1179,7 @@ async function forgeLoad(){
       var v=item.validation||{},notes=(v.issues||[]).concat(v.warnings||[]);
       return '<div class="forge-item"><div class="forge-item-head"><b>'+forgeEsc(item.name)+'</b><span class="forge-badge '+forgeEsc(item.status)+'">'+forgeEsc(item.status)+'</span></div>'
         +'<div class="forge-meta">'+forgeEsc(item.type)+' · v'+forgeEsc(item.version)+' · '+forgeEsc(item.generator)+'</div>'
-        +'<div class="forge-meta">ID: '+forgeEsc(item.id)+(item.provenance?' · ECC '+forgeEsc(item.provenance.commit)+' · '+forgeEsc(item.provenance.license):'')+'</div>'
+        +'<div class="forge-meta">ID: '+forgeEsc(item.id)+(item.provenance?' · '+forgeEsc(String(item.provenance.repository||'').split('/').pop())+' '+forgeEsc(item.provenance.commit)+' · '+forgeEsc(item.provenance.license):'')+'</div>'
         +'<div class="forge-validation">'+(v.valid?'VALIDO':'NON VALIDO')+(notes.length?'\n'+forgeEsc(notes.join('\n')):'')+'</div>'
         +'<div class="row" style="margin-top:8px;gap:6px"><button class="btn btn-ghost btn-sm" onclick="forgeEdit('+forgeEsc(JSON.stringify(item.id))+')">Apri</button>'
         +'<button class="btn btn-warn btn-sm" onclick="forgeState('+forgeEsc(JSON.stringify(item.id))+',\'review\')">Review</button>'
@@ -1077,6 +1197,33 @@ async function forgeImportEcc(){
     document.getElementById('forgeOutput').textContent='ECC: '+result.artifacts.filter(function(item){return item.created;}).length+' nuovi draft. Apri il sorgente per la revisione.';
     await forgeLoad();
   }catch(error){document.getElementById('forgeOutput').textContent='ECC: '+error.message;}
+}
+async function forgeImportAnydoc(){
+  var headers={'Content-Type':'application/json'},token=document.getElementById('forgeToken').value;
+  if(token)headers['X-Hyperspace-Forge-Token']=token;
+  try{
+    var result=await forgeRequest('/forge/import/anydoc',{method:'POST',headers:headers,body:'{}'});
+    document.getElementById('forgeOutput').textContent='anydoc: '+result.artifacts.filter(function(item){return item.created;}).length+' nuovi draft. Apri il sorgente per la revisione.';
+    await forgeLoad();
+  }catch(error){document.getElementById('forgeOutput').textContent='anydoc: '+error.message;}
+}
+async function forgeImportWayfinder(){
+  var headers={'Content-Type':'application/json'},token=document.getElementById('forgeToken').value;
+  if(token)headers['X-Hyperspace-Forge-Token']=token;
+  try{
+    var result=await forgeRequest('/forge/import/wayfinder',{method:'POST',headers:headers,body:'{}'});
+    document.getElementById('forgeOutput').textContent='wayfinder: '+result.artifacts.filter(function(item){return item.created;}).length+' nuovi draft. Apri il sorgente per la revisione.';
+    await forgeLoad();
+  }catch(error){document.getElementById('forgeOutput').textContent='wayfinder: '+error.message;}
+}
+async function forgeImportFirecrawlSkills(){
+  var headers={'Content-Type':'application/json'},token=document.getElementById('forgeToken').value;
+  if(token)headers['X-Hyperspace-Forge-Token']=token;
+  try{
+    var result=await forgeRequest('/forge/import/firecrawl-skills',{method:'POST',headers:headers,body:'{}'});
+    document.getElementById('forgeOutput').textContent='firecrawl-skills: '+result.artifacts.filter(function(item){return item.created;}).length+' nuovi draft. Apri il sorgente per la revisione.';
+    await forgeLoad();
+  }catch(error){document.getElementById('forgeOutput').textContent='firecrawl-skills: '+error.message;}
 }
 function forgeEdit(id){
   var item=(window.forgeArtifacts||[]).find(function(x){return x.id===id;});if(!item)return;
@@ -1134,6 +1281,7 @@ async function refreshNetwork(){
     var response=await fetch('/network/status',{headers:networkHeaders(false)});
     out=await response.json();
   }catch(e){
+    renderHostShell(null,'Host-agent non raggiungibile: '+e.message);
     document.getElementById('netUnconfigured').hidden=true;
     document.getElementById('netError').hidden=false;
     document.getElementById('netError').textContent='Errore: '+e.message;
@@ -1141,6 +1289,7 @@ async function refreshNetwork(){
     return;
   }
   if(!out.configured){
+    renderHostShell(null,out.error||'Host-agent non configurato.');
     document.getElementById('netUnconfigured').hidden=false;
     document.getElementById('netUnconfiguredText').textContent=out.error||'Configurazione di rete incompleta.';
     document.getElementById('netError').hidden=true;
@@ -1149,6 +1298,7 @@ async function refreshNetwork(){
   }
   document.getElementById('netUnconfigured').hidden=true;
   if(out.error){
+    renderHostShell(null,out.error);
     document.getElementById('netError').hidden=false;
     document.getElementById('netError').textContent='Errore: '+out.error;
     document.getElementById('netCards').hidden=true;
@@ -1159,6 +1309,73 @@ async function refreshNetwork(){
   renderNgrokCard(out.ngrok);
   renderTailscaleCard(out.tailscale);
   renderWgCard(out.wireguard);
+  renderHostShell(out.shell);
+}
+
+var pendingHostCommand=null;
+function clearHostPending(){
+  pendingHostCommand=null;
+  document.getElementById('hostShellConfirm').hidden=true;
+}
+function renderHostShell(shell,error){
+  var status=document.getElementById('hostShellStatus');
+  var button=document.getElementById('hostShellRun');
+  if(!status||!button)return;
+  if(!shell||!shell.enabled){
+    status.textContent=error||'Accesso OS disattivato: avvia hostctl con SHELL_RUN_ENABLED=true. Per esporre il tool anche al modello, riavvia il control plane con lo stesso flag.';
+    button.disabled=true;clearHostPending();return;
+  }
+  var exe=document.getElementById('hostShellExe'),cwd=document.getElementById('hostShellCwd');
+  var previousExe=exe.value,previousCwd=cwd.value;
+  exe.replaceChildren();cwd.replaceChildren();
+  (shell.allowed_executables||[]).forEach(function(value){exe.add(new Option(value,value));});
+  (shell.allowed_dirs||[]).forEach(function(value){cwd.add(new Option(value,value));});
+  if((shell.allowed_executables||[]).includes(previousExe))exe.value=previousExe;
+  else if((shell.allowed_executables||[]).includes('git'))exe.value='git';
+  if((shell.allowed_dirs||[]).includes(previousCwd))cwd.value=previousCwd;
+  button.disabled=!exe.value||!cwd.value;
+  status.textContent='Host-agent attivo · rischio che richiede conferma: '+(shell.confirm_at||'destructive')
+    +' · rischio bloccato: '+(shell.block_at||'none')+'.';
+}
+async function sendHostCommand(body){
+  var output=document.getElementById('hostShellOutput');
+  output.textContent='Esecuzione in corso…';
+  document.getElementById('hostShellRun').disabled=true;
+  document.getElementById('hostShellConfirm').hidden=true;
+  try{
+    var response=await fetch('/network/action',{method:'POST',headers:networkHeaders(true),body:JSON.stringify(body)});
+    var result=await response.json();
+    if(result.requires_confirmation){
+      pendingHostCommand=body;
+      document.getElementById('hostShellConfirm').hidden=false;
+      output.textContent='Conferma richiesta: '+(result.error||'')+'\nComando: '+body.argv.join(' ')+'\nRischio: '+(result.risk||'?')+' · Regole: '+(result.rules||[]).join(', ');
+    }else{
+      pendingHostCommand=null;
+      output.textContent=(result.ok?'OK':'Errore')+' · '+(result.risk||'?')+' · exit '+(result.exit_code===undefined?'?':result.exit_code)
+        +(result.truncated?' · output troncato':'')+'\n'+(result.output||result.error||'Nessun output');
+    }
+  }catch(error){output.textContent='Errore: '+error.message;}
+  document.getElementById('hostShellRun').disabled=false;
+}
+function runHostCommand(){
+  clearHostPending();
+  var output=document.getElementById('hostShellOutput');
+  var args;
+  try{args=JSON.parse(document.getElementById('hostShellArgs').value);}
+  catch(error){output.textContent='Argomenti JSON non validi.';return;}
+  if(!Array.isArray(args)||args.some(function(item){return typeof item!=='string';})){
+    output.textContent='Gli argomenti devono essere un array di stringhe.';return;
+  }
+  var exe=document.getElementById('hostShellExe').value,cwd=document.getElementById('hostShellCwd').value;
+  if(!exe||!cwd){output.textContent='Seleziona programma e directory.';return;}
+  var timeout=Number(document.getElementById('hostShellTimeout').value);
+  if(!Number.isInteger(timeout)||timeout<1||timeout>60){output.textContent='Timeout: scegli da 1 a 60 secondi.';return;}
+  sendHostCommand({action:'shell_run',argv:[exe].concat(args),cwd:cwd,timeout:timeout});
+}
+function confirmHostCommand(){
+  if(!pendingHostCommand)return;
+  var body=Object.assign({},pendingHostCommand,{confirm:true});
+  clearHostPending();sendHostCommand(body);
 }
 
 function renderNgrokCard(n){
@@ -2133,6 +2350,262 @@ async function runDevelopmentDream(){
   var token=document.getElementById('dreamReviewToken').value,objective=document.getElementById('developmentDreamObjective').value.trim();
   try{var response=await fetch('/development-dreams/run',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({objective:objective})});var data=await response.json();if(!response.ok)throw new Error(data.error||'Avvio fallito');document.getElementById('developmentDreamEngine').textContent='Prova avviata nella sandbox. Aggiorna tra qualche minuto.';}catch(error){window.alert('Errore: '+error.message);}
 }
+function missionActionButton(label,handler){
+  var button=document.createElement('button');button.className='btn btn-ghost btn-sm';button.textContent=label;
+  button.addEventListener('click',handler);return button;
+}
+function renderMissions(missions){
+  var inbox=document.getElementById('missionInbox');inbox.replaceChildren();
+  if(!missions.length){var empty=document.createElement('div');empty.className='hint';empty.textContent='Nessuna missione per questo filtro.';inbox.appendChild(empty);drawMissionFlow(null);return;}
+  missions.forEach(function(mission){
+    var item=document.createElement('div');item.className='dream-review-item';
+    var meta=document.createElement('div');meta.className='dream-review-meta';
+    var counts={}; (mission.tasks||[]).forEach(function(task){counts[task.status]=(counts[task.status]||0)+1;});
+    meta.textContent=(mission.status||'unknown')+' · '+(mission.id||'')+' · '+(mission.objective||'').slice(0,120);
+    var summary=document.createElement('div');summary.className='dream-review-summary';
+    summary.textContent=(mission.error||'')||((mission.criteria||[]).join(' · '))||'';
+    var budget=mission.budget||{},counters=mission.counters||{},plans=mission.plan||[];
+    var budgetLine=document.createElement('div');budgetLine.className='hint';
+    budgetLine.textContent='Budget: passi '+(counters.steps||0)+'/'+(budget.max_steps||'—')+' · replan '+(counters.replans||0)+'/'+(budget.max_replans||'—')+' · tentativi per task '+(budget.max_task_attempts||'—')+' · task '+(Object.keys(counts).map(function(key){return key+'='+counts[key];}).join(', ')||'nessuno')+' · pianificazioni '+plans.length;
+    var reviews=mission.reviews||[];
+    var reviewLine=document.createElement('div');reviewLine.className='hint';
+    if(reviews.length){var lastReview=reviews[reviews.length-1]||{};reviewLine.textContent='Ultima decisione: '+(lastReview.action||'')+' da '+(lastReview.reviewer||'')+' — '+(lastReview.rationale||'')+' (nessun artifact applicato)';}
+    var pending=mission.pending_review||[];
+    if(pending.length){var warn=document.createElement('div');warn.className='hint';warn.textContent='In attesa di revisione (non applicato): '+pending.join(', ');item.appendChild(warn);}
+    var details=document.createElement('details');var title=document.createElement('summary');title.textContent='Mostra task';
+    var board=document.createElement('pre');board.className='diag-out';
+    board.textContent=(mission.tasks||[]).map(function(task){
+      var deps=(task.dependencies||[]).join(', ')||'—',verdict=(task.verification||{}).verdict||'—',artifacts=(task.artifacts||[]).length;
+      var head=task.key+' ['+task.role+'/'+task.status+'] tentativo '+(task.attempts||0)+'/'+(task.max_attempts||1)+' · deps='+deps+' · verdetto='+verdict+(artifacts?' · '+artifacts+' artifact in sandbox (non applicati)':'');
+      return head+'\n'+(task.title||'')+(task.error?'\n! '+task.error:'')+'\n'+((task.output||'').slice(0,1200));
+    }).join('\n\n');
+    details.appendChild(title);details.appendChild(board);
+    var actions=document.createElement('div');actions.className='dream-review-actions';
+    if(['planned','running'].indexOf(mission.status)>=0){
+      actions.appendChild(missionActionButton('Avvia',function(){runMission(mission.id);}));
+      actions.appendChild(missionActionButton('Annulla',function(){cancelMission(mission.id);}));
+    }
+    if(pending.length){
+      actions.appendChild(missionActionButton('Approva',function(){reviewMission(mission.id,'approve');}));
+      actions.appendChild(missionActionButton('Rifiuta',function(){reviewMission(mission.id,'reject');}));
+      actions.appendChild(missionActionButton('Rimanda',function(){reviewMission(mission.id,'defer');}));
+    }
+    actions.appendChild(missionActionButton('Flusso',function(){missionFlowSelected=mission.id;drawMissionFlow(mission);}));
+    item.appendChild(meta);item.appendChild(summary);item.appendChild(budgetLine);
+    if(reviewLine.textContent)item.appendChild(reviewLine);
+    item.appendChild(details);item.appendChild(actions);inbox.appendChild(item);
+  });
+  // Il grafo segue la missione scelta (o la piu' recente): resta lo stesso
+  // disegno fra due refresh, cosi' i task si accendono invece di saltare.
+  var selected=missions.filter(function(item){return item.id===missionFlowSelected;})[0]||missions[0];
+  missionFlowSelected=selected?selected.id:'';
+  drawMissionFlow(selected||null);
+}
+var missionAutoRefresh=false,missionFlowSelected='',missionFlowTasks={};
+// ── MISSION CONTROL: token, header e flusso ─────────────────────────────────
+// Tutte le rotte /missions* vogliono il token dell'operatore. Prima lo mandavano
+// solo le quattro AZIONI (crea/avvia/annulla/revisiona): la LETTURA no, quindi
+// l'inbox prendeva 401 e la card sembrava vuota — il test guardava le stringhe,
+// non la chiamata. Ora lettura e scrittura passano dallo stesso helper. Il campo
+// della card ha la precedenza su quello della Dream Review Inbox, cosi' la card
+// si usa da sola.
+// Wayfinder uses the same operator authorization as Mission Control.
+var wfMaps=[],wfCurrent=null;
+function wfMessage(message){document.getElementById('wfOutput').textContent=message;}
+async function wfRequest(path,method,data){
+  var response=await fetch('/wayfinder'+path,{method:method||'GET',headers:missionHeaders(!!data),body:data?JSON.stringify(data):undefined});
+  var result=await response.json();if(!response.ok)throw new Error(result.error||response.status);return result;
+}
+function wfNew(){wfCurrent=null;document.getElementById('wfMap').value='';wfRender();}
+function wfSelect(){wfCurrent=wfMaps.find(function(m){return m.id===document.getElementById('wfMap').value;})||null;wfRender();}
+function wfRender(){
+  var m=wfCurrent||{destination:'',notes:'',fog:[],out_of_scope:[],tickets:[]};
+  document.getElementById('wfDestination').value=m.destination;document.getElementById('wfNotes').value=m.notes;
+  document.getElementById('wfFog').value=m.fog.join('\n');document.getElementById('wfScope').value=m.out_of_scope.join('\n');
+  var host=document.getElementById('wfTickets'),deps=document.getElementById('wfDeps');host.replaceChildren();deps.replaceChildren();
+  m.tickets.forEach(function(t){
+    var row=document.createElement('div'),label=document.createElement('p');
+    label.textContent=t.title+' — '+t.status+(t.owner?' · '+t.owner:'')+(m.frontier&&m.frontier.indexOf(t.key)>=0?' · disponibile':'');row.appendChild(label);
+    var detail=document.createElement('p');detail.textContent=t.question+(t.answer?' → '+t.answer:'');row.appendChild(detail);
+    if(t.dependencies.length){var dep=document.createElement('p');dep.textContent='Prerequisiti: '+t.dependencies.map(function(k){var d=m.tickets.find(function(x){return x.key===k;});return d?d.title:k;}).join(', ');row.appendChild(dep);}
+    if(t.status==='open'&&!m.mission_id){
+      (t.owner?['resolve','exclude','release']:['claim']).forEach(function(action){
+        var b=document.createElement('button');b.className='btn btn-ghost btn-sm';b.textContent={claim:'Prendi in carico',resolve:'Registra risposta',exclude:'Escludi con motivo',release:'Rilascia'}[action];
+        b.disabled=action==='claim'&&m.frontier.indexOf(t.key)<0;b.onclick=function(){wfAction(t,action);};row.appendChild(b);
+      });
+    }
+    host.appendChild(row);var option=document.createElement('option');option.value=t.key;option.textContent=t.title;deps.appendChild(option);
+  });
+  document.getElementById('wfHandoff').disabled=!m.ready;
+  document.getElementById('wfHandoff').textContent=m.mission_id?'Verifica consegna a Mission Control':'Consegna a Mission Control';
+  wfMessage(m.mission_id?'Consegnata: '+m.mission_id:m.ready?'Decisioni risolte: pronta per la consegna.':'Risolvi le domande e chiarisci le voci aperte prima della consegna.');
+}
+async function wfLoad(selected){
+  try{var result=await wfRequest('/maps');wfMaps=result.maps;var select=document.getElementById('wfMap');select.replaceChildren();
+    var blank=document.createElement('option');blank.value='';blank.textContent='Nuova mappa';select.appendChild(blank);
+    wfMaps.forEach(function(m){var o=document.createElement('option');o.value=m.id;o.textContent=m.destination;select.appendChild(o);});
+    select.value=selected||(wfCurrent&&wfCurrent.id)||'';wfSelect();
+  }catch(e){wfMessage(e.message);}
+}
+function wfDraft(){
+  function lines(id){return document.getElementById(id).value.split('\n').map(function(v){return v.trim();}).filter(Boolean);}
+  return {revision:wfCurrent?wfCurrent.revision:undefined,destination:document.getElementById('wfDestination').value,
+    notes:document.getElementById('wfNotes').value,fog:lines('wfFog'),out_of_scope:lines('wfScope'),tickets:wfCurrent?wfCurrent.tickets.slice():[]};
+}
+async function wfSave(extra){
+  try{var data=wfDraft();if(extra)data.tickets.push(extra);
+    var result=await wfRequest('/maps'+(wfCurrent?'/'+wfCurrent.id:''),wfCurrent?'PUT':'POST',data);await wfLoad(result.map.id);
+  }catch(e){wfMessage(e.message);}
+}
+function wfAdd(){var kind=document.getElementById('wfKind').value;
+  wfSave({key:'decision-'+Date.now().toString(36),title:document.getElementById('wfTitle').value,
+    question:document.getElementById('wfQuestion').value,kind:kind,mode:(kind==='research'||kind==='task')?'afk':'hitl',
+    dependencies:Array.from(document.getElementById('wfDeps').selectedOptions).map(function(o){return o.value;})});
+}
+async function wfAction(ticket,action){
+  var owner=prompt('Nome dell’operatore o agente assegnatario',ticket.owner||'operator');if(!owner)return;
+  var data={revision:wfCurrent.revision,owner:owner};
+  if(action==='resolve'||action==='exclude'){
+    data.answer=prompt(action==='resolve'?'Risposta, evidenze e riferimenti':'Motivo dell’esclusione');if(!data.answer)return;
+    if(ticket.mode==='hitl'){data.human_confirmed=confirm('Questa risposta registra una decisione effettivamente espressa dall’utente?');if(!data.human_confirmed)return;}
+  }
+  try{var result=await wfRequest('/maps/'+wfCurrent.id+'/tickets/'+ticket.key+'/'+action,'POST',data);await wfLoad(result.map.id);}catch(e){wfMessage(e.message);}
+}
+async function wfHandoff(){
+  if(!wfCurrent||!confirm('La missione potrà partire subito nel loop automatico. Consegnare le decisioni salvate a Mission Control?'))return;
+  try{var result=await wfRequest('/maps/'+wfCurrent.id+'/handoff','POST',{revision:wfCurrent.revision,confirm_execution:true});await wfLoad(result.map.id);await loadMissions();}catch(e){wfMessage(e.message);}
+}
+
+function missionToken(){
+  var own=document.getElementById('missionToken'),shared=document.getElementById('dreamReviewToken');
+  return ((own&&own.value)||(shared&&shared.value)||'').trim();
+}
+function missionHeaders(json){
+  var token=missionToken(),headers={};
+  if(token)headers['Authorization']='Bearer '+token;
+  if(json)headers['Content-Type']='application/json';
+  return headers;
+}
+// Un colore per stato: il grafo si accende da solo quando il loop avanza.
+var MISSION_FLOW_COLORS={pending:'#272b33',ready:'#4f98a3',running:'#e8af34',done:'#6daa45',failed:'#dd6974',skipped:'#596170'};
+var MISSION_FLOW_LAYOUT={name:'breadthfirst',directed:true,animate:true,animationDuration:450,spacingFactor:1.15,padding:14};
+var MISSION_FLOW_STYLE=[
+  {selector:'node',style:{'background-color':'data(color)','border-width':1,'border-color':'#0b0c0e',
+    'label':'data(label)','color':'#fff','font-size':'9px','font-family':"'JetBrains Mono',monospace",
+    'text-wrap':'wrap','text-max-width':82,'text-valign':'center','text-halign':'center','width':44,'height':44,
+    'text-outline-color':'rgba(0,0,0,.55)','text-outline-width':2,
+    'transition-property':'background-color','transition-duration':'350ms'}},
+  {selector:'edge',style:{'width':1.4,'line-color':'#4f98a3','target-arrow-color':'#4f98a3','target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.65}},
+  {selector:'node:selected',style:{'border-width':2,'border-color':'#fff'}}
+];
+var cyMission=null,missionFlowId='',missionFlowKey='',missionPulseTimer=null;
+function missionFlowNode(task){
+  var key=task.key||task.task_id,status=task.status||'pending';
+  return {data:{id:key,label:key,status:status,role:task.role||'',
+    attempts:(task.attempts||0)+'/'+(task.max_attempts||1),
+    verdict:((task.verification||{}).verdict||''),artifacts:(task.artifacts||[]).length,
+    color:MISSION_FLOW_COLORS[status]||MISSION_FLOW_COLORS.pending}};
+}
+function missionFlowStartPulse(){
+  if(missionPulseTimer)return;
+  missionPulseTimer=setInterval(function(){
+    if(!cyMission)return;
+    cyMission.nodes('[status = "running"]').animate({style:{opacity:.35}},
+      {duration:650,complete:function(){this.animate({style:{opacity:1}},{duration:650});}});
+  },1500);
+}
+function drawMissionFlow(mission){
+  var container=document.getElementById('cyMission');if(!container)return;
+  var detail=document.getElementById('missionDetail'),head=document.getElementById('missionFlowLabel');
+  missionFlowTasks={};
+  if(!mission){
+    if(cyMission){cyMission.destroy();cyMission=null;}
+    missionFlowId='';missionFlowKey='';if(head)head.textContent='nessuna missione';
+    if(detail)detail.textContent='Clicca un task nel grafo per i dettagli.';return;
+  }
+  if(typeof cytoscape==='undefined'){
+    if(detail)detail.textContent='cytoscape non caricato (arriva da un CDN: serve rete). La coda dei task resta la verita.';
+    return;
+  }
+  var tasks=mission.tasks||[],known={};
+  tasks.forEach(function(task){var key=task.key||task.task_id;known[key]=true;missionFlowTasks[key]=task;});
+  var nodes=tasks.map(missionFlowNode),edges=[];
+  tasks.forEach(function(task){
+    var key=task.key||task.task_id;
+    (task.dependencies||[]).forEach(function(dep){
+      if(known[dep])edges.push({data:{id:dep+'->'+key,source:dep,target:key}});
+    });
+  });
+  var done=nodes.filter(function(node){return node.data.status==='done';}).length;
+  if(head)head.textContent=(mission.status||'')+' · '+tasks.length+' task · '+(nodes.length-done)+' aperti';
+  var signature=mission.id+'|'+nodes.map(function(node){return node.data.id;}).sort().join(',');
+  if(!cyMission||missionFlowId!==mission.id){
+    if(cyMission)cyMission.destroy();
+    missionFlowId=mission.id;missionFlowKey=signature;
+    cyMission=cytoscape({container:container,elements:{nodes:nodes,edges:edges},style:MISSION_FLOW_STYLE,layout:MISSION_FLOW_LAYOUT});
+    cyMission.on('tap','node',function(event){missionFlowDetail(event.target.data());});
+    cyMission.on('tap',function(event){if(event.target===cyMission)missionFlowDetail(null);});
+    missionFlowStartPulse();
+    return;
+  }
+  // Stessa missione: i nodi restano dove sono e cambiano solo colore e dati,
+  // cosi' i task si accendono sotto gli occhi senza saltare in giro.
+  cyMission.batch(function(){
+    nodes.forEach(function(node){
+      var existing=cyMission.getElementById(node.data.id);
+      if(existing.length){existing.data(node.data);}else{cyMission.add({data:node.data});}
+    });
+    cyMission.nodes().forEach(function(node){if(!known[node.id()])node.remove();});
+  });
+  if(signature!==missionFlowKey){missionFlowKey=signature;missionFlowReLayout();}
+}
+function missionFlowReLayout(){if(cyMission)cyMission.layout(MISSION_FLOW_LAYOUT).run();}
+function missionFlowDetail(data){
+  var out=document.getElementById('missionDetail');if(!out)return;
+  if(!data){out.textContent='Clicca un task nel grafo per i dettagli.';return;}
+  var task=missionFlowTasks[data.id]||{};
+  var lines=['['+data.role+'/'+data.status+'] '+data.id,'tentativi '+data.attempts+(data.verdict?' · verdetto '+data.verdict:'')+(data.artifacts?' · '+data.artifacts+' artifact (in sandbox, non applicati)':'')];
+  if(task.title)lines.push(task.title);
+  if(task.error)lines.push('! '+task.error);
+  if(task.output)lines.push('',String(task.output).slice(0,600));
+  out.textContent=lines.join('\n');
+}
+async function loadMissions(){
+  var status=document.getElementById('missionStatusFilter').value,inbox=document.getElementById('missionInbox');inbox.textContent='Caricamento...';
+  if(!missionToken()){
+    missionAutoRefresh=false;
+    document.getElementById('missionEngine').textContent="Serve il token dell'operatore: incollalo nella card e premi Aggiorna.";
+    inbox.textContent='Token assente.';
+    return;
+  }
+  try{var results=await Promise.all([fetch('/missions/status',{headers:missionHeaders()}),fetch('/missions?status='+encodeURIComponent(status),{headers:missionHeaders()})]);var engine=await results[0].json(),data=await results[1].json();if(!results[0].ok||!results[1].ok)throw new Error(engine.error||data.error||'Errore inbox missioni');
+    var budget=engine.budget||{},totals=(engine.missions||{}).by_status||{},last=engine.last_mission;
+    var lastText=last?(typeof last==='object'?((last.id||'')+' ['+(last.status||'')+']'):String(last)):'—';
+    document.getElementById('missionEngine').textContent='loop '+(engine.loop?'attivo':'spento')+' · '+(engine.running?'una missione in corso':'nessuna missione in corso')+' · ultima '+lastText+' · concorrenza max '+(engine.concurrency||'—')+' · limiti: passi '+(budget.max_steps||'—')+' · parete '+(budget.max_wall_seconds||'—')+'s · replan '+(budget.max_replans||'—')+' · in memoria '+(Object.keys(totals).map(function(key){return key+'='+totals[key];}).join(', ')||'nessuna')+(engine.error?(' · errore: '+engine.error):'');
+    renderMissions(data.missions||[]);missionAutoRefresh=true;
+  }catch(error){missionAutoRefresh=false;document.getElementById('missionEngine').textContent='Stato missioni non disponibile: '+error.message;inbox.textContent='Errore: '+error.message;}
+}
+setInterval(function(){var panel=document.getElementById('panel-autogen');if(panel&&panel.classList.contains('active')&&missionAutoRefresh)loadMissions();},10000);
+async function createMission(start){
+  var objective=document.getElementById('missionObjective').value.trim();
+  var criteria=document.getElementById('missionCriteria').value.split('\n').map(function(line){return line.trim();}).filter(Boolean);
+  if(!objective){window.alert('Serve un obiettivo.');return;}
+  try{var response=await fetch('/missions',{method:'POST',headers:missionHeaders(true),body:JSON.stringify({objective:objective,criteria:criteria,start:!!start})});var data=await response.json();if(!response.ok)throw new Error(data.error||'Creazione fallita');document.getElementById('missionEngine').textContent='Missione '+((data.mission&&data.mission.id)||'')+' creata.'+(start?' Avviata.':' In attesa di avvio.');await loadMissions();}catch(error){window.alert('Errore: '+error.message);}
+}
+async function runMission(missionId){
+  try{var response=await fetch('/missions/'+encodeURIComponent(missionId)+'/run',{method:'POST',headers:missionHeaders(true),body:JSON.stringify({})});var data=await response.json();if(!response.ok)throw new Error(data.error||'Avvio fallito');await loadMissions();}catch(error){window.alert('Errore: '+error.message);}
+}
+async function cancelMission(missionId){
+  var reason=window.prompt('Motivo dell\'annullamento:','');
+  if(reason===null)return;
+  try{var response=await fetch('/missions/'+encodeURIComponent(missionId)+'/cancel',{method:'POST',headers:missionHeaders(true),body:JSON.stringify({reason:reason})});var data=await response.json();if(!response.ok)throw new Error(data.error||'Annullamento fallito');await loadMissions();}catch(error){window.alert('Errore: '+error.message);}
+}
+async function reviewMission(missionId,action){
+  var rationale=window.prompt('Motivazione obbligatoria per '+action+':','');if(!rationale||!rationale.trim())return;
+  var payload={action:action,reviewer:document.getElementById('dreamReviewer').value||'operator',rationale:rationale.trim()};
+  try{var response=await fetch('/missions/'+encodeURIComponent(missionId)+'/review',{method:'POST',headers:missionHeaders(true),body:JSON.stringify(payload)});var data=await response.json();if(!response.ok)throw new Error(data.error||'Revisione fallita');document.getElementById('missionEngine').textContent='Review recorded; no artifact was applied.';await loadMissions();}catch(error){window.alert('Errore: '+error.message);}
+}
+
 async function sendDream(){
   var node=document.getElementById('drNode').value;
   if(!node)return;
@@ -2241,12 +2714,94 @@ async function loadEnv(){
     :'File .env non scrivibile ('+d.file_path+'). Le modifiche saranno applicate SOLO al runtime corrente (persi al riavvio del container).';
   banner.className=d.writable?'env-banner':'env-banner err';
   var html='',lastSec='';
-  d.vars.forEach(function(v){
+  d.vars.filter(function(v){return v.section!=='Connettori';}).forEach(function(v){
     if(v.section!==lastSec){html+='<div class="env-sec">'+escH(v.section)+'</div>';lastSec=v.section;}
     html+='<div class="env-row"><div><label class="label" for="env_'+v.key+'">'+escH(v.label)+'</label><span class="env-key">'+escH(v.key)+'</span></div>'
        +'<div><div class="env-ctl">'+envField(v)+'</div>'+(v.hint?'<span class="hint">'+escH(v.hint)+'</span>':'')+'</div></div>';
   });
   el.innerHTML=html;
+  renderConnectorConfig();
+}
+var CONNECTOR_FIELDS={
+  github:['GITHUB_TOKEN','CONNECTOR_GITHUB_ENABLED'],
+  office365:['MS_CLIENT_ID','MS_CLIENT_SECRET','MS_TENANT_ID','CONNECTOR_OFFICE365_ENABLED'],
+  google:['GOOGLE_CREDENTIALS_JSON','GOOGLE_DELEGATE_EMAIL','CONNECTOR_GOOGLE_ENABLED'],
+  instagram:['INSTAGRAM_ACCESS_TOKEN','INSTAGRAM_USER_ID','INSTAGRAM_APP_ID','INSTAGRAM_APP_SECRET','INSTAGRAM_API_VERSION','CONNECTOR_INSTAGRAM_ENABLED']
+};
+function renderConnectorConfig(){
+  var el=document.getElementById('connConfig');
+  if(!el||!CP_ENV)return;
+  var vars=CP_ENV.vars.filter(function(v){return v.section==='Connettori';});
+  var byKey={};vars.forEach(function(v){byKey[v.key]=v;});
+  var labels={github:'GitHub',office365:'Microsoft 365',google:'Google Workspace',instagram:'Instagram'};
+  var used={};
+  var html=Object.keys(CONNECTOR_FIELDS).map(function(name){
+    var fields=CONNECTOR_FIELDS[name].filter(function(key){return !!byKey[key];});
+    fields.forEach(function(key){used[key]=true;});
+    return '<div class="env-sec">'+labels[name]+'</div>'+fields.map(function(key){
+      var v=byKey[key];
+      return '<div class="env-row"><div><label class="label" for="env_'+key+'">'+escH(v.label)+'</label><span class="env-key">'+escH(key)+'</span></div><div><div class="env-ctl">'+envField(v)+'</div>'+(v.hint?'<span class="hint">'+escH(v.hint)+'</span>':'')+'</div></div>';
+    }).join('')+'<div class="setup-footer"><button class="btn btn-primary btn-sm" onclick="saveConnector(\''+name+'\')">Salva '+labels[name]+'</button></div>';
+  }).join('');
+  html+='<div class="env-sec">Policy e opzioni</div>'+vars.filter(function(v){return !used[v.key];}).map(function(v){
+    return '<div class="env-row"><div><label class="label" for="env_'+v.key+'">'+escH(v.label)+'</label><span class="env-key">'+escH(v.key)+'</span></div><div><div class="env-ctl">'+envField(v)+'</div>'+(v.hint?'<span class="hint">'+escH(v.hint)+'</span>':'')+'</div></div>';
+  }).join('')+'<div class="setup-footer"><button class="btn btn-primary btn-sm" onclick="saveConnectorOptions()">Salva policy e opzioni</button></div>';
+  el.innerHTML=html;
+}
+function connectorUpdates(keys){
+  var updates={};
+  (CP_ENV&&CP_ENV.vars||[]).filter(function(v){return keys.indexOf(v.key)>=0;}).forEach(function(v){
+    var input=document.getElementById('env_'+v.key);
+    if(input)updates[v.key]=v.type==='bool'?(input.checked?'true':'false'):input.value;
+  });
+  return updates;
+}
+async function saveConnectorKeys(keys){
+  try{
+    var response=await configFetch('/config/env',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updates:connectorUpdates(keys)})});
+    var d=await response.json();
+    if(!response.ok||!d.ok)throw new Error(d.error||'salvataggio non riuscito');
+    showMsg('Connettore aggiornato'+(d.persisted===false?' — valido solo fino al riavvio':''));
+    await loadEnv();await loadConnectors();
+  }catch(e){showMsg('Errore: '+e.message);}
+}
+function saveConnector(name){saveConnectorKeys(CONNECTOR_FIELDS[name]||[]);}
+function saveConnectorOptions(){
+  var assigned=Object.values(CONNECTOR_FIELDS).reduce(function(a,b){return a.concat(b);},[]);
+  saveConnectorKeys((CP_ENV&&CP_ENV.vars||[]).filter(function(v){return v.section==='Connettori'&&assigned.indexOf(v.key)<0;}).map(function(v){return v.key;}));
+}
+var CONNECTOR_TEST_TOOLS=[];
+async function loadConnectorTests(){
+  var sel=document.getElementById('connTestTool');if(!sel)return;
+  try{
+    var response=await configFetch('/connectors/test');var d=await response.json();
+    if(!response.ok||!d.ok)throw new Error(d.error||'catalogo non disponibile');
+    CONNECTOR_TEST_TOOLS=d.tools||[];
+    var previous=sel.value;
+    sel.innerHTML='<option value="">Scegli un test</option>'+CONNECTOR_TEST_TOOLS.map(function(t){return '<option value="'+escH(t.name)+'">'+escH(t.connector+' · '+t.name)+'</option>';}).join('');
+    if(CONNECTOR_TEST_TOOLS.some(function(t){return t.name===previous;}))sel.value=previous;
+    selectConnectorTest();
+  }catch(e){sel.innerHTML='<option value="">Token amministrativo richiesto</option>';document.getElementById('connTestHint').textContent=e.message;}
+}
+function selectConnectorTest(){
+  var name=document.getElementById('connTestTool').value;
+  var t=CONNECTOR_TEST_TOOLS.find(function(x){return x.name===name;});
+  var args={};
+  if(t){Object.keys((t.parameters||{}).properties||{}).forEach(function(k){var p=t.parameters.properties[k];if(p.default!==undefined)args[k]=p.default;});}
+  document.getElementById('connTestArgs').value=JSON.stringify(args,null,2);
+  document.getElementById('connTestHint').textContent=t?(t.description+' · Obbligatori: '+((t.parameters||{}).required||[]).join(', ')):'Seleziona un tool. Il test esegue una richiesta reale in sola lettura.';
+}
+async function runConnectorTest(){
+  var name=document.getElementById('connTestTool').value;
+  var out=document.getElementById('connTestResult');
+  if(!name){out.textContent='Scegli un tool di lettura.';return;}
+  var args;try{args=JSON.parse(document.getElementById('connTestArgs').value);if(!args||Array.isArray(args)||typeof args!=='object')throw Error();}
+  catch(e){out.textContent='Argomenti JSON non validi: serve un oggetto.';return;}
+  out.textContent='Test in corso…';
+  try{
+    var response=await configFetch('/connectors/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool_name:name,args:args})});
+    var d=await response.json();out.textContent=response.ok&&d.ok?String(d.result):'Errore: '+(d.error||response.status);
+  }catch(e){out.textContent='Errore: '+e.message;}
 }
 // Connettori: chi e' attivo, con quali tool, e PERCHE' gli altri sono spenti.
 // Un connettore senza credenziali tace per scelta: senza questo pannello
@@ -2286,6 +2841,7 @@ async function loadConnectors(){
     html+='<div class="env-banner err" style="margin:8px 0 0">Problemi: '+d.problems.map(escH).join('; ')+'</div>';
   }
   el.innerHTML=html||'<span class="hint">Nessun connettore rilevato.</span>';
+  loadConnectorTests();
 }
 async function saveEnv(){
   if(!CP_ENV){loadEnv();return;}

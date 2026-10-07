@@ -1,5 +1,10 @@
 # Hermes Agent come memoria unica di HyperSpace
 
+Per il dispositivo **Hermes Gadget** esiste un prototipo distinto, solo testuale:
+il simulatore invia i messaggi al control plane e mostra la risposta di Anna.
+Avvio, pairing e limiti sono in [hermes-gadget-prototype.md](hermes-gadget-prototype.md).
+Il Gadget non sostituisce il backend di memoria Hermes Agent descritto qui.
+
 [Hermes Agent](https://github.com/nousresearch/hermes-agent) sostituisce il
 backend di memoria di HyperSpace. Non deve esistere un secondo archivio
 long-term proprietario di HyperSpace sincronizzato in parallelo: Hermes e' la

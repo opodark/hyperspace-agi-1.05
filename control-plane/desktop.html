@@ -63,6 +63,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 footer{text-align:center;font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-top:20px}
 footer a{color:var(--p);text-decoration:none}
 </style>
+<script defer src="/spider/bootstrap.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -106,11 +107,14 @@ const SERVICES = {
     {icon:'🔀', title:'OmniRoute', port:20128, path:'/', desc:'Gateway verso 278+ provider esterni — fallback e dashboard provider/costi.'},
   ],
   manage: [
-    {icon:'📊', title:'Dashboard Mesh', port:CORE_PORT, path:'/dashboard', desc:'Nodi, task, log, config avanzata — la vista operativa del control-plane.'},
+    {icon:'📟', title:'Attività Anna Batch', port:CORE_PORT, path:'/activity', desc:'Monitor in tempo reale della coda immagini e degli ultimi job. Solo lettura, nessun terminale da configurare.'},
+    {icon:'📊', title:'Dashboard Mesh', port:CORE_PORT, path:'/dashboard', desc:'Nodi, task, log, config avanzata — la vista operativa del control-plane. La scheda ✨ Autogenerazione raccoglie sogni, development dream e Mission Control (DAG).'},
     {icon:'✨', title:'Live 3D', port:8099, path:'/dashboard', desc:'Mesh in tempo reale via SSE — nodi, task, memoria, token/s.'},
     {icon:'📖', title:'Diario', port:CORE_PORT, path:'/diario', desc:'Post e sogni illustrati delle influencer — gli sketch di Anna e Aurora.'},
+    {icon:'🌐', title:'Sites Builder', port:CORE_PORT, path:'/sites', desc:'Crea siti, importa le raccolte di Anna, visualizza l’anteprima e scarica lo ZIP.'},
+    {icon:'💥', title:'Comic Builder', port:CORE_PORT, path:'/comics', desc:'Storyline HyperSpace e impaginazione manuale con Panel Foundry.'},
+    {icon:'🎬', title:'Reel Editor', port:7860, path:'/', desc:'Monta video verticali di Anna e Aurora con foto, clip, musica e tagli sul beat. Servizio locale opzionale.'},
     {icon:'💬', title:'Conversazioni', port:CORE_PORT, path:'/conversations', desc:'Il diario delle battute dei chatbot, filtrato per canale.'},
-    {icon:'🧠', title:'Memoria (Obsidian)', port:8091, path:'/', desc:'Vault Obsidian nel browser — ogni interazione della mesh diventa una nota collegata.'},
   ],
   setup: [
     {icon:'🧙', title:Number(CORE_PORT) === 8088 ? 'Configurazione' : 'Setup Wizard', port:8088, path:Number(CORE_PORT) === 8088 ? '/dashboard' : '/', desc:Number(CORE_PORT) === 8088 ? 'Configurazione e gestione del control-plane.' : 'Primo avvio: configura .env, scarica modelli, imposta la specializzazione del nodo.'},

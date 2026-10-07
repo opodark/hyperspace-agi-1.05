@@ -210,3 +210,34 @@ al giorno — la scheda è una sola e le immagini costano minuti.
 Prima di aggiungere un social, però, conviene guardare una settimana di vetrina su
 Telegram: se il ritmo e il tono tengono lì, tengono ovunque.
 
+## Diario intimo autonomo
+
+Il ramo intimo non usa il feed pubblico. `shared/intimate_diary.py` conserva un
+archivio separato (`INTIMATE_DIARY_FILE`, normalmente
+`/app/data/diario-intimo.json`) e ogni pagina registra livello, destinatario
+redatto, job immagine e stato di consegna. L'immagine passa dalla stessa vetrina
+di Anna usata nei DM, quindi mantiene famiglia, modello, seed e riferimento del
+volto; non esiste una seconda ricetta grafica.
+
+La prima versione consegna spontaneamente soltanto al primo scoped ID numerico in
+`CREATOR_IG_SCOPED_IDS`. VIP e MUSA sono livelli compresi dal modulo, ma non sono
+destinatari dello scheduler: il consenso alla conversazione intima non autorizza
+materiale spontaneo. Per loro servirà un opt-in persistente distinto.
+
+Configurazione (spenta per default):
+
+```dotenv
+INTIMATE_LOOP_ENABLED=true
+INTIMATE_PER_DAY=1
+INTIMATE_LOOP_CHECK_S=1800
+CREATOR_IG_SCOPED_IDS=1234567890
+```
+
+Il control-plane genera al massimo `INTIMATE_PER_DAY` pagine UTC, accoda la scena
+alla pipeline Instagram e, dopo la consegna dell'immagine, invia la didascalia in
+DM. Il contenuto non entra mai in `feed.json`, `diario.json` o nel publisher del
+feed Instagram. Per il creatore le consegne riuscite ruotano in ordine fra tre
+toni: intimo glamour, nudo artistico non esplicito, erotico esplicito. Un job
+fallito non fa avanzare la rotazione. La diagnostica completa è disponibile solo con
+`X-Hyperspace-Network-Token` su `GET /diario/intimo/data`. Prima di accendere il
+loop si può fare una singola prova autenticata con `POST /diario/intimo/genera`.

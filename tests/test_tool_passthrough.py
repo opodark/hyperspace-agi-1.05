@@ -56,6 +56,17 @@ STRUMENTI_DEL_CP = {
     "persona_get": "_tool_persona_get",
     "persona_note": "_tool_persona_note",
     "ask_aurora": "_tool_ask_aurora",
+    "create_website": "_tool_create_website",
+    "website_status": "_tool_website_status",
+    "wayfinder_map": "_tool_wayfinder_map",
+    "create_comic": "_tool_create_comic",
+    "reel_prepare_project": "_tool_reel_prepare_project",
+    "reel_schedule_daily": "_reel_schedule",
+    "reel_daily_status": "_reel_daily_status",
+    "reel_render_now": "_reel_render_now",
+    "reel_cancel_daily": "_reel_cancel_daily",
+    "reel_subject_fx_preview": "_reel_subject_fx_preview",
+    "reel_subject_fx_status": "_reel_subject_fx_status",
     "shell_run": "_tool_shell_run",
     "shell_session": "_tool_shell_session",
     "kali_scan": "_tool_kali_scan",
@@ -122,6 +133,12 @@ def carica(risposte, client_tools=True):
     def _strumento(nome):
         def finto(argomenti):
             registrato["nativi"].append((nome, argomenti))
+            if nome == "create_website":
+                return json.dumps({
+                    "ok": True, "project_id": "atelier-test-1234",
+                    "preview_url": "http://localhost:8085/website/preview/atelier-test-1234/",
+                    "download_url": "http://localhost:8085/website/projects/atelier-test-1234/download",
+                })
             return f"risultato di {nome}"
         return finto
 
@@ -177,13 +194,22 @@ class PassaggioTests(unittest.TestCase):
         self.assertIsNone(esito["choices"][0]["message"].get("tool_calls"))
         self.assertEqual(len(registro["ollama"]), 2, "il loop continua, come sempre")
 
-    def test_un_nome_che_il_client_non_ha_offerto_resta_nostro(self):
-        """Un tool inventato dal modello non diventa 'del client': va al connettore,
-        che risponde che nessuno lo gestisce — il comportamento di sempre."""
+    def test_builder_termina_senza_secondo_giro_e_restituisce_link_assoluti(self):
+        sc = carica([risposta_con_tool_calls("create_website")])
+        sc["BUILTIN_TOOLS"] = sc["BUILTIN_TOOLS"] + [
+            {"type": "function", "function": {"name": "create_website"}}]
+        esito = sc["_run_tool_loop"](domanda(), "http://finto")
+        testo = esito["choices"][0]["message"]["content"]
+        self.assertEqual(len(sc["_registrato"]["ollama"]), 1)
+        self.assertIn("http://localhost:8085/website/preview/", testo)
+        self.assertIn("Scarica il progetto ZIP", testo)
+
+    def test_un_nome_non_offerto_non_raggiunge_il_dispatcher(self):
+        """Un tool inventato non raggiunge alcun handler o connettore."""
         sc = carica([risposta_con_tool_calls("pippo_boh"), risposta_testo("non lo so")])
         esito = sc["_run_tool_loop"](domanda(), "http://finto")
         registro = sc["_registrato"]
-        self.assertEqual(registro["connettore"].chiamate, ["pippo_boh"])
+        self.assertEqual(registro["connettore"].chiamate, [])
         self.assertEqual(esito["choices"][0]["message"]["content"], "non lo so")
 
     def test_risposta_mista_torna_col_solo_tool_del_client(self):
@@ -216,7 +242,7 @@ class PassaggioTests(unittest.TestCase):
     def test_sulle_altre_superfici_il_catalogo_e_completo(self):
         sc = carica([risposta_testo("ok")])
         dati = domanda()
-        dati["_hyperspace_surface"] = "openwebui"
+        dati["_hyperspace_surface"] = "web-node"
         sc["_run_tool_loop"](dati, "http://finto")
         offerti = [t["function"]["name"] for t in sc["_registrato"]["ollama"][0]["tools"]]
         self.assertIn("persona_get", offerti)
@@ -295,5 +321,3 @@ class ChunkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-

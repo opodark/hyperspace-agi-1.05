@@ -263,7 +263,10 @@ ne chiede ~6,4 GB: prima di lanciare conviene fermare lo stack. L'output finisce
 `graphify-out-docs/` (ignorato da git) senza toccare il `graphify-out/` del codice.
 
 Non usare `--obsidian`: quel flag genera l'output in formato vault Obsidian, che
-qui non serve.
+qui non serve più — Obsidian è **uscito dallo stack** (la memoria è `hermes`,
+vedi `docs/hermes.md`). Il vecchio vault `data/obsidian-vault/`, che era un
+export derivato della memoria runtime, è stato eliminato insieme a
+`memory-graph/`.
 
 ## Perché non sostituisce la memoria runtime
 

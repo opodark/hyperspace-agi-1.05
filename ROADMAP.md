@@ -7,7 +7,7 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 ### Runtime core
 - Definire il contratto tra orchestratore, agenti e provider LLM.
 - Introdurre un layer di routing per ruoli modello: general, coder, planner, memory, tool-agent.
-- Formalizzare code richieste, timeout, retry policy e fallback modello.
+- Formalizzare code richieste, timeout, retry policy e fallback soltanto verso modelli non censurati verificati; in mancanza, restituire un errore esplicito.
 - Separare configurazione runtime, configurazione agenti e segreti operativi tramite `.env` e profili Compose.
 
 ### Agent framework
@@ -18,7 +18,8 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 
 ### Local inference layer
 - Assumere Ollama come primo target supportato per Windows e Linux.
-- Mantenere una coppia di modelli di riferimento nella fascia 14B per hardware consumer, con un generalista uncensored e un coder dedicato.
+- Mantenere una coppia di modelli non censurati di riferimento nella fascia 14B per hardware consumer, con ruoli generalista e coder.
+- Catalogare provenienza e verifica dei modelli per ogni ruolo e modalità; impedire il routing automatico verso modelli non verificati, anche tramite provider esterni.
 - Esporre sia API native Ollama sia endpoint OpenAI-compatible per compatibilità con tool terzi.
 - Introdurre benchmark interni per latenza, RAM, parallelismo e stabilità su macchine 48 GB RAM e oltre.
 
@@ -57,6 +58,17 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 - Mantenere il monorepo finché worker e adapter non richiedono release, distribuzione o manutenzione indipendenti.
 - Assumere nella fase corrente un ambiente privato single-tenant con due operatori fidati: l'hardening completo resta necessario prima dell'uso pubblico, multiutente o autonomo, ma non blocca benchmark e worker di laboratorio.
 
+### Profili di prodotto: Ufficio e Multimedia
+- Dopo il consolidamento dello stack corrente, separare l'esperienza operativa in **HyperSpace Ufficio** e **HyperSpace Multimedia**, mantenendo un unico core condiviso e un solo monorepo.
+- Lasciare nel core control-plane, mesh, memoria, autenticazione, routing dei modelli, task, audit, connector policy e protocolli: i due profili non devono diventare fork che evolvono separatamente.
+- **HyperSpace Ufficio** abilita bridge ONLYOFFICE, documenti, ricerca, Microsoft 365, automazioni, coding e strumenti di produttività; include una pipeline immagini professionale dedicata a loghi, carta stampata, presentazioni e grafiche web, senza dipendere dalle ricette social del profilo Multimedia.
+- Espandere i connector Ufficio verso database ed ERP attraverso contratti read-only per default, credenziali separate, audit e capability granulari; dare priorità ai connector **ServiceNow** e **Microsoft Teams**, necessari per una prova presso un'azienda cliente.
+- Introdurre **Anna Desktop Guide**, un assistente visivo locale che comprende ciò che l'utente ha davanti in applicazioni e siti web, mostra un piccolo avatar e offre guida contestuale nell'uso quotidiano del computer.
+- Anna Desktop Guide deve privilegiare Accessibility API/UI Automation e DOM del browser; screenshot e OCR/VLM sono fallback espliciti. Acquisizione, conservazione e invio dei contenuti devono essere visibili, revocabili e local-first, con esclusione configurabile di password manager, campi sensibili e applicazioni riservate.
+- **HyperSpace Multimedia** abilita ComfyUI, identità visiva, diario, feed, sogni, poesie, canali social e generazione audio/video futura; non deve caricare per default i connector e le UI da ufficio.
+- Separare per profilo dashboard, code, storage, segreti, limiti di risorse e policy di autonomia, evitando che un workload multimediale saturi il nodo che sta svolgendo lavoro d'ufficio.
+- Realizzare la separazione tramite profili Compose e capability manifest (`core`, `office`, `multimedia`), non duplicando il codice applicativo.
+
 ## Roadmap per fasi
 
 ### Fase 0 — Riallineamento strategico
@@ -88,6 +100,45 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 - Portare il benchmark dei modelli nella sandbox e confrontare workflow con e senza skill ECC su fixture verificabili.
 - Aggiungere in sequenza report persistenti, dependency audit, Playwright e infine Nmap/ZAP nel laboratorio privato.
 
+### Fase 3.5 — Consolidamento e separazione Ufficio/Multimedia
+- Chiudere i lavori concorrenti, ottenere un working tree pulito e validare un avvio completo e ripetibile dello stack attuale.
+- Inventariare servizi, route, variabili, volumi e dipendenze, assegnandoli a `core`, `office`, `multimedia` oppure a una capability opzionale condivisa.
+- Introdurre profili Compose avviabili separatamente e una configurazione esplicita del profilo attivo.
+- Creare una dashboard comune di ingresso con due workspace distinti: Ufficio e Multimedia.
+- Dare a ciascun workspace una dashboard mirata: documenti, task e connector per Ufficio; pipeline creative, code ComfyUI, galleria e attività social per Multimedia.
+- Separare namespace dei dati e backup, preservando memoria e identità condivise solo dove la policy lo consente.
+- Verificare tre deployment: `core+office`, `core+multimedia` e stack completo, senza regressioni nei contratti API comuni.
+
+### Fase 3.6 — HyperSpace Ufficio e Anna Desktop Guide
+- Separare un generatore grafico Ufficio dalle pipeline persona/social: preset per logo, intestazione, carta stampata, slide, icone e asset web; output vettoriale quando possibile e raster ad alta risoluzione quando necessario.
+- Definire il connector SDK per database ed ERP: introspezione schema controllata, query parametrizzate, sola lettura predefinita, allowlist di tabelle/operazioni, audit e segreti per tenant.
+- Implementare per primi i connector ServiceNow e Microsoft Teams, con ambiente demo, scope OAuth minimi e fixture riproducibili prima della prova presso il cliente.
+- Costruire Anna Desktop Guide come applicazione companion con core comune e adapter OS: Accessibility API su macOS, UI Automation su Windows e browser extension per il DOM web.
+- MVP Desktop Guide: rilevare applicazione/finestra attiva, leggere struttura accessibile e testo selezionato, spiegare l'interfaccia, suggerire il prossimo passo e visualizzare un avatar discreto; nessun click o input autonomo nella prima versione.
+- Aggiungere in una fase successiva OCR/screenshot locale per applicazioni non accessibili, memoria di sessione opt-in e azioni assistite sempre confermate dall'utente.
+- Preparare modalità aziendale: esclusioni applicative, redazione dati sensibili, retention nulla o limitata, log amministrativi senza contenuto dello schermo e configurazione per tenant.
+- Dare ad Anna voce e ascolto attraverso il web-node: push-to-talk, trascrizione Whisper locale, risposta del modello locale, sintesi vocale e avatar con stati visibili.
+- Introdurre un selettore adattivo dei modelli WebGPU: benchmark del dispositivo prima del download, profilo compatibile/standard/potenziato e scaricamento dalla GPU dopo inattività.
+- Sostituire i modelli dimostrativi da 0,5–1,7B con una scala utile: Gemma 2 2B come fallback, Llama 3.2 3B come baseline iniziale e Gemma 2 9B sui dispositivi realmente capaci.
+- Per il rollout aziendale, distribuire e cacheare internamente i pesi evitando download simultanei da Internet; applicare quote, finestre di aggiornamento e limiti di CPU/GPU/batteria.
+
+### Fase 3.7 — Website Builder end-to-end
+- Trattare la creazione di siti come caso di consolidamento prioritario: collega in un solo flusso modello coder, Code Sandbox, artefatti, Browser Worker, generazione grafica, review e deployment.
+- Aggiungere template versionati per landing page, sito vetrina e applicazione frontend, senza vincolare il core a un singolo framework JavaScript.
+- Esporre dalla sandbox una preview temporanea isolata, mai il checkout operativo, con URL a scadenza e limiti espliciti di rete e risorse.
+- Usare Playwright per navigazione, screenshot, responsive check, accessibilità di base e raccolta degli errori console; il modello può proporre correzioni sulla base di artefatti verificabili.
+- Produrre un bundle scaricabile (ZIP) con manifest, dipendenze, istruzioni di avvio, report delle verifiche e provenienza degli asset.
+- Introdurre una promozione esplicita `sandbox → progetto`: diff revisionabile e approvazione umana prima di scrivere nel repository operativo.
+- Aggiungere adapter di deploy separati e confermati dall'operatore (static hosting, Aruba, Render); nessun deploy autonomo nella prima versione.
+- Integrare il generatore grafico Ufficio per loghi, icone e asset web, privilegiando SVG e composizione deterministica per gli elementi di identità visiva.
+
+### Fase 3.8 — Comic Builder e storyline persistente
+- Gestire progetti narrativi con premessa, cast, identità visive e continuity bible.
+- Dividere gli episodi in vignette con scena, dialogo e didascalia separati dal prompt immagine.
+- Generare una vignetta alla volta tramite la coda ComfyUI e riconciliarne stato e file.
+- Comporre tavole ed export senza affidare balloon e testo al modello diffusion.
+- Usare la storyline come fonte esplicita per diario e social, senza pubblicazione automatica.
+
 ### Fase 4 — Multi-node e mesh
 - Passare da accesso singolo via Tailscale a topologia multi-nodo più completa quando il branch mesh sarà pronto.
 - Introdurre ruoli nodo: primary brain, worker node, memory node, coding node, edge node.
@@ -116,6 +167,14 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 | P1 | Dream review lifecycle | Revisione, promozione o rifiuto delle ipotesi generate nei periodi di inattività | fondazione implementata |
 | P1 | Tool & Skill Forge | Generazione, modifica, validazione e approvazione esplicita di draft inerti | fondazione implementata |
 | P1 | Unified Development Tooling | Un'unica UI e un contratto comune per Dev Sandbox, skill, test, debug e security review | architettura fissata; sandbox e Forge implementati |
+| P1 | Profili Ufficio/Multimedia | Due workspace e deployment distinti sopra lo stesso core, senza fork della codebase | pianificato dopo il consolidamento |
+| P1 | Anna Desktop Guide | Lettura contestuale cross-app con avatar, Accessibility/UI Automation e fallback OCR locale | MVP da avviare subito |
+| P1 | Anna Voice nel web-node | Whisper locale, modello WebGPU adattivo, TTS locale e avatar parlante | pianificato; architettura definita |
+| P1 | ServiceNow + Teams connectors | Integrazione enterprise pronta per una prova cliente, con OAuth minimo e audit | prioritario nelle prossime settimane |
+| P1 | Website Builder end-to-end | Chat → sandbox → preview browser → review → ZIP → promozione/deploy approvato | prioritario; fondazione sandbox già operativa |
+| P1 | Comic Builder | Storyline → continuity bible → vignette → tavola → diario/social approvati | core e API MVP implementati |
+| P2 | Office Graphics Generator | Loghi, carta stampata, slide e asset web separati dalla pipeline social | pianificato nel profilo Ufficio |
+| P2 | Database/ERP Connector SDK | Contratto sicuro e riusabile per database ed ERP | pianificato |
 | P1 | Hermes Memory Backend | Sostituire interamente la memoria cognitiva HyperSpace con Hermes; mantenere API, policy, review e viste come adapter senza dual-write | implementato (backend default `hermes`); restano verifica operativa snapshot/recovery e legacy read-only |
 | P1 | `profiles/linux-primary/` | Base del futuro target Linux production | da fare |
 | P2 | `benchmarks/` | Misure comparabili su modelli, RAM e latenza | da fare |
@@ -128,11 +187,11 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 ## Decisioni immediate
 - Mantenere **Windows sull'Asus** come piattaforma primaria temporanea.
 - Usare **Ollama** come runtime modelli locale standard del progetto.
-- Adottare una coppia iniziale di modelli 14B: un generalista uncensored e un coder dedicato.
+- Adottare una coppia iniziale di modelli 14B non censurati: un generalista e un coder.
 - Usare **Tailscale** come soluzione di accesso remoto e collegamento sicuro in attesa della mesh completa.
 - Inserire **Claude Code con Sonnet 5** come teammate di sviluppo che opera sui file locali del repository sotto policy di progetto.
 - Mantenere i sogni locali, inattivi per default e separati dalla memoria autorevole finché il ciclo di revisione non è validato.
-- Tenere tool e skill sotto un unico HyperSpace, separando i processi di esecuzione in base a filesystem, browser e rete invece di creare prodotti distinti.
+- Tenere un unico core HyperSpace e un solo monorepo, ma presentare e distribuire due profili operativi distinti — **Ufficio** e **Multimedia** — con servizi, dashboard, risorse e policy separati.
 - Dare priorità a benchmark sandboxizzato, report e nuovi strumenti di sviluppo; completare l'hardening end-to-end prima di ampliare utenti, autonomia o esposizione pubblica.
 
 ## Rischi principali

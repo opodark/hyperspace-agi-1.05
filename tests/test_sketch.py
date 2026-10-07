@@ -21,6 +21,9 @@ class PromptSketchTests(unittest.TestCase):
         self.assertIn(STILE_SKETCH, p)
         self.assertIn("una torre al tramonto", p)
         self.assertIn("costruzione digitale", p)
+        self.assertTrue(p.startswith("una torre al tramonto."))
+        self.assertNotIn("editorial illustration", p)
+        self.assertIn("no magazine layout", p)
 
     def test_l_idea_vuota_lascia_stile_e_dichiarazione(self):
         p = prompt_sketch("")

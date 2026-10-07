@@ -130,10 +130,19 @@ _POSE_REGOLE = (
 
 
 def scegli_pose_preset(prompt: str) -> str:
-    """Select one-body presets conservatively; empty means text-only."""
+    """Use body-only presets only when the scene does not depend on hand placement.
+
+    The built-in maps contain shoulders, elbows and wrists, but no finger joints.
+    A generic ``lying`` map can put both wrists away from the requested action.
+    Such scenes need a pose photo with DWPose hand detection instead.
+    """
     testo = " ".join(str(prompt or "").lower().split())
     if re.search(r"\b(?:two people|two persons|couple|coppia|due persone|"
                  r"man and (?:a )?woman|woman and (?:a )?man|uomo e (?:una )?donna)\b", testo):
+        return ""
+    if re.search(r"\b(?:dit[aoei]|dita|finger\w*|hand\w*|man[oi]|palm\w*|"
+                 r"wrist\w*|pols\w*|touch\w*|tocca\w*|sfiora\w*|"
+                 r"masturb\w*|clitor\w*|vulv\w*|vagin\w*|genital\w*)\b", testo):
         return ""
     for nome, pattern in _POSE_REGOLE:
         if re.search(pattern, testo, re.IGNORECASE):
@@ -186,6 +195,20 @@ def riferimento_supportato(famiglia: str) -> bool:
 # due default che si allontanano: il grafo usava 0.8 anche quando il job ne
 # dichiarava un altro solo perché qualcuno se ne ricordava.
 RIFERIMENTO_FORZA_DEFAULT = 0.8
+
+# Fin dove l'adattatore ha voce in capitolo sul colore, in frazione dei passi (0..1).
+# Era 1.0 — cioè «sempre» — e il 2026-10-02 la serie notturna di Anna (trenta scene,
+# trenta seed diversi) ha misurato cosa costa: saturazione media 0.14 e diciannove
+# immagini su trenta con un verde come tinta dominante, mentre le scene chiedevano
+# viola, teal, cremisi (l'abito viola è uscito bianco con la fascia verde, il bomber
+# teal è uscito verde). Il riferimento di Anna è un disegno dal fondo verde: il
+# CLIP-ViT-H lo legge INTERO — non è un ritaglio del volto — e `embeds_scaling:
+# V only` lo innesta sui *value*, che è la parte che porta colore e texture.
+# L'identità si fissa nei primi passi; gli ultimi li decide il testo, che è l'unico a
+# sapere di che colore è l'abito. 0.6 = l'adattatore tace sull'ultimo 40% del
+# campionamento. Il numero è uno solo perché grafo e documentazione non si allontanino;
+# `IPADAPTER_END` è la manopola per una prova senza toccare il codice.
+RIFERIMENTO_FINE_DEFAULT = float(os.getenv("IPADAPTER_END", "0.6"))
 
 
 def nuovo_job(prompt: str, *, negativo: str = "", larghezza: int = 768,
@@ -319,21 +342,30 @@ _STILE_KEEP = frozenset({"matita", "carboncino", "inchiostro", "acquerello",
                          "grafite", "penna", "biro", "gesso", "sanguigna", "tempera",
                          "gouache", "puntinismo"})
 _MEZZO = rf"(?P<mezzo>(?:\s+(?:{_RIEMPI_W}|{_STILE_W}))*)"
+# L'apertura della frase: un saluto o un vocativo davanti al verbo ("Piccola
+# mandami...", "Ciao piccola, mi mandi..."). In una chat privata è la forma più
+# comune, e senza questa l'apertura spinge la frase fuori dalla regola: resta al
+# modello, che a volte tace — e allora l'immagine non viene accodata mentre il
+# testo promette di mandarla. Si ripete ("ciao ciao...") perché è punteggiatura,
+# non contenuto. `anna`/`aurora` c'erano già: il nome della persona è un vocativo.
+_VOCATIVO = (r"(?:ciao|ehi|hey|ei|ohi|salve|piccola|piccolo|amore|tesoro|dolcezza|"
+             r"bella|bello|caro|cara|amica|amico|anna|aurora|dear|lovely|mio|mia)")
+_APERTURA = rf"^\s*(?:{_VOCATIVO}[\s,!:.\-]+\s*)*"
 REGOLE_IMMAGINE = (
     # "puoi mandarmi una foto": potere + infinito. È la forma più comune, e senza
     # questa regola resta muta (il verbo vero è l'infinito, non "puoi").
     ("potere-infinito", re.compile(
-        rf"^\s*(?:aurora[\s,]+)?(?:mi\s+)?(?:puoi|potresti|riesci\s+a|sapresti)\s+"
+        rf"{_APERTURA}(?:mi\s+)?(?:puoi|potresti|riesci\s+a|sapresti)\s+"
         rf"(?:mandarmi|mandare|inviarmi|inviare|farmi|fare|generarmi|generare|"
         rf"crearmi|creare|disegnarmi|disegnare|illustrarmi|illustrare)\b"
         rf"{_MEZZO}\s*{_FOTO}\b", re.IGNORECASE)),
     ("mandare", re.compile(
-        rf"^\s*(?:aurora[\s,]+)?(?:mi\s+|me\s+la\s+)?(?:manda|mandami|mandi|mandate|"
+        rf"{_APERTURA}(?:mi\s+|me\s+la\s+)?(?:manda|mandami|mandi|mandate|"
         rf"mandarmi|mandarmela|invia|inviami|inviate|fammi|fai|fate|genera|"
         rf"generami|generate|crea|creami|create|disegna|disegnami|disegnate|"
         rf"illustra|illustrami|abbozza|schizza)\b{_MEZZO}\s*{_FOTO}\b", re.IGNORECASE)),
     ("volere", re.compile(
-        rf"^\s*(?:aurora[\s,]+)?(?:vorrei|voglio|mi\s+piacerebbe|mi\s+serve|"
+        rf"{_APERTURA}(?:vorrei|voglio|mi\s+piacerebbe|mi\s+serve|"
         rf"mi\s+servirebbe|potrei\s+avere)\b{_MEZZO}\s*{_FOTO}\b", re.IGNORECASE)),
 )
 
@@ -384,6 +416,7 @@ class ImmagineQueue:
         self._lock = threading.Lock()
         self._job: dict = {}
         self._storico: list = []
+        self.paused = False
         self.state_path = str(state_path or "")
         self._restore()
 
@@ -409,6 +442,8 @@ class ImmagineQueue:
         """
         with self._lock:
             self._pota_locked()
+            if self.paused:
+                return None
             candidati = [j for j in self._job.values() if j["stato"] == "pending"]
             capaci = famiglie_capaci(capace_di)
             if capaci:
@@ -452,10 +487,61 @@ class ImmagineQueue:
             self._save_locked()
             return True
 
+    def aggiorna_pending(self, job_id: str, **campi) -> dict | None:
+        """Aggiorna un job ancora in attesa senza toccare quello già in GPU.
+
+        Serve alle correzioni editoriali (inquadratura, palette) fatte mentre una
+        serie notturna sta già riempiendo la coda.  Un job ``running`` è immutabile:
+        modificarlo a metà renderebbe impossibile sapere quale prompt ha prodotto
+        il raster.
+        """
+        consentiti = {"prompt", "negativo", "reference_strength"}
+        if not campi or any(nome not in consentiti for nome in campi):
+            raise ValueError("campi aggiornabili: prompt, negativo, reference_strength")
+        with self._lock:
+            job = self._job.get(str(job_id or ""))
+            if job is None or job.get("stato") != "pending":
+                return None
+            for nome, valore in campi.items():
+                if nome == "reference_strength":
+                    valore = float(valore)
+                    if not 0.0 <= valore <= 1.0:
+                        raise ValueError("reference_strength deve essere fra 0 e 1")
+                else:
+                    valore = str(valore or "").strip()
+                    if not valore:
+                        raise ValueError(f"{nome} non può essere vuoto")
+                job[nome] = valore
+            self._save_locked()
+            return dict(job)
+
+    def rimuovi_pending(self, job_id: str) -> bool:
+        """Rimuove un job non ancora preso; running e storico restano intatti."""
+        with self._lock:
+            job = self._job.get(str(job_id or ""))
+            if job is None or job.get("stato") != "pending":
+                return False
+            del self._job[job["id"]]
+            self._save_locked()
+            return True
+
     def job(self, job_id: str) -> dict | None:
         with self._lock:
             trovato = self._job.get(str(job_id or ""))
             return dict(trovato) if trovato else None
+
+    def set_paused(self, paused: bool) -> bool:
+        """Stop claiming new work; an already claimed render may finish."""
+        with self._lock:
+            if self.paused and not paused:
+                # A deliberately paused backlog must still be runnable after
+                # the normal 12-hour queue TTL has elapsed.
+                for job in self._job.values():
+                    if job["stato"] == "pending":
+                        job["creato_ts"] = self.clock()
+            self.paused = bool(paused)
+            self._save_locked()
+            return self.paused
 
     def running_ids(self, famiglia: str = "") -> list[str]:
         with self._lock:
@@ -521,7 +607,12 @@ class ImmagineQueue:
                 "in_esecuzione": per_stato["running"],
                 "da_consegnare": len(da_consegnare),
                 "max_jobs": self.max_jobs,
+                "paused": self.paused,
                 "ttl_s": self.ttl_s,
+                "attivi": [{"id": j["id"], "stato": j["stato"],
+                            "famiglia": j["famiglia"]}
+                           for j in self._job.values()
+                           if j["stato"] in ("pending", "running")],
                 "ultimi": [{"id": j["id"], "stato": j["stato"],
                             "prompt": j["prompt"],
                             "famiglia": j["famiglia"],
@@ -535,7 +626,8 @@ class ImmagineQueue:
         changed = False
         for chiave, job in list(self._job.items()):
             eta = adesso - job["creato_ts"]
-            if job["stato"] in ("pending", "running") and eta > self.ttl_s:
+            if job["stato"] in ("pending", "running") and eta > self.ttl_s \
+                    and not (self.paused and job["stato"] == "pending"):
                 del self._job[chiave]
                 changed = True
                 continue
@@ -563,6 +655,7 @@ class ImmagineQueue:
                 saved = json.load(handle)
             jobs = saved.get("jobs", {})
             history = saved.get("history", [])
+            self.paused = bool(saved.get("paused", False))
             if not isinstance(jobs, dict) or not isinstance(history, list):
                 return
             self._job = {str(key): dict(value) for key, value in jobs.items()
@@ -585,7 +678,8 @@ class ImmagineQueue:
             os.makedirs(directory, exist_ok=True)
             temporary = self.state_path + ".tmp"
             with open(temporary, "w", encoding="utf-8") as handle:
-                json.dump({"version": 1, "jobs": self._job, "history": self._storico},
+                json.dump({"version": 1, "jobs": self._job, "history": self._storico,
+                           "paused": self.paused},
                           handle, ensure_ascii=False, separators=(",", ":"))
                 handle.flush()
                 os.fsync(handle.fileno())
@@ -924,6 +1018,10 @@ def workflow_checkpoint(job: dict, *, modello: dict | None = None,
         # senza toccare il prompt — che con SD 1.5 ha 77 token e non può crescere.
         # `weight_type: linear` con `embeds_scaling: V only` è la lettura consigliata
         # per PLUS FACE; il peso lo decide il job (default 0.8), non il grafo.
+        # Quando l'adattatore tace lo decide il grafo, e non è un dettaglio di gusto:
+        # `end_at` è la frazione di campionamento oltre la quale il riferimento non
+        # parla più, e con 1.0 aveva l'ultima parola anche sul colore (vedi
+        # `RIFERIMENTO_FINE_DEFAULT`).
         grafo.update({
             "465": {"class_type": "LoadImage", "inputs": {"image": reference_image}},
             "466": {"class_type": "IPAdapterModelLoader",
@@ -935,7 +1033,8 @@ def workflow_checkpoint(job: dict, *, modello: dict | None = None,
                 "clip_vision": ["467", 0],
                 "weight": float(job.get("reference_strength", RIFERIMENTO_FORZA_DEFAULT)),
                 "weight_type": "linear", "combine_embeds": "concat",
-                "start_at": 0.0, "end_at": 1.0, "embeds_scaling": "V only"}},
+                "start_at": 0.0, "end_at": RIFERIMENTO_FINE_DEFAULT,
+                "embeds_scaling": "V only"}},
         })
         grafo["458"]["inputs"]["model"] = ["468", 0]
     fattore = int(job.get("fix") or 0)

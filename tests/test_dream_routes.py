@@ -58,6 +58,26 @@ class DreamRouteSecurityTests(unittest.TestCase):
         self.assertIn("Review recorded; code was not applied.",
                       (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8"))
 
+    def test_dashboard_keeps_self_generation_in_one_panel(self):
+        """Sogni, development dream e missioni vivono in un pannello solo.
+
+        Prima erano card sparse dentro Diagnostics: chi cercava "cosa si genera
+        da solo" doveva saperlo gia'. Qui si pinna che il pannello esista, che
+        la nav lo esponga e che le card di autogenerazione siano dentro di esso
+        e non piu' fra le diagnostiche.
+        """
+        self.assertIn('id="panel-autogen"', self.dashboard)
+        self.assertIn("showPanel('autogen',this)", self.dashboard)
+        panel = self.dashboard.split('id="panel-autogen"', 1)[1].split("<!-- NETWORK -->", 1)[0]
+        for marker in ('id="dreamInbox"', 'id="developmentDreamInbox"',
+                       'id="missionInbox"', 'id="cyMission"'):
+            self.assertIn(marker, panel)
+        diagnostics = self.dashboard.split('id="panel-diag"', 1)[1].split('id="panel-autogen"', 1)[0]
+        for gone in ('id="dreamInbox"', 'id="developmentDreamInbox"', 'id="missionInbox"',
+                     'id="cyMission"'):
+            self.assertNotIn(gone, diagnostics,
+                             "la card di autogenerazione non deve restare in Diagnostics")
+
 
 if __name__ == "__main__":
     unittest.main()

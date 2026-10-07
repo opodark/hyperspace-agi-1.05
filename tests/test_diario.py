@@ -75,6 +75,15 @@ class DiarioTests(unittest.TestCase):
         ricaricato = Diario.load(self.path)
         self.assertEqual(ricaricato.list()[0]["file"], "HyperSpace/s.png")
 
+    def test_sogno_raccontato_dall_immagine_conserva_il_testo_generativo(self):
+        d = Diario()
+        d.add(voce(id="s1", author="anna", tipo="sogno", testo="testo iniziale"))
+        self.assertTrue(d.aggiorna_sogno_da_immagine("s1", "  sono sul lago   al sole "))
+        page = d.get("s1")
+        self.assertEqual(page["testo"], "sono sul lago al sole")
+        self.assertEqual(page["testo_generativo"], "testo iniziale")
+        self.assertEqual(page["testo_source"], "vision")
+
     def test_list_ritorna_dal_piu_recente(self):
         d = Diario()
         d.add(voce(id="a", author="anna", testo="1"))

@@ -1,5 +1,5 @@
 # ── HyperSpace-AGI Infra-UI Bridge ──────────────────────────────────────────
-# Serves dashboard.html + SSE bridge + REST proxy on :8099
+# Serves landing.html (home) + dashboard.html (3D mesh) + SSE bridge + REST proxy on :8099
 # HTTP only — no TLS needed for LAN/internal use
 # ─────────────────────────────────────────────────────────────────────────────
 FROM python:3.11-slim

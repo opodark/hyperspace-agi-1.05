@@ -175,6 +175,19 @@ forma con cui vengono confrontati. Se il livello è chiesto e non si accende (ma
 riga nel documento) la causa **si dice**: prima il job riusciva e l'immagine era
 un'altra, che è il modo peggiore di rispondere.
 
+**La WebUI in sviluppo vale come il creatore (2026-04-10, temporaneo).** Finché la WebUI
+non è aperta agli utenti, `WEBUI_DEV_CREATOR=true` nel `.env` fa sì che chi chiede
+un'immagine dalla superficie `openwebui` — il batch Anna e i tool WebUI — valga come il
+creatore: stessa porta d'ingresso della rotta del canale e stesso livello esplicito,
+senza dover mettere l'handle di chi chiede in `CHANNEL_OPERATOR`. È una scorciatoia di
+**sviluppo** e non un livello nuovo: vale **solo** da quella superficie (nessun canale
+reale la usa, quindi Telegram e Instagram non se ne accorgono), è additiva rispetto a
+`CHANNEL_OPERATOR` — che sulla stessa superficie continua a valere — e i minori restano
+fuori anche da qui. Si accende e si spegne da Setup (sezione *Canali esterni*) senza
+riavvio. **Va spenta prima di aprire la WebUI agli utenti**, perché con il flag acceso
+la porta «chi può chiedere» e il livello esplicito non dipendono più da nessuna lista.
+Il comportamento è fissato da `tests/test_channel_immagine.py` (`WebuiSviluppoTests`).
+
 Riga di comando: `scripts/ritratto.py --crea --creatore --scena "di te nuda"` e
 `scripts/serie.py --prova --creatore --scena "..."` (le stesse condizioni, con la
 dichiarazione che il comando fa di sé). Anche qui il quadro lo scrive il sistema e la
@@ -541,12 +554,27 @@ esiste più è il tipo di attesa che sembra un blocco.
 Con i demo misurati e il fix funzionante restava il problema pratico: scegliere posa, abito,
 inquadratura e ambiente guardando le varianti, senza perdere il filo (quale seed, quale
 scena, quale file) e senza cambiare volto a ogni tentativo. `scripts/serie.py` fa **dodici
-varianti della stessa richiesta**: stile e seed sono quelli dichiarati nel documento
-(`vetrina_dal_documento`) e cambia solo la `scena`. Il volto «resta lo stesso» perché la
-richiesta è la stessa, non perché il modello se lo ricordi — e nella serie `20260930` i
-primi piani sono usciti con volti diversi: è la misura di quanto questo, da solo, non basti.
+varianti della stessa richiesta**: lo stile è quello dichiarato nel documento
+(`vetrina_dal_documento`) e cambia la `scena` — e con la scena il **seed**, che dal
+2026-10-01 si sposta di un offset calcolato sulla scena (`accoda_ritratto`): con un seed
+solo, dodici scene diverse riciclano composizione e palette. Il seed era necessario e non
+basta, e il 2026-10-02 si è misurato quanto: la serie notturna è uscita con **trenta seed
+diversi** e la stessa palette spenta in tutte (saturazione media 0,14), perché a decidere il
+colore era l'adattatore del volto — vedi «Il colore lo decide la scena, non il
+riferimento». Il volto «resta lo stesso»
+perché la richiesta è la stessa, non perché il modello se lo ricordi — e nella serie
+`20260930` i primi piani sono usciti con volti diversi: è la misura di quanto questo, da
+solo, non basti.
 Ancorare il volto è un'altra cosa — e da oggi c'è, con l'adattatore IP-Adapter e non con
 una LoRA di identità: vedi **Il volto di Anna: il riferimento, non il seed**, qui sotto.
+
+Il difetto che questa riga ha avuto fino al 2026-10-01, visto a occhio sulla serie di Anna
+(otto varianti, seed `20260930`): l'offset del seed per scena esisteva in
+`accoda_ritratto`, ma `serie.py` passava la scena **solo dentro la variante**, non come
+argomento — quindi il prompt era giusto e il seed restava uno solo per tutte. Otto
+immagini con abiti e pose diversi e la stessa palette in tutte: il seed fermo tiene ferma
+anche la composizione dei colori. Ora la scena si passa anche come argomento, e il log
+stampa il seed **effettivo** di ogni variante (`tests/test_showcase.py::SerieTests`).
 
 Tre cose che il tool fa, ed è il motivo per cui esiste:
 
@@ -570,6 +598,43 @@ candidato al posto del dichiarato — il log scrive che non è il documento), `-
 (pagina con immagini, misure e tempi). `--attesa` vale per **ogni** immagine ed è 2400 s di
 default: con `fix: 2` una variante rende in ~900 s, mentre i 900 s di prima erano tarati sul
 512×768 nativo.
+
+### La serie notturna: più lunga della coda (`scripts/serie_anna.py`, 2026-10-03)
+
+`serie.py` aspetta ogni immagine perché serve a *giudicare* una serie guardandola finire.
+Una serie **notturna** è un'altra cosa: si accoda e si va a dormire, e la mattina c'è di che
+scegliere. Il vincolo che cambia è uno solo: `IMAGE_QUEUE_MAX` — 8 è il default scritto in
+`control-plane/main.py`, 24 qui nel `.env` — è il tetto dei job **in attesa o in corso**, e
+cinquanta scene sono più lunghe della coda interattiva. `serie_anna.py` non alza il
+tetto (lo alzerebbe per una notte, e resterebbe alto per la chat) ma **aspetta**: quando
+`/image/generate` risponde `coda piena` (HTTP 429, cioè `RuntimeError` dentro
+`ImmagineQueue.accoda`) dorme `--pausa` secondi e ritenta, e i job che avanzano entrano mano a
+mano che il ponte ne conclude uno.
+
+| Manopola | Default | A cosa serve |
+|---|---|---|
+| `--pausa` | 60 s | attesa fra due tentativi a coda piena |
+| `--riferimento-forza` | dal documento (0,55) | il peso del volto su **tutte** le scene: alzarlo non cambia solo il volto, porta dentro anche il fondale del riferimento |
+| `--pazienza` | 7200 s | per **ogni** scena: oltre, è dichiarata «non accodata» invece di far girare tutta la notte per niente |
+| `--indice` | — | aspetta la fine di tutte e scrive la pagina (`--attesa` per ogni immagine, come `serie.py`) |
+| `--output` | `$COMFY_OUTPUT_DIR` | **serve** all'indice: `esito.file` è relativo (`HyperSpace/bridge_00xxx_.jpg`) |
+
+Si ritentano solo `coda piena` (429) e il ponte irraggiungibile per un istante (0): un payload
+che il server non accetta è un errore, e ritentarlo per due ore non lo sana. Le cinquanta scene
+sono sei blocchi — volti (1–5), piani medi (6–13), figure intere (14–20), glamour (21–24),
+sedute e ambienti (25–30), boudoir e danza adulta non grafica (31–50) — e la posa c'è dove l'openpose della famiglia la sa imporre
+(`standing`, `seated`, `lying`, `walking`, `dancing`, `arms_open`), altrimenti resta al testo.
+Le quattro glamour usano il vocabolario già sancito dalla banda VIP (`glamorous lingerie
+editorial`, `fully clothed intimate apparel`): **`--creatore` non si usa**, perché toglierebbe
+«nudità» dal negativo — cioè l'unica parola che tiene i vestiti addosso.
+
+`tests/test_serie_anna.py` tiene ferme le tre cose che possono rompersi in silenzio: che le
+trenta scene passino il confine del documento di Anna, che nessuna contenga una parola vietata,
+e che una coda piena diventi **un'attesa** e non una scena persa (la serie uscirebbe da
+ventiquattro invece che da trenta).
+
+Uso: `--prova`, `--solo 21,22,23,24`, `--indice ~/ComfyUI-Shared/output/serie-anna-notturna.html
+--output ~/ComfyUI-Shared/output`.
 
 ## Il volto di Anna: il riferimento, non il seed (2026-09-30)
 
@@ -621,7 +686,9 @@ ricarica lo rinominerebbe e il documento punterebbe a un file che non c'è più.
 `riferimento_forza` è il peso dell'adattatore: default `0.8` (`RIFERIMENTO_FORZA_DEFAULT`,
 il valore che la scheda di IP-Adapter Plus Face indica per un ritratto) e tetto `2.0`, come
 `pose_strength`. A `1.0` il volto del riferimento comincia a vincere sull'abito e sulla
-scena, quindi il default è basso apposta. Vuoto = nessun riferimento e il volto lo decide il
+scena, quindi il default è basso apposta. Il documento di Anna ne dichiara **0,55** (era 0,7
+fino al 2026-10-02, e la differenza si è misurata: vedi «Il colore lo decide la scena, non il
+riferimento»). Vuoto = nessun riferimento e il volto lo decide il
 seed, com'è sempre stato — e il peso resta quello di default, pronto per quando il nome ci
 sarà.
 
@@ -638,7 +705,76 @@ vede meglio, perché è un primo piano.
 l'adattatore, `467` il CLIP-ViT, e `468` (`IPAdapterAdvanced`) sta fra il checkpoint/LoRA
 (`451`/`455`) e il `KSampler` (`458`). Così vale per ogni passo e **non tocca il prompt** —
 che con SD 1.5 ha 77 token e non può crescere. `weight_type: linear`, `combine_embeds:
-concat`, `embeds_scaling: V only`: è la lettura consigliata per PLUS FACE.
+concat`, `embeds_scaling: V only`: è la lettura consigliata per PLUS FACE. `start_at: 0.0`
+e `end_at: 0.6` (`RIFERIMENTO_FINE_DEFAULT`, manopola `IPADAPTER_END`): il riferimento parla
+dall'inizio ma **tace sull'ultimo 40%** del campionamento — il perché è qui sotto.
+
+### Il colore lo decide la scena, non il riferimento (2026-10-02)
+
+Fino al 2026-10-02 l'adattatore era acceso su **tutti** i passi (`end_at: 1.0`), e la serie
+notturna di Anna — trenta scene, trenta seed diversi — ha misurato cosa costa. I numeri
+vengono dai JPEG, non dall'occhio: saturazione media dei pixel, e *vivacità* = scarto medio
+dal grigio (0–255).
+
+| | Saturazione media | Vivacità | Tinta dominante |
+|---|---|---|---|
+| le trenta di stanotte (riferimento 0,7 · `end_at` 1,0) | 0,14 | 17,5 | un verde in **19 su 30** |
+| il riferimento stesso (`anna-volto-canonico.jpg`) | 0,26 | 38,1 | verde |
+| l'unica Anna a colori pieni (`bridge_00214_`, senza riferimento) | 0,35 | 46,2 | — |
+
+Le scene chiedevano il viola, il teal, il cremisi: l'abito viola è uscito **bianco con la
+fascia verde** (scena 14), il bomber teal è uscito **verde** su un muro lavanda pallido
+(scena 8), e la scena «luce teal» ha prodotto **ciocche verdi** su fondo menta (scena 4). Il
+riferimento di Anna è un disegno dal **fondo verde**, e il CLIP-ViT-H lo legge *intero* — non
+è un ritaglio del volto — mentre `embeds_scaling: V only` lo innesta sui *value*, che è la
+parte che porta colore e texture: acceso fino all'ultimo passo, il fondo del riferimento
+arrivava prima del testo.
+
+**Il seed non c'entra**, ed è la parte che valeva la pena misurare: i trenta seed erano tutti
+diversi (l'offset `sha256(scena)` di `accoda_ritratto`, ricostruito e confrontato con i job
+veri, uno per uno) e la palette era identica in tutte. La riga più sopra che attribuisce la
+palette riciclata al seed fermo valeva per il difetto del 2026-10-01 — un seed *solo* per
+tutte le scene: sistemato quello, il colore restava deciso dall'adattatore.
+
+Il rimedio ha due pezzi, e nessuno dei due tocca il volto:
+
+- **`end_at: 0.6`** (`RIFERIMENTO_FINE_DEFAULT`): l'identità si fissa nei primi passi, e
+  l'ultimo 40% del campionamento resta al testo — l'unico che sa di che colore è l'abito.
+- **`riferimento_forza: 0.55`** nel documento di Anna, che prima ne dichiarava 0,7.
+
+Resta aperto il pezzo a monte: il riferimento canonico ha un **fondo verde**, e finché ce l'ha
+il verde entra a peso basso, non zero. Un volto canonico su fondale **neutro** è la
+correzione che toglie il problema alla radice — e in `data/anna-reference-selection.json` la
+selezione umana giudicava il volto e il corpo, mai il fondale. E resta il modello:
+`chickmixflat_v10` disegna piatto e pastello per costruzione, quindi un tetto alla
+saturazione esiste anche senza adattatore. La misura che separa le due cose è la stessa
+scena con `--riferimento-forza 0`: `scripts/serie_anna.py --solo 14` ricrea il seed
+`31452351`, quindi il confronto è a parità di tutto tranne il riferimento.
+
+Quattro prove da guardare una accanto all'altra stanno in **`scripts/prova_colori_anna.py`**
+(2026-10-02): stesso motore della serie — coda che si aspetta, vetrina dal documento, posa
+al ControlNet, indice — ma al posto delle trenta scene quattro **prove di colore**, coi
+numeri che continuano la serie. Ognuna chiede due tinte su lati opposti della ruota, una
+addosso e una alle spalle, con la luce **neutra**, così si vede chi decide il colore:
+
+| Prova | Vestito | Fondo | Posa |
+|---|---|---|---|
+| 31 | cremisi (caldo) | indaco (freddo) | `standing` |
+| 32 | viola (freddo) | ocra (caldo) | `seated` |
+| 33 | teal (freddo) | terracotta (caldo) | `walking` |
+| 34 | magenta | **grigio** (neutro) | `lying` |
+
+La 34 è il **controllo dentro le prove**: non ha nessun fondo colorato che aiuti, quindi un
+magenta che si vede anche sul grigio vuol dire che il colore è tornato comunque. La luce
+neutra, però, non rende le prove pulite del tutto: `green and violet aurora accents` sta
+nello stile di Anna e quindi in **tutte e quattro** — una terza sorgente di verde da tenere
+a mente sulla 32 (viola) e sulla 33 (teal), dove una tinta debole può essere sua e non
+della scena. Uso: `python scripts/prova_colori_anna.py --prova`,
+`... --indice ~/ComfyUI-Shared/output/prove-colori-anna.html --output ~/ComfyUI-Shared/output`,
+`... --solo 31,34`, `... --riferimento-forza 0` (il separatore: stesse prove, senza volto).
+`tests/test_prova_colori_anna.py` tiene fermi i due patti che si romperebbero in silenzio:
+che le quattro prove chiedano davvero otto colori diversi (un colore ripetuto è una prova
+sola pagata due volte) e che le trenta scene della serie tornino a posto dopo l'uso.
 
 **Perché solo SD 1.5, oggi.** L'adattatore è per famiglia come il ControlNet:
 `riferimento_supportato` chiede **entrambi** `ipadapter` e `clip_vision` nella ricetta, e per
@@ -783,6 +919,15 @@ OpenPose: chi scrive in Telegram non deve preparare alcun file. Il selettore è
 volutamente conservativo: richieste generiche e scene con più persone restano
 text-only, perché imporre loro uno scheletro singolo peggiorerebbe l'anatomia.
 `pose_preset` può comunque forzare uno dei preset supportati.
+I preset incorporati descrivono solo spalle, gomiti, polsi e articolazioni delle
+gambe: non contengono dita. Quando la scena menziona mani, dita o un gesto intimo,
+la selezione automatica lascia la posa libera invece di imporre un preset generico
+che sposterebbe le braccia. Per una posa precisa usa in Anna Batch
+`1. [pose=pose/riferimento.jpg] [strength=1.0] descrizione`: la foto va copiata in
+`ComfyUI/input/pose/`, deve mostrare tutto il corpo e le mani ben visibili. DWPose
+estrae anche i punti delle mani; ciò migliora il vincolo ma non garantisce il
+numero corretto di dita o i dettagli anatomici, che dipendono dal checkpoint e
+dalla risoluzione del primo passaggio (Anna usa SD 1.5 a 512×768).
 Senza `pose_image` il grafo resta identico a prima. Il Mac usa `DWPreprocessor` da
 `comfyui_controlnet_aux` e il ControlNet **della famiglia**:
 `xinsir-controlnet-openpose-sdxl-1.0.safetensors` per SDXL,
@@ -810,6 +955,22 @@ python integrations\comfyui\comfy_bridge.py --check   # non genera nulla
 python integrations\comfyui\comfy_bridge.py --once    # un job ed esce
 python integrations\comfyui\comfy_bridge.py           # in attesa, in ciclo
 ```
+
+**Una costante del grafo non entra nel ponte acceso.** `RIFERIMENTO_FINE_DEFAULT`,
+`FAMIGLIA_DEFAULT` e le altre si leggono **all'import**: un ponte avviato ieri continua a
+disegnare con i valori di ieri, e la misura dice «non è cambiato niente» mentre il
+cambiamento non è mai arrivato al disegno. Il 2026-10-02 è successo proprio questo: la
+serie di controllo di Anna è uscita col rimedio **a metà** — `end_at: 1.0` in memoria,
+la mano nuova (0,55) dal documento, che si legge per job — e la saturazione non si è mossa
+(0,130 → 0,131). La prova non è un'introspezione: il grafo che ComfyUI ha eseguito è
+leggibile in `/history` e in `/queue`, nodo per nodo, e lì `end_at` si vede. Il ponte si
+riavvia dal **servizio**, non a mano (il plist ha `KeepAlive`):
+`launchctl kickstart -k gui/$(id -u)/com.hyperspace.comfy-bridge`. Attenzione al job in
+volo: un claim mai concluso resta `running` fino a `claim_ttl_s` (un'ora) e nel frattempo
+`/image/jobs` risponde **503 «memoria occupata»** a ogni richiesta, perché il gate tiene la
+prenotazione di quel job — si rimette in coda subito con
+`POST /image/defer {"id": "<job>"}`, che è la rotta che il ponte stesso usa quando la
+scheda è piena.
 
 Per salvare JPG direttamente da ComfyUI, installa il nodo del progetto
 `integrations/comfyui/custom_nodes/hyperspace_save_jpeg.py` nella cartella
@@ -979,6 +1140,49 @@ compare nel messaggio. Perché funzioni, il tool deve tornare **a Open WebUI**, 
 chiamante gli altri (`docs/connectors.md`, `tests/test_tool_passthrough.py`). Fino
 al 2026-09-23 non succedeva: il CP rispondeva «non gestito», la chiamata moriva lì e
 il modello raccontava di aver mandato un file che non esisteva.
+
+### Anna in batch da Open WebUI
+
+Per la connessione OpenAPI automatica, la selezione visiva, il monitor attività
+e Anna Batch vedi [`docs/webui-tools.md`](webui-tools.md). I tool Python
+descritti sotto sono versioni precedenti da importare manualmente: non sono
+più necessari per l'installazione corrente.
+
+Per organizzare le immagini già generate, importare anche
+[`openwebui-tools/anna_file_selection.py`](../openwebui-tools/anna_file_selection.py)
+in **Admin Panel → Workspace → Tools → +** e aggiornare il filtro
+`anna_tool_filter` in **Workspace → Functions**. Riavviare Open WebUI con
+`docker compose up -d --no-deps open-webui` per applicare il volume
+`COMFY_OUTPUT_DIR/HyperSpace` su `/app/anna-images` in lettura e scrittura.
+Il tool elenca i nomi e copia file in `Anna_selezionate` o `Anna_da_rivedere`,
+verificando la destinazione; non giudica da solo l'anatomia delle immagini.
+Questa classificazione richiede che il modello veda effettivamente le immagini
+(per esempio caricate nella chat). In assenza di accesso visivo deve dirlo,
+senza dichiarare una selezione completata.
+
+La cartella generica dell'utente `/Users/opo/hyperspace_share` è montata in
+Open WebUI come `/app/hyperspace_share`. Il tool importabile
+[`openwebui-tools/hyperspace_share.py`](../openwebui-tools/hyperspace_share.py)
+può elencare sottocartelle, leggere file UTF-8 e creare nuovi file di testo
+al suo interno; rifiuta percorsi esterni e non sovrascrive file esistenti.
+Le Valves configurano la sottocartella di lavoro e i limiti in byte per
+lettura e scrittura; la radice montata resta fissa.
+Importarlo in **Admin Panel → Workspace → Tools → +** e aggiornare il filtro
+`anna_tool_filter` per renderlo disponibile nelle chat Gemma indicate dal filtro.
+
+Il vecchio tool importabile [`openwebui-tools/anna_image_batch.py`](../openwebui-tools/anna_image_batch.py)
+accoda da 1 a 50 scene con `!anna` nel control-plane: non ricostruisce un workflow
+né chiama ComfyUI direttamente. Ogni scena attraversa quindi la stessa `vetrina`, il
+riferimento facciale, la famiglia `sd15` e i controlli dei canali Telegram e Instagram.
+Per la versione precedente, importarlo in **Admin Panel → Workspace → Tools → +**, abilitarlo sul modello e
+compilare le Valve `channel_token` (un client dedicato in `CHANNEL_CLIENTS`) e
+`author` (un handle in `CHANNEL_OPERATOR`). Il tool restituisce gli id dei job: la
+WebUI non è un driver di canale e non riceve file tramite l'outbox.
+
+Cinquanta è il limite della richiesta, non la capienza implicita della coda:
+`IMAGE_QUEUE_MAX` vale 8 per default. Per accodare tutto il batch in una chiamata,
+impostarlo ad almeno `50` e riavviare il control-plane. Il bridge esegue comunque un
+job alla volta; il limite più alto conserva solo il lavoro in attesa.
 
 ### La 8189 è del gateway, non di ComfyUI (2026-10-01)
 

@@ -1,0 +1,13 @@
+{
+  "crescendo_finale": true,
+  "duration_preset": "120 secondi",
+  "audio_start": 13.7,
+  "hook_hold": 0.0,
+  "separate_person": true,
+  "subject_style": "Caldo (golden hour)",
+  "background_style": "Cupo",
+  "background_blur": 1.5,
+  "background_dim": 0.62,
+  "subject_spot": 0.02,
+  "cross_strobe": true
+}

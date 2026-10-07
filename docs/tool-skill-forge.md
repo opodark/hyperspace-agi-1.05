@@ -53,6 +53,19 @@ model context-window guarantee. Skills are sent to the backend selected for
 that request, like other messages. The Hyperspace adaptation asks the model to
 use available sandbox presets and report unavailable checks as not run.
 
+## Selected document workflow (anydoc)
+
+In the Forge dashboard, enter the existing admin token and choose **Importa
+skill anydoc come draft**. This imports the pinned `convert-documents-to-markdown`
+Agent Skill from [firecrawl/anydoc](https://github.com/firecrawl/anydoc) as an
+inert draft, checking the SHA-256 of the skill and its MIT license and preserving
+provenance. The skill teaches a model to turn Word, PowerPoint, Excel,
+OpenDocument, RTF, EPUB, CSV and PDF into GitHub-Flavored Markdown with the
+`anydoc` CLI. The Control Plane also ships an executable tool,
+`converti_documento_markdown`, which converts such a document from the shared
+folder locally (see [webui-tools.md](webui-tools.md)); the imported skill is
+reference text only and does not run code or install anything by itself.
+
 ## Browser IDE
 
 The optional IDE is code-server and is bound to localhost only. Start it with:
@@ -78,6 +91,12 @@ back into the registry and can be replaced by a later dashboard save.
 - `POST /forge/artifacts` — create an inert manual draft.
 - `POST /forge/import/ecc` — import the bundled workflows as inert drafts;
   requires `X-Hyperspace-Forge-Token`. No network fetch or installer runs.
+- `POST /forge/import/anydoc` — import the pinned anydoc skill as an inert draft;
+  requires `X-Hyperspace-Forge-Token`. No network fetch or installer runs.
+- `POST /forge/import/firecrawl-skills` — import the pinned Firecrawl skill
+  catalogue entries (`firecrawl-search`, `firecrawl-scrape`,
+  `firecrawl-research-index`, `firecrawl-developer-index`) as inert drafts;
+  requires `X-Hyperspace-Forge-Token`. No network fetch or installer runs.
 - `PUT /forge/artifacts/<id>` — update a draft and increment its version.
 - `POST /forge/generate` — generate and persist a draft through local Ollama.
 - `POST /forge/artifacts/<id>/status` — change lifecycle state; approval requires
@@ -87,3 +106,33 @@ The accepted artifact types are `tool`, `skill`, and `patch`. Patch validation
 requires unified text diff headers and at least one hunk, and rejects binary
 change placeholders. `/forge/generate` remains limited to tools and skills;
 patches come from a reviewed sandbox diff or manual input.
+
+## Wayfinder decision planning
+
+**Importa Wayfinder e skill di supporto come draft** imports five pinned MIT
+workflows via `POST /forge/import/wayfinder`, protected by the Forge token.
+The [Wayfinder integration](wayfinder.md) supplies a persistent local tracker,
+an agent tool and an explicit handoff to Mission Control. Selecting a Wayfinder
+skill injects the local adapter alongside the unchanged approved upstream source.
+Planning maps are available under **Autogenerazione → Wayfinder**.
+
+## Selected research/scraping method (firecrawl/skills)
+
+**Importa skill Firecrawl come draft** imports four pinned reference-only
+workflows via `POST /forge/import/firecrawl-skills`, protected by the Forge
+token: `firecrawl-search`, `firecrawl-scrape`, `firecrawl-research-index` and
+`firecrawl-developer-index`, from
+[firecrawl/skills](https://github.com/firecrawl/skills) under the ISC license.
+The Markdown is bundled verbatim with its SHA-256 and provenance, and imported
+as inert drafts. Hyperspace runs no Firecrawl runtime, uses no `FIRECRAWL_API_KEY`
+and makes no network call for these skills: they only teach the method. Local
+execution stays in the shipped tools — `classifica_pdf` and
+`converti_documento_markdown` (see [webui-tools.md](webui-tools.md)) — or in a
+service configured separately by the operator.
+
+### Selezione automatica nel tool loop
+
+L'hook `before_context` seleziona fino a due skill già approvate quando i trigger
+locali corrispondono al compito e i tool necessari sono offerti al ruolo. La
+selezione esplicita prevale; il registro `type=skill` espone le motivazioni.
+Regole, provenienza e limiti in [skill-hooks.md](skill-hooks.md).

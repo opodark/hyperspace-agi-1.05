@@ -140,6 +140,35 @@ tool protocol, the adapter translates to `POST /network/action`, and **tokens st
 in the CP**, never in the runtime's process. The agent gains hands; the runtime
 gains nothing to steal.
 
+## UI per l'accesso OS
+
+La dashboard ora espone **Network / OS → Comandi sul sistema operativo**.
+Legge `GET /network/status` per mostrare programmi e directory ammessi, e usa
+`POST /network/action` con `action=shell_run`. Gli argomenti sono un array JSON,
+non testo passato a una shell. Quando l'host-agent restituisce
+`requires_confirmation`, la UI mostra rischio e regola e richiede un secondo
+click prima di inviare `confirm=true`. Il proxy registra programma, verdetto ed
+exit code; l'output viene restituito alla scheda ma non salvato nel log.
+
+Per usare la UI servono `HOSTCTL_TOKEN` e `NETWORK_ADMIN_TOKEN` già configurati,
+hostctl avviato sull'host e `SHELL_RUN_ENABLED=true` nel suo `.env`. Per
+pubblicare `shell_run` e `shell_session` anche nel catalogo dei tool del modello,
+il control plane deve avviarsi con lo stesso flag. Il flag resta spento per
+default. Il pannello è un esecutore di comandi singoli; le sessioni senza PTY
+restano disponibili via tool/API.
+
+Su questa macchina la porta predefinita `8765` è occupata da
+`pole_motion.studio` (verificato il 5 ottobre 2026). Per usare hostctl qui,
+impostare insieme `HOSTCTL_PORT=8766` e
+`HOSTCTL_URL=http://host.docker.internal:8766` nel `.env`, poi avviare
+`python3 hostctl/agent.py` e riavviare il control plane. Non è stato cambiato
+il default globale: altre installazioni possono usare 8765.
+
+La directory di lavoro ammessa non è una sandbox: programmi come Python o Node
+possono leggere e scrivere altrove con i permessi dell'utente che avvia
+hostctl. Usare un account host dedicato e un'allowlist minima quando si abilita
+l'accesso a un agente.
+
 ## Before enabling anything, decide these
 
 - **which user** runs the host agent: its permissions are the agent's permissions.

@@ -73,6 +73,17 @@ class ImageMemoryGateTests(unittest.TestCase):
         self.assertTrue(gate.enter_chat(timeout=0.01))
         gate.leave_chat()
 
+    def test_pause_releases_only_between_jobs_reservation(self):
+        gate = ImageMemoryGate()
+        self.assertTrue(gate.reserve_image("image-1"))
+        gate.release_queue()
+        self.assertEqual(gate.status()["image_job"], "image-1")
+        self.assertTrue(gate.continue_image_queue("image-1"))
+        gate.release_queue()
+        self.assertEqual(gate.status()["image_job"], "")
+        self.assertTrue(gate.enter_chat(timeout=0.01))
+        gate.leave_chat()
+
     def test_reclaim_of_the_same_job_is_not_a_memory_conflict(self):
         gate = ImageMemoryGate()
         self.assertTrue(gate.reserve_image("image-1"))

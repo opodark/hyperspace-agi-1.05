@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <!-- Tiene vivo il sogno notturno: ogni mezz'ora chiede al control-plane un
+       tick del ciclo dei sogni (POST /dreams/nightly/tick). Stesse guardie del
+       loop in-process, quindi un tick in più non produce un secondo sogno.
+       Installazione: cp integrations/sogni/com.hyperspace.dream-nightly.plist ~/Library/LaunchAgents/
+                     launchctl load ~/Library/LaunchAgents/com.hyperspace.dream-nightly.plist
+       Diagnostica:  python3 scripts/dream_monitor.py     (e data/dream-nightly.log) -->
+  <key>Label</key><string>com.hyperspace.dream-nightly</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/opo/hyperspace-agi-1.04/scripts/dream_scheduler.py</string>
+    <string>--once</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.04</string>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>1800</integer>
+  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.04/data/dream-nightly.log</string>
+  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.04/data/dream-nightly.err.log</string>
+</dict></plist>

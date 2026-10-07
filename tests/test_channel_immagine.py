@@ -38,7 +38,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from shared.image_jobs import FAMIGLIA_SDXL, nuovo_job, richiesta_immagine, workflow  # noqa: E402
+from shared.image_jobs import (FAMIGLIA_SDXL, ImmagineQueue, nuovo_job, posa_supportata,  # noqa: E402
+                               richiesta_immagine, scegli_pose_preset, workflow)
 from shared.sketch import SKETCH_LATO, SKETCH_PASSI, negativo_sketch  # noqa: E402
 from shared.prompt_immagine import prepara_prompt_canale, richiesta_immagine_smart  # noqa: E402
 from shared.showcase import (VIETATI_MINORI, conflitti, negativo_ritratto,  # noqa: E402
@@ -55,7 +56,7 @@ COSTANTI = {"COMANDI_IMMAGINE"}
 VETRINA_ANNA = {
     "famiglia": "sd15", "modello": "chickmixflat_v10.ckpt",
     "larghezza": 512, "altezza": 768, "passi": 48, "seed": 20260930,
-    "riferimento": "anna-volto-canonico.jpg", "riferimento_forza": 0.7,
+    "riferimento": "anna-volto-canonico.jpg", "riferimento_forza": 0.55,
     "consenti_nudo_artistico_virtuale": True,
     "consenti_erotismo_esplicito_creatore": True,
 }
@@ -75,7 +76,7 @@ class CodaFinta:
         return job
 
 
-def _load(operator=(), vip=(), cerchia=(), coda=None, vetrina=None):
+def _load(operator=(), vip=(), cerchia=(), coda=None, vetrina=None, dev_webui=False):
     tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
     # `_nome_persona` sta con `_channel_immagine` perché è il suo unico lettore qui: la
     # rotta chiede al documento il nome con cui riconoscere un ritratto di sé.
@@ -91,8 +92,14 @@ def _load(operator=(), vip=(), cerchia=(), coda=None, vetrina=None):
         "CHANNEL_OPERATOR": set(operator),
         "CHANNEL_VIP": set(vip),
         "CHANNEL_CERCHIA": set(cerchia),
+        # La scorciatoia di sviluppo WebUI (WEBUI_DEV_CREATOR): spenta di default, come
+        # nel `.env`; i test che la accendono la passano esplicitamente, così "accesa" e
+        # "spenta" sono due casi scritti invece di un default che cambia sotto i piedi.
+        "WEBUI_DEV_CREATOR": dev_webui,
         "image_queue": coda if coda is not None else CodaFinta(),
         "nuovo_job": nuovo_job,
+        "posa_supportata": posa_supportata,
+        "scegli_pose_preset": scegli_pose_preset,
         "richiesta_immagine": richiesta_immagine,
         "FAMIGLIA_SDXL": FAMIGLIA_SDXL,
         "SKETCH_LATO": SKETCH_LATO,
@@ -136,6 +143,38 @@ class ComandoTests(unittest.TestCase):
                 scope["_channel_immagine"](_contesto(f"{comando} una torre al tramonto"),
                                            channel="telegram", destinazione="1")
                 self.assertEqual(len(scope["image_queue"].job), 1)
+
+    def test_anna_forza_la_ricetta_del_personaggio(self):
+        scope = _load(operator={"alberto"})
+
+        scope["_channel_immagine"](
+            _contesto("!anna al tramonto", autore="Alberto"),
+            channel="telegram", destinazione="1", surface="pm")
+        self.assertEqual(scope["image_queue"].job[0]["reference_image"],
+                         "anna-volto-canonico.jpg")
+
+    def test_anna_restituisce_lid_al_client_batch_se_lo_chiede(self):
+        """Il batch WebUI non ha un outbox: segue il render tramite l'id del job."""
+        scope = _load(operator={"alberto"})
+        ids = []
+        scope["_channel_immagine"](
+            _contesto("!anna al tramonto", autore="Alberto"),
+            channel="webui", surface="openwebui", job_ids=ids)
+        self.assertEqual(ids, [scope["image_queue"].job[0]["id"]])
+
+    def test_render_e_neutrale_e_riservato_al_creatore(self):
+        scope = _load(operator={"alberto"})
+        scope["_channel_immagine"](
+            _contesto("!render un faro", autore="Alberto"),
+            channel="telegram", destinazione="1", surface="pm")
+        self.assertEqual(scope["image_queue"].job[0]["reference_image"], "")
+
+        negato = _load(operator={"alberto"})
+        risposta = negato["_channel_immagine"](
+            _contesto("!render un faro", autore="Marta"),
+            channel="telegram", destinazione="1", surface="pm")
+        self.assertIn("creatore", risposta)
+        self.assertEqual(negato["image_queue"].job, [])
 
     def test_una_frase_che_contiene_la_parola_non_e_un_comando(self):
         for testo in ("mi piace immaginare le torri", "ecco la foto di ieri",
@@ -295,6 +334,25 @@ class RichiestaAParoleTests(unittest.TestCase):
         self.assertEqual(richiesta_immagine("fammi un disegno con un cappello")["idea"],
                          "con un cappello")
 
+    def test_un_saluto_o_un_vocativo_non_nasconde_la_richiesta(self):
+        """In chat la frase si apre con un saluto: la regola non deve perdere il verbo.
+
+        Il caso vero (Instagram, 2026-10-02): "Piccola mandami una tua foto sexy"
+        non veniva riconosciuta, perché la regola era ancorata all'inizio della
+        frase; il fallback era il modello, che quella volta ha taciuto — così Anna
+        promise la foto a parole e non ne accodò nessuna.
+        """
+        for frase, idea in (
+                ("Piccola mandami una tua foto sexy", "sexy"),
+                ("Ciao piccola, mi mandi una foto di un lupo?", "di un lupo?"),
+                ("Amore, fammi un disegno di un faro", "di un faro"),
+                ("tesoro, voglio una foto notturna della città",
+                 "notturna della città")):
+            with self.subTest(frase=frase):
+                esito = richiesta_immagine(frase)
+                self.assertIsNotNone(esito, frase)
+                self.assertEqual(esito["idea"], idea)
+
     def test_una_richiesta_senza_idea_non_e_un_assenso_vuoto(self):
         esito = richiesta_immagine("mandami una foto")
         self.assertIsNotNone(esito)
@@ -309,6 +367,8 @@ class RichiestaAParoleTests(unittest.TestCase):
                       "puoi mandarmi il file",
                       "mi serve il link",
                       "che bella foto!",
+                      "ciao piccola, come stai?",
+                      "ehi amore, che si dice?",
                       "mi piace immaginare le torri",
                       "foto", "", None):
             with self.subTest(frase=frase):
@@ -369,7 +429,9 @@ class RichiestaAParoleCanaleTests(unittest.TestCase):
         self.assertEqual(job["modello_effettivo"], "chickmixflat_v10.ckpt")
         self.assertEqual((job["larghezza"], job["altezza"], job["passi"]), (512, 768, 48))
         self.assertEqual(job["reference_image"], "anna-volto-canonico.jpg")
-        self.assertEqual(job["reference_strength"], 0.7)
+        # Il peso è quello dichiarato nella vetrina: scriverlo qui due volte vorrebbe
+        # dire due default che si allontanano (vedi `RIFERIMENTO_FORZA_DEFAULT`).
+        self.assertEqual(job["reference_strength"], VETRINA_ANNA["riferimento_forza"])
 
     def test_la_risposta_non_dice_che_la_foto_e_gia_mandata(self):
         """L'immagine la consegna il driver: prima di allora non è vera."""
@@ -501,7 +563,7 @@ class LivelloCreatoreTests(unittest.TestCase):
 
     def test_in_pm_la_figura_sottintesa_del_creatore_e_anna(self):
         """Il seguito "nuda figura intera" non deve diventare una donna generica."""
-        scope = _load(operator={"alberto"})
+        scope = _load(operator={"alberto"}, vetrina={"riferimento_forza": 0.8})
 
         scope["_channel_immagine"](
             _contesto("Mandami una foto nuda figura intera", autore="Alberto"),
@@ -512,6 +574,10 @@ class LivelloCreatoreTests(unittest.TestCase):
         self.assertTrue(job["prompt"].lower().startswith(
             "(solo:1.3), single woman, one person, (adult virtual nude:1.4)"))
         self.assertEqual(job["pose_preset"], "")
+        # 0,6 e non 0,8: la foto canonica ha i vestiti addosso, e un adattatore più
+        # forte li ricopia anche quando il prompt chiede il contrario. La vetrina qui
+        # dichiara 0,8 apposta — al valore del documento (0,55) il tetto non
+        # morderebbe, e il test non proverebbe la ragione per cui il tetto esiste.
         self.assertEqual(job["reference_strength"], 0.6)
         self.assertTrue(job["negativo"].startswith("multiple people, two women"))
         self.assertIn("split screen", job["negativo"])
@@ -546,6 +612,128 @@ class LivelloCreatoreTests(unittest.TestCase):
                                    channel="telegram", destinazione="1")
         self.assertEqual(len(scope["image_queue"].job), 1)
         self.assertIn("nudità", scope["image_queue"].job[0]["negativo"])
+
+
+class WebuiSviluppoTests(unittest.TestCase):
+    """La WebUI in sviluppo vale come il creatore, ma solo finché il flag è acceso.
+
+    Finché la WebUI non è aperta agli utenti (2026-04-10), `WEBUI_DEV_CREATOR` fa sì
+    che chi chiede un'immagine dalla superficie `openwebui` valga come il creatore:
+    stessa porta d'ingresso e stesso livello esplicito, senza dover mettere il suo
+    handle in `CHANNEL_OPERATOR`. È una scorciatoia di sviluppo e va difesa come tale:
+    spenta non lascia niente di aperto, non tocca gli altri canali, e i minori restano
+    fuori anche da qui — è il confine che nessun livello allarga.
+    """
+
+    SCENA = "di te nuda, adult virtual, in una stanza scura"
+
+    def test_col_flag_acceso_la_webui_vale_come_il_creatore(self):
+        scope = _load(operator={"alberto"}, dev_webui=True)
+        ids = []
+        scope["_channel_immagine"](
+            _contesto(f"!anna {self.SCENA}", autore="utente-webui"),
+            channel="webui", surface="openwebui", job_ids=ids)
+        job = scope["image_queue"].job[0]
+        self.assertIn("adult virtual", job["prompt"])
+        self.assertNotIn("nudità", job["negativo"])
+        self.assertNotIn("esplicito", job["negativo"])
+        self.assertIn("minori", job["negativo"])
+        self.assertEqual(ids, [job["id"]])
+
+    def test_batch_anatomico_non_conserva_il_divieto_nel_negativo(self):
+        for scena in ("Anna mostra la vulva, figura intera",
+                      "Anna con una mano nella zona intima",
+                      "Anna con le dita sul seno"):
+            with self.subTest(scena=scena):
+                scope = _load(operator={"alberto"}, dev_webui=True)
+                ids = []
+                scope["_channel_immagine"](
+                    _contesto(f"!anna {scena}", autore="utente-webui"),
+                    channel="webui", surface="openwebui", job_ids=ids)
+                job = scope["image_queue"].job[0]
+                self.assertEqual(ids, [job["id"]])
+                self.assertIn("adult", job["prompt"])
+                self.assertNotIn("nudità", job["negativo"])
+                self.assertNotIn("contenuto sessuale esplicito", job["negativo"])
+                self.assertIn("minori", job["negativo"])
+                if "vulva" in scena:
+                    self.assertIn("clothes", job["negativo"])
+
+    def test_batch_passa_la_posa_riconoscibile_al_controlnet(self):
+        scope = _load(operator={"alberto"}, dev_webui=True)
+        scope["_channel_immagine"](
+            _contesto("!anna Anna seduta su una sedia, figura intera", autore="utente-webui"),
+            channel="webui", surface="openwebui", job_ids=[])
+        job = scope["image_queue"].job[0]
+        self.assertEqual(job["pose_preset"], "seated")
+        self.assertEqual(workflow(job)["464"]["inputs"]["preset"], "seated")
+
+    def test_batch_con_foto_di_posa_attiva_dwpose_mani(self):
+        queue = ImmagineQueue(max_jobs=4)
+        scope = _load(operator={"alberto"}, dev_webui=True, coda=queue)
+        function = next(node for node in ast.parse(SOURCE.read_text()).body
+                        if isinstance(node, ast.FunctionDef) and node.name == "_run_anna_batch")
+        exec(compile(ast.Module(body=[function], type_ignores=[]), str(SOURCE), "exec"), scope)
+        result, status = scope["_run_anna_batch"]([
+            "Anna seduta su una sedia",
+            {"scene": "Anna distesa, figura intera", "pose_image": "pose/riferimento.jpg",
+             "pose_strength": 0.9},
+            {"scene": "scena errata", "pose_strength": 3},
+        ], "utente-webui", "webui")
+        self.assertEqual(status, 201)
+        self.assertEqual([item["pose_mode"] for item in result["accepted"]],
+                         ["preset", "image"])
+        self.assertEqual(result["rejected"][0]["index"], 3)
+        posed = queue.job(result["accepted"][1]["job_id"])
+        self.assertEqual(posed["pose_strength"], 0.9)
+        self.assertEqual(posed["pose_image"], "pose/riferimento.jpg")
+        self.assertEqual(posed["pose_preset"], "")
+        graph = workflow(posed)
+        self.assertEqual(graph["461"]["inputs"]["detect_hand"], "enable")
+        self.assertEqual(graph["460"]["inputs"]["image"], "pose/riferimento.jpg")
+        invalid, status = scope["_run_anna_batch"](
+            [{"scene": "Anna seduta", "pose_image": "../altrove.jpg"}],
+            "utente-webui", "webui")
+        self.assertEqual(status, 400)
+        self.assertEqual(invalid["accepted"], [])
+        self.assertIn("pose_image", invalid["rejected"][0]["error"])
+
+    def test_senza_il_flag_la_webui_non_ha_il_livello(self):
+        """Spento (default), la superficie `openwebui` è identica agli altri canali:
+        chi non è nelle liste non entra, e il negativo resta quello di sempre."""
+        scope = _load(operator={"alberto"})
+        risposta = scope["_channel_immagine"](
+            _contesto(f"!anna {self.SCENA}", autore="utente-webui"),
+            channel="webui", surface="openwebui", job_ids=[])
+        self.assertEqual(scope["image_queue"].job, [])
+        self.assertIn("chi mi ha costruita", risposta)
+
+    def test_il_flag_vale_solo_dalla_superficie_webui(self):
+        """La scorciatoia non esce dalla WebUI: su un altro mezzo la stessa persona
+        resta fuori come sempre."""
+        scope = _load(operator={"alberto"}, dev_webui=True)
+        risposta = scope["_channel_immagine"](
+            _contesto(f"!anna {self.SCENA}", autore="utente-webui"),
+            channel="telegram", destinazione="1", surface="pm")
+        self.assertEqual(scope["image_queue"].job, [])
+        self.assertIn("chi mi ha costruita", risposta)
+
+    def test_col_flag_acceso_l_operatore_vero_conserva_il_livello(self):
+        """La scorciatoia è additiva: non sostituisce `CHANNEL_OPERATOR`, che sulla
+        stessa superficie continua a valere come prima."""
+        scope = _load(operator={"alberto"}, dev_webui=True)
+        scope["_channel_immagine"](
+            _contesto(f"!anna {self.SCENA}", autore="Alberto"),
+            channel="webui", surface="openwebui", job_ids=[])
+        self.assertNotIn("nudità", scope["image_queue"].job[0]["negativo"])
+
+    def test_col_flag_acceso_i_minori_restano_fuori(self):
+        scope = _load(operator={"alberto"}, dev_webui=True)
+        risposta = scope["_channel_immagine"](
+            _contesto("!anna una bambina nuda", autore="utente-webui"),
+            channel="webui", surface="openwebui", job_ids=[])
+        self.assertEqual(scope["image_queue"].job, [])
+        self.assertIn("minorenni", risposta)
 
 
 class CerchiaTests(unittest.TestCase):

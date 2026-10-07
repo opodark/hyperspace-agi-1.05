@@ -343,6 +343,20 @@ VIETATI_ESPLICITI: Tuple[Tuple[str, str], ...] = (
     ("spogliat", "piccante sì, esplicito no: è un confine dichiarato"),
     ("topless", "piccante sì, esplicito no: è un confine dichiarato"),
     ("senza veli", "piccante sì, esplicito no: è un confine dichiarato"),
+    # Scene anatomiche/atti espliciti del batch: senza queste radici il job veniva
+    # accettato con nudità ed esplicito ancora nel negativo.
+    ("vagin", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("vulv", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("clitor", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("genital", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("penetr", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("masturb", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("breast", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("seno", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("intimate area", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("area intim", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("zona intim", "piccante sì, esplicito no: è un confine dichiarato"),
+    ("inner lips", "piccante sì, esplicito no: è un confine dichiarato"),
 )
 
 VIETATI_ASSOLUTI: Tuple[Tuple[str, str], ...] = VIETATI_MINORI + VIETATI_ESPLICITI

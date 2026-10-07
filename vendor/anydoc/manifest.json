@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/firecrawl/anydoc",
+  "commit": "261fc257d17c3eab0f673be31c408fd9fdc2171a",
+  "files": {
+    "LICENSE": "03a9e7657aac6536fb6458bd220347c4e7f85bd0a51d8d9e8528530b7a682ade",
+    "skills/convert-documents-to-markdown/SKILL.md": "04cc0f3587ec792c83e4af942f88594205f360cddd540a3d869e28c58292bc6a"
+  }
+}

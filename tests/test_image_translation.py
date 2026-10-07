@@ -29,7 +29,7 @@ class TraduzioneImmagineTests(unittest.TestCase):
         self.assertEqual(risultato, "full body while masturbating")
         richiesta = apri.call_args.args[0]
         self.assertEqual(json.loads(richiesta.data), {
-            "q": "figura intera mentre ti masturbi", "source": "it",
+            "q": "figura intera. mentre ti masturbi", "source": "it",
             "target": "en", "format": "text"})
 
     @patch("urllib.request.urlopen", side_effect=OSError("spento"))

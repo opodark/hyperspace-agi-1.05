@@ -24,7 +24,7 @@ Un record normalizzato contiene almeno:
 | `ts` | string | no | timestamp ISO-8601 UTC (alias legacy: `timestamp`, `created_at`) |
 | `type` | string | sì | tipo di record (vedi sotto) |
 | `content` | string | sì | contenuto ricercabile |
-| `source` | string | sì | origine (`obsidian-vault`, `mesh`, `dream`, nodo, plugin…) |
+| `source` | string | sì | origine (`mesh`, `dream`, nodo, plugin, bridge esterni…) |
 | `surface` | string | no | mezzo/contesto di provenienza (`openwebui`, `web-node`, `terminal`, `channel:cam4`, …) |
 | `node_id` | string | no | nodo di provenienza |
 | `model` | string | no | modello che ha prodotto il record |
@@ -42,7 +42,7 @@ poi `detail`, infine la coppia `prompt`+`response`.
 `memory` (interazione runtime), `note` (nota), `decision` (decisione),
 `task_state` (stato di task), `artifact` (metadati artefatto), `dream`
 (ipotesi non attendibile), `dream_insight` (nota promossa), `vault_note`
-(nota Obsidian ingerita da omega).
+(nota esterna ingerita da omega).
 
 ## Livelli di retention
 

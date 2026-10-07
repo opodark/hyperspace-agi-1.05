@@ -186,7 +186,7 @@ if (-not $Check) {
 function Show-Services {
     Head "Servizi"
     # Il control-plane è obbligatorio (senza di lui non c'è nulla da comandare);
-    # gli altri sono facoltativi: un Obsidian spento non e un guasto.
+    # gli altri sono facoltativi: un servizio spento non e un guasto.
     $servizi = @(
         @{ Nome = 'Control Plane  '; Url = "$CpBase/health";              Obbligatorio = $true },
         @{ Nome = 'Dashboard      '; Url = "$CpBase/dashboard";           Obbligatorio = $true },
@@ -194,8 +194,6 @@ function Show-Services {
         @{ Nome = 'Registry       '; Url = 'http://127.0.0.1:8086/nodes'; Obbligatorio = $false },
         @{ Nome = 'Node 1         '; Url = 'http://127.0.0.1:8081/status'; Obbligatorio = $false },
         @{ Nome = 'Bridge         '; Url = 'http://127.0.0.1:8099';       Obbligatorio = $false },
-        @{ Nome = 'Memory Graph   '; Url = 'http://127.0.0.1:8090/status'; Obbligatorio = $false },
-        @{ Nome = 'Obsidian       '; Url = 'http://127.0.0.1:8091';       Obbligatorio = $false },
         @{ Nome = 'SearXNG        '; Url = 'http://127.0.0.1:8092';       Obbligatorio = $false },
         @{ Nome = 'Gateway        '; Url = 'http://127.0.0.1:8095';       Obbligatorio = $false }
     )

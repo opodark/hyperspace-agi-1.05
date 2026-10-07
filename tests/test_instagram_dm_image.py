@@ -22,6 +22,9 @@ sys.path.insert(0, str(ROOT))
 # `image_result` chiama queste due: la prenotazione della memoria unificata del
 # Mac si trattiene fra due job a checkpoint, e la decisione sta in
 # `shared/image_jobs.py` — non in una copia scritta qui.
+# Chiama anche il diario intimo (`diario_intimo`, `INTIMATE_DIARY_FILE`): è il
+# ramo che chiude una pagina privata quando ComfyUI consegna o fallisce. Qui è
+# uno stub che non trova mai una voce, così il ramo privato resta spento.
 from shared.image_jobs import FAMIGLIE_CHECKPOINT, usa_checkpoint  # noqa: E402
 
 SOURCE = ROOT / "control-plane" / "main.py"
@@ -56,6 +59,11 @@ class Queue:
         # `famiglia`), quindi la coda non trattiene la memoria del Mac.
         return False
 
+    def stato(self):
+        # `image_result` chiede alla coda se e' in pausa prima di trattenere la
+        # memoria del Mac fra due job: qui la coda non e' mai in pausa.
+        return {"paused": False}
+
 
 def _run(tmp_path, file_esito, sent='{"message_id": "img.1"}'):
     job = {"id": "2119819cfb8f", "stato": "done", "canale": "instagram",
@@ -79,6 +87,10 @@ def _run(tmp_path, file_esito, sent='{"message_id": "img.1"}'):
         "jsonify": lambda payload: payload,
         "diario": SimpleNamespace(get=lambda *a: None, save=lambda *a: None,
                                   aggiorna_file=lambda *a: False),
+        "diario_intimo": SimpleNamespace(by_job=lambda *a: None,
+                                         conclude_job=lambda *a, **k: None,
+                                         save=lambda *a: None),
+        "INTIMATE_DIARY_FILE": str(tmp_path / "diario-intimo.json"),
         "connector_manager": SimpleNamespace(
             execute=lambda tool, args: (calls.append((tool, args)), sent)[1]),
     }

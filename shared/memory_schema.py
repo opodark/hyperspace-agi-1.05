@@ -38,7 +38,7 @@ ENTRY_TYPES = (
     "artifact",      # artifact metadata (Forge / sandbox)
     "dream",         # a generated hypothesis (untrusted)
     "dream_insight", # a promoted insight (persistent)
-    "vault_note",    # Obsidian vault note ingested by omega
+    "vault_note",    # external note ingested by omega (bridge/agent)
 )
 
 VALID_STATUSES = ("active", "quarantined", "revoked")

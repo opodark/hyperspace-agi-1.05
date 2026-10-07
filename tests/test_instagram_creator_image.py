@@ -29,16 +29,19 @@ import os
 import re
 import sys
 import unittest
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from shared.image_jobs import FAMIGLIA_SDXL, nuovo_job, richiesta_immagine  # noqa: E402
+from shared.image_jobs import (FAMIGLIA_SD15, FAMIGLIA_SDXL, nuovo_job,  # noqa: E402
+                               richiesta_immagine)
 from shared.instagram_intimacy import split_messages  # noqa: E402
 from shared.instagram_vip import CREATOR_LEVEL, INTIMATE_LEVELS, LEVEL_NAMES  # noqa: E402
 from shared.prompt_immagine import prepara_prompt_canale, richiesta_immagine_smart  # noqa: E402
+from shared.bot_commands import command_help  # noqa: E402
 from shared.showcase import (VIETATI_MINORI, conflitti, negativo_ritratto,  # noqa: E402
                              prompt_ritratto, richiesta_di_se, verifica_vetrina,
                              vetrina_con_quadro_erotismo, vetrina_dal_documento)
@@ -51,7 +54,7 @@ SOURCE = ROOT / "control-plane" / "main.py"
 VETRINA_ANNA = {
     "famiglia": "sd15", "modello": "chickmixflat_v10.ckpt",
     "larghezza": 512, "altezza": 768, "passi": 48, "seed": 20260930,
-    "riferimento": "anna-volto-canonico.jpg", "riferimento_forza": 0.7,
+    "riferimento": "anna-volto-canonico.jpg", "riferimento_forza": 0.55,
     "consenti_nudo_artistico_virtuale": True,
     "consenti_erotismo_esplicito_creatore": True,
 }
@@ -78,7 +81,7 @@ class Consensi:
         return self.valore
 
 
-def load(queue, consenso: str = "", vetrina=None, prompt_reader=None):
+def load(queue, consenso: str = "", vetrina=None, prompt_reader=None, translator=None):
     tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
     nomi = {"_queue_instagram_creator_image", "_job_ritratto_instagram",
             "_livello_immagine_intima", "_nome_persona"}
@@ -86,6 +89,8 @@ def load(queue, consenso: str = "", vetrina=None, prompt_reader=None):
     scope = {
         "CREATOR_LEVEL": CREATOR_LEVEL,
         "INTIMATE_LEVELS": INTIMATE_LEVELS,
+        "COMANDI_IMMAGINE": ("!immagine", "!immagine:", "!foto", "!image",
+                              "!imagine", "!anna", "!render"),
         "instagram_vips": Consensi(consenso),
         "richiesta_immagine_smart": prompt_reader or richiesta_immagine_smart,
         "persona_store": SimpleNamespace(
@@ -96,7 +101,7 @@ def load(queue, consenso: str = "", vetrina=None, prompt_reader=None):
         "nuovo_job": nuovo_job,
         "richiesta_immagine": richiesta_immagine,
         "prepara_prompt_canale": prepara_prompt_canale,
-        "traduci_scena_immagine": lambda testo: testo,
+        "traduci_scena_immagine": translator or (lambda testo: testo),
         "negativo_sketch": negativo_sketch,
         "SKETCH_LATO": SKETCH_LATO,
         "SKETCH_PASSI": SKETCH_PASSI,
@@ -110,6 +115,7 @@ def load(queue, consenso: str = "", vetrina=None, prompt_reader=None):
         "conflitti": conflitti,
         "VIETATI_MINORI": VIETATI_MINORI,
         "re": re,
+        "uuid": uuid,
         "push_log": lambda *args, **kwargs: None,
     }
     exec(compile(ast.Module(body=nodi, type_ignores=[]), str(SOURCE), "exec"), scope)
@@ -136,6 +142,26 @@ class PortaTests(unittest.TestCase):
         self.assertEqual(queue.jobs[0]["canale"], "instagram")
         self.assertEqual(queue.jobs[0]["destinazione"], "123")
         self.assertEqual(queue.jobs[0]["richiedente"], "creatore")
+
+    def test_il_vocativo_davanti_al_verbo_non_nasconde_la_richiesta(self):
+        """Il caso vero (Instagram, 2026-10-02): "Piccola mandami una tua foto sexy".
+
+        L'apertura con un vocativo la faceva uscire dalla regola: la frase restava
+        al modello, che quella volta ha taciuto — e Anna ha promesso la foto a
+        parole senza accodarne nessuna. Il vocativo è punteggiatura, non contenuto:
+        in una chat privata è anzi la forma più comune.
+        """
+        queue = Queue()
+
+        self.assertTrue(load(queue)(
+            "2429516844241126", "Piccola mandami una tua foto sexy",
+            {"level": CREATOR_LEVEL, "username": "malvaniroberto"}))
+        self.assertEqual(len(queue.jobs), 1)
+        job = queue.jobs[0]
+        self.assertEqual(job["canale"], "instagram")
+        # "una tua foto" è un ritratto di Anna: passa dalla vetrina, col suo volto.
+        self.assertEqual(job["famiglia"], FAMIGLIA_SD15)
+        self.assertTrue(job["reference_image"])
 
     def test_il_richiedente_e_lusername_quando_lo_scoped_id_non_lo_dice(self):
         queue = Queue()
@@ -227,12 +253,89 @@ class RicettaTests(unittest.TestCase):
         self.assertEqual(job["famiglia"], "sd15")
         self.assertEqual(job["modello"], "chickmixflat_v10.ckpt")
         self.assertEqual(job["modello_effettivo"], "chickmixflat_v10.ckpt")
-        self.assertEqual(job["seed"], 20260930)
+        self.assertNotEqual(job["seed"], 20260930)
         self.assertEqual((job["larghezza"], job["altezza"]), (512, 768))
         self.assertEqual(job["passi"], 48)
         # Il volto canonico: senza riferimento il seed tiene il disegno, non l'identità.
         self.assertEqual(job["reference_image"], "anna-volto-canonico.jpg")
-        self.assertEqual(job["reference_strength"], 0.7)
+        self.assertEqual(job["reference_strength"], VETRINA_ANNA["riferimento_forza"])
+
+    def test_due_ritratti_instagram_non_riusano_lo_stesso_seed(self):
+        queue = Queue()
+
+        for _ in range(2):
+            load(queue)("123", "fammi un disegno di te", {"level": CREATOR_LEVEL})
+        self.assertNotEqual(queue.jobs[0]["seed"], queue.jobs[1]["seed"])
+
+    def test_in_dm_il_soggetto_sottinteso_e_anna(self):
+        queue = Queue()
+
+        load(queue)("123", "mandami una foto erotica, figura intera",
+                    {"level": CREATOR_LEVEL})
+        job = queue.jobs[0]
+        self.assertEqual(job["famiglia"], "sd15")
+        self.assertEqual(job["reference_image"], "anna-volto-canonico.jpg")
+
+    def test_nudo_ha_priorita_clip_e_non_copia_i_vestiti_del_riferimento(self):
+        queue = Queue()
+
+        load(queue, vetrina={"riferimento_forza": 0.8})(
+            "123", "mandami una foto di te nuda, figura intera",
+            {"level": CREATOR_LEVEL})
+        job = queue.jobs[0]
+        self.assertTrue(job["prompt"].lower().startswith("(solo:1.3)"))
+        self.assertIn("fully naked", job["prompt"].lower())
+        # 0,6 e non 0,8: il tetto sui vestiti del riferimento. La vetrina qui dichiara
+        # 0,8 apposta — a 0,55 il tetto non morderebbe, e il test non proverebbe la
+        # ragione per cui esiste.
+        self.assertEqual(job["reference_strength"], 0.6)
+        self.assertTrue(job["negativo"].startswith("multiple people, two women"))
+        self.assertIn("clothes", job["negativo"])
+
+    def test_la_scena_instagram_passa_dal_traduttore(self):
+        queue = Queue()
+        ricevute = []
+
+        def traduci(testo):
+            ricevute.append(testo)
+            return "translated explicit scene"
+
+        load(queue, translator=traduci)(
+            "123", "mandami una foto di te nuda", {"level": CREATOR_LEVEL})
+        self.assertEqual(len(ricevute), 1)
+        self.assertIn("translated explicit scene", queue.jobs[0]["prompt"])
+
+    def test_erotico_esplicito_non_resta_in_fondo_al_prompt(self):
+        queue = Queue()
+
+        load(queue)("123", "mandami una foto erotica esplicita di te",
+                    {"level": CREATOR_LEVEL})
+        self.assertTrue(queue.jobs[0]["prompt"].lower().startswith(
+            "(explicit adult erotic scene:1.3)"))
+
+    def test_comando_anna_forza_la_ricetta_del_personaggio(self):
+        queue = Queue()
+
+        load(queue)("123", "!anna al tramonto", {"level": CREATOR_LEVEL})
+        self.assertEqual(queue.jobs[0]["reference_image"], "anna-volto-canonico.jpg")
+
+    def test_render_del_creatore_bypassa_la_ricetta_di_anna_e_traduce(self):
+        queue = Queue()
+
+        load(queue, translator=lambda _testo: "a red lighthouse at sunset")(
+            "123", "!render un faro rosso al tramonto", {"level": CREATOR_LEVEL})
+        job = queue.jobs[0]
+        self.assertEqual(job["reference_image"], "")
+        self.assertEqual(job["prompt"], "a red lighthouse at sunset")
+
+    def test_render_non_e_disponibile_alle_altre_cerchie(self):
+        for livello in ("vip", "musa"):
+            queue = Queue()
+            vip = {"level": livello}
+            self.assertTrue(load(queue, "granted")(
+                "123", "!render un faro", vip))
+            self.assertEqual(queue.jobs, [])
+            self.assertIn("creatore", vip["rifiuto"])
 
     def test_il_ritratto_privato_chiede_figura_intera_con_margini(self):
         """Il 2:3 non basta: la composizione va chiesta esplicitamente al modello."""
@@ -526,6 +629,7 @@ class RispostaTests(unittest.TestCase):
                 fail=lambda *a, **k: None),
             "push_log": lambda *a, **k: None,
             "split_messages": split_messages,
+            "command_help": command_help,
             "os": os,
             "json": json,
         }
