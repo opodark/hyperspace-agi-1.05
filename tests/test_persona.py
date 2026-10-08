@@ -10,6 +10,8 @@ configurata come umana, altrimenti la garanzia diventa una promessa.
 Nessun LLM e nessuna rete: il modulo è puro.
 """
 import json
+
+from tests import cp_source
 import os
 import sys
 import tempfile
@@ -23,7 +25,6 @@ import ast
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-MAIN_SOURCE = ROOT / "control-plane" / "main.py"
 
 from shared.persona import (KIND_AI, MAX_LEGAMI, MAX_OBSERVATIONS,  # noqa: E402
                            OBSERVATION_MAX_CHARS, Persona, PersonaStore, audit_reply,
@@ -267,9 +268,9 @@ class PersonaWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        tree = ast.parse(MAIN_SOURCE.read_text(encoding="utf-8"))
+        tree = cp_source.albero()
         cls.tree = tree
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        cls.functions = cp_source.funzioni()
         cls.assignments = {
             t.id: node.value
             for node in tree.body if isinstance(node, ast.Assign)
@@ -279,7 +280,7 @@ class PersonaWiringTests(unittest.TestCase):
     def test_la_route_persona_espone_lo_stato(self):
         self.assertIn("persona_status", self.functions)
         body = ast.unparse(self.functions["persona_status"])
-        self.assertIn("persona_store.describe", body)
+        self.assertIn("persona.persona().describe", body)
         self.assertIn("_persona_enabled", body)
 
     def test_i_tool_di_identita_sono_pubblicati_e_dispatchati(self):

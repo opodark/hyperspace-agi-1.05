@@ -18,12 +18,14 @@ COPY control-plane/comics.html .
 COPY control-plane/spider ./spider
 COPY control-plane/vendor ./vendor
 COPY control-plane/connectors ./connectors
+COPY control-plane/cp ./cp
 
 COPY shared ./shared
 COPY vendor/ecc ./vendor/ecc
 COPY vendor/anydoc ./vendor/anydoc
 COPY vendor/wayfinder ./vendor/wayfinder
 COPY vendor/firecrawl-skills ./vendor/firecrawl-skills
+COPY vendor/agency-agents ./vendor/agency-agents
 COPY integrations/wayfinder ./integrations/wayfinder
 
 ENV PYTHONPATH=/app:/app/shared

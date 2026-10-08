@@ -57,8 +57,32 @@ def _audit(job: dict, result: dict) -> None:
         "workspace_id": job.get("workspace_id"),
         "ok": result.get("ok", False),
     }
+    if job.get("action") == "read":
+        path = str(job.get("path") or "")
+        parts = Path(path).parts
+        record["path_kind"] = ("empty" if not path else
+                               "absolute" if Path(path).is_absolute() else
+                               "parent" if ".." in parts else
+                               "repo_prefix" if parts and parts[0] in {"repo", "seed"} else
+                               "relative")
+    if result.get("error_code"):
+        record["error_code"] = result["error_code"]
     with (EXCHANGE / "audit.jsonl").open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+class WorkspaceMissing(FileNotFoundError):
+    """The referenced workspace does not exist, as opposed to a file inside it.
+
+    Without this distinction a wrong `workspace_id` looked identical to a wrong
+    `path` (both `path_missing`), so an 8B model kept "fixing" the path while the
+    real error was the id. Measured on the PDF trial: `create` returned one id and
+    the next `write` used a different, non-existent one.
+    """
+
+
+class PathMissing(FileNotFoundError):
+    """A path inside an existing workspace does not exist."""
 
 
 def _workspace(workspace_id: str) -> Path:
@@ -66,7 +90,7 @@ def _workspace(workspace_id: str) -> Path:
         raise ValueError("invalid workspace_id")
     root = (WORKSPACES / workspace_id).resolve()
     if not root.is_dir():
-        raise FileNotFoundError("workspace not found")
+        raise WorkspaceMissing("workspace not found")
     return root
 
 
@@ -80,7 +104,7 @@ def _safe_path(root: Path, relative: str, *, must_exist: bool = False) -> Path:
     if target != root and root not in target.parents:
         raise ValueError("path escapes workspace")
     if must_exist and not target.exists():
-        raise FileNotFoundError("path not found")
+        raise PathMissing("path not found")
     return target
 
 
@@ -123,6 +147,20 @@ def _create(job: dict) -> dict:
     }
     _atomic_json(root / "metadata.json", metadata)
     return {"ok": True, **metadata}
+
+
+def _reuse(job: dict) -> dict:
+    """Restituisce un workspace ESISTENTE invece di crearne un altro.
+
+    Il workspace usa-e-getta e' la memoria condivisa della missione: un passo che
+    ricreava il workspace buttava via i file dei passi a monte e il PDF finiva in
+    un sandbox diverso da quello verificato. Misurato il 2026-10-07: quattro task
+    coder, quattro workspace, zero PDF nel diff finale. `reuse` e' la `create`
+    idempotente della catena: stesso contratto di ritorno, nessun copytree.
+    """
+    root = _workspace(job.get("workspace_id"))
+    metadata = json.loads((root / "metadata.json").read_text(encoding="utf-8"))
+    return {"ok": True, **metadata, "reused": True}
 
 
 def _list(job: dict) -> dict:
@@ -486,11 +524,55 @@ def _status(_job: dict) -> dict:
             "allowed_executables": sorted(ALLOWED_EXECUTABLES), "workspaces": workspaces}
 
 
+def _inspect(job: dict) -> dict:
+    """Probe read-only dell'artifact: fatti di formato, nessun modello nel mezzo.
+
+    Per un PDF riporta la firma `%PDF`, il numero di pagine e quanti caratteri si
+    estraggono con pypdf, cosi' una missione si giudica sul file e non sulla prosa
+    del worker. pypdf e' opzionale: senza di lui firma e dimensione parlano ancora.
+    """
+    repo = _workspace(job.get("workspace_id")) / "repo"
+    path = _safe_path(repo, job.get("path"), must_exist=True)
+    if not path.is_file():
+        raise ValueError("path is not a file")
+    with path.open("rb") as stream:
+        head = stream.read(8)
+    magic = head.startswith(b"%PDF-")
+    result = {"ok": True, "path": path.relative_to(repo).as_posix(),
+              "size": path.stat().st_size, "kind": "pdf" if magic else "other",
+              "magic_ok": magic, "pages": None, "text_chars": None,
+              "pdf_reader": False}
+    if not magic:
+        return result
+    try:
+        import pypdf
+    except ImportError:
+        return result
+    try:
+        reader = pypdf.PdfReader(str(path))
+        pages = reader.pages
+        result["pdf_reader"] = True
+        result["pages"] = len(pages)
+        text = 0
+        for page in pages:
+            try:
+                text += len(page.extract_text() or "")
+            except Exception:
+                continue
+        result["text_chars"] = text
+    except Exception as error:
+        result["ok"] = False
+        result["error"] = f"pypdf could not read the file: {error}"
+    return result
+
+
 ACTIONS = {
+    "inspect": _inspect,
     "catalog": _catalog,
     "check": _check,
     "verify": _verify,
     "create": _create,
+    "reuse": _reuse,
     "list": _list,
     "read": _read,
     "write": _write,
@@ -511,11 +593,40 @@ def _process(path: Path) -> None:
             raise ValueError(f"unknown action: {action}")
         result = handler(job)
     except Exception as error:
-        result = {"ok": False, "error": str(error) or type(error).__name__}
+        text = str(error)
+        # A missing workspace is NOT a missing file: keep the two codes apart so
+        # the model repairs the right thing. A mis-typed id used to surface as
+        # `path_missing`, which sent it hunting for a path bug that did not exist.
+        if isinstance(error, WorkspaceMissing):
+            code = "workspace_missing"
+        elif isinstance(error, PathMissing):
+            code = "path_missing"
+        elif isinstance(error, ValueError) and "workspace_id" in text:
+            code = "invalid_workspace"
+        elif isinstance(error, ValueError) and any(
+                word in text for word in ("path", "relative")):
+            code = "invalid_path"
+        elif "read limit" in text:
+            code = "read_limit"
+        else:
+            code = "runner_error"
+        result = {"ok": False, "error": text or type(error).__name__,
+                  "error_code": code}
         try:
             job
         except NameError:
             job = {"job_id": path.stem, "action": "invalid"}
+        if code in {"workspace_missing", "invalid_workspace"}:
+            result["hint"] = ("That workspace_id does not exist. Call code_sandbox "
+                              "with action='create' and pass the exact workspace_id "
+                              "it returns to every later action: do not invent, "
+                              "shorten or retype the id.")
+        elif (job.get("action") in {"read", "list", "inspect"}
+                and code in {"path_missing", "invalid_path"}):
+            result["hint"] = ("Use the exact path relative to the workspace root, "
+                              "for example README.md or docs/mission-control.md. "
+                              "Do not prefix /seed, /repo or the workspace ID. "
+                              "Use list if the path is uncertain.")
     result["job_id"] = job.get("job_id", path.stem)
     _atomic_json(EXCHANGE / "results" / f"{result['job_id']}.json", result)
     _audit(job, result)

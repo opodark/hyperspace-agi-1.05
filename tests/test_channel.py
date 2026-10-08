@@ -6,6 +6,8 @@ che sta guardando la stanza, quindi i test fissano che al primo colpo non si
 punisce (si smette solo di rispondere) e che gli strike decadono da soli.
 """
 import ast
+
+from tests import cp_source
 import sys
 import unittest
 from pathlib import Path
@@ -16,7 +18,6 @@ sys.path.insert(0, str(ROOT))
 from shared.channel import (KNOWN_CHANNELS, ChannelGuard, ChannelPolicy, ReplyPacing,  # noqa: E402
                            classifica, known_channel, normalizza, parse_clients)
 
-MAIN_SOURCE = ROOT / "control-plane" / "main.py"
 TOKEN = "t" * 40
 
 
@@ -32,8 +33,7 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue({"telegram", "discord", "cam4", "cb"} <= keys)
 
     def test_la_route_social_espone_il_catalogo(self):
-        tree = ast.parse(MAIN_SOURCE.read_text(encoding="utf-8"))
-        funzioni = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        funzioni = cp_source.funzioni()
         self.assertIn("channels_overview", funzioni)
         body = ast.unparse(funzioni["channels_overview"])
         self.assertIn("KNOWN_CHANNELS", body)
@@ -234,11 +234,8 @@ class ChannelWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        tree = ast.parse(MAIN_SOURCE.read_text(encoding="utf-8"))
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        cls.assignments = {t.id: node.value for node in tree.body
-                           if isinstance(node, ast.Assign)
-                           for t in node.targets if isinstance(t, ast.Name)}
+        cls.functions = cp_source.funzioni()
+        cls.assignments = cp_source.assegnazioni()
 
     def test_le_route_dei_canali_esistono_e_autenticano(self):
         for nome in ("channel_status", "channel_ingest", "channel_reply", "channel_result"):
@@ -257,7 +254,9 @@ class ChannelWiringTests(unittest.TestCase):
         meta = {m["key"]: m for m in ast.literal_eval(self.assignments["_ENV_META"])}
         for chiave in ("CHANNEL_CLIENTS", "CHANNEL_ENABLED", "CHANNEL_MODEL",
                        "CHANNEL_MIN_REPLY_INTERVAL_S", "CHANNEL_REPLY_PROBABILITY",
-                       "CHANNEL_FLOOD_MAX", "CHANNEL_STRIKE_MUTE", "CHANNEL_STRIKE_BAN"):
+                       "CHANNEL_FLOOD_MAX", "CHANNEL_STRIKE_MUTE", "CHANNEL_STRIKE_BAN",
+                       "CHANNEL_CONTEXT_MESSAGES", "CHANNEL_CONTEXT_CHARS",
+                       "CHANNEL_NUM_CTX"):
             with self.subTest(key=chiave):
                 self.assertEqual(meta[chiave]["section"], "Canali esterni")
         self.assertEqual(meta["CHANNEL_CLIENTS"]["type"], "password")
@@ -401,14 +400,16 @@ class ChannelMemoryWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        tree = ast.parse(MAIN_SOURCE.read_text(encoding="utf-8"))
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        cls.functions = cp_source.funzioni()
 
     def test_l_ingest_accetta_i_tip_e_registra(self):
         body = ast.unparse(self.functions["channel_ingest"])
         self.assertIn("registra_tip", body)
         self.assertIn("kind", body)
-        self.assertIn("_channel_remember", body)
+        # `channel_remember`, non `_channel_remember`: la route arriva al suo
+        # cablaggio attraverso il contesto del dominio, e il test deve valere
+        # per come il cablaggio e' scritto oggi come per come lo era ieri.
+        self.assertIn("channel_remember", body)
 
     def test_la_risposta_usa_memoria_e_nota_tip(self):
         body = ast.unparse(self.functions["_channel_reply"])
@@ -417,7 +418,7 @@ class ChannelMemoryWiringTests(unittest.TestCase):
 
     def test_la_moderazione_riuscita_finisce_in_memoria(self):
         body = ast.unparse(self.functions["channel_result"])
-        self.assertIn("_channel_remember", body)
+        self.assertIn("channel_remember", body)
 
     def test_lo_scritto_in_memoria_ha_debounce(self):
         body = ast.unparse(self.functions["_channel_remember"])
@@ -440,19 +441,18 @@ class ContestoWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.source = MAIN_SOURCE.read_text(encoding="utf-8")
-        tree = ast.parse(cls.source)
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        cls.source = cp_source.SORGENTE()
+        cls.functions = cp_source.funzioni()
 
     def test_il_contesto_si_legge_a_chiamata(self):
         for nome in ("_channel_context_messages", "_channel_context_chars", "_channel_num_ctx"):
             with self.subTest(nome=nome):
                 self.assertIn(nome, self.functions)
-        self.assertIn("_channel_context_messages()", ast.unparse(self.functions["_trascrizione"]))
+        self.assertIn("channel_context_messages()", ast.unparse(self.functions["_trascrizione"]))
 
     def test_la_finestra_di_contesto_e_esplicita_nel_payload(self):
         body = ast.unparse(self.functions["_channel_reply"])
-        self.assertIn("_channel_num_ctx()", body)
+        self.assertIn("channel_num_ctx()", body)
         self.assertIn("options", body)
 
     def test_il_sogno_ha_un_modello_suo(self):
@@ -469,14 +469,11 @@ class ContestoWiringTests(unittest.TestCase):
         # puo' puntare dove e' montato.
         self.assertIn('os.getenv("MEMORY_FILE"', self.source)
         self.assertIn("MEMORY_FILE", self.source)
-
-    def test_le_chiavi_del_contesto_sono_in_setup(self):
-        sezione = self.source[self.source.index('"Canali esterni"'):
-                              self.source.index("_PERSONA_ENV_SECTION") if "_PERSONA_ENV_SECTION" in self.source
-                              else len(self.source)]
-        for chiave in ("CHANNEL_CONTEXT_MESSAGES", "CHANNEL_CONTEXT_CHARS", "CHANNEL_NUM_CTX"):
-            with self.subTest(chiave=chiave):
-                self.assertIn(f'"{chiave}"', sezione)
+    # Le chiavi di contesto (CHANNEL_CONTEXT_*) sono controllate in
+    # ChannelWiringTests.test_la_sezione_env_dei_canali_e_configurabile, dove la
+    # sezione e' letta dalla lista _ENV_META e non dalla posizione delle righe:
+    # qui il test le cercava con uno slicing di testo, che reggeva solo finche'
+    # la tabella stava tutta in main.py.
 
 
 class RuntimeTests(unittest.TestCase):
@@ -548,9 +545,8 @@ class RuntimeWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.source = MAIN_SOURCE.read_text(encoding="utf-8")
-        tree = ast.parse(cls.source)
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        cls.source = cp_source.SORGENTE()
+        cls.functions = cp_source.funzioni()
 
     def test_route_stato_e_comandi(self):
         for nome in ("channel_state", "channel_commands"):

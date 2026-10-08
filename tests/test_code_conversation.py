@@ -17,21 +17,36 @@ Se node non c'e', il test 1 si salta invece di fallire: la suite Python non deve
 dipendere da node per tutto il resto.
 """
 import ast
+
+from tests import cp_source
 import __future__
 import json
-import re
 import shutil
 import subprocess
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-CP_MAIN = (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
 BRIDGE = (ROOT / "infra-ui" / "server.py").read_text(encoding="utf-8")
 DASH = (ROOT / "infra-ui" / "dashboard.html").read_text(encoding="utf-8")
 CP_DASH = (ROOT / "control-plane" / "dashboard.html").read_text(encoding="utf-8")
 
 TIPI = ("code_proposal", "code_review", "code_verdict")
+
+
+def _log_types_cp() -> set:
+    """I tipi dichiarati in LOG_TYPES, letti come letterale dall'AST.
+
+    Non con una regex sul testo: la FORMA della dichiarazione non e' un
+    invariante, la lista dei tipi si'. Con la regex bastava una menzione
+    qualsiasi ("code_review" in un commento, o in un'altra riga) per far
+    passare il controllo: qui conta solo una voce della lista.
+    """
+    for nodo in cp_source.albero().body:
+        if isinstance(nodo, ast.Assign) and any(
+                getattr(t, "id", "") == "LOG_TYPES" for t in nodo.targets):
+            return set(ast.literal_eval(nodo.value))
+    raise AssertionError("LOG_TYPES non trovato in control-plane/main.py")
 
 
 def _estrai_blocco_code() -> str:
@@ -105,11 +120,10 @@ class RaggruppamentoTests(unittest.TestCase):
 
 class AgganciTests(unittest.TestCase):
     def test_i_tre_tipi_sono_in_LOG_TYPES(self):
-        blocco = re.search(r"LOG_TYPES = \{(.*?)\}", CP_MAIN, re.S)
-        self.assertIsNotNone(blocco, "LOG_TYPES non trovato")
+        dichiarati = _log_types_cp()
         for tipo in TIPI:
             with self.subTest(tipo=tipo):
-                self.assertIn(f'"{tipo}"', blocco.group(1),
+                self.assertIn(tipo, dichiarati,
                               "un tipo fuori da LOG_TYPES viene riscritto a 'system': "
                               "la conversazione sparirebbe senza errori")
 

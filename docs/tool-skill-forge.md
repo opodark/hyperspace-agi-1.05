@@ -66,6 +66,28 @@ OpenDocument, RTF, EPUB, CSV and PDF into GitHub-Flavored Markdown with the
 folder locally (see [webui-tools.md](webui-tools.md)); the imported skill is
 reference text only and does not run code or install anything by itself.
 
+## Selected Agency Agents profiles
+
+The dashboard button **Importa profili Agency Agents come draft** (or
+`POST /forge/import/agency-agents` with `X-Hyperspace-Forge-Token`) imports three
+short HyperSpace adaptations: `multi-agent-architect`, `code-reviewer`, and
+`technical-writer`. They come from the MIT-licensed
+[Agency Agents](https://github.com/msitarzewski/agency-agents) repository at
+commit `f99f6aa910a442b0197b768ce0ea7751e35e2060`. The bundle contains the
+three original Markdown files, their SHA-256 hashes, the local adaptations and
+the license; the loader checks all of them before creating any draft. Reimport
+leaves existing drafts and local edits intact.
+
+The upstream multi-agent profile is too long for HyperSpace's 24,000-byte
+selected-skill context limit, so the Forge injects the short local adaptation,
+not the original file. The original is retained for provenance and review.
+These profiles are reference text: they do not create workers, grant tools,
+run checks, approve code, or publish documents. After explicit review and
+approval, select at most two IDs using `hyperspace_skills` in a chat request.
+For the PDF mission, the technical-writer profile suggests an evidence-backed
+outline and an artifact check; it does not imply that Mission Control has
+successfully produced or verified a PDF.
+
 ## Browser IDE
 
 The optional IDE is code-server and is bound to localhost only. Start it with:
@@ -93,6 +115,9 @@ back into the registry and can be replaced by a later dashboard save.
   requires `X-Hyperspace-Forge-Token`. No network fetch or installer runs.
 - `POST /forge/import/anydoc` — import the pinned anydoc skill as an inert draft;
   requires `X-Hyperspace-Forge-Token`. No network fetch or installer runs.
+- `POST /forge/import/agency-agents` — import three pinned, locally adapted
+  Agency Agents profiles as inert drafts; requires `X-Hyperspace-Forge-Token`.
+  No network fetch or installer runs.
 - `POST /forge/import/firecrawl-skills` — import the pinned Firecrawl skill
   catalogue entries (`firecrawl-search`, `firecrawl-scrape`,
   `firecrawl-research-index`, `firecrawl-developer-index`) as inert drafts;

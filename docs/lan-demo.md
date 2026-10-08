@@ -127,7 +127,7 @@ browser attivo).
 Quel proxy (`control-plane-proxy` nel repo minimesh) ha senso solo quando i
 servizi del control plane sono microservizi separati raggiungibili con i nomi
 che si aspetta (`control-plane-core:9001`, ecc.) — non è il caso qui, dove il
-control-plane di 1.04 è un unico servizio Flask su una porta sola. Per questa
+control-plane di 1.05 è un unico servizio Flask su una porta sola. Per questa
 demo va fermato così il control-plane vero può pubblicarsi sulla 8085:
 ```bash
 docker stop minimesh-control-plane-proxy-1

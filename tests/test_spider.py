@@ -24,6 +24,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+from tests import cp_source
 
 ROOT = Path(__file__).parents[1]
 MAIN = ROOT / "control-plane" / "main.py"
@@ -75,11 +76,7 @@ def _stringhe(percorso: Path, nome: str) -> set:
 
 
 def _meta() -> list:
-    for nodo in ast.parse(_testo(MAIN)).body:
-        if isinstance(nodo, ast.Assign) and any(
-                getattr(t, "id", "") == "_ENV_META" for t in nodo.targets):
-            return ast.literal_eval(nodo.value)
-    raise AssertionError("_ENV_META non trovata: la tabella della tab Setup e' cambiata")
+    return ast.literal_eval(cp_source.nodo("_ENV_META").value)
 
 
 class RagnatelaSuOgniPaginaTest(unittest.TestCase):
@@ -383,6 +380,5 @@ class DocumentazioneTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 
 

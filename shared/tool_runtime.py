@@ -14,11 +14,15 @@ class ExecutionStopped(ValueError):
 
 
 class Invocation:
-    def __init__(self, role="", max_tokens=None, deadline=None, cancelled=None):
+    def __init__(self, role="", max_tokens=None, deadline=None, cancelled=None,
+                 workspace_id=""):
         self.role = role
         self.max_tokens = max_tokens
         self.deadline = deadline
         self.cancelled = cancelled or (lambda: False)
+        # Workspace della catena: se un task a monte ne ha gia' creato uno, va
+        # riusato invece di ricrearne un altro (memoria condivisa della missione).
+        self.workspace_id = str(workspace_id or "")
         self.tokens = 0
         self.reserved_tokens = 0
         self.usage_known = True
@@ -44,6 +48,16 @@ class Invocation:
             options = dict(payload.get("options") or {})
             options["num_predict"] = payload["max_tokens"]
             payload["options"] = options
+        # `options` e' la forma nativa di Ollama: un backend OpenAI-compatibile
+        # (llama.cpp/llama-server, vLLM, LM Studio) la ignora e applica il proprio
+        # sampling. La temperatura va anche nel campo di primo livello. Misurato il
+        # 2026-10-08 su Bonsai 2 27B: il planner della missione (temperature=0.2)
+        # girava col sampling del server (temp 1.0) e a volte rispondeva senza
+        # JSON, facendo fallire la missione su "invalid plan".
+        if "temperature" not in payload:
+            temperature = (payload.get("options") or {}).get("temperature")
+            if isinstance(temperature, (int, float)) and not isinstance(temperature, bool):
+                payload["temperature"] = temperature
         return payload
 
     def model_failed(self, requested):
@@ -82,6 +96,7 @@ class Invocation:
             if action not in {
                 "status",
                 "catalog",
+                "inspect",
                 "list",
                 "read",
                 "diff",
@@ -89,6 +104,19 @@ class Invocation:
                 "verify",
             }:
                 raise ValueError("sandbox action not allowed for verifier")
+        # Riuso deterministico del workspace della catena. Il prompt lo chiede al
+        # modello, ma un 8B lo disattende: se un task a monte ha gia' creato il
+        # workspace, QUI si forza l'id su ogni azione e la seconda `create`
+        # diventa `reuse`, cosi' i file dei passi a monte non si perdono e il PDF
+        # resta nello stesso sandbox che il gate ispeziona. Misurato il
+        # 2026-10-07: quattro task coder, quattro workspace, zero PDF nel diff.
+        if name == "code_sandbox" and self.workspace_id:
+            action = str(arguments.get("action", "status")).strip().lower()
+            if action == "create":
+                arguments = {"action": "reuse", "workspace_id": self.workspace_id}
+            elif action in ("list", "read", "write", "replace", "run", "diff",
+                            "inspect", "check", "verify"):
+                arguments = {**arguments, "workspace_id": self.workspace_id}
         return arguments
 
     def record(self, name, result):

@@ -277,6 +277,29 @@ main,.panel,.card{min-width:0}
   #cyCanvas{flex:auto;min-height:300px}
   .topo-sidebar{width:100%;max-height:320px}
 }
+.surf-group-title{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px}
+.surf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.surf-card{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px;text-decoration:none;color:var(--text);transition:border-color var(--tr),background var(--tr)}
+.surf-card:hover{border-color:var(--primary);background:var(--surface2)}
+.surf-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.surf-name{font-size:.85rem;font-weight:600}
+.surf-status{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap}
+.surf-dot{width:8px;height:8px;border-radius:50%;background:var(--text-faint);flex-shrink:0}
+.surf-dot.up{background:var(--success)}
+.surf-dot.down{background:var(--error)}
+.surf-desc{font-size:.78rem;color:var(--text-muted);line-height:1.45;flex:1}
+.surf-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.7rem;font-family:var(--font-mono);color:var(--text-faint)}
+.surf-path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.dev-card{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:15px;color:var(--text);text-decoration:none}
+a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
+.dev-card-title{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dev-card p{font-size:.78rem;color:var(--text-muted);line-height:1.5;margin:0}
+.dev-card code{font-family:var(--font-mono);font-size:.72rem;background:var(--surface3);padding:1px 5px;border-radius:4px;color:var(--text)}
+.dev-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.dev-full{grid-column:1/-1}
+.rea-badge{font-size:.68rem;font-family:var(--font-mono);text-transform:uppercase;padding:2px 7px;border-radius:99px;border:1px solid var(--border);color:var(--text-muted)}
+.rea-badge.candidate{color:var(--warning);border-color:var(--warning)}
 </style>
 <script defer src="/spider/bootstrap.js"></script>
 </head>
@@ -300,6 +323,8 @@ main,.panel,.card{min-width:0}
     <button onclick="showPanel('network',this)">&#128225; Network / OS</button>
     <button onclick="showPanel('social',this)">&#128172; Social</button>
     <button onclick="showPanel('setup',this)">&#9881;&#65039; Setup</button>
+    <button onclick="showPanel('services',this)">&#129517; Servizi</button>
+    <button onclick="showPanel('dev',this)">&#129520; Sviluppo</button>
   </nav>
   <div class="hdr-right">
     <div class="ollama-pill" onclick="openOllamaModal()"><span class="ollama-dot" id="ollamaDot"></span><span id="ollamaLabel">Ollama</span></div>
@@ -682,6 +707,7 @@ main,.panel,.card{min-width:0}
       <button class="btn btn-ghost btn-sm" onclick="forgeImportAnydoc()" title="Importa la skill anydoc (documenti Office in Markdown) dal bundle locale pinnato, come draft">Importa skill anydoc come draft</button>
       <button class="btn btn-ghost btn-sm" onclick="forgeImportWayfinder()">Importa Wayfinder e skill di supporto come draft</button>
       <button class="btn btn-ghost btn-sm" onclick="forgeImportFirecrawlSkills()" title="Importa le skill testuali Firecrawl (search, scrape, indici di ricerca) dal bundle locale pinnato, come draft inerti">Importa skill Firecrawl come draft</button>
+      <button class="btn btn-ghost btn-sm" onclick="forgeImportAgencyAgents()" title="Importa tre profili Agency Agents adattati a HyperSpace come draft inerti">Importa profili Agency Agents come draft</button>
       <div id="forgeList" class="forge-list"><div class="hint">Caricamento...</div></div>
     </div>
   </div>
@@ -845,6 +871,48 @@ main,.panel,.card{min-width:0}
   </div>
   <div id="saveMsg"></div>
 </div>
+
+<!-- SERVIZI / SUPERFICI -->
+<div id="panel-services" class="panel">
+  <div class="sec-title">Servizi &amp; Superfici &mdash; tutto sotto controllo</div>
+  <p class="hint">Ogni superficie HyperSpace in un unico posto: stato (su/giù), porta e link. Il catalogo arriva da <code>/surfaces</code>; lo stato lo misura il browser, quindi una porta &laquo;giù&raquo; può anche essere un servizio opzionale non avviato.</p>
+  <div class="row" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="loadSurfaces()">&#8634; Ricarica stato</button><span class="hint" id="surfacesSummary" style="margin:0"></span></div>
+  <div id="surfacesGrid"><div class="hint">Caricamento&#8230;</div></div>
+</div>
+
+<!-- SVILUPPO & SECURITY -->
+<div id="panel-dev" class="panel">
+  <div class="sec-title">Sviluppo &amp; Security</div>
+  <p class="hint">Un unico punto d'ingresso per gli strumenti di sviluppo e sicurezza. Forge e Dev Sandbox restano schede piene: qui sono raccolte e spiegate insieme al grafo del repository e al candidato per il reverse engineering.</p>
+  <div class="dev-grid" style="margin-top:12px">
+    <a class="dev-card" href="#forge">
+      <div class="dev-card-title">&#128736; Tool &amp; Skill Forge</div>
+      <p>Authoring controllato: scrivi o genera skill/tool/patch come <b>bozza inerte</b>; nulla viene eseguito o installato senza approvazione.</p>
+      <span class="hint">Apri la scheda Forge &rarr;</span>
+    </a>
+    <a class="dev-card" href="#sandbox">
+      <div class="dev-card-title">&#129514; Dev Sandbox</div>
+      <p>Workspace isolato: modifica i file, Ruff/Bandit, pytest e diff unificato. È il percorso per <b>cambiare e testare codice</b>.</p>
+      <span class="hint">Apri la scheda Dev Sandbox &rarr;</span>
+    </a>
+    <div class="dev-card">
+      <div class="dev-card-title">&#128200; Grafo del repository (graphify)</div>
+      <p>Il grafo statico del codice (funzioni e archi di chiamata) non è servito da una rotta: si genera a parte e resta un artefatto.</p>
+      <p><code>./scripts/graphify.sh</code></p>
+      <p>Output in <code>graphify-out/graph.html</code>, spiegato in <code>docs/graphify.md</code>.</p>
+    </div>
+    <div class="dev-card dev-full">
+      <div class="dev-card-title">&#129520; Reverse engineering (REA) <span class="rea-badge candidate">candidato &middot; non collegato</span></div>
+      <p><a href="https://github.com/morluto/rea" target="_blank" rel="noopener">REA</a> (MIT) offre una CLI e un server MCP per il reverse engineering guidato da agenti: binari nativi, app JavaScript/Electron, .NET e siti, con risultati accompagnati da evidenze e limiti dichiarati. Non sostituisce Bandit per il nostro sorgente né Nmap/ZAP per la rete.</p>
+      <p>Stato: <b>candidato, non collegato al runtime</b>. Una prima prova statica è già stata eseguita (vedi <code>docs/rea-pilot.md</code>, REA 3.2.1): ha prodotto un inventario verificabile ma con etichette Electron/&laquo;endpoint&raquo; non valide per il target, quindi il risultato grezzo va normalizzato prima dell'integrazione.</p>
+      <p>Requisiti: Node con parser JavaScript; l'analisi nativa richiede <b>Hopper o Ghidra</b> (Ghidra su Windows è ancora sperimentale). <code>rea setup</code> tocca la configurazione MCP degli agenti e può proporre l'installazione di Hopper: <b>nessun setup automatico</b>.</p>
+      <p>Prossimo passo: un adapter che esponga solo operazioni esplicite su un workspace temporaneo e produca report nel contratto comune, tenendo <code>capture-process</code>, browser runtime e avvio dei provider fuori dall'analisi statica. Dettagli in <code>docs/development-security-tools.md</code>.</p>
+      <div class="dev-links">
+        <a class="btn btn-ghost btn-sm" href="https://github.com/morluto/rea" target="_blank" rel="noopener">Apri il repository REA</a>
+      </div>
+    </div>
+  </div>
+</div>
 </main>
 
 <!-- OLLAMA MODAL -->
@@ -898,6 +966,70 @@ function showPanel(name,btn){
     document.getElementById('netAdminToken').value=networkToken();
     refreshNetwork();refreshBottles();
   }
+  if(name==='services')loadSurfaces();
+}
+
+// ── SERVIZI / SUPERFICI ─────────────────────────────────────────────────────
+// Tutte le UI della mesh in un unico posto: il catalogo arriva da /surfaces
+// (solo anagrafica), lo stato lo misura il browser con un fetch no-cors su ogni
+// URL — stessa tecnica della home (desktop.html): un fetch che non lancia un
+// errore di rete è "qualcosa risponde su questa porta". Cross-origin non
+// possiamo leggere lo status reale, ma distinguiamo "risponde" da "nessuno",
+// che è già il segnale utile per una dashboard di superfici.
+var SURFACE_CATEGORIES = {
+  'control-plane': 'Control plane',
+  'observability': 'Osservabilità',
+  'dev': 'Sviluppo',
+  'external': 'Servizi esterni',
+};
+function surfaceUrl(s){
+  // port null = stessa origine del control-plane (una pagina servita da lui);
+  // un intero = un'altra porta sullo stesso host (hostname del browser).
+  if(s.port==null)return window.location.origin+s.path;
+  return window.location.protocol+'//'+window.location.hostname+':'+s.port+s.path;
+}
+function surfaceCard(s){
+  var url=surfaceUrl(s);
+  var opt=s.optional?' <span style="color:var(--text-faint)">(opzionale)</span>':'';
+  return '<a class="surf-card" href="'+escH(url)+'" target="_blank" rel="noopener" data-surf="'+escH(url)+'">'
+    +'<div class="surf-head"><span class="surf-name">'+escH(s.label)+opt+'</span>'
+    +'<span class="surf-status"><span class="surf-dot"></span><span class="surf-stat">&hellip;</span></span></div>'
+    +'<div class="surf-desc">'+escH(s.desc||'')+'</div>'
+    +'<div class="surf-foot"><span>'+escH(s.port==null?'questo CP':':'+s.port)+'</span>'
+    +'<span class="surf-path">'+escH(s.path)+'</span></div>'
+    +'</a>';
+}
+function surfaceUp(el,up){
+  var dot=el.querySelector('.surf-dot'),stat=el.querySelector('.surf-stat');
+  if(dot)dot.className='surf-dot '+(up?'up':'down');
+  if(stat)stat.textContent=up?'su':'giù?';
+}
+async function loadSurfaces(){
+  var grid=document.getElementById('surfacesGrid'),sum=document.getElementById('surfacesSummary');
+  if(!grid)return;
+  var data;
+  try{data=await(await fetch('/surfaces')).json();}
+  catch(e){if(sum)sum.textContent='Errore: '+e;grid.innerHTML='';return;}
+  var items=(data&&data.surfaces)||[];
+  if(!items.length){grid.innerHTML='<div class="hint">Nessuna superficie annunciata da /surfaces.</div>';return;}
+  var byCat={};
+  items.forEach(function(s){(byCat[s.category]=byCat[s.category]||[]).push(s);});
+  var html='';
+  Object.keys(SURFACE_CATEGORIES).forEach(function(cat){
+    var group=byCat[cat];
+    if(!group||!group.length)return;
+    html+='<div class="surf-group-title">'+escH(SURFACE_CATEGORIES[cat])+'</div>'
+      +'<div class="surf-grid">'+group.map(surfaceCard).join('')+'</div>';
+  });
+  grid.innerHTML=html;
+  if(sum)sum.textContent=items.length+' superfici &middot; stato misurato dal browser';
+  grid.querySelectorAll('[data-surf]').forEach(function(el){
+    var opts={mode:'no-cors'};
+    if(typeof AbortSignal!=='undefined'&&AbortSignal&&AbortSignal.timeout)opts.signal=AbortSignal.timeout(4000);
+    fetch(el.getAttribute('data-surf'),opts)
+      .then(function(){surfaceUp(el,true);})
+      .catch(function(){surfaceUp(el,false);});
+  });
 }
 
 // ── Deep-link di scheda (#autogen, #nodes, ...) ──────────────────────────────
@@ -1224,6 +1356,15 @@ async function forgeImportFirecrawlSkills(){
     document.getElementById('forgeOutput').textContent='firecrawl-skills: '+result.artifacts.filter(function(item){return item.created;}).length+' nuovi draft. Apri il sorgente per la revisione.';
     await forgeLoad();
   }catch(error){document.getElementById('forgeOutput').textContent='firecrawl-skills: '+error.message;}
+}
+async function forgeImportAgencyAgents(){
+  var headers={'Content-Type':'application/json'},token=document.getElementById('forgeToken').value;
+  if(token)headers['X-Hyperspace-Forge-Token']=token;
+  try{
+    var result=await forgeRequest('/forge/import/agency-agents',{method:'POST',headers:headers,body:'{}'});
+    document.getElementById('forgeOutput').textContent='Agency Agents: '+result.artifacts.filter(function(item){return item.created;}).length+' nuovi draft. Apri il sorgente per la revisione.';
+    await forgeLoad();
+  }catch(error){document.getElementById('forgeOutput').textContent='Agency Agents: '+error.message;}
 }
 function forgeEdit(id){
   var item=(window.forgeArtifacts||[]).find(function(x){return x.id===id;});if(!item)return;

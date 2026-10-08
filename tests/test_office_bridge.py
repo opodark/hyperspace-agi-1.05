@@ -22,6 +22,7 @@ import types
 import unittest
 from pathlib import Path
 from unittest.mock import Mock
+from tests import cp_source
 
 from flask import Flask, jsonify, request
 
@@ -545,7 +546,7 @@ class DashboardWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
+        cls.tree = cp_source.albero()
         cls.funzioni = {n.name: n for n in cls.tree.body
                         if isinstance(n, ast.FunctionDef)}
         cls.meta = next(ast.literal_eval(n.value) for n in cls.tree.body
@@ -600,4 +601,3 @@ class DashboardWiringTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

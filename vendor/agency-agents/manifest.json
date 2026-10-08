@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/msitarzewski/agency-agents",
+  "commit": "f99f6aa910a442b0197b768ce0ea7751e35e2060",
+  "files": {
+    "LICENSE": "9a45258434d5cedf0af73c9ad4771373701225038d246c49219026c33677f66f",
+    "skills/multi-agent-architect/SKILL.md": "0e5762a51428d560a583a7c949a2abd99b980a6275dff4b2e9bd184564e51666",
+    "skills/code-reviewer/SKILL.md": "fd20ce56947584660e3101b9b64288bf3cfe4244a57b0d6ac0d983fca0f4d59d",
+    "skills/technical-writer/SKILL.md": "a8d801ec53a04064429d16e56a81f472db146b58096e4a9755cd4c7b0f6f017f",
+    "upstream/engineering-multi-agent-systems-architect.md": "d93dd20fef67bf85a537ba0f869fad1a17d0e589f20899d1bbe1f095a7bcb91b",
+    "upstream/engineering-code-reviewer.md": "7509fcc3ea1dda46511b2801996305bf3d4a125576f9655ff0b63df25602f446",
+    "upstream/engineering-technical-writer.md": "bf5c809977e10904b988ab8b218853ce8dfa38b2cbd89a7d2cfadba44ac25761"
+  }
+}

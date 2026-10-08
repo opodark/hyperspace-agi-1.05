@@ -13,7 +13,9 @@ la decisione, non la esegue.
 ## Sequenza e gate
 
 1. L'operatore crea la missione (obiettivo + criteri di accettazione) e sceglie
-   se avviarla subito o lasciarla `planned`.
+   se avviarla subito o lasciarla `planned`. Può restringere i ruoli con
+   `allowed_roles`, per esempio `["coder"]` per un artefatto locale: il server
+   conserva l'allowlist e corregge una role fuori lista proposta dal planner.
 2. Il **planner** decompone l'obiettivo in task. Ruoli fuori allowlist, chiavi
    duplicate e dipendenze verso task inesistenti vengono filtrati; il DAG viene
    poi validato dallo store. Un piano malformato fa fallire la missione con un
@@ -101,7 +103,7 @@ pubblico: senza token la risposta è 503 (token assente o troppo corto) oppure
 | --- | --- | --- |
 | `/missions/status` | GET | Motore: `running`, `last_mission`, concorrenza, budget, conteggi e `loop` |
 | `/missions` | GET | Inbox (`?status=…&limit=…`) con i payload delle missioni |
-| `/missions` | POST | Crea la missione (`objective`, `criteria`, `budget`, `start`) |
+| `/missions` | POST | Crea la missione (`objective`, `criteria`, `budget`, `allowed_roles`, `start`) |
 | `/missions/<id>` | GET | Dettaglio: task, verifica, plan log, revisioni, budget |
 | `/missions/<id>/run` | POST | Avvia (202) o 409 se un'altra missione è in corso |
 | `/missions/<id>/cancel` | POST | Chiede l'annullamento (`reason`); la ondata in corso si ferma al checkpoint |
@@ -181,6 +183,7 @@ DREAM_REVIEW_TOKEN=            # >= 32 caratteri: abilita anche la review umana
 MISSION_LOOP_ENABLED=false     # il loop che riprende da solo le missioni aperte
 MISSION_MODEL=                 # vuoto = NIGHTLY_DEV_MODEL
 MISSION_PLANNER_MODEL=         # vuoto = MISSION_MODEL
+MISSION_INFERENCE_URL=         # vuoto = l'Ollama del control-plane; altrimenti planner/worker/verifier vanno su questo backend OpenAI-compatibile
 MISSION_MAX_CONCURRENCY=2      # tetto nel codice: 8
 MISSION_MAX_REPLANS=3
 MISSION_FOREGROUND_PAUSE_S=120

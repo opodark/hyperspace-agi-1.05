@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+import ast
 import unittest
 from pathlib import Path
 
@@ -23,10 +24,22 @@ FAKE_CATALOG = [
 class ManifestTests(unittest.TestCase):
     def test_manifest_tool_names_exist_in_control_plane_catalog(self):
         """A typo in a manifest would silently grant fewer tools — catch it."""
-        source = (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
+        source = (ROOT / "control-plane" / "cp" / "tools_defs.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        catalog = set()
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(
+                    isinstance(target, ast.Name) and target.id == "_NATIVE_TOOLS"
+                    for target in node.targets):
+                catalog.update(item["function"]["name"] for item in ast.literal_eval(node.value))
+            elif (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+                  and isinstance(node.value.func, ast.Attribute)
+                  and node.value.func.attr == "extend"):
+                catalog.update(item["function"]["name"]
+                               for item in ast.literal_eval(node.value.args[0]))
         for role, manifest in policy.ROLE_MANIFESTS.items():
             for tool in manifest["tools"]:
-                self.assertIn(f'"name": "{tool}"', source,
+                self.assertIn(tool, catalog,
                               f"{role} references unknown tool {tool}")
 
     def test_planner_and_worker_defaults_are_distinct(self):

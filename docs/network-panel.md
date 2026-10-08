@@ -67,7 +67,7 @@ verso le azioni privilegiate dell'host-agent.
 ### 1. Genera il token (una volta sola, per macchina)
 
 ```bash
-cd hyperspace-agi-1.04
+cd hyperspace-agi-1.05
 python3 hostctl/agent.py --generate-token
 ```
 

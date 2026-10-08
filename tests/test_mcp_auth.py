@@ -6,15 +6,15 @@ guardie sulle route usano ast come tests/test_network_route_guards.py, cosi'
 girano anche senza flask installato.
 """
 import ast
+
+from tests import cp_source
 import json
 import unittest
-from pathlib import Path
 
 from shared.mcp_auth import (
     MIN_TOKEN_LENGTH, McpAuthPolicy, McpClient, parse_clients, parse_tool_allowlist,
 )
 
-SOURCE = Path(__file__).parents[1] / "control-plane" / "main.py"
 TOKEN = "t" * MIN_TOKEN_LENGTH
 
 
@@ -167,8 +167,7 @@ class McpRouteGuardTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        cls.functions = cp_source.funzioni()
 
     @staticmethod
     def _called_names(node):
@@ -177,20 +176,20 @@ class McpRouteGuardTests(unittest.TestCase):
 
     def test_mcp_route_authenticates_before_doing_anything(self):
         source = ast.unparse(self.functions["omega_mcp"])
-        self.assertIn("_mcp_policy.authenticate", source)
-        self.assertIn("_mcp_policy.configured", source)
+        self.assertIn("_contesto.mcp_policy.authenticate", source)
+        self.assertIn("_contesto.mcp_policy.configured", source)
         # il gate deve precedere tools/call e tools/list nel corpo
-        self.assertLess(source.index("_mcp_policy.authenticate"),
+        self.assertLess(source.index("_contesto.mcp_policy.authenticate"),
                         source.index("'tools/call'"))
 
     def test_tools_list_is_filtered_by_the_allowlist(self):
         source = ast.unparse(self.functions["omega_mcp"])
-        self.assertIn("_mcp_policy.allows", source)
+        self.assertIn("_contesto.mcp_policy.allows", source)
         self.assertIn("visible", source)
 
     def test_permission_is_checked_before_existence(self):
         body = ast.unparse(self.functions["omega_mcp"])
-        self.assertLess(body.index("_mcp_policy.allows(client, tool_name"),
+        self.assertLess(body.index("_contesto.mcp_policy.allows(client, tool_name"),
                         body.index("tool_name not in catalogue"))
 
     def test_protocol_version_is_not_simply_echoed(self):
@@ -200,11 +199,11 @@ class McpRouteGuardTests(unittest.TestCase):
     def test_status_route_exists_and_uses_describe(self):
         self.assertIn("mcp_status", self.functions)
         source = ast.unparse(self.functions["mcp_status"])
-        self.assertIn("_mcp_policy.describe", source)
+        self.assertIn("_contesto.mcp_policy.describe", source)
 
     def test_policy_is_built_from_env_once(self):
-        module = SOURCE.read_text(encoding="utf-8")
-        self.assertIn("_mcp_policy = McpAuthPolicy.from_env()", module)
+        module = cp_source.SORGENTE()
+        self.assertIn("mcp_policy=mcp_policy", module)
 
 
 if __name__ == "__main__":

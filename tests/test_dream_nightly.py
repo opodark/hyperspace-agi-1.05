@@ -15,6 +15,7 @@ import ast
 import sys
 import unittest
 from pathlib import Path
+from tests import cp_source
 
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
@@ -32,7 +33,7 @@ class DreamNightlyRouteTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.cp = functions(ROOT / "control-plane" / "main.py")
-        cls.source = (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
+        cls.source = cp_source.SORGENTE()
 
     def test_tick_route_requires_the_network_admin_token(self):
         fonte = ast.unparse(self.cp["dream_nightly_tick"])
@@ -80,6 +81,6 @@ class InstagramDreamPublishPolicyTests(unittest.TestCase):
 
     def test_the_publish_path_goes_through_the_governed_connector_manager(self):
         """La pubblicazione non parla con Instagram: chiede al manager, che applica la policy."""
-        fonte = ast.unparse(functions(ROOT / "control-plane" / "main.py")["_instagram_publish_voce"])
+        fonte = ast.unparse(cp_source.funzioni()["_instagram_publish_voce"])
         self.assertIn("connector_manager.execute", fonte)
         self.assertIn("INSTAGRAM_DREAM_PUBLISH_ENABLED", fonte)

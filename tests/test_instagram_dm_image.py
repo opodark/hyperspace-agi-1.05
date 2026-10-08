@@ -6,6 +6,8 @@ diventava `/instagram/media/<token>/bridge_00048_.jpg` -> 404 dalla rotta media,
 e Instagram rispondeva "400 Caricamento non riuscito": nessun disegno consegnato.
 """
 import ast
+
+from tests import cp_source
 import os
 import re
 import sys
@@ -22,18 +24,17 @@ sys.path.insert(0, str(ROOT))
 # `image_result` chiama queste due: la prenotazione della memoria unificata del
 # Mac si trattiene fra due job a checkpoint, e la decisione sta in
 # `shared/image_jobs.py` — non in una copia scritta qui.
-# Chiama anche il diario intimo (`diario_intimo`, `INTIMATE_DIARY_FILE`): è il
-# ramo che chiude una pagina privata quando ComfyUI consegna o fallisce. Qui è
-# uno stub che non trova mai una voce, così il ramo privato resta spento.
 from shared.image_jobs import FAMIGLIE_CHECKPOINT, usa_checkpoint  # noqa: E402
 
-SOURCE = ROOT / "control-plane" / "main.py"
 ENV = {"INSTAGRAM_PUBLIC_BASE_URL": "https://media.example.test/",
        "INSTAGRAM_MEDIA_TOKEN": "tok123"}
 
 
 def _functions(*names):
-    tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
+    # fresco=True: qui sotto si azzerano i decorator, e la vista in cache di
+    # cp_source e' condivisa. Senza, la modifica resterebbe nel nodo in cache e
+    # i test che vengono dopo leggerebbero una rotta senza @app.route.
+    tree = cp_source.albero(fresco=True)
     trovati = {}
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name in names:
@@ -60,8 +61,6 @@ class Queue:
         return False
 
     def stato(self):
-        # `image_result` chiede alla coda se e' in pausa prima di trattenere la
-        # memoria del Mac fra due job: qui la coda non e' mai in pausa.
         return {"paused": False}
 
 
@@ -79,23 +78,25 @@ def _run(tmp_path, file_esito, sent='{"message_id": "img.1"}'):
         "_channel_error": lambda: None,
         "usa_checkpoint": usa_checkpoint,
         "FAMIGLIE_CHECKPOINT": FAMIGLIE_CHECKPOINT,
-        "image_memory_gate": SimpleNamespace(release_image=lambda *a, **k: None,
-                                             continue_image_queue=lambda *a, **k: False),
-        "image_queue": queue,
+        # coda, gate, connettori e diario arrivano dal boot attraverso il
+        # contesto di cp/immagini.py: prima erano quattro nomi piatti qui.
+        "_serve": lambda *campi: None,
+        "_contesto": SimpleNamespace(
+            image_memory_gate=SimpleNamespace(release_image=lambda *a, **k: None,
+                                              continue_image_queue=lambda *a, **k: False),
+            image_queue=queue,
+            connector_manager=SimpleNamespace(
+                execute=lambda tool, args: (calls.append((tool, args)), sent)[1]),
+            diario=SimpleNamespace(get=lambda *a: None, save=lambda *a: None,
+                                   aggiorna_file=lambda *a: False),
+            diario_intimo=SimpleNamespace(by_job=lambda *a: None),
+            intimate_diary_file=str(tmp_path / "intimate.json")),
         "file_da_job": lambda _job: None,
         "push_log": lambda *a, **kw: logs.append((a, kw)),
         "jsonify": lambda payload: payload,
-        "diario": SimpleNamespace(get=lambda *a: None, save=lambda *a: None,
-                                  aggiorna_file=lambda *a: False),
-        "diario_intimo": SimpleNamespace(by_job=lambda *a: None,
-                                         conclude_job=lambda *a, **k: None,
-                                         save=lambda *a: None),
-        "INTIMATE_DIARY_FILE": str(tmp_path / "diario-intimo.json"),
-        "connector_manager": SimpleNamespace(
-            execute=lambda tool, args: (calls.append((tool, args)), sent)[1]),
     }
     body = [funzioni["_percorso_disegno_servibile"], funzioni["image_result"]]
-    exec(compile(ast.Module(body=body, type_ignores=[]), str(SOURCE), "exec"), scope)
+    exec(compile(ast.Module(body=body, type_ignores=[]), "cp", "exec"), scope)
     with mock.patch.dict(os.environ, ENV, clear=False):
         scope["image_result"]()
     return calls, logs, queue, scope["_percorso_disegno_servibile"]
@@ -158,3 +159,6 @@ def test_dm_non_consegnato_resta_in_coda(tmp_path):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# Regressioni 1.05 conservate dopo lo split cp/.

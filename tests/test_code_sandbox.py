@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import importlib.util
 import ast
+from types import SimpleNamespace
 import json
 import os
 import re
@@ -28,6 +29,39 @@ POSIX_ONLY = unittest.skipUnless(
     os.name != "nt", "il runner esegue comandi solo nel container Linux (POSIX)")
 
 
+def _minimal_pdf() -> str:
+    """Un PDF di una pagina, con gli offset xref calcolati sul serio.
+
+    Serve a `_inspect`: firma `%PDF`, una pagina, un filone di testo. Costruito a
+    mano invece di dipendere da reportlab, cosi' il test vale anche dove reportlab
+    non c'e'.
+    """
+    content = b"BT /F1 12 Tf 20 100 Td (hello) Tj ET\n"
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] "
+        b"/Resources 5 0 R /Contents 4 0 R >>",
+        b"<< /Length " + str(len(content)).encode("ascii") + b" >>\nstream\n"
+        + content + b"endstream",
+        b"<< /Font << /F1 6 0 R >> >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for index, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += f"{index} 0 obj\n".encode("ascii") + body + b"\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n".encode("ascii")
+    out += b"0000000000 65535 f \n"
+    for offset in offsets:
+        out += f"{offset:010d} 00000 n \n".encode("ascii")
+    out += (f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            f"startxref\n{xref}\n%%EOF\n").encode("ascii")
+    return out.decode("latin-1")
+
+
 class RunnerTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -50,6 +84,39 @@ class RunnerTests(unittest.TestCase):
 
     def create(self):
         return runner._create({"label": "test"})["workspace_id"]
+
+    def test_inspect_reports_pdf_signature_pages_and_text(self):
+        workspace_id = self.create()
+        runner._write({"workspace_id": workspace_id, "path": "out/brief.pdf",
+                       "content": _minimal_pdf()})
+        result = runner._inspect({"workspace_id": workspace_id, "path": "out/brief.pdf"})
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["kind"], "pdf")
+        self.assertTrue(result["magic_ok"])
+        self.assertEqual(result["path"], "out/brief.pdf")
+        try:
+            import pypdf  # noqa: F401
+        except ImportError:
+            # pypdf e' opzionale: senza di lui firma e dimensione parlano ancora.
+            self.assertIsNone(result["pages"])
+            return
+        self.assertEqual(result["pages"], 1)
+        self.assertGreater(result["text_chars"], 0)
+
+    def test_inspect_reads_a_file_that_is_not_a_pdf_without_failing(self):
+        workspace_id = self.create()
+        runner._write({"workspace_id": workspace_id, "path": "brief.pdf",
+                       "content": "not really a pdf\n"})
+        result = runner._inspect({"workspace_id": workspace_id, "path": "brief.pdf"})
+        self.assertTrue(result["ok"])          # il file esiste ed e' leggibile
+        self.assertFalse(result["magic_ok"])   # ma non e' un PDF
+        self.assertEqual(result["kind"], "other")
+        self.assertIsNone(result["pages"])
+
+    def test_inspect_requires_an_existing_file(self):
+        workspace_id = self.create()
+        with self.assertRaises(FileNotFoundError):
+            runner._inspect({"workspace_id": workspace_id, "path": "missing.pdf"})
 
     def test_workspace_is_a_sanitized_copy_not_the_source(self):
         workspace_id = self.create()
@@ -82,6 +149,55 @@ class RunnerTests(unittest.TestCase):
             runner._read({"workspace_id": workspace_id, "path": "../../etc/passwd"})
         with self.assertRaises(ValueError):
             runner._write({"workspace_id": workspace_id, "path": "/tmp/escape", "content": "x"})
+
+    def test_failed_read_gives_relative_path_hint_without_logging_path(self):
+        workspace_id = self.create()
+        (self.exchange / "results").mkdir()
+        job = self.exchange / "bad-read.json"
+        job.write_text(json.dumps({"job_id": "bad-read", "action": "read",
+                                   "workspace_id": workspace_id,
+                                   "path": "/private/secret.txt"}), encoding="utf-8")
+        runner._process(job)
+        result = json.loads((self.exchange / "results" / "bad-read.json").read_text())
+        audit = (self.exchange / "audit.jsonl").read_text()
+        self.assertEqual(result["error_code"], "invalid_path")
+        self.assertIn("relative to the workspace root", result["hint"])
+        self.assertIn('"path_kind": "absolute"', audit)
+        self.assertNotIn("secret.txt", audit)
+
+    def process(self, name, payload):
+        """Runs one job file through `_process` and returns its JSON result."""
+        (self.exchange / "results").mkdir(exist_ok=True)
+        job = self.exchange / f"{name}.json"
+        job.write_text(json.dumps({"job_id": name, **payload}), encoding="utf-8")
+        runner._process(job)
+        return json.loads((self.exchange / "results" / f"{name}.json").read_text())
+
+    def test_unknown_workspace_is_reported_as_workspace_missing_not_path(self):
+        # Un id che non esiste non e' un path sbagliato: il modello deve capire
+        # che il difetto e' l'id, altrimenti "aggiusta" il path per sempre.
+        result = self.process("bad-ws", {"action": "write",
+                                         "workspace_id": "0123456789abcdef",
+                                         "path": "note.py", "content": "x = 1\n"})
+        self.assertEqual(result["error_code"], "workspace_missing")
+        self.assertIn("create", result["hint"])
+        self.assertNotIn("relative to the workspace root", result["hint"])
+
+    def test_corrupt_workspace_id_gets_its_own_error_code(self):
+        # Misurato nella prova PDF: un id riportato con un carattere spurio.
+        result = self.process("corrupt-ws", {"action": "read",
+                                             "workspace_id": "e91c901d-~d49",
+                                             "path": "README.md"})
+        self.assertEqual(result["error_code"], "invalid_workspace")
+        self.assertIn("create", result["hint"])
+
+    def test_missing_path_inside_a_real_workspace_is_still_path_missing(self):
+        workspace_id = self.create()
+        result = self.process("missing-path", {"action": "read",
+                                               "workspace_id": workspace_id,
+                                               "path": "nope/missing.md"})
+        self.assertEqual(result["error_code"], "path_missing")
+        self.assertIn("relative to the workspace root", result["hint"])
 
     def test_replace_is_exact_and_diff_is_reviewable(self):
         workspace_id = self.create()
@@ -343,11 +459,14 @@ class RunnerTests(unittest.TestCase):
 
 class ControlPlanePresetTests(unittest.TestCase):
     def test_handler_forwards_preset_parameters(self):
-        tree = ast.parse((ROOT / "control-plane/main.py").read_text(encoding="utf-8"))
+        tree = ast.parse((ROOT / "control-plane/cp/tool.py").read_text(encoding="utf-8"))
         function = next(node for node in tree.body
                         if isinstance(node, ast.FunctionDef) and node.name == "_tool_code_sandbox")
         backend = FakeBackend("docker", True)
-        namespace = {"code_sandbox": backend, "json": json,
+        # `code_sandbox` arriva per contesto: lo scope isolato ne ha bisogno con
+        # la stessa forma, o il test eserciterebbe un percorso che in produzione
+        # non esiste.
+        namespace = {"_contesto": SimpleNamespace(code_sandbox=backend), "json": json,
                      "push_log": lambda *args, **kwargs: None, "SandboxUnavailable": SandboxUnavailable}
         exec(compile(ast.Module(body=[function], type_ignores=[]), "handler", "exec"), namespace)
         namespace["_tool_code_sandbox"]({"action": "check", "tool_id": "bandit",
@@ -356,11 +475,14 @@ class ControlPlanePresetTests(unittest.TestCase):
                                                         "workspace_id": "docker:12345678"}))
 
     def test_handler_forwards_verify_plan(self):
-        tree = ast.parse((ROOT / "control-plane/main.py").read_text(encoding="utf-8"))
+        tree = ast.parse((ROOT / "control-plane/cp/tool.py").read_text(encoding="utf-8"))
         function = next(node for node in tree.body
                         if isinstance(node, ast.FunctionDef) and node.name == "_tool_code_sandbox")
         backend = FakeBackend("docker", True)
-        namespace = {"code_sandbox": backend, "json": json,
+        # `code_sandbox` arriva per contesto: lo scope isolato ne ha bisogno con
+        # la stessa forma, o il test eserciterebbe un percorso che in produzione
+        # non esiste.
+        namespace = {"_contesto": SimpleNamespace(code_sandbox=backend), "json": json,
                      "push_log": lambda *args, **kwargs: None, "SandboxUnavailable": SandboxUnavailable}
         exec(compile(ast.Module(body=[function], type_ignores=[]), "handler", "exec"), namespace)
         plan = [{"tool_id": "ruff", "path": "shared"}, {"tool_id": "bandit", "path": "shared"}]

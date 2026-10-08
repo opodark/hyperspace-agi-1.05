@@ -1,3 +1,4 @@
+import ast
 import unittest
 from pathlib import Path
 
@@ -47,10 +48,18 @@ class ComicEditorIntegrationTests(unittest.TestCase):
         self.assertIn('comic_add_episode(project,\n                                title=', source)
 
     def test_chat_tool_queues_panels_unless_storyboard_is_requested(self):
-        source = (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
+        source = ((ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
+                  + (ROOT / "control-plane" / "cp" / "tools_defs.py").read_text(encoding="utf-8"))
         self.assertIn('args.get("render_panels", True)', source)
         self.assertIn('"queued_jobs": queued', source)
-        self.assertIn('"render_panels": {"type": "boolean", "default": True', source)
+        tree = ast.parse((ROOT / "control-plane" / "cp" / "tools_defs.py").read_text(encoding="utf-8"))
+        extension = next(n for n in tree.body if isinstance(n, ast.Expr)
+                         and isinstance(n.value, ast.Call)
+                         and isinstance(n.value.func, ast.Attribute)
+                         and n.value.func.attr == "extend")
+        comic = next(tool for tool in ast.literal_eval(extension.value.args[0])
+                     if tool["function"]["name"] == "create_comic")
+        self.assertEqual(comic["function"]["parameters"]["properties"]["render_panels"]["default"], True)
 
 
 if __name__ == "__main__":

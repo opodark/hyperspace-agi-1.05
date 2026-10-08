@@ -1,6 +1,6 @@
 {
   "name": "hyperspace-agi",
-  "version": "1.04.0",
+  "version": "1.05.0",
   "description": "HyperSpace AGI - Enterprise AI Execution Fabric with HIP",
   "main": "index.js",
   "scripts": {

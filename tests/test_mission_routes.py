@@ -427,6 +427,49 @@ class MissionPlannerAttemptTests(unittest.TestCase):
         tasks = self.planner(budget_attempts=1)({"objective": "o", "criteria": []})
         self.assertEqual(tasks[0]["max_attempts"], 1)
 
+    def test_operator_role_limit_survives_a_wrong_model_role(self):
+        raw = ('{"tasks":[{"key":"pdf","role":"repo-analyst",'
+               '"instruction":"Read local files and make a PDF"}]}')
+        mission = {"objective": "PDF", "success_criteria": [],
+                   "policy": {"roles": ["coder"]},
+                   "_execution_budget": {"max_steps": 1,
+                                         "max_task_attempts": 1}}
+        tasks = self.planner(raw=raw)(mission)
+        self.assertEqual(len(tasks), 1)
+        self.assertEqual(tasks[0]["role"], "coder")
+
+    def test_the_planner_keeps_one_workspace_chain_in_a_single_coder_task(self):
+        """Un create→write→run nello stesso workspace è UN task, non quattro.
+
+        Misurato il 2026-10-07: il planner spezzava la catena in quattro task coder
+        dipendenti; ogni task ricreava un workspace e perdeva l'id a monte, così il
+        PDF non arrivava mai. Il workspace usa-e-getta è stato condiviso dentro UN
+        tool loop, quindi il prompt del planner deve dirlo.
+        """
+        prompts = []
+        tree = ast.parse(MAIN_SOURCE)
+        module = ast.Module(
+            body=[node for node in tree.body
+                  if isinstance(node, ast.FunctionDef)
+                  and node.name in {"_mission_plan", "_mission_json"}],
+            type_ignores=[])
+        namespace = {
+            "mission_policy": policy,
+            "re": re,
+            "json": json,
+            "MISSION_PLANNER_MODEL": "fake-planner",
+            "_mission_budget": lambda: {"max_steps": 40, "max_task_attempts": 2},
+            "_mission_roles_hint": lambda: "- coder: builds",
+            "_mission_reasoning": lambda *a: (False, ""),
+            "_mission_llm": lambda prompt, *a, **k: (prompts.append(prompt) or self.RAW),
+            "push_log": lambda *a, **k: None,
+            "_mission_role_allowed": lambda role: True,
+        }
+        exec(compile(module, "<mission-plan>", "exec"), namespace)
+        namespace["_mission_plan"]({"objective": "o", "criteria": []})
+        self.assertIn("SINGLE coder task", prompts[-1])
+        self.assertIn("reuse that same workspace_id", prompts[-1])
+
 
 class MissionPlannerShapeTests(unittest.TestCase):
     """La forma del JSON del planner non deve far morire la missione.
@@ -534,17 +577,22 @@ class MissionWorkerFailureTests(unittest.TestCase):
             "_catalogo_nativi": lambda: {},
             "_mission_model_for": lambda role: "fake-model",
             "_mission_task_context": lambda mission, task: "",
+            "_mission_chain_workspace_id": lambda mission, task: "",
+            "_mission_num_ctx": lambda: 16384,
             # Le decisioni del CP sul reasoning, iniettate come gli altri
             # collaboratori: `_mission_reasoning` è eseguita davvero e le usa.
             "_decide_thinking": lambda model, data, messages, tools: False,
             "_is_reasoning_model": lambda model: reasoning_model,
             "_run_tool_loop": fake_loop,
             "_mission_sandbox_workspaces": lambda: {},
-            "_mission_sandbox_artifacts": lambda before: [],
+            "_mission_sandbox_artifacts": lambda *args, **kwargs: [],
             "_mission_website_ids": lambda: set(),
             "_mission_website_artifacts": lambda before: [],
             "code_sandbox": type("Client", (), {"enabled": True})(),
             "advanced_config": {"ollama": {"url": "http://ollama.invalid"}},
+            # L'endpoint di inferenza della missione è iniettato come gli altri
+            # collaboratori: `_mission_worker` non deve cablare l'URL a mano.
+            "_mission_inference_base": lambda: "http://ollama.invalid",
         }
         exec(compile(module, "<mission-worker>", "exec"), namespace)
         return namespace["_mission_worker"]
@@ -599,6 +647,193 @@ class MissionWorkerFailureTests(unittest.TestCase):
         self.assertEqual(result["model"], "fake-model")
         self.assertEqual(result["artifacts"], [])
         self.assertEqual(result["error"], "")
+
+    def test_the_coder_is_told_to_reuse_an_upstream_workspace(self):
+        """Un task a valle non deve creare un secondo workspace e spezzare la catena.
+
+        Misurato il 2026-10-07: `create-workspace` completava, poi `write-script`
+        chiamava di nuovo `create` e scriveva in un sandbox nuovo e vuoto; il diff
+        non conteneva il PDF atteso. Il system prompt deve dire di riusare il
+        `workspace_id` ricevuto a monte e di non richiamare `create` quando c'è già.
+        """
+        seen = []
+        self.worker(self.LOOP, seen)(self.TASK, {"objective": "o"})
+        system = seen[0]["messages"][0]["content"]
+        self.assertIn("reuse that exact id", system)
+        self.assertIn("do NOT call create", system)
+
+    def test_the_coder_is_told_not_to_repeat_a_failing_call(self):
+        """Il guard della sandbox aborta un retry identico: il prompt deve avvisare."""
+        seen = []
+        self.worker(self.LOOP, seen)(self.TASK, {"objective": "o"})
+        system = seen[0]["messages"][0]["content"]
+        self.assertIn("never repeat an identical failing call", system)
+
+
+class _FakeInspectSandbox:
+    """Sandbox finto per il gate PDF: risponde solo a `inspect`."""
+
+    def __init__(self, result, enabled=True):
+        self.enabled = enabled
+        self.result = result
+        self.calls = []
+
+    def call(self, action, arguments=None, timeout=None):
+        self.calls.append((action, dict(arguments or {})))
+        if action != "inspect":
+            raise AssertionError(f"unexpected sandbox action: {action}")
+        return self.result
+
+
+class MissionPdfGateTests(unittest.TestCase):
+    """Il gate PDF e' indipendente dal modello: fatti dal runner, non prosa.
+
+    Una missione che chiede un PDF non deve poter dire `pass` su un file che non
+    e' un PDF. Il gate interroga il runner (azione `inspect`): firma `%PDF`,
+    pagine, testo estraibile. Questi test eseguono gli helper veri via AST contro
+    un client finto, quindi il controllo non puo' sparire dietro un `except`.
+    """
+
+    HELPERS = ("_mission_expects_pdf", "_mission_pdf_candidates", "_mission_pdf_gate")
+
+    @classmethod
+    def helpers(cls, client):
+        tree = ast.parse(MAIN_SOURCE)
+        module = ast.Module(
+            body=[node for node in tree.body
+                  if isinstance(node, ast.FunctionDef) and node.name in cls.HELPERS],
+            type_ignores=[])
+        namespace = {"code_sandbox": client, "re": re,
+                     "_ARTIFACT_PDF": re.compile(r"\.pdf$", re.IGNORECASE)}
+        exec(compile(module, "<mission-pdf-gate>", "exec"), namespace)
+        return namespace
+
+    def test_a_real_pdf_passes_the_gate(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 6,
+                                      "text_chars": 1200})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a briefing PDF"},
+            [{"workspace_id": "w-1", "changed_files": ["artifacts/brief.pdf"]}])
+        self.assertTrue(gate["ok"])
+        self.assertEqual(client.calls, [("inspect", {"workspace_id": "w-1",
+                                                     "path": "artifacts/brief.pdf"})])
+
+    def test_a_file_without_a_pdf_signature_is_rejected(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": False, "pages": None,
+                                      "text_chars": None})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a PDF"},
+            [{"workspace_id": "w-1", "changed_files": ["brief.pdf"]}])
+        self.assertFalse(gate["ok"])
+        self.assertIn("not a readable PDF", gate["reason"])
+
+    def test_a_pdf_with_no_extractable_text_is_not_verified(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 2,
+                                      "text_chars": 0})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a PDF"},
+            [{"workspace_id": "w-1", "changed_files": ["brief.pdf"]}])
+        self.assertFalse(gate["ok"])
+
+    def test_a_mission_without_a_pdf_has_no_gate(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 1,
+                                      "text_chars": 10})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Write a summary"},
+            [{"workspace_id": "w-1", "changed_files": ["artifacts/brief.pdf"]}])
+        self.assertIsNone(gate)
+        self.assertEqual(client.calls, [])
+
+    def test_an_empty_workspace_diff_fails_the_gate(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 1,
+                                      "text_chars": 10})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a PDF"},
+            [{"workspace_id": "w-1", "changed_files": ["notes.txt"]}])
+        self.assertFalse(gate["ok"])
+        self.assertIn("no .pdf", gate["reason"])
+        self.assertEqual(client.calls, [])
+
+    def test_a_disabled_sandbox_leaves_the_verdict_to_the_model(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 1,
+                                      "text_chars": 10}, enabled=False)
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a PDF"},
+            [{"workspace_id": "w-1", "changed_files": ["brief.pdf"]}])
+        self.assertIsNone(gate)
+        self.assertEqual(client.calls, [])
+
+    def test_criteria_alone_can_declare_the_pdf_expectation(self):
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 1,
+                                      "text_chars": 10})
+        expects = self.helpers(client)["_mission_expects_pdf"](
+            {"objective": "Write a document", "success_criteria": ["Ship a real PDF"]})
+        self.assertTrue(expects)
+
+    def test_a_task_without_a_pdf_candidate_is_not_gated(self):
+        """Un task intermedio non deve fallire per un PDF che non ha ancora prodotto.
+
+        `create-workspace` e `write-pdf-script` non hanno `.pdf` nel diff: a livello
+        task il gate tace (`None`) e lascia parlare il verdetto del modello; solo la
+        missione pretende che un PDF esista (2026-10-07, missione di briefing).
+        """
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": True, "pages": 1,
+                                      "text_chars": 10})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a PDF"},
+            [{"workspace_id": "w-1", "changed_files": []}], "task")
+        self.assertIsNone(gate)
+        self.assertEqual(client.calls, [])
+
+    def test_a_task_that_produced_a_bad_pdf_is_still_gated(self):
+        """A livello task il gate scatta solo se il task ha davvero prodotto un .pdf."""
+        client = _FakeInspectSandbox({"ok": True, "magic_ok": False, "pages": None,
+                                      "text_chars": None})
+        gate = self.helpers(client)["_mission_pdf_gate"](
+            {"objective": "Produce a PDF"},
+            [{"workspace_id": "w-1", "changed_files": ["artifacts/brief.pdf"]}], "task")
+        self.assertFalse(gate["ok"])
+        self.assertEqual(client.calls, [("inspect", {"workspace_id": "w-1",
+                                                     "path": "artifacts/brief.pdf"})])
+
+
+class MissionInferenceEndpointTests(unittest.TestCase):
+    """`MISSION_INFERENCE_URL` devia la SOLA missione, senza toccare chat e canali.
+
+    Serve a provare un modello servito fuori da Ollama (es. Bonsai 2 27B su
+    `llama-server`) senza cambiare l'inferenza del resto del control-plane:
+    planner, worker e verifier leggono un endpoint da un solo posto. Vuota =
+    comportamento di prima (l'Ollama del CP), e in quel caso la fonte resta
+    `advanced_config`, che `set_advanced_config` puo' cambiare a caldo.
+    """
+
+    @staticmethod
+    def base(env_url, cp_url):
+        tree = ast.parse(MAIN_SOURCE)
+        module = ast.Module(
+            body=[node for node in tree.body
+                  if isinstance(node, ast.FunctionDef)
+                  and node.name == "_mission_inference_base"],
+            type_ignores=[])
+        namespace = {"MISSION_INFERENCE_URL": env_url,
+                     "advanced_config": {"ollama": {"url": cp_url}}}
+        exec(compile(module, "<mission-inference-base>", "exec"), namespace)
+        return namespace["_mission_inference_base"]
+
+    def test_an_override_moves_only_the_mission(self):
+        base = self.base("http://host.docker.internal:8080/", "http://ollama.invalid")
+        self.assertEqual(base(), "http://host.docker.internal:8080")
+
+    def test_without_an_override_the_control_plane_ollama_is_used(self):
+        base = self.base("", "http://host.docker.internal:11434/")
+        self.assertEqual(base(), "http://host.docker.internal:11434")
+
+    def test_the_worker_does_not_cable_the_endpoint_by_hand(self):
+        """Solo `_mission_inference_base` conosce l'URL: il worker lo chiede."""
+        source = functions(ROOT / "control-plane" / "main.py")["_mission_worker"]
+        unparsed = ast.unparse(source)
+        self.assertIn("_mission_inference_base", unparsed)
+        self.assertNotIn("advanced_config", unparsed)
 
 
 if __name__ == "__main__":

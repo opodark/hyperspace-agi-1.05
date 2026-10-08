@@ -167,6 +167,40 @@ def load_firecrawl_skills_bundle(directory):
     } for name in FIRECRAWL_SKILLS]
 
 
+AGENCY_AGENTS_REPOSITORY = "https://github.com/msitarzewski/agency-agents"
+AGENCY_AGENTS_BUNDLE_DIR = Path(__file__).resolve().parent.parent / "vendor" / "agency-agents"
+AGENCY_AGENTS_SKILLS = ("multi-agent-architect", "code-reviewer", "technical-writer")
+AGENCY_AGENTS_UPSTREAM = (
+    "upstream/engineering-multi-agent-systems-architect.md",
+    "upstream/engineering-code-reviewer.md",
+    "upstream/engineering-technical-writer.md",
+)
+
+
+def load_agency_agents_bundle(directory):
+    """Verify pinned upstream profiles and short local adaptations; execute nothing."""
+    manifest, sources = _load_bundle_files(
+        directory, AGENCY_AGENTS_REPOSITORY, AGENCY_AGENTS_SKILLS,
+        "Agency Agents", AGENCY_AGENTS_UPSTREAM)
+    items = []
+    for name, upstream in zip(AGENCY_AGENTS_SKILLS, AGENCY_AGENTS_UPSTREAM):
+        path = f"skills/{name}/SKILL.md"
+        items.append({
+            "id": f"agency-{name}-{manifest['commit'][:12]}",
+            "name": f"Agency Agents: {name}", "type": "skill", "source": sources[path],
+            "description": "Short HyperSpace adaptation of a pinned Agency Agents profile; reference only.",
+            "generator": "agency-agents-import", "permissions": [],
+            "provenance": {
+                "repository": AGENCY_AGENTS_REPOSITORY, "commit": manifest["commit"],
+                "path": upstream.removeprefix("upstream/"),
+                "upstream_sha256": manifest["files"][upstream],
+                "adaptation_path": path, "sha256": manifest["files"][path],
+                "license": "MIT", "license_text": sources["LICENSE"],
+            },
+        })
+    return items
+
+
 def attach_skills(data, read_artifact):
     """Consume the local extension before forwarding a request to any model backend."""
     data = dict(data)

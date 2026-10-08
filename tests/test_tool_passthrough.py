@@ -18,6 +18,9 @@ da Flask, nessuna rete, nessun modello vero. `_execute_tool_call` è quello vero
 from __future__ import annotations
 
 import ast
+from types import SimpleNamespace
+
+from tests import cp_source
 import json
 import sys
 import time
@@ -30,10 +33,10 @@ sys.path.insert(0, str(ROOT))
 
 from shared.persona import IDENTITY_TOOLS, identity_tools_hidden  # noqa: E402
 
-SOURCE = ROOT / "control-plane" / "main.py"
 FUNZIONI = ("_handlers_nativi", "_execute_tool_call", "_tool_del_client",
             "_tool_calls_passthrough", "_risposta_solo_tool_del_client",
-            "_chunk_finale", "_run_tool_loop", "_assistant_text", "_catalogo_nativi")
+            "_chunk_finale", "_run_tool_loop", "_assistant_text", "_catalogo_nativi",
+            "_handlers_nativi_105")
 
 # Un catalogo nativo minimo ma della forma vera: basta a vedere COSA viene offerto
 # al modello (il filtro per superficie lavora sul nome del tool).
@@ -114,7 +117,7 @@ class NodeBusyError(Exception):
 
 def carica(risposte, client_tools=True):
     """Le funzioni vere, con un modello finto e gli strumenti nativi spiati."""
-    albero = ast.parse(SOURCE.read_text(encoding="utf-8"))
+    albero = cp_source.albero()
     nodi = [n for n in albero.body
             if isinstance(n, ast.FunctionDef) and n.name in FUNZIONI]
     mancanti = set(FUNZIONI) - {n.name for n in nodi}
@@ -147,15 +150,25 @@ def carica(risposte, client_tools=True):
         "DEFAULT_MODEL": "modello-finto",
         "NodeBusyError": NodeBusyError,
         "BUILTIN_TOOLS": CATALOGO_FINTO,
+        "_extra_handlers": None,
         "identity_tools_hidden": identity_tools_hidden,
-        "connector_manager": registrato["connettore"],
+        # `cp/tool.py` riceve i suoi oggetti di boot per contesto, quindi lo scope
+        # isolato riceve un `_contesto` con la stessa forma. Senza, il test
+        # passerebbe senza esercitare il passaggio per cui esiste.
+        "_contesto": SimpleNamespace(connector_manager=registrato["connettore"],
+                                     code_sandbox=None, mcp_policy=None,
+                                     fetch_models=lambda: {"models": []}),
         "push_log": lambda *a, **k: registrato["log"].append((a, k)),
         "_call_ollama": _call_ollama,
         "_model_supports_tools": lambda modello: True,
+        # `_run_tool_loop` ora distingue gli errori di Ollama dalle risposte
+        # reali: la stessa forma della funzione vera in cp/budget.py.
+        "_is_error_payload": lambda p: isinstance(p, dict) and bool(p.get("error")),
     }
     scope.update({funzione: _strumento(nome)
                   for nome, funzione in STRUMENTI_DEL_CP.items()})
-    exec(compile(ast.Module(body=nodi, type_ignores=[]), str(SOURCE), "exec"), scope)
+    exec(compile(ast.Module(body=nodi, type_ignores=[]), "cp", "exec"), scope)
+    scope["_extra_handlers"] = scope["_handlers_nativi_105"]
     scope["_registrato"] = registrato
     return scope
 
@@ -165,6 +178,31 @@ def domanda(*tools):
             "messages": [{"role": "user", "content": "fai una cosa"}],
             "tools": list(tools) if tools else [TOOL_DEL_CLIENTE],
             "stream": False}
+
+
+def _chiamate_a(nome: str, albero: ast.AST) -> list:
+    """Le chiamate a `nome`, con la funzione che le contiene.
+
+    `_stream_gen` è un generatore annidato dentro v1_chat_completions, quindi
+    non si trova con un indice di tree.body: serve scendere nell'albero e
+    risalire da ogni chiamata alla funzione che la contiene.
+    """
+    genitori = {}
+    for nodo in ast.walk(albero):
+        for figlio in ast.iter_child_nodes(nodo):
+            genitori[figlio] = nodo
+
+    def scope(nodo):
+        corrente = nodo
+        while corrente in genitori:
+            corrente = genitori[corrente]
+            if isinstance(corrente, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                return corrente.name
+        return "<modulo>"
+
+    return [(scope(chiamata), chiamata) for chiamata in ast.walk(albero)
+            if isinstance(chiamata, ast.Call) and isinstance(chiamata.func, ast.Name)
+            and chiamata.func.id == nome]
 
 
 class PassaggioTests(unittest.TestCase):
@@ -277,7 +315,7 @@ class PassaggioTests(unittest.TestCase):
 
     def test_gli_handler_hanno_una_sola_fonte(self):
         """`_execute_tool_call` e la decisione leggono lo stesso elenco."""
-        albero = ast.parse(SOURCE.read_text(encoding="utf-8"))
+        albero = cp_source.albero()
         corpi = {n.name: ast.unparse(n) for n in albero.body
                  if isinstance(n, ast.FunctionDef)}
         self.assertIn("_handlers_nativi()", corpi["_execute_tool_call"])
@@ -313,10 +351,84 @@ class ChunkTests(unittest.TestCase):
         self.assertEqual(scelta["delta"], {"role": "assistant", "content": "ciao"})
 
     def test_i_due_rami_dello_stream_passano_di_li(self):
-        sorgente = SOURCE.read_text(encoding="utf-8")
-        # Una è la definizione; le altre due sono i rami dello stream (mesh e
-        # ollama-diretto): entrambi devono costruire il chunk con la stessa funzione.
-        self.assertEqual(sorgente.count("_chunk_finale(result_json,"), 3)
+        # I due rami dello stream (mesh e ollama-diretto) devono costruire il
+        # chunk finale con la stessa funzione: se uno dei due se lo scrive a
+        # mano, i due rami divergono e lo stesso modello risponde in due modi.
+        chiamate = _chiamate_a("_chunk_finale", cp_source.albero())
+        self.assertEqual(len(chiamate), 2, "una chiamata per ramo dello stream")
+        for scope, chiamata in chiamate:
+            with self.subTest(scope=scope):
+                self.assertEqual(scope, "_stream_gen")
+                self.assertEqual([getattr(a, "id", "") for a in chiamata.args[:1]],
+                                 ["result_json"])
+
+
+class DeduplicaChiamateFalliteTests(unittest.TestCase):
+    """Una chiamata fallita con gli stessi argomenti non si riesegue.
+
+    Nella prova PDF del 2026-10-07 il loop ha rieseguito quattordici `read`
+    sandbox identiche, tutte rifiutate, fino a esaurire le iterazioni e a uccidere
+    il task. Qui il modello finto insiste sulla stessa chiamata che fallisce:
+    l'esecuzione deve avvenire una volta sola e il loop chiudersi con un errore
+    leggibile invece di girare a vuoto.
+    """
+
+    def test_identical_failing_call_runs_once_then_aborts_the_loop(self):
+        eseguite = []
+
+        def fallisce(nome, argomenti):
+            eseguite.append((nome, argomenti))
+            return json.dumps({"ok": False, "error": "sandbox error: path not found"})
+
+        sc = carica([risposta_con_tool_calls("web_search") for _ in range(4)]
+                    + [risposta_testo("done")])
+        sc["_execute_tool_call"] = fallisce
+        result = sc["_run_tool_loop"](
+            {"model": "modello-finto", "messages": []}, "http://unused",
+            builtin_tools=[CATALOGO_FINTO[0]])
+
+        self.assertEqual(len(eseguite), 1, "la chiamata identica non va rieseguita")
+        self.assertEqual(result["error"]["type"], "tool_loop_aborted")
+        log = " ".join(str(part) for evento in sc["_registrato"]["log"]
+                       for part in evento)
+        self.assertIn("tool_duplicate_refused", log,
+                      "il rifiuto deve restare visibile nel log")
+
+    def test_cambiare_argomenti_e_una_chiamata_nuova(self):
+        eseguite = []
+
+        def fallisce(nome, argomenti):
+            eseguite.append(argomenti.get("prompt"))
+            return json.dumps({"ok": False, "error": "boom"})
+
+        def risposta_con_argomenti(argomenti):
+            return {"id": "chatcmpl-finto", "created": 3, "model": "modello-finto",
+                    "choices": [{"index": 0, "finish_reason": "tool_calls",
+                                 "message": {"role": "assistant", "content": "",
+                                             "tool_calls": [
+                                                 {"id": "call_0", "type": "function",
+                                                  "function": {"name": "web_search",
+                                                               "arguments": json.dumps(argomenti)}}]}}]}
+
+        sc = carica([risposta_con_argomenti({"prompt": "uno"}),
+                     risposta_con_argomenti({"prompt": "due"}),
+                     risposta_testo("done")])
+        sc["_execute_tool_call"] = fallisce
+        sc["_run_tool_loop"]({"model": "modello-finto", "messages": []}, "http://unused",
+                             builtin_tools=[CATALOGO_FINTO[0]])
+        self.assertEqual(eseguite, ["uno", "due"],
+                         "argomenti diversi sono chiamate diverse")
+
+    def test_una_chiamata_riuscita_non_si_blocca(self):
+        # `web_search` del fake risponde "risultato di web_search" (successo): due
+        # chiamate identiche riuscite devono girare entrambe.
+        sc = carica([risposta_con_tool_calls("web_search"),
+                     risposta_con_tool_calls("web_search"),
+                     risposta_testo("done")])
+        result = sc["_run_tool_loop"]({"model": "modello-finto", "messages": []},
+                                      "http://unused", builtin_tools=[CATALOGO_FINTO[0]])
+        self.assertEqual(len(sc["_registrato"]["nativi"]), 2)
+        self.assertNotIn("error", result)
 
 
 if __name__ == "__main__":

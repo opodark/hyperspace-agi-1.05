@@ -17,11 +17,18 @@ import sys
 import tempfile
 import time
 import unittest
+
 import unittest.mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# il path PRIMA degli import che lo usano: `cp` sta in control-plane, e senza
+# questo il file si raccoglie solo se qualche altro test e' passato prima.
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "control-plane"))
+
+from cp import memoria  # noqa: E402
+from tests import cp_source  # noqa: E402
 
 from shared.hermes_memory import HermesMemoryError  # noqa: E402
 from shared.memory_schema import entry_id, normalize_entry  # noqa: E402
@@ -397,7 +404,10 @@ class CablaggioControlPlaneTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        sorgente = (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
+        # `cp_source` guarda main.py e i moduli `cp/`, quindi il test segue le
+        # funzioni della memoria dove ora stanno: prima leggeva solo main.py, e
+        # avrebbe smesso di vederle al primo spostamento.
+        sorgente = cp_source.SORGENTE()
         albero = ast.parse(sorgente)
         cls.funzioni = {n.name: n for n in albero.body if isinstance(n, ast.FunctionDef)}
 
@@ -443,3 +453,59 @@ class CablaggioControlPlaneTests(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+
+class OggettoUnicoTests(unittest.TestCase):
+    """`memory_sync` vive in `cp/memoria.py` e `main.py` ne tiene un riferimento.
+
+    Sono due moduli con due nomi che punt allo stesso oggetto, e la trappola è che
+    il ricaricamento dalla tab Setup ne aggiorni solo uno: l'altro continua a
+    usare il vecchio, e il salvataggio è "salvato ma inerte" — il difetto che
+    `_reload_memory_sync` esiste per evitare.
+
+    Il caso è già successo in questa sessione: scrivendo la riassegnazione senza
+    `global` sembrava la soluzione elegante, perché la funzione restituiva il
+    nuovo oggetto, ma creava una variabile locale che sparisce all'uscita. Il
+    sintomo non è un errore: è che `memory_sync` continua a valere quello vecchio.
+
+    Qui non si importa `main.py` — all'import scrive su `/app`, che in test non
+    esiste, ed è il motivo per cui quasi tutti i test di questo repository
+    leggono il sorgente con `cp_source` invece di eseguire il monolite. La prova
+    che i due moduli restino allineati la fa `tests/test_memory_sync.py` a mano,
+    con l'ambiente puntato su un tmpdir; qui si verifica la parte che si puo'
+    verificare senza avviare il server.
+    """
+
+    def test_ricarica_restituisce_l_oggetto_del_modulo(self):
+        self.assertIs(memoria.ricarica(), memoria.memory_sync)
+
+    def test_il_modulo_dopo_ricarica_ha_un_oggetto_nuovo(self):
+        prima = memoria.memory_sync
+        dopo = memoria.ricarica()
+        self.assertIsNot(dopo, prima,
+                         "ricarica() ha restituito lo stesso oggetto: il "
+                         "salvataggio dalla tab Setup non cambierebbe nulla")
+
+    def test_la_ricarica_avviene_dentro_il_modulo_proprietario(self):
+        """Dove sta il `global`, e perche' la forma e' cambiata.
+
+        Il pericolo e' sempre lo stesso e ha due facce opposte: con il `global` la
+        riassegnazione riguarda il modulo, senza diventa una variabile locale che
+        sparisce all'uscita. Il `global` serve, e qui come altrove.
+
+        Cosa e' cambiato rispetto a prima e' l'indirezione. Quando la funzione stava
+        in main.py doveva scrivere `_memoria.ricarica()`, perche' il binding era di
+        un altro modulo. Ora che sta in `cp/memoria.py` — il modulo che possiede
+        `memory_sync` — chiama `ricarica()` diretto, e la riassegnazione aggiorna il
+        proprio nome. Un riferimento incrociato a se stesso sarebbe stato solo un
+        modo per ricordarsi di esistere.
+        """
+        # `cp_source` legge i moduli come li ha trovati, senza importarli: qui il
+        # modulo e' gia' importato altrove nel file, e passare l'oggetto funzione
+        # ad `ast.unparse` non funziona — vuole l'albero, non la funzione.
+        corpo = ast.unparse(cp_source.funzioni()["_reload_memory_sync"])
+        self.assertIn("global memory_sync", corpo)
+        self.assertIn("memory_sync = ricarica()", corpo)
+        self.assertNotIn("_memoria.ricarica()", corpo,
+                         "la funzione ora sta nel modulo proprietario: "
+                         "l'indirezione attraverso se stessa non serve")

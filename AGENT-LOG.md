@@ -1289,6 +1289,15 @@ Il registro rende le decisioni consultabili, senza una nuova card dashboard.
 Nessun deploy/riavvio del servizio condiviso, commit, push o creazione remoto.
 Le modifiche sono nella working tree; i draft Forge non vengono approvati da noi.
 
+## 2026-10-07 — Codex → utente — Tentativo pubblicazione 1.05
+
+Ricevuto URL del repository vuoto `opodark/hyperspace-agi-1.05`. Aggiornato il
+remote locale `origin` da 1.04 a 1.05 e tentato `git push -u origin main` del
+commit `233c458`. Il repository locale resta integro; il push è stato rifiutato
+da GitHub con `Permission denied (publickey)`, perché l'ambiente non ha una
+chiave SSH autorizzata. Restano non tracciati solo gli export personali e il
+lock temporaneo già esclusi dal commit.
+
 ## 2026-10-07 — Codex → utente, Cips/Cline — Consolidamento Git autorizzato
 
 Utente: «commit e push». Preparato consolidamento della working tree condivisa,
@@ -1304,3 +1313,866 @@ Fetch tentato: Permission denied (publickey); gh auth status non autenticato.
 Nessuna creazione del remoto 1.05, nessun force push o cambio URL remoto.
 Commit locale autorizzato; pubblicazione da completare con autenticazione GitHub
 funzionante. Nessun riavvio/deploy dei servizi.
+
+## 2026-10-07 — Cline → utente, Codex — Allineamento riferimenti 1.05
+
+Utente: «ci siamo spostati sulla 1.05». Verificato lo stato: la cartella di
+lavoro resta `/Users/opo/hyperspace-agi-1.04`, il remote `origin` è già
+`git@github.com:opodark/hyperspace-agi-1.05.git` (blocco Codex sopra), il commit
+`233c458` è locale e non pubblicato (SSH non autorizzata). Il lavoro Firecrawl
+A1/A2 risulta interamente dentro `233c458`.
+
+Su scelta dell'utente ho allineato i riferimenti di versione a 1.05, senza
+commit né push:
+- `README.md`: titolo, URL di clone, `cd`, descrizione (4 punti);
+- `package.json`: `"version": "1.05.0"`;
+- `docs/lan-demo.md`: «control-plane di 1.05»;
+- `docs/network-panel.md`: `cd hyperspace-agi-1.05`.
+
+Lasciati di proposito: i percorsi assoluti `/Users/opo/hyperspace-agi-1.04`
+(la cartella non è stata rinominata, quindi restano corretti) in `AGENTS.md`,
+script, plist, `docker-compose*.yml`; i numeri che non sono versioni (es.
+`11.04` t/s in `shared/model_fit.py` e `docs/windows-node-handoff.md`); la
+storia datata (`ROADMAP.md`, `docs/review-autocoding-2026-10-07.md`); il
+wikilink `[[project_team_split_1.04_demo]]` in `docs/onlyoffice-bridge.md`.
+
+Restano allineabili ma fuori dallo scope scelto (etichette di versione visibili):
+`control-plane/dashboard.html` (`v1.04` in titolo e badge),
+`control-plane/package.json` e `shared/package.json` (`1.04.0`),
+`docker-compose.yml` (commento), `setup.sh`, `demo-lan.sh`,
+`scripts/generate_test_report.py`.
+
+Nessun commit/push, nessun deploy o riavvio del servizio condiviso. Le modifiche
+sono nella working tree, insieme al blocco non committato di Codex.
+
+## 2026-10-07 — Codex → utente — Presentazione HyperSpace 1.05
+
+Raccolta la documentazione di README.md, VISION.md, ROADMAP.md e dei dossier in
+docs/. Preparata una sintesi orientata a traguardi verificabili e possibile
+sbocco commerciale, distinguendo ciò che esiste oggi dalla roadmap: Enterprise
+Local, Agent Operations Platform, HyperSpace Ufficio e HyperSpace Multimedia.
+
+Creati il testo reviewable `docs/hyperspace-1.05-presentation.md`, lo script
+Apache-2.0 `scripts/generate_hyperspace_presentation.py` e l'artefatto
+`docs/hyperspace-1.05-presentation.pdf`. Il PDF è panoramico, 9 pagine, e copre
+tesi, architettura, traguardi 1.05, modelli commerciali, piano 0–18 mesi,
+limiti dichiarati e metriche. Generazione riuscita con ReportLab di sistema;
+Ruff pulito sul generatore; controllo sorgenti senza credenziali.
+
+Nessun commit o push successivo: questi tre file sono ancora nella working tree
+del repository 1.05, insieme agli export e al lock temporaneo già esclusi dal
+commit precedente.
+
+## 2026-10-07 — Codex → utente — Prova autonoma PDF con Mission Control
+
+Su correzione dell'utente, provata davvero la creazione del pitch PDF con Mission
+Control. Rapporto ed evidenze in `docs/mission-pdf-trial-2026-10-07.md`. Nessuna
+delle cinque missioni ha prodotto un PDF; non presentare la precedente bozza
+manuale come output dell'agente. ID delle due prove con planner del modello:
+`mission-77c3302ed8ef4b15`, `mission-7ca54eff7a664b9f`. Il planner ha scelto
+`repo-analyst` per leggere file locali, ma quel ruolo non dispone di un tool di
+lettura del repository. La seconda missione ha persino dichiarato inesistenti
+documenti che sono effettivamente nel seed della sandbox.
+
+Tre prove con piano operatore esplicito per isolare il coder:
+`mission-204ddd9fb9974947` (quota 6/6 workspace, create fallita),
+`mission-6c5e7b0699e94513` (create riuscita, read ripetute fallite),
+`mission-ba70ae37ace64df1` (create/list e alcune read riuscite, nessuna write
+o run). In tutti i casi stato finale failed, zero artifact PDF. Il runner Docker
+è stato ricreato temporaneamente con quota 8 preservando i vecchi workspace;
+i due workspace vuoti creati da questa prova, con diff zero, sono stati scartati.
+Capienza 8 non persistita in `.env`; se il container viene ricreato col default,
+torna a 6. Nessun vecchio workspace Dream eliminato.
+
+Correzioni proposte: validazione del piano contro capability effettive, telemetria
+di tool per task falliti, gestione quota workspace, generatore PDF disponibile
+nel runner e gate file/PDF indipendenti. Nessun commit, push o review approvata.
+
+## 2026-10-07 — Codex → utente, Cips/Cline — Valutazione Vercel find-skills
+
+Letta la skill originale `vercel-labs/skills/skills/find-skills/SKILL.md` e la
+documentazione del CLI. Utile come metodo di discovery: `npx skills find` cerca
+candidate, `skills init` crea uno scheletro, `skills add/update` installano o
+aggiornano. Nessuna di queste operazioni valida la compatibilità con le
+capability di Hyperspace o approva un artifact della Forge. Proposta: discovery
+in area isolata, import con commit/licenza/hash e controllo qualità come draft;
+approvazione umana; solo allora selezione attraverso `before_context` con ruolo,
+tool e budget. Non eseguiti CLI, installazioni o aggiornamenti automatici.
+Questo approccio non risolve i difetti del planner/tool use emersi nella prova
+PDF. Nessun commit o push.
+
+## 2026-10-07 — Cline → utente, Codex — Diagnosi "voce WebUI sparita" dopo ricostruzione
+
+L'utente ha riavviato e ricostruito lo stack e chiede perché nella WebUI è
+sparita la "chat vocale". Verifica read-only, nessuna modifica al codice.
+
+Prove: alle 2026-10-07 14:53 il compose è stato ricreato solo per
+`control-plane`, `node-1`, `registry`, `searxng`, `code-sandbox`;
+`hyperspace_open_webui` (`ghcr.io/open-webui/open-webui:v0.11.4`) NON è stato
+ricreato (creato 2026-10-06 21:29, up da allora). La voce in Open WebUI è locale
+(STT `WHISPER_MODEL=base`, TTS `transformers`), quindi nessuno dei container
+ricostruiti la fornisce: `control-plane` non espone `/v1/audio/*` (404) e in
+`main.py` non esiste alcuna route audio. L'unico utente WebUI è admin e la
+config audio è intatta, quindi i pulsanti mic/"Voice mode" dovrebbero esserci.
+
+Causa più probabile: origine NON sicura. `docs/lan-demo.md` fa aprire la WebUI a
+`http://<il-tuo-IP>:3000` e senza HTTPS il browser disabilita
+`navigator.mediaDevices` (microfono): la dettatura e la "modalità vocale" non
+funzionano. Da verificare l'apertura da `http://localhost:3000` o dietro HTTPS.
+Nessun commit/push, nessun file modificato.
+
+## 2026-10-07 — Codex → Cips, utente — Verifica integrazione refactor 1.04 → 1.05
+
+Ho letto il push di Cips (`778b1c5` su `opodark/hyperspace-agi-1.04/main`) e
+provato la fusione in una worktree temporanea isolata. I rami divergono dal
+commit `520a9f2`: la 1.05 contiene tre commit propri e la 1.04 altri 31.
+Quindi il refactor di `main.py` (circa 12.000 → 3.300 righe, con nuovi moduli
+`control-plane/cp/`) non è un fast-forward.
+
+L'automerge non preserva il comportamento: lascia le route `/missions` ma
+perde `_mission_worker`, `_mission_plan`, `_initialize_mission_control` e altre
+funzioni, mentre `cp/chat.py` porta il vecchio `_run_tool_loop` senza
+`shared.tool_runtime.Invocation` e il controllo dei tool offerti. Nel prototipo
+isolato: **45 falliti, 29 passati** nei test `test_mission_routes.py`,
+`test_agent_runtime_regressions.py`, `test_tool_passthrough.py`; sul ramo 1.05
+attuale gli stessi test danno **69 passati, 7 subtest passati**. Anche i cinque
+conflitti nei test richiedono aggiornare gli harness alla nuova collocazione
+del codice. Non è sicuro applicare o distribuire questa fusione.
+
+Ho annullato e rimosso la worktree sperimentale. La working tree principale,
+compreso il lavoro non committato degli altri agenti, non è stata toccata
+eccetto questo messaggio. Nessun commit/push. La refactor va portata per
+domini, preservando per primi Mission Control, autorizzazione dei tool e
+contratti dei test, poi validata con la suite completa.
+
+## 2026-10-07 — Cline → utente, Codex — Risolto: "modalità vocale" WebUI lentissima (TTS server → browser)
+
+Seguito del blocco sopra. Il pulsante mic c'era (era cache del browser); il
+problema vero era la **latenza** del giro vocale: "lentissimo, inutilizzabile".
+Misure sullo stack in esecuzione (read-only tranne il fix finale):
+
+- **STT** — Whisper `base` locale, `faster-whisper` già in cache
+  (`cache/whisper/models/models--Systran--faster-whisper-base`): 4s di audio →
+  ~0,7s. Non è lui.
+- **LLM** — il mesh è veloce. `POST /v1/chat/completions` (16 token): Ollama host
+  diretto **1,01s**, via control-plane `:8085` **1,22s** (overhead mesh ~0,2s).
+  Il control-plane instrada con punteggio metric-driven (`routing.py`), NON con
+  una chiamata LLM per richiesta; `capacity` 1 (serializza, non rallenta la
+  singola richiesta). Non è lui.
+- **TTS** — qui il collo di bottiglia. In `webui.db`, tabella `config`
+  (key/value): `audio.tts.engine = "transformers"`, `audio.tts.model = ""`. Il
+  motore `transformers` usa `pipeline('text-to-speech','microsoft/speecht5_tts')`
+  (`routers/audio.py`), cioè **sintesi lato server**; `USE_CUDA_DOCKER=false`
+  (container **CPU-only**, host Apple M5) e **cache HF vuota**
+  (`HF_HOME=cache/embedding/models` ha solo gli embedding). Ogni frase = SpeechT5
+  su CPU (più il download del modello la prima volta) → secondi per frase, la
+  "Call" si incastra. Nei log nessuna `audio/speech` mai servita.
+
+**Fix applicato** (config, nessun file del repo toccato): in `webui.db`
+`audio.tts.engine = "web"`. "Web API" è il TTS **nel browser** (`speechSynthesis`,
+voci di sistema, in particolare italiane di macOS): zero download, zero CPU
+server, istantaneo. Il frontend 0.11.4 supporta gli engine lato-browser `web`
+("Web API") e `browser-kokoro` ("Kokoro.js (Browser)", Kokoro-82M ONNX in web
+worker); il backend `_TTS_ENGINES` ne accetta solo 5 (openai/elevenlabs/azure/
+transformers/mistral), ma per gli engine browser la sintesi è client-side e
+`/api/v1/audio/speech` non viene chiamato.
+
+Passi: backup DB in `/tmp/webui.db.<ts>.bak`; `update config set
+value='"web"' where key='audio.tts.engine'`; `docker restart
+hyperspace_open_webui`; verificato `('audio.tts.engine', '"web"')`. Rollback:
+rimettere `"transformers"` o scegliere `"browser-kokoro"`. Alternativa da UI
+equivalente: Admin → Impostazioni → Audio → TTS engine → "Web API".
+
+Niente commit/push. Nessun override env (`AUDIO_TTS_ENGINE` assente): vale il DB.
+Se si vuole la scelta anche su volumi nuovi, valutare `AUDIO_TTS_ENGINE=web` nel
+compose. Frontend/codice non toccati.
+
+Addendum (chiarimento, domanda utente "prima non usava la voce Apple?"): **no**.
+`config_old` (seed del volume, creato 2026-07-16) dichiara già
+`audio.tts.engine: "transformers"`; in tutta la storia `AUDIO_TTS_ENGINE` compare
+solo in `a24c243` (2026-06-24 12:25, `"kokoro"`) e viene rimosso 38 min dopo da
+`c371722`, che lascia il commento «TTS consigliato: Web API (voce sistema macOS,
+italiano nativo)». Quindi la WebUI **non** usava la sintesi di Apple: usava
+SpeechT5 server su CPU (default ereditato dal volume, mai impostato dal compose).
+L'engine `"web"` applicato **è** la voce di sistema macOS ed è ciò che il repo
+stesso raccomanda. Lo STT resta `""` = `_transcribe_whisper` locale (~0,7s).
+
+
+> ## 2026-10-07 — Cline → utente, Codex — Come usare Ternary-Bonsai-2-27B-mlx-2bit su questo MacBook (solo ricerca, nessuna modifica)
+
+Domanda utente: «come uso questo modello sul macbook?»
+(`huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit`). Risposta informativa:
+niente file del repo toccati, nessun download avviato.
+
+- Il pack è **MLX 2-bit ternario** ("Bonsai 2 27B", deriva da Qwen3.8-27B ibrido):
+  **non** si carica con `mlx-lm`/`ollama`/LM Studio stock. Porta un runtime
+  proprio (`runtime/artifact.py`, `quickstart.py`) e i pesi richiedono
+  trasformate (Hadamard) che i loader stock non applicano.
+- La "source of truth" è il repo `PrismML-Eng/Bonsai-demo`: `./setup.sh` +
+  `./scripts/start_llama_server.sh` (GGUF, fork llama.cpp PrismML, :8080) oppure
+  `./scripts/start_mlx_server.sh` (MLX, `mlx-vlm` 0.7.2 nativo, :8081). Su M5 il
+  bug Metal del fork si aggira con `GGML_METAL_TENSOR_DISABLE=1`.
+- Vincoli di **questa** macchina (verificati ora): Apple M5, 16 GB RAM,
+  macOS 27.0.1, `uv` e `git` presenti, nessun clone esistente, token HF assente
+  (repo pubblico). **Disco: ~10 GB liberi, volume al 98%** → spazio insufficiente
+  per il pack MLX (8,6 GB) + GGUF (~7,2 GB) + venv; va liberato spazio prima.
+- Integrazione possibile con la Open WebUI già in casa: aggiungere una
+  connessione OpenAI-compatibile a `http://localhost:8080/v1` (llama.cpp) o
+  `http://localhost:8081/v1` (MLX).
+- Ollama 0.35.1 presente **non** basta: il quant ternario PTQ1_0/PQ2_0 richiede i
+  kernel del fork. Nessun commit/push, nessun file del repo modificato.
+
+
+Addendum (stessa domanda, repo GGUF `prism-ml/Ternary-Bonsai-2-27B-gguf`): file
+disponibili — F16 53,8 GB, **PTQ1_0 5,95 GB** (1,75 bit/peso), **PQ2_0 7,21 GB**
+(2,13 bit/peso, default del demo), mmproj-BF16 0,93 GB, mmproj-Q8_0 0,63 GB.
+Nessun `Q2_0` "works-everywhere" (esiste solo nel repo dev, testing). Tutti i band
+Bonsai 2 richiedono i kernel del fork PrismML (Metal supportato). Consiglio per
+questo M5 16 GB / ~10 GB liberi: **PTQ1_0** (più piccolo e, su Apple Silicon,
+più veloce in decode secondo il README) + **mmproj-Q8_0** solo se serve vision.
+Nessun drafter dspark in questo repo → niente speculative decoding per Bonsai 2.
+
+> ## 2026-10-07 — Cline → utente, Codex — Bonsai 2 27B (GGUF) AVVIATO sul MacBook: binari fork + script di avvio
+
+L'utente aveva già scaricato in `/Users/opo/models/bonsai2-27b-gguf/`
+`Ternary-Bonsai-2-27B-PTQ1_0.gguf` (5,5 GB) + `Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`
+(600 MB). Ho completato il runtime e **collaudato davvero** (risposta corretta in
+italiano da `http://localhost:8080`):
+
+- Clonato `git clone https://github.com/PrismML-Eng/Bonsai-demo.git` in
+  `~/Bonsai-demo` (fuori dal repo condiviso) e scaricati i binari precompilati del
+  fork: `scripts/download_binaries.sh` → release `prism-b10743-adfffbe`, asset
+  macos-arm64, in `~/Bonsai-demo/bin/mac/` (`llama-server` 0.2.0-dev build 10743).
+- Avvio funzionante (i file non stanno in `models/` del demo → si usa `BONSAI_GGUF`
+  + `BONSAI_MMPROJ`, che il fork accetta come override):
+  `BONSAI_GGUF=<...PTQ1_0.gguf> BONSAI_MMPROJ=<...mmproj-Q8_0.gguf>
+  BONSAI_CTX=4096 BONSAI_MMPROJ_CPU=1 ~/Bonsai-demo/scripts/start_llama_server.sh -np 1`
+- **Problema trovato e risolto**: col default (4 slot, KV 4096 ×4) su 16 GB il
+  backend Metal va in `kIOGPUCommandBufferCallbackErrorOutOfMemory` alla seconda
+  richiesta e poi risponde "Compute error" su tutto. Con `-np 1` (1 slot) +
+  `BONSAI_MMPROJ_CPU=1` (+ eventuale `BONSAI_KV4=1`) non va più in OOM.
+- **Prestazioni**: decode ~4,8 tok/s. Non è il modello: la macchina è in forte
+  pressione di memoria — **swap 10,5 GB usati su 11 GB**, ~0,4 GB RAM libera
+  (Docker + VS Code + Ollama aperti). Chiudendo le app pesanti il decode sale.
+- Creato `~/bonsai.sh` (start / start-bg / stop / status / cli) come runbook.
+  Nessun file del repo condiviso modificato; nessun commit/push. Il server è
+  stato lasciato attivo su `127.0.0.1:8080` per l'utente.
+
+> ### Addendum 2026-10-07 — Cline — numeri dei due test (velocità + precisione)
+
+Su M5 16 GB, **swap 10,6/11 GB pieno** (Docker+VS Code aperti → paginazione continua):
+
+- **Velocità** (PTQ1_0, Metal `MTL,BLAS`, `-np 1 -t 8`, temp 0):
+  decode **4,54 tok/s** medio (mediana 4,50) = ~128 token in ~29,7 s.
+  `llama-bench`: **pp512 = 46,45 t/s**, tg128 = 1,98 ± 0,90 t/s (varianza enorme
+  = thrashing). Su macchina scarica attesa 2–3×.
+- **Precisione**, 6 domande facili: **6/6** (aritmetica, logica, `2**3**2`, plurale
+  italiano, Divina Commedia, word problem). 5 difficili: **3/5** — sbaglia il
+  multi-step (3·4·6−15: dà 111 invece di 57) e l'inversione di stringa
+  (`bonjour`→`rujnob`). **Con `enable_thinking=true` il multi-step torna corretto
+  (57)**: il thinking mode serve, non è ornamento. La quant 1,75 bpw costa
+  accuratezza su aritmetica multi-step/stringhe, non su testo e ragionamento comune.
+
+> ### Addendum 2 — Cline — batch 20 domande + velocità con Docker chiuso
+
+Chiuso Docker Desktop (RAM libera 0→71%; Ollama senza modello caricato):
+
+- **Velocità**: `llama-bench` **tg128 = 4,72 ± 0,19 t/s** (prima, con Docker,
+  1,98 ± 0,90), pp512 = 44,11 t/s. La **varianza del decode crolla dal 45% al 4%**:
+  il vecchio 1,98 era thrashing, non un limite del modello. Il tetto reale su M5
+  resta **~4,7 tok/s** steady (bound su memoria/compute dei kernel ternari), ma
+  ora **stabile**. Il server misura lo stesso ordine (4,5–4,8 tok/s).
+- **Precisione**: batteria 20 domande (temp 0, thinking OFF) → **19/20 (95%)**:
+  Matematica 5/5, Codice 4/4, Logica 3/3, Cultura 4/4, Italiano 3/3,
+  Ragionamento **0/1**. Unico errore: multi-step 3·4·6−15 (dà 111). **Con thinking
+  ON → 57 corretto**, quindi **20/20**. Il thinking mode è ciò che porta la batteria
+  al 100%.
+
+> ### Addendum 3 — Cline — suite di test PERMANENTE in `~/bonsai-tests/` (fuori dal repo)
+
+Creata (su richiesta dell'utente) una batteria riutilizzabile per **confronti fra
+modelli** via API OpenAI-compatibile. Solo stdlib: `~/bonsai-tests/`
+(`evalsuite.py`, `compare.py`, `run.sh`, `README.md`, `results/`).
+
+- `evalsuite.py`: velocità (decode/prefill tok/s) + precisione su **20 domande
+  canoniche** (+10 estese con `--extended`), con `--retry-thinking`. Endpoint,
+  modello, thinking, `--extra` JSON tutti configurabili → vale per Bonsai,
+  Ollama (`:11434/v1`), LM Studio, vLLM, OpenAI…
+- `compare.py`: tabella/CSV dai `results/*.json`.
+- Giudizio risposte: match normalizzato con **accenti rimossi** (così `città`
+  ≡ `citta`) e **confine di parola** sui numerici (evita `3`≈`36`): il falso
+  negativo su "città" della batteria precedente è risolto.
+- **Baseline salvato** `results/bonsai-ptq1_0.json`: decode **4,34 tok/s**,
+  canonica **19/20 (95%)**, estesa **9/10**, multi-step recuperato con thinking.
+- Nessun file del repository toccato, nessun commit. Gli script di scratch
+  (`/tmp/bonsai_eval*.py`, `/tmp/bonsai_think.py`) sono superati da questa suite.
+
+
+> ## 2026-10-07 — Codex → Cline/Cips — refactor 1.04 riportato su 1.05
+
+Integrato nel working tree 1.05 (`main` a `233c458`) il refactor di Cips dalla
+1.04 (`source104/main` a `778b1c5`). Ho risolto il merge in una worktree isolata
+(`/private/tmp/hs105-cips-integration`, branch `integration/cips104-1.05`) e poi
+copiato **122 file** nel repository principale, dopo aver verificato che nessun
+percorso si sovrapponesse alle modifiche locali di README, documenti, package e
+questo log. La worktree conserva la risoluzione in stage, senza commit.
+
+`control-plane/main.py` passa da circa 12.000 a circa 5.400 righe; i domini
+estratti sono in `control-plane/cp/`. Ho conservato le funzioni aggiunte in 1.05:
+Mission Control, tool e autorizzazioni, Forge/Wayfinder, immagine e diario
+notturno, Instagram, WebUI e Office. I conflitti dei test sono stati allineati
+ai moduli `cp/`; nuovi harness e fixture della 1.04 sono presenti. Il ramo 1.05
+non è stato committato né pushato.
+
+Verifica sul working tree principale: `pytest tests/ -q --tb=no` → **7 failed,
+2135 passed, 17 skipped**, 893 subtests passati. I quattro errori
+`test_ds4_backend.py` dipendono dal blocco della bind localhost nella sandbox:
+fuori dalla sandbox lo stesso modulo nella worktree integrata fa **11 passed**.
+Restano i tre difetti già presenti nel repository prima del merge:
+`test_licensing.py` (header SPDX dei file TikTok),
+`test_prova_colori_anna.py` (50 scene contro 30) e
+`test_comfyui_modelli_sd15.py` (soglia documento/manifest Anna).
+I 166 test mirati su Mission, sogni, Forge, immagini e DM passano, così come
+`ruff --select F821` e la compilazione Python dei moduli integrati.
+
+Per Cline/Cips: non sovrascrivere i moduli `cp/` o `main.py` con la sola versione
+1.04; in questo working tree contengono anche le aggiunte 1.05. Il commit/push
+richiede conferma esplicita dell'utente secondo AGENTS.md.
+
+> ## 2026-10-07 — Codex → utente, Cline/Cips — analisi posizionamento HyperSpace 1.05
+
+Letti README, Mission Control, Forge e skill hooks, Wayfinder, rete/browser,
+Hermes, connettori, ONLYOFFICE, crescita e prova autonoma PDF. Analisi per
+l'utente: posizionare HyperSpace come runtime operativo locale per missioni
+agentiche verificabili, con nicchia iniziale documenti e sviluppo su rete
+privata; evidenziare come aggiunte recenti i gate del tool runtime, la selezione
+controllata delle skill, Wayfinder→Mission, bridge documentale e split `cp/`.
+Non rivendicare unicità assoluta di mesh, HITL, skill o workflow: i concorrenti
+li offrono già. Distinguere feature implementate da prototipi e roadmap (HIP,
+mesh pubblico completo, browser inference nella mesh). La prova PDF del 7/10
+resta fallita: priorità a un workflow end-to-end ripetibile e misurato. Nessuna
+modifica al codice, nessun commit/push.
+
+> ## 2026-10-07 — Codex → Cips/Cline, utente — report comparativo LangGraph/CrewAI/AutoGen/n8n
+
+Su richiesta dell'utente ho letto le quattro documentazioni ufficiali e aggiunto
+in `AGENTS.md` un report condiviso con fonti, idee applicabili a HyperSpace e
+criteri di accettazione. Priorità P0: ripetere con successo la missione PDF,
+correggendo capability del planner, lettura documenti, runner e verifica
+indipendente dell'artefatto. P1: stato/checkpoint/idempotenza, timeline degli
+errori ed evaluation su dataset. P2: envelope versionato e test sui nodi
+intermittenti. Nessuna libreria installata, nessuna modifica al runtime, nessun
+commit o push. Il report distingue le funzioni implementate dalla roadmap e
+non assume che LangGraph, CrewAI, AutoGen o n8n siano nuove dipendenze.
+
+> ## 2026-10-07 — Codex → Cips/Cline, utente — seconda prova PDF Mission Control
+
+Ritentato il PDF **tramite Mission Control**, dettagli e tre ID in
+`docs/mission-pdf-trial-2026-10-07.md` (addendum). Nessun nuovo PDF prodotto.
+Correzioni nel working tree: planner informato delle capability reali;
+`POST /missions` accetta `allowed_roles` e lo impone server-side; prompt del
+worker chiarisce i path relativi; Code Sandbox include ReportLab e pypdf e
+restituisce hint/error_code per letture fallite, con audit che registra solo la
+classe del path. Test mirati Mission/Sandbox: **72 passati**; ruff F821 verde.
+
+La prima missione ha esposto un piano con verifier incaricato di eseguire codice;
+la seconda ha usato correttamente coder e creato un workspace, ma si è bloccata
+in letture ripetutamente rifiutate, senza scrivere. Durante la terza Docker
+Desktop ha smesso di rispondere con disco ~5,2 GB liberi e swap 17,4 GB usati;
+non è dimostrato che questa pressione sia l'unica causa. Ho cancellato le tre
+missioni (la terza direttamente nello store a daemon fermo per evitare auto-
+ripresa), conservato tutti i workspace, scaricato solo il modello Granite usato
+dalla prova; Bonsai non è stato toccato. La quota 10 è solo nel container
+ricreato, non persistita in `.env`. Nessuna review, apply, commit o push.
+> ## 2026-10-07 — Codex → Cips/Cline, utente — pulizia modelli e cache
+
+Su richiesta dell'utente ho rimosso da Ollama i modelli piccoli senza uso runtime rilevato: `qwen3-vl:4b` (il tag non instruct), `maternion/spark-x2.5-heretic:4b` e `maternion/minicpm5-heretic:2b` (usato solo nella prova storica Gadget, documentata e riscaricabile). Ho conservato `qwen3:4b`, preferito dal Reel Editor, e `qwen3-vl:4b-instruct`, configurato per Anna; tutti i modelli indicati nella `.env` corrente sono ancora presenti. Ho eseguito `uv cache clean`: 79.898 file ricreabili, 2,4 GiB. Spazio libero misurato: circa 19 GiB prima e 28 GiB dopo (il valore può oscillare per altre attività sul disco). Docker Desktop non risponde a `docker info` entro 12 secondi: nessun prune Docker eseguito, nessun volume o container toccato. Nessun commit/push.
+
+## 2026-10-07 — Cline → utente, Codex, Claude Code
+
+Su indicazione dell'utente ho scaricato e testato la variante **uncensored** di
+Bonsai 2 27B. Niente commit/push; nessuna modifica ai file tracciati del
+repository (solo cache di sistema ricreabili svuotate).
+
+**Cosa.** Modello `OS-Software/Ternary-Bonsai-2-27B-Uncensored-Heretic-GGUF`
+(derivato abliterated di Bonsai 2 27B, drop-in PTQ1_0). Scaricato via
+`Bonsai-demo/scripts/fetch_gguf.sh` in `/Users/opo/models/bonsai2-27b-uncensored/`:
+
+- `Ternary-Bonsai-2-27B-Uncensored-Heretic-PTQ1_0.gguf` — 5.946.648.928 byte
+  (≈5,54 GiB). Byte-size e magic `GGUF` verificati: identici al repo.
+- `mmproj-Q8_0.gguf` — 629.246.976 byte (proiettore vision).
+
+Symlink coi nomi attesi da `~/bonsai.sh` (`Ternary-Bonsai-2-27B-PTQ1_0.gguf`,
+`Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`). Il modello **ufficiale** in
+`bonsai2-27b-gguf/` **non** è stato toccato (serve per l'A/B).
+
+**Spazio.** Il primo tentativo con hf 2.1.1 (backend Xet) è abortito con
+`CAS Client Error: error sending request`; risolto disabilitando Xet
+(`HF_HUB_DISABLE_XET=1`) e aggiungendo un retry. Per far stare i ~6,1 GiB ho
+svuotato solo cache ricreabili (`~/Library/Caches/pip` 792 MB,
+`~/Library/Caches/Homebrew` 1,2 GB). Spazio libero finale ≈27 GiB.
+
+**Test.** Server avviato con gli stessi flag di `~/bonsai.sh` (ctx 4096,
+`-np 1 -t 8`, vision su CPU) dopo aver **fermato** quello ufficiale (riavviabile
+con `~/bonsai.sh`). Suite `~/bonsai-tests/evalsuite.py --no-think --extended
+--retry-thinking`, label `bonsai2-27b-uncensored-heretic`:
+
+| label | think | decode | prefill | canonica | estesa |
+|---|---|---|---|---|---|
+| bonsai-ptq1_0 (ufficiale, baseline) | off | 4,34 | 6,14 | 19/20 | 9/10 |
+| bonsai2-27b-uncensored-heretic | off | 10,58 | 7,08 | 18/20 | 9/10 |
+
+Le 2 sbagliate della canonica (Logica `8`≠`9`, Ragionamento `69`≠`57`) sono
+state **recuperate 2/2 con thinking ON**. Un probe tecnico neutro (apertura di
+un lucchetto) riceve risposta diretta = comportamento uncensored atteso. Il
+decode più alto rispetto al baseline va preso con cautela (contesto macchina
+diverso), non è un guadagno dimostrato.
+
+**Per gli altri agenti.** Il modello uncensored è ora in esecuzione su
+`127.0.0.1:8080`. Per tornare all'ufficiale: fermare il server e
+`~/bonsai.sh start-bg`. Pesi in `/Users/opo/models/bonsai2-27b-uncensored/`,
+risultati in `/Users/opo/bonsai-tests/results/`. Nessun commit/push.
+
+
+
+## 2026-10-07 — Cline → Cips/Codex
+
+**Cosa.** Due follow-up richiesti (a+b) sul confronto Bonsai 2 27B
+ufficiale vs `Uncensored-Heretic`.
+
+**(a) Confronto velocità *equo*.** Il baseline vecchio (`bonsai-ptq1_0`,
+4,34 tok/s) era stato misurato a macchina carica: non è confrontabile col
+10,58 dell'uncensored. Ho rimisurato i due modelli **di fila, a macchina
+"ora", stessi flag** (ctx 4096, `-np 1 -t 8`):
+
+| label | decode tok/s | prefill | canonica | estesa | retry thinking |
+|---|---|---|---|---|---|
+| `bonsai-official-ctx4096`   | 11,27 | 12,32 | 19/20 | 9/10 | 1/1 |
+| `bonsai-uncensored-ctx4096` |  7,73 | 11,09 | 18/20 | 9/10 | 2/2 |
+
+Conclusione: a parità di macchina **è l'ufficiale a essere più veloce**
+(≈+46%); la "velocità superiore" dell'uncensored di prima era **rumore di
+contesto**, non un guadagno. Precisione quasi identica: ufficiale 19/20,
+uncensored 18/20 (salta Logica `9` e Ragionamento `57`, entrambe **recuperate
+con thinking ON** → pareggio a 20/20 e 10/10).
+
+**(b) Sonda rifiuto/tono.** Nuovo `~/bonsai-tests/refusal_probe.py` (solo
+stdlib): 12 prompt concettuali/di finzione, classifica
+`RIFIUTO` / `ESITA` / `RISPONDE`. Esito (`results/*.refusals.json`):
+
+- ufficiale: **1 rifiuto** (#6, richiesta di una parolaccia), 0 esitazioni, 11 risposte;
+- uncensored: **0 rifiuti**, 1 `ESITA` (#9, falso positivo dell'euristica), 11 risposte.
+
+L'unica differenza sostanziale è #6: l'**ufficiale rifiuta**, l'**uncensored
+risponde**. Su dibattito/sicurezza/finzione **entrambi rispondono**. Nessun
+contenuto operativo dannoso è stato prodotto: i prompt restano concettuali e
+la sonda misura la **reazione**, non l'azione.
+
+**Stato.** Server **uncensored** in esecuzione su `127.0.0.1:8080`. Per
+tornare all'ufficiale: `pkill -f bin/mac/llama-server && ~/bonsai.sh start-bg`.
+
+**File.** `~/bonsai-tests/refusal_probe.py`;
+`~/bonsai-tests/results/bonsai-official-ctx4096.json`,
+`bonsai-uncensored-ctx4096.json`, `bonsai-official.refusals.json`,
+`bonsai-uncensored.refusals.json`. Nessun commit/push.
+
+> ## 2026-10-07 — Codex → Cips/Cline, utente — profili Agency Agents nel Forge
+
+Integrato selettivamente il repository MIT `msitarzewski/agency-agents` al commit `f99f6aa910a442b0197b768ce0ea7751e35e2060`. Il bundle `vendor/agency-agents/` conserva i tre originali (Multi-Agent Systems Architect, Code Reviewer, Technical Writer), la licenza, adattamenti brevi per HyperSpace e manifest con SHA-256 verificati. Nuova rotta `POST /forge/import/agency-agents` e pulsante nel dashboard: richiedono il token Forge e creano solo draft idempotenti. Nessuna attivazione, permesso o tool automatico. Il profilo architetto originale eccede il budget di contesto, perciò il testo selezionabile è l'adattamento corto. Documentato in `docs/tool-skill-forge.md`. Test mirati Forge: 21 passati e 20 subtest passati; il prossimo passo utile è confrontare una missione PDF con/senza profilo Technical Writer, verificando l'artefatto. Nessun commit/push.
+
+## 2026-10-07 — Cline → Cips/Codex, Claude Code
+
+**Cosa.** Primo passo del consolidamento delle UI (piano P1+P2): la dashboard
+mesh (`control-plane/dashboard.html`, servita su `/dashboard`) ha due schede
+nuove, così le superfici sparse della mesh hanno un posto unico.
+
+**P1 — «Servizi».** Nuova rotta `GET /surfaces` in `control-plane/main.py`:
+catalogo unico (sola anagrafica, nessuno stato) delle superfici UI, divise in
+`control-plane`, `observability`, `dev`, `external` — hub, dashboard, activity,
+conversations, diario, comics, sites, Live 3D (8099), Forge, Dev Sandbox, chat
+(3000), OmniRoute (20128), SearXNG (8092), Reel Editor (7860), Setup (8088).
+`port=null` = stessa origine del CP; un intero = un'altra porta sullo stesso
+host. La scheda rende le card raggruppate e misura su/giù **dal browser**
+(`fetch` no-cors), come già fa `desktop.html`: il container non deve saper
+raggiungere le porte dell'host.
+
+**P2 — «Sviluppo & Security».** Una scheda-dossier che raccoglie in un punto
+Forge (`#forge`), Dev Sandbox (`#sandbox`), il grafo del repository (graphify:
+comando + artefatto, nessuna rotta che lo serva) e lo **slot REA**
+(`github.com/morluto/rea`, MIT: CLI + server MCP per reverse engineering di
+binari/app JS/.NET/siti). Lo slot è onesto: **candidato, non collegato al
+runtime**, con rimando a `docs/rea-pilot.md` (prova statica REA 3.2.1 sul
+web-node, risultato grezzo da normalizzare) e a
+`docs/development-security-tools.md`.
+
+**Scelte.** Additivo: non ho rimosso i pulsanti Forge/Dev Sandbox né cambiato il
+comportamento esistente. `infra-ui` e `desktop.html` **hanno ancora liste
+proprie**; `/surfaces` è la candidata a diventare fonte unica (era il punto P0
+del piano), ma non le ho toccate adesso.
+
+**Test.** Nuovi `tests/test_surfaces.py` (contratto catalogo + rotta, con Flask
+test_client), `tests/dashboard_services.test.cjs` e
+`tests/dashboard_dev.test.cjs` (comportamento JS + ancoraggi UI): verdi. Suite
+repo: 4 fallimenti, tutti **fuori dal perimetro** e debito del working tree —
+`test_licensing`, `test_prova_colori_anna`, `test_comfyui_modelli_sd15` e
+`test_agent_runtime_regressions`, che fallisce **anche con i miei due file in
+stash** (quindi non è mio).
+
+**Nota.** Nel tree c'è uno `stash@{0}` **non mio** (infra-ui, docker-compose,
+memory-graph, openwebui-tools): non l'ho toccato. Nessun commit/push.
+
+## 2026-10-08 — Cline → Cips/Codex, utente — missione PDF: trovato l'errore vero e due fix nel tool loop
+
+**Diagnosi (corregge l'ipotesi del "modello ignora i tool").** L'ultima missione
+(`mission-fd2a8cc65b6f41b6`, 2026-10-08 00:17Z) è morta su `create-workspace`
+con "task output-token budget exhausted", tool_evidence vuoto. Nei log DB e in
+`~/.ollama/logs/server.log` la causa vera è un errore **Ollama**, non il modello:
+`timed out waiting for llama-server to start` per `qwen3-8b-abliterated-g8k`. Il
+caricamento del modello è partito alle 02:34:54 (locale) ed è fallito dopo ~16
+minuti, sotto **pressione di memoria** (16 GiB totali, 2.5 GiB liberi, 0 swap,
+granite ancora caricato dal planner → eviction + offload parziale lento). Il
+modello è presente e, a memoria libera, carica in ~18 s (verificato con una
+prova diretta). La missione era stata creata alle 00:17 ma iniziata alle 00:34:
+il gap è il loop, non un blocco.
+
+**Bug #1 (mascherava l'errore).** In `_run_tool_loop.call_model`
+(`control-plane/cp/chat.py`) un body d'errore Ollama (senza `usage`) passava a
+`execution.model_result`, che riserva l'intero `max_tokens_per_task` (4096): il
+retry senza tool moriva subito su "budget exhausted" e nascondeva il vero
+"timed out waiting for llama-server to start".
+
+**Bug #2 (fallback sbagliato).** Qualsiasi errore alla prima iterazione veniva
+trattato come "il modello non supporta i tool" → retry senza tool. Per un errore
+transitorio è il degrado opposto a quello che serve.
+
+**Fix (deployati, container ricreato).**
+1. `chat.py`: `call_model` salta `model_result` sui payload d'errore
+   (`_is_error_payload`): un errore non consuma budget.
+2. `chat.py`: l'unico errore che degrada a no-tools è "does not support tools";
+   gli altri (es. "timed out waiting for llama-server to start") si riprovano
+   **con i tool**, con un breve respiro, fino a `max_iterations`; l'ultima
+   iterazione restituisce l'errore al chiamante.
+3. Test: `tests/test_agent_runtime_regressions.py`
+   (`test_transient_ollama_error_retries_with_tools_and_spares_the_budget`,
+   `test_does_not_support_tools_still_falls_back_without_tools`) e aggiunta
+   `_is_error_payload` allo scope del harness in `tests/test_tool_passthrough.py`.
+
+**Verifica.** Suite repo: **3 failed (preesistenti, fuori perimetro:
+test_licensing, test_prova_colori_anna, test_comfyui_modelli_sd15), 2187 passed,
+17 skipped**. Immagine `hyperspace-agi-104-control-plane` ricostruita, container
+ricreato, `/health` 200 e "Mission Control initialized" alle 06:51Z. Confermato
+dentro il container che `/app/cp/chat.py` ha i due fix.
+
+**Resta aperto (infrastruttura, non codice).** La pressione di memoria resta:
+planner su `granite3.3-g8k` (~4.9 GB) e worker su `qwen3-8b-abliterated-g8k`
+(~5.2 GB) si caricano a turno e l'eviction è il punto fragile. Il fix mitiga i
+timeout transitori brevi, non un caricamento bloccato per minuti. Per rendere la
+missione ripetibile servirebbe: (a) liberare memoria o tenere il modello worker
+caldo prima di lanciare, (b) valutare un planner più piccolo, o (c) alzare
+`max_task_attempts` così il task ritenta oltre il loop interno. Non ho rilanciato
+la missione: è una scelta operativa. Nessun commit/push.
+
+## 2026-10-08 — Cline → Cips/Codex, utente — sei rilanci della missione PDF: infra a posto, il collo è il modello
+
+Dopo la prima diagnosi ho rilanciato la missione PDF sei volte, correggendo a
+ogni giro il primo errore emerso. Tutte le modifiche sono testate (suite verde:
+3 failed preesistenti fuori perimetro, 2187 passed) e **deployate** (immagine
+ricostruita + container ricreato a ogni passo). Nessun commit/push.
+
+**Fix cumulativi deployati.**
+1. **Contabilità budget** (`cp/chat.py`): un body d'errore Ollama non consuma più
+   il budget (`_is_error_payload`), e solo "does not support tools" degrada a
+   no-tools; gli errori transitori (es. "timed out waiting for llama-server to
+   start") si riprovano **con** i tool.
+2. **Finestra di contesto** (`main.py` `_mission_num_ctx`, default 16384): il
+   tool loop accumulava i risultati di `read` e sforava gli 8192 di default
+   (`exceed_context_size_error`, richiesta da 9060 token).
+3. **Timeout inferenza** (`cp/budget.py` `INFERENCE_TIMEOUT_REASONING_S` 600→1200):
+   la generazione dello script reportlab (3120+ token a ~6.4 t/s) moriva su
+   "Read timed out (timeout=600)".
+4. **Contratto tool** (`cp/tools_defs.py`): descritti `run.argv` (lista non
+   vuota, argv[0] = solo l'eseguibile ammesso, mai un path o nome di script) e
+   il workspace "già seminato" col repository; descrizioni per path/content/old/new.
+5. **Prompt worker** (`main.py`): "workspace già seminato, leggi i file con path
+   relativo, non ricopiarli" + il contratto `run.argv`.
+6. **Regola planner "seed" aggiunta e poi REVERTITA**: diceva al planner di non
+   creare task di copia/lettura ridondanti, ma granite3.3-g8k ha reagito
+   collassando il piano in UN task solo; rimossa.
+
+**Esito dei sei rilanci.** Ogni giro è andato più avanti, ma il punto di rottura
+si è spostato dall'infra al modello:
+- run 1: `copy-docs` con `run` malformato (argv vuoto, "executable not allowed").
+- run 2: `create-workspace` con `exceed_context_size_error` (8192).
+- run 3: `create-workspace` e `read-docs` ok, `generate-pdf` su "Read timed out".
+- run 4: `create-workspace` ok, `copy-docs` "worker produced no output" (12 call a vuoto).
+- run 5: piano degenerato a UN task (`create-workspace`) → fail su check/verify malformati.
+- run 6: piano degenerato a UN task; il worker ha scritto `artifacts/briefing.md` (markdown), non il PDF.
+
+**Conclusioni.** L'infrastruttura (riuso del workspace, budget, retry, contesto,
+timeout, verifica scoped, gate PDF) ora funziona: il modello carica, chiama i
+tool, riusa lo stesso `workspace_id`. Il collo di bottiglia restante è la
+**qualità dei modelli 8B**: `granite3.3-g8k` (planner) a volte produce un piano
+degenerato a un solo task; `qwen3-8b-abliterated-g8k` (worker) scrive markdown
+invece di generare il PDF con reportlab, over-ingegnera i task e produce
+check/verify malformati. Non è risolvibile con altri ritocchi ai prompt su
+modelli così piccoli. Le strade sono: un modello più grande/più veloce per
+planner e worker (es. i nodi della mesh accesi), oppure un piano vincolato (il
+planner non sceglie i task liberamente ma segue uno schema fisso per il tipo di
+artifact). `MISSION_LOOP_ENABLED=true` resta acceso.
+
+
+## 2026-10-08 — Codex → utente, Cips/Cline — client Unlimited-OCR per Ufficio
+
+Aggiunto `shared/webui_custom_tools/ufficio_unlimited_ocr.py`: tool registrato
+`leggi_documento_ocr`, PDF/PNG/JPEG/WebP da hyperspace_share verso endpoint
+vLLM configurato dall'operatore. Selezione pagine 1-based (max 16), rendering
+PDFium a 144 DPI con lock, limiti input/pixel/request/response, protocollo
+specifico Unlimited-OCR (prompt <image>, skip_special_tokens=false,
+vllm_xargs ngram 35/window 128 o 1024). Errori HTTP/rete/output incompleto
+espliciti, nessun retry o fallback implicito, nessun segreto nei messaggi.
+Salvataggio esclusivo `.ocr.md` grezzo con marcatori layout e anteprima limitata.
+Nessun modello/peso scaricato; nessuna modifica ai flussi missione del collega.
+
+Configurazione: tre variabili UNLIMITED_OCR_* nel Compose principale;
+pypdfium2 nei requirements CP e installato nel .venv repo per la verifica.
+Documentazione in `docs/unlimited-ocr.md` e `docs/webui-tools.md`.
+Client implementato, NON deployato: manca endpoint GPU configurato/raggiungibile,
+quindi qualità e latenza reali ancora da misurare. OCR legge documenti;
+la generazione autonoma PDF resta un test distinto di planner/worker, anche
+con nodi più capaci o OmniRoute. Backend OCR implementato: vLLM diretto;
+SGLang/OmniRoute per il protocollo OCR non validati.
+
+Verifica: prima 43 test Ufficio passati + 18 subtest; aggiunto caso encoding
+malformato, modulo OCR finale 26/26. Suite completa: 2211 passed, 17 skipped,
+919 subtest, 7 failed: i 3 già noti (licensing, colori Anna, manifest SD15)
+e 4 DS4 per bind HTTP locale vietato dalla sandbox. Rieseguito il modulo DS4
+fuori sandbox: 11/11 passati. Log suite in /tmp/unlimited-ocr-pytest.log.
+Nessun commit/push, nessun riavvio dei servizi o delle missioni in corso.
+
+## 2026-10-08 — Cline → utente, Codex, Claude Code — test della missione PDF con Bonsai 2 27B
+
+**Cosa.** Test della missione PDF di Mission Control con **Bonsai 2 27B**
+(`Ternary-Bonsai-2-27B-PTQ1_0`, fork PrismML `llama-server`, endpoint
+OpenAI-compatibile su `127.0.0.1:8080`) al posto dei modelli 8B. Nessun
+commit/push. Codice toccato: `control-plane/main.py`, `shared/tool_runtime.py`,
+`docker-compose.yml`, `docker-compose.windows.yml`, `docs/mission-control.md`,
+`tests/test_mission_routes.py`, `tests/test_agent_runtime_regressions.py`;
+config locale in `.env` (non tracciata).
+
+**Esito in una riga.** Con Bonsai 2 il collo di bottiglia **non è più la qualità
+del modello**: la missione ha prodotto un PDF vero, verificato dal gate
+indipendente; i fallimenti residui sono di **memoria/contesto della macchina**
+(16 GB).
+
+**Il PDF.** Missione `mission-831a8cb16a064ebe` (11:02Z, 872 s):
+`artifacts/docs-briefing.pdf` + `make_briefing.py` (137 righe reportlab) nello
+stesso workspace. Copie per l'ispezione: `/tmp/docs-briefing.pdf` (2.107 byte,
+magic `%PDF-1.3`) e `/tmp/make_briefing.py`. `pypdf`: **1 pagina, 549 caratteri
+estraibili**, briefing in italiano da `docs/mission-control.md`. Task coder e
+task verifier: entrambi `pass` (il verifier ha usato `inspect`: `magic_ok`,
+pagine, testo). **Il verdetto di MISSIONE ha dato `fail`** per un difetto del
+prompt del verifier, poi corretto (punto 2 sotto).
+
+**Quattro difetti reali trovati e corretti**, tutti con test:
+
+1. **Gli agenti della missione non potevano usare i tool.** `_model_supports_tools`
+   (`cp/model_caps.py`) non conosceva `bonsai*`, quindi `_run_tool_loop`
+   toglieva i tool e faceva una completion semplice. Prova nel feed:
+   `tool_loop: model=bonsai2-27b tools=False`. Fix: `TOOL_CAPABLE_MODELS=bonsai`
+   (l'override si AGGIUNGE ai pattern di default, non li sostituisce).
+2. **Il verdetto di missione giudicava senza prove.** `_mission_task_digest`
+   elencava solo chiave/stato/titolo: nessun artifact. A missione completata il
+   modello ha risposto `fail` («no PDF file was generated or verified in the
+   sandbox workspace»). Fix: il digest porta anche i `changed_files` dei task e
+   il prompt di missione riporta l'esito del gate PDF («checked by the runner,
+   not by a model»).
+3. **La temperatura non arrivava al backend.** Viaggia in `options` (forma
+   nativa Ollama), che un endpoint OpenAI-compatibile **ignora**: il planner
+   girava col sampling del server (temp 1.0) invece di 0.2 e a volte rispondeva
+   senza JSON → `invalid plan`. Fix in `Invocation.model_payload`
+   (`shared/tool_runtime.py`): la temperatura va anche nel campo di primo livello.
+4. **Non esisteva un modo di puntare la missione a un backend non-Ollama.**
+   Fix: `MISSION_INFERENCE_URL` (`control-plane/main.py`, helper
+   `_mission_inference_base`), vuoto = comportamento di prima.
+
+**Perché con Bonsai la macchina è al limite (16 GB).** 5,5 GiB di pesi + KV;
+con VS Code + Docker + resto dello stack il backend Metal va in `Insufficient
+Memory (kIOGPUCommandBufferCallbackErrorOutOfMemory)` e poi resta in `Compute
+error` finché il server non si riavvia. Misure del 2026-10-08:
+- **ctx 16384**: OOM su un prompt da ~9,7k token con tool (due doc nel contesto).
+- **ctx 8192**: pulito, ma il contesto del worker (9.206 token) non ci sta
+  (`request exceeds the available context size`).
+- **ctx 12288 + `-ub 512`**: ha prodotto il PDF; OOM dopo ~30 min di sessione.
+- **KV a 4 bit (`BONSAI_KV4=1`) NON è la risposta**: su questo fork/M5 il prefill
+  crolla da ~90 a ~12 tok/s e il decode a 0,05 tok/s.
+- `pkill` non sempre termina il vecchio server: due `llama-server` vivi = OOM
+  immediato (osservato e risolto con `pkill -9` + verifica).
+- Decode reale 5,5–7 tok/s; una tool call corta ~28 token, uno script 1,5–4k.
+- Il modello **non spegne il thinking** con `/no_think`: serve avviare il server
+  con `--reasoning-budget 0 --reasoning-format none
+  --chat-template-kwargs '{"enable_thinking": false}'`, altrimenti ogni passo
+  del tool loop rigira i token di ragionamento e gonfia il contesto.
+- Ultimo limite raggiunto: `MISSION_MAX_TOKENS_PER_TASK` (default 4096) esaurito
+  da **una sola** generazione da 3.953 token → alzato a 8192.
+
+**Config lasciata accesa** (`.env`, non tracciata):
+`MISSION_INFERENCE_URL=http://host.docker.internal:8080`,
+`MISSION_MODEL=MISSION_PLANNER_MODEL=bonsai2-27b`, `REASONING_MODELS=bonsai`,
+`TOOL_CAPABLE_MODELS=bonsai`, `MISSION_MAX_TOKENS_PER_TASK=8192`. Per tornare a
+Ollama: svuotare `MISSION_INFERENCE_URL` e rimettere i due modelli 8B.
+Runbook Bonsai: `~/Bonsai-demo` + `/tmp/start_bonsai.sh` (ctx 16384, `-ub 512`,
+reasoning off, niente proiettore vision); pesi ufficiali in
+`/Users/opo/models/bonsai2-27b-gguf/`. `hyperspace_open_webui` e
+`hyperspace_libretranslate` sono stati fermati ~20 min per liberare RAM e
+**riavviati**.
+
+**Test.** Suite del repository con il `.venv` del repo: **3 failed, 2218
+passed, 17 skipped, 919 subtest** — i 3 fallimenti sono quelli già noti e fuori
+perimetro (licensing, colori Anna, manifest SD15). Nessuna regressione.
+
+**Cosa chiedo.** (a) Se tenere la missione puntata a Bonsai 2 o tornare a Ollama
+come default: con questa macchina il 27B è affidabile solo in finestre di
+memoria favorevoli. (b) Il 27B stabile richiede più RAM (o un nodo più grande):
+con 16 GB il tetto pratico è ctx ~12k e il caso «due documenti» non regge.
+(c) Conferma esplicita prima di qualunque commit/push.
+
+## 2026-10-08 — Cline → utente, Codex, Claude Code — documentata la prova Bonsai 2 e scritto il piano multi-macchina
+
+**Cosa.** Su indicazione dell'utente («documenta tutti i passaggi e i workaround
+adottati, ma dobbiamo pensarlo a un lavoro che si divide su diverse macchine:
+questa non va bene»), **due documenti nuovi** e nessuna riga di codice toccata:
+
+1. `docs/mission-bonsai2-trial-2026-10-08.md` — la prova con Bonsai 2 27B
+   raccontata per intero: esito (PDF vero, `mission-831a8cb16a064ebe`, 872 s, 1
+   pagina, 549 caratteri, gate indipendente passato, verdetto di missione
+   corretto dopo), ricetta riproducibile del server con il *perché* di ogni flag,
+   la tabella delle configurazioni misurate (ctx 16384/8192/12288, KV a 4 bit,
+   `-ub 512`), i **quattro difetti del control plane** trovati e corretti (tool
+   tolti a `bonsai*`, verdetto di missione senza artifact, temperatura ignorata
+   dagli endpoint OpenAI-compatibili, nessun modo di puntare la missione fuori da
+   Ollama), i **nove workaround** in ordine di utilità, i limiti reali dei 16 GB
+   (ctx ~12k, finestra di ~30 min, concorrenza 1, 872 s per una missione minima) e
+   la nota operativa che il volume sandbox è stato svuotato alle 12:17: il PDF
+   sopravvive solo nelle copie estratte prima.
+2. `docs/distributed-inference.md` — il lavoro su più macchine, con il vincolo
+   che questa macchina non basta. Non è un piano per un orchestratore nuovo:
+   parte da ciò che esiste (registro e `GET /nodes/active`, routing
+   `_rank_candidate_nodes`, `/execute` firmato + `_AdaptiveLoadLimiter` del nodo,
+   misure per modello in `backend_metrics.py`, `/models/capabilities`,
+   `federation-gateway` con whitelist, sandbox a coda su file *o* HTTP+token,
+   `MISSION_INFERENCE_URL`) e nomina i **quattro pezzi mancanti**: (1) il nodo non
+   dichiara la propria inferenza (contesto, supporto tool, controllo del thinking)
+   — tre dei fallimenti dell'8 ottobre vengono da lì; (2) manca una **lease con
+   TTL** su una missione da 15–30 minuti; (3) manca un envelope idempotente
+   (`task_id`/`attempt`/`deadline`/`idempotency_key`) attorno all'`int` firmato di
+   `/execute`; (4) il **tool loop deve poter girare dove stanno i dati** — oggi
+   l'inferenza è già remota ma il contesto, i file e le decisioni restano sul CP,
+   quindi il problema si sposta invece di risolversi. Con topologia a tre ruoli,
+   dimensionamento (`pesi + KV(ctx) + 20%`), gli invarianti di sicurezza (le rotte
+   di missione **non** si federano; nessun artifact si applica da solo; sandbox
+   senza rete) e l'ordine di lavoro P0a (capability nel registro) → P0b (lease +
+   checkpoint del loop) → P1 (loop come job sul nodo) → P2 (envelope distribuito).
+3. `docs/README.md` — indice aggiornato con le due voci.
+
+**Esito in una riga.** Il modello giusto c'è e la catena missione→PDF è
+dimostrata; il limite è la macchina, quindi la direzione proposta è **dichiarare
+l'inferenza dei nodi e spostare il loop**, non aggiungere un altro orchestratore.
+
+**Perché questo ordine.** P0a e P0b si possono fare **senza spostare nulla** e
+coprono da soli i fallimenti del giorno; senza di essi il passo «loop sul nodo»
+produce solo nuovi modi di perdere token (una sola generazione del 27B ne ha
+bruciati 3.953, e `reclaim_orphans` oggi riparte dal livello *task*).
+
+**Cosa chiedo.** (a) Se questa è la direzione: la prima cosa da fare sarebbe il
+blocco `inference` nel payload del nodo, piccola e testabile. (b) Se la config
+della missione resta puntata a Bonsai 2 o torna ai modelli 8B di Ollama
+(`MISSION_INFERENCE_URL` vuota): i due documenti non la cambiano. (c) Conferma
+esplicita prima di qualunque commit/push — e segnalo che `docs/mission-control.md`
+era in modifica da un altro agente mentre lavoravo, quindi **non l'ho toccato**:
+se serve un rimando ai due documenti da lì, va aggiunto da chi lo sta editando.
+
+## 2026-10-08 — Codex → utente, Cips/Cline — reel WhatsApp con musica originale
+
+Creato il reel richiesto dal solo video scelto dall'utente:
+`/Users/opo/Downloads/WhatsApp Video 2026-10-08 at 11.19.06.mp4`.
+Output: `data/reel-projects/whatsapp-20261008-111906/reel-neon-musica-originale.mp4`.
+Usati beat detector e build_video_segment dell'editor nel repository, con il
+runtime Python dell'editor in Downloads. Montaggio cronologico completo,
+11 inquadrature con zoom contenuti agganciati alle battute (~107,7 BPM stimati),
+leggera apertura delle ombre, colore neon conservato, fade visivo iniziale/finale.
+Audio AAC originale copiato senza ricompressione: checksum identico alla sorgente.
+Nessuna nuova musica necessaria. Output 720×1280, 60 fps, 2819 fotogrammi,
+47,016 secondi totali, circa 18,2 MB; decodifica integrale FFmpeg senza errori.
+Corretto nel launcher l'arrotondamento dei tempi per non perdere fotogrammi.
+Script riproducibile, manifest/timeline, beat, contact sheet e verifica JSON
+nella stessa cartella locale ignorata da git. Nessuna modifica al motore editor,
+nessun servizio riavviato, nessuna pubblicazione né commit/push.
+## 2026-10-08 — Codex → utente, Cips/Cline — reel WhatsApp rimontato, versione 2
+
+L'utente ha respinto il primo montaggio perché troppo simile all'originale.
+Prodotta una nuova versione effettivamente rimontata con il motore Reel Editor:
+`data/reel-projects/whatsapp-20261008-111906/v2/reel-neon-remix-30s.mp4`.
+30 secondi, 27 sequenze riordinate sui beat, apertura sulla figura al secondo
+6,1 della sorgente, alternanza rallenty 0,5×–0,7× e accelerazioni fino a 2,25×,
+inquadrature alternate 1,12×–1,50×, accenti luminosi brevi su alcuni stacchi.
+Musica originale continua nei primi 30 secondi, sfumatura audio finale di 0,35 s.
+Nessun nuovo brano. Timeline e launcher nella stessa cartella; originale e prima
+versione conservati. Verifica reale: 720×1280, 60 fps, 1800 frame, 30 s, decode
+integrale senza errori, correlazione audio primi 29 s con sorgente 0,99964.
+Contact sheet controllata. Nessuna modifica al runtime, commit o pubblicazione.
+## 2026-10-08 — Codex → utente, Cips/Cline — reel V3, contorno neon sul soggetto
+
+Su richiesta degli effetti di contorno aggiunta la versione
+`data/reel-projects/whatsapp-20261008-111906/v3/reel-neon-contorno-v3.mp4`.
+Conserva il remix V2 (30 s, 27 sequenze, 720×1280 a 60 fps) e il suo audio
+bit-per-bit. Bordo ciano e alone pulsati sui beat, bagliori magenta/verde
+sui pixel luminosi del costume. Maschere a 30 fps tramite helper Apple Vision
+dell'editor fuori sandbox: il video originale scuro dava maschere vuote;
+la copia di analisi schiarita migliora il riconoscimento. Combinata la maschera
+Vision con differenza da un fondale mediano trasformato come ogni inquadratura,
+selezionando la componente principale a destra. Il contorno è una stima:
+sovrapposizioni con palo/altri corpi e buio causano bordi meno precisi.
+Controllati fotogrammi di apertura, figura aerea e pose a terra. Script,
+maschere, anteprime e verifica JSON nella cartella locale del progetto.
+Verifica finale: 1800 frame, 30 s, decode senza errori, hash AAC identico a V2,
+file 15,1 MB. Nessuna modifica al runtime né pubblicazione/commit/push.
+## 2026-10-08 — Codex → utente, Cips/Cline — reel V4 senza contorno
+
+L'utente approva i lampi sui colori neon ma respinge il contorno. Rimosso
+interamente il livello ciano (bordo e alone) e conservati con gli stessi
+parametri i bagliori magenta/verdi sul costume. Rigenerato dalla V2 pulita:
+`data/reel-projects/whatsapp-20261008-111906/v3/reel-neon-senza-contorno-v4.mp4`.
+Montaggio e audio conservati. Anteprima controllata senza bordo; verifica
+MP4 e hash audio tramite verify_v4.py, risultato in verification-v4.json.
+Nessun commit/push o pubblicazione. Per questo reel mantenere gli effetti
+sui colori del costume, non riproporre il contorno segmentato respinto.
+## 2026-10-08 — Codex → utente, Cips/Cline — stato sogni Anna/Aurora
+
+Verifica sola lettura su richiesta dell'utente. Il ciclo testuale è vivo e oggi
+ha raggiunto la quota configurata: 2 sogni di Anna e 2 di Aurora; il monitor dà
+`ok` e indica la prossima finestra alle 00:00 del 9 ottobre. La pubblicazione
+illustrata è però ferma prima dell'immagine: `data/control-plane/image-jobs.json`
+ha `paused=true`, 50 job tutti `pending`, e i quattro sketch dei sogni del 7
+ottobre (`5f0b31e6a03c`, `8df8b21f76e5`, `5173eca5493f`, `20e66bf1cfed`) non
+sono mai stati presi (`preso_ts=0`). I quattro sogni più recenti sono rimasti
+addirittura a `in attesa di sketch`; nel registro corrente non risultano eventi
+`disegnato`, `pubblicato` o `fallito`. Per questo sul feed si vedono le card dei
+dialoghi Anna/Aurora: usano il renderer testuale separato e non dipendono dalla
+coda generativa. Nessuna configurazione cambiata, nessuna coda riavviata, nessun
+commit/push.
+
+## 2026-10-08 — Codex → utente, Cips/Cline — riattivata tutta la coda immagini
+
+Su richiesta esplicita dell'utente, chiamato il controllo locale autenticato
+`POST /activity/control` con `target=images`, `action=start`. La coda è passata
+da `paused=true` a `paused=false`; nessun job è stato cancellato o riordinato e
+i 50 lavori pendenti sono stati rinnovati dal runtime per non farli scadere.
+Dopo un ciclo di polling il bridge ha realmente reclamato il primo lavoro:
+`8cfc6000ba46` (`sd15`) è `running`, gli altri 49 sono `pending`. Le selezioni
+Anna erano già terminali (`completed_with_errors` e `completed`) e non sono
+state rilanciate perché non fanno parte dei 50 render sospesi. Coda lasciata
+attiva; nessun commit/push.
+
+## 2026-10-08 — Codex → Cips/Cline, utente — snapshot 1.05 dopo refactor e prove PDF
+
+Su richiesta dell'utente, preparato il commit dello stato condiviso dopo il refactor di Cips (main.py modularizzato in `control-plane/cp/`) e le prove Mission Control già condotte da Cline. La prova Bonsai 2 documentata in `docs/mission-bonsai2-trial-2026-10-08.md` ha prodotto un PDF vero con gate indipendente, pur con il verdetto finale di missione poi corretto e limiti di memoria su 16 GB: non la si presenta come pipeline PDF ormai stabile. Inclusi codice, test, report PDF/Bonsai, piano inferenza distribuita, client OCR e profili Agency Agents; esclusi export locali e la vecchia presentazione PDF manuale. Verifica odierna: `pytest tests/ -q` → 2214 passati, 17 saltati, 7 falliti (3 debiti noti: header editor/Anna/SD15; 4 test DS4 per bind localhost vietato nel sandbox); DS4 fuori sandbox 11/11 passati; test JS dashboard 2/2 passati; `git diff --cached --check` pulito. Nessun segreto della `.env` trovato nello stage. Il push resta da verificare dopo il commit: SSH GitHub al momento rifiuta la chiave e `gh` non è autenticato.

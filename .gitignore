@@ -64,3 +64,9 @@ graphify-out*/
 # dati che il container del control-plane vede, via il volume /app/data: il
 # .gitignore generale (**/data/) la copre gia', e questa riga lo dice a chi legge.
 data/control-plane/vendor/web-crawlers/
+# Stato che i test e le baseline scrivono dove capita. Sono artefatti: se finiscono
+# in un commit, il repo cresce a ogni esecuzione e `git status` diventa illeggibile.
+control-plane/memory.json.gz
+control-plane/memory-outbox.jsonl
+control-plane/data/
+control-plane/.venv/

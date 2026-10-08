@@ -10,6 +10,8 @@ promozione richiede un umano con token (verificato sull'AST di main.py).
 Nessun LLM e nessuna rete: il modello è una funzione iniettata.
 """
 import ast
+
+from tests import cp_source
 import sys
 import tempfile
 import time
@@ -24,7 +26,6 @@ from shared.persona_dream import (MAX_CHARS, MAX_NEW_PER_RUN,  # noqa: E402
                                   PersonaDream, PersonaDreamJournal, filtra_proposte,
                                   istruzioni_dream, parse_candidati)
 
-MAIN_SOURCE = ROOT / "control-plane" / "main.py"
 BUONA = "Preferisco rispondere corto quando la chat è lenta"
 BUONA_2 = "Ho notato che tendo a chiedere il nome prima di rispondere"
 BUONA_3 = "Mi accorgo di sbagliare quando scrivo due battute insieme"
@@ -331,9 +332,9 @@ class DreamTests(unittest.TestCase):
 class WiringTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = MAIN_SOURCE.read_text(encoding="utf-8")
-        tree = ast.parse(cls.source)
-        cls.functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        cls.source = cp_source.SORGENTE()
+        cls.functions = cp_source.funzioni()
+        cls.assignments = cp_source.assegnazioni()
 
     def test_le_route_del_sogno_esistono(self):
         for nome in ("persona_dreams_list", "persona_dream_review", "persona_dream_run"):
@@ -346,12 +347,12 @@ class WiringTests(unittest.TestCase):
 
     def test_promuovere_scrive_nell_identita_solo_dopo(self):
         body = ast.unparse(self.functions["persona_dream_review"])
-        self.assertIn("persona_store.observe", body)
-        self.assertIn("persona_store.save", body)
+        self.assertIn("persona.persona().observe", body)
+        self.assertIn("persona.persona().save", body)
         self.assertIn("journal.review", body)
         # L'identità si scrive PRIMA di registrare la revisione: il contrario
         # marcherebbe "promossa" una proposta mai entrata nel documento.
-        self.assertLess(body.index("persona_store.save"), body.index("journal.review"))
+        self.assertLess(body.index("persona.persona().save"), body.index("journal.review"))
 
     def test_il_sogno_non_parte_se_e_spento(self):
         body = ast.unparse(self.functions["persona_dream_run"])
@@ -369,29 +370,31 @@ class WiringTests(unittest.TestCase):
     def test_materiale_solo_da_memoria_identita_e_guardia(self):
         body = ast.unparse(self.functions["_materiale_identita"])
         self.assertIn("_load_memory", body)
-        self.assertIn("persona_store.persona.observations", body)
+        self.assertIn("persona.profilo().observations", body)
         self.assertIn("channel_guard.snapshot", body)
 
     def test_scheduler_avviato_e_gated_dall_idle(self):
         self.assertIn("persona_dream_loop", self.functions)
         body = ast.unparse(self.functions["persona_dream_loop"])
         self.assertIn("_persona_dream.due(_last_foreground_activity)", body)
-        # Un thread per ramo di avvio (app.run e import come WSGI).
+        # Un solo ramo di avvio: il CP parte con `python main.py`, mai come WSGI.
         self.assertEqual(self.source.count("threading.Thread(target=persona_dream_loop"), 2)
 
     def test_lo_startup_non_muore_se_il_sogno_e_storto(self):
         self.assertIn("_safe_initialize_persona_dream", self.functions)
-        # def + chiamata nel reload + due rami di avvio.
+        # def + chiamata nel reload + l'unico ramo di avvio.
         self.assertEqual(self.source.count("_safe_initialize_persona_dream()"), 4)
 
     def test_le_chiavi_del_sogno_sono_nella_sezione_persona(self):
-        sezione = self.source[self.source.index('"PERSONA_FILE"'):
-                              self.source.index('"Canali esterni"')]
-        for chiave in ("PERSONA_DREAM_ENABLED", "PERSONA_DREAM_START_HOUR",
+        # La sezione si legge dalla lista _ENV_META, non dalla posizione delle
+        # righe: il test precedente le tagliava dal testo tra due letterali,
+        # cosa che reggeva solo finche' la tabella stava tutta in main.py.
+        meta = {m["key"]: m for m in ast.literal_eval(self.assignments["_ENV_META"])}
+        for chiave in ("PERSONA_FILE", "PERSONA_DREAM_ENABLED", "PERSONA_DREAM_START_HOUR",
                        "PERSONA_DREAM_END_HOUR", "PERSONA_DREAM_IDLE_S",
                        "PERSONA_DREAM_MAX_TOKENS"):
             with self.subTest(chiave=chiave):
-                self.assertIn(f'"{chiave}"', sezione)
+                self.assertEqual(meta[chiave]["section"], "Persona")
 
     def test_lo_stato_del_sogno_e_visibile_in_persona(self):
         body = ast.unparse(self.functions["persona_status"])
@@ -399,9 +402,9 @@ class WiringTests(unittest.TestCase):
 
     def test_il_diario_sta_accanto_al_documento_di_identita(self):
         body = ast.unparse(self.functions["_initialize_persona_dream"])
-        self.assertIn("os.path.dirname(persona_store.path)", body)
+        self.assertIn("os.path.dirname(persona.persona().path)", body)
         self.assertIn("_persona_dream_enabled()", body)
-        self.assertIn("persona_store.persona.name", body)
+        self.assertIn("persona.profilo().name", body)
         self.assertIn("_persona_dream_int", body)
 
     def test_il_reload_in_setup_riallinea_il_sogno(self):

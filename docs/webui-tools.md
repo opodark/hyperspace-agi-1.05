@@ -132,6 +132,11 @@ prompt, percorsi dei file o credenziali.
   dice cosa installare. Il catalogo testuale Firecrawl è importabile dal Forge
   (`docs/tool-skill-forge.md`).
 
+- leggere scansioni con `leggi_documento_ocr`: PDF o PNG/JPEG/WebP inviati
+  all'endpoint Unlimited-OCR/vLLM configurato dall'operatore. Selezione di
+  massimo 16 pagine, anteprima limitata e output `.ocr.md` senza sovrascrittura.
+  Configurazione e limiti in [unlimited-ocr.md](unlimited-ocr.md).
+
 La lista dei nomi non è un'analisi visiva. Il tool di selezione invece manda
 ogni immagine al modello visivo locale, copia quelle senza difetti visibili in
 `Anna_selezionate` e mette immagini dubbie o difettose in `Anna_da_rivedere`.

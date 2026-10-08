@@ -1,4 +1,4 @@
-# HyperSpace AGI 1.04
+# HyperSpace AGI 1.05
 
 HyperSpace-AGI is an **operational runtime for local and distributed AI agents** — not an experimental framework or a single chatbot. It orchestrates specialized agents (memory, tools, policy, roles) on real dev/automation/knowledge workloads, with local inference (Ollama), Docker isolation, and direct human-agent collaboration on the project filesystem.
 
@@ -97,8 +97,8 @@ Planned responsibilities:
 ## Quick Start
 
 ```bash
-git clone https://github.com/opodark/hyperspace-agi-1.04.git
-cd hyperspace-agi-1.04
+git clone https://github.com/opodark/hyperspace-agi-1.05.git
+cd hyperspace-agi-1.05
 cp .env.example .env   # or .env.mac / .env.ubuntu / .env.windows depending on host
 
 ./setup.sh   # macOS / Linux
@@ -173,7 +173,7 @@ See [ROADMAP.md](ROADMAP.md#deliverable-prioritari) for the full prioritized del
 
 ## Notes
 
-This repository is the 1.04 evolution of the HyperSpace stack: the working 1.02/1.03 mesh (registry, control-plane, node workers, SearXNG) repositioned as an operational agent runtime, with Open WebUI as the default interface and the Intent Protocol (HIP) as long-term direction rather than current architecture.
+This repository is the 1.05 evolution of the HyperSpace stack: the working 1.02/1.03 mesh (registry, control-plane, node workers, SearXNG) repositioned as an operational agent runtime, with Open WebUI as the default interface and the Intent Protocol (HIP) as long-term direction rather than current architecture.
 
 ## Licenza
 

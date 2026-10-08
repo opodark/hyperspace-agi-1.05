@@ -1,30 +1,34 @@
 # SPDX-License-Identifier: Apache-2.0
 import ast
+
+from tests import cp_source
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-SRC = ROOT / "control-plane" / "main.py"
 
 
 class ConversationDiaryTests(unittest.TestCase):
     def test_le_rotte_esistono(self):
-        source = SRC.read_text(encoding="utf-8")
+        source = cp_source.SORGENTE()
         self.assertIn("@app.route('/conversations')", source)
         self.assertIn("@app.route('/conversations/data')", source)
 
     def test_il_diario_e_il_registratore_esistono(self):
-        source = SRC.read_text(encoding="utf-8")
+        source = cp_source.SORGENTE()
         self.assertIn("_conversation_log", source)
         self.assertIn("def _record_conversation", source)
 
     def test_il_reply_registra_le_battute(self):
-        tree = ast.parse(SRC.read_text(encoding="utf-8"))
+        tree = cp_source.albero()
         corpo = next(ast.unparse(n) for n in tree.body
                      if isinstance(n, ast.FunctionDef) and n.name == "channel_reply")
-        self.assertIn("_record_conversation", corpo)
+        # La registrazione arriva dal contesto del dominio invece che da un nome
+        # piatto: il cablaggio e' lo stesso, e il test deve valere per come e'
+        # scritto adesso come per come era scritto prima.
+        self.assertIn("record_conversation", corpo)
         # Quattro uscite registrano: reply, wait, presentazione, immagine.
-        self.assertGreaterEqual(corpo.count("_record_conversation"), 4)
+        self.assertGreaterEqual(corpo.count("record_conversation"), 4)
 
     def test_la_pagina_html_e_copiata_nel_container(self):
         dockerfile = (ROOT / "control-plane" / "Dockerfile").read_text(encoding="utf-8")

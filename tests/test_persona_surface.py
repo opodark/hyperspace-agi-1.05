@@ -5,6 +5,8 @@ Difende l'invariante del requisito: l'identità NON cambia con il mezzo, il
 contesto è deterministico e non entra mai nel documento d'identità.
 """
 import ast
+
+from tests import cp_source
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -15,7 +17,39 @@ from shared.persona import (IDENTITY_TOOLS, INTRO_MAX_BOUNDARIES, SURFACE_CONTEX
                             identity_tools_hidden, normalize_surface, surface_context)
 
 ROOT = Path(__file__).resolve().parents[1]
-MAIN_SOURCE = ROOT / "control-plane" / "main.py"
+
+# Chi puo' leggere BUILTIN_TOOLS. `_catalogo_nativi` e' l'unico che FILTRA per
+# superficie; gli altri hanno un motivo proprio e dichiarato:
+_LEGGONO_BUILTIN_TOOLS = {
+    "<modulo>",                 # la definizione e CODE_SANDBOX_TOOL
+    "_sync_connector_tools",    # riallineamento quando i connettori cambiano
+    "_catalogo_nativi",         # il filtro per superficie
+    "_mcp_tools",               # il server MCP: superficie diversa, catalogo pieno
+}
+
+
+def _scope_che_toccano(nome: str, tree: ast.AST) -> set:
+    """Gli scope che toccano il globale `nome` (letture e scritture).
+
+    Conta gli scope, non i call site: un quarto percorso che offra i tool
+    leggendo BUILTIN_TOOLS in persona propria viene fuori qui anche se non
+    chiama nessuna delle funzioni che il test conosce.
+    """
+    genitori = {}
+    for nodo in ast.walk(tree):
+        for figlio in ast.iter_child_nodes(nodo):
+            genitori[figlio] = nodo
+
+    def scope(nodo):
+        corrente = nodo
+        while corrente in genitori:
+            corrente = genitori[corrente]
+            if isinstance(corrente, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                return corrente.name
+        return "<modulo>"
+
+    return {scope(nodo) for nodo in ast.walk(tree)
+            if isinstance(nodo, ast.Name) and nodo.id == nome}
 
 
 class NormalizeSurfaceTests(unittest.TestCase):
@@ -127,11 +161,9 @@ class IdentitaPrevistaTests(unittest.TestCase):
     token, con il tono delle stanze che vince sul contesto del mezzo).
     """
 
-    def test_console_non_vuole_l_identita(self):
-        self.assertEqual(SURFACES_WITHOUT_IDENTITY,
-                         frozenset({"openwebui", "workbench"}))
+    def test_workbench_non_vuole_l_identita(self):
+        self.assertEqual(SURFACES_WITHOUT_IDENTITY, frozenset({"workbench", "openwebui"}))
         self.assertFalse(identity_expected("workbench"))
-        self.assertFalse(identity_expected("openwebui"))
         self.assertEqual(normalize_surface("workbench"), "workbench")
 
     def test_tutte_le_altre_si(self):
@@ -165,12 +197,16 @@ class IdentitaPrevistaTests(unittest.TestCase):
         cerchia ristretta…"."""
         self.assertEqual(identity_tools_hidden("workbench"), IDENTITY_TOOLS)
         self.assertEqual(identity_tools_hidden("openwebui"), IDENTITY_TOOLS)
-        # Il modulo puro resta fail-safe sulle superfici mancanti/sconosciute;
-        # la route traduce l'assenza in `openwebui` prima di arrivare qui.
         self.assertEqual(identity_tools_hidden(None), frozenset())
         self.assertEqual(IDENTITY_TOOLS, frozenset({"persona_get", "persona_note"}))
         # un canale non è mai workbench
         self.assertEqual(identity_tools_hidden("workbench", channel="cam4"), frozenset())
+
+    def test_console_non_vuole_l_identita(self):
+        self.assertEqual(SURFACES_WITHOUT_IDENTITY, frozenset({'openwebui', 'workbench'}))
+        self.assertFalse(identity_expected('workbench'))
+        self.assertFalse(identity_expected('openwebui'))
+        self.assertEqual(normalize_surface('workbench'), 'workbench')
 
 
 class SurfaceWiringTests(unittest.TestCase):
@@ -178,7 +214,7 @@ class SurfaceWiringTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tree = ast.parse(MAIN_SOURCE.read_text(encoding="utf-8"))
+        cls.tree = cp_source.albero()
         cls.functions = {n.name: n for n in cls.tree.body if isinstance(n, ast.FunctionDef)}
 
     def test_la_chat_passa_la_superficie_alla_persona(self):
@@ -203,20 +239,14 @@ class SurfaceWiringTests(unittest.TestCase):
 
     def test_il_catalogo_dei_tool_si_filtra_per_superficie(self):
         """Il catalogo nativo passa da `_catalogo_nativi`, che chiede al modulo
-        quali tool nascondere: il loop (stream e non-stream), la chat e il worker
-        di Mission Control — che poi interseca il manifest del ruolo, un filtro
-        piu' stretto, non piu' largo — e nessuno deve tornare a leggere
-        `BUILTIN_TOOLS` per conto suo."""
+        quali tool nascondere. Il rischio non e' che `_catalogo_nativi` venga
+        usata poche volte: e' che qualcuno torni a leggere `BUILTIN_TOOLS` per
+        conto proprio e offra i tool dell'identita' dove non devono andare
+        (la superficie `workbench` dichiara di non volerne)."""
         corpo = ast.unparse(self.functions["_catalogo_nativi"])
         self.assertIn("identity_tools_hidden(superficie)", corpo)
-        sorgente = MAIN_SOURCE.read_text(encoding="utf-8")
-        self.assertEqual(sorgente.count("_catalogo_nativi("), 5,
-                         "una definizione + i quattro punti che offrono i tool")
-        # Mission Control non legge il catalogo per conto proprio: manifest ∩
-        # catalogo, e i tool dell'identita' non sono in nessun manifest.
-        worker = ast.unparse(self.functions["_mission_worker"])
-        self.assertIn("_catalogo_nativi()", worker)
-        self.assertNotIn("BUILTIN_TOOLS", worker)
+        self.assertLessEqual(_scope_che_toccano("BUILTIN_TOOLS", self.tree),
+                             _LEGGONO_BUILTIN_TOOLS)
         # la superficie viaggia con la richiesta, o il loop non la saprebbe
         chat = ast.unparse(self.functions["v1_chat_completions"])
         self.assertIn("_hyperspace_surface", chat)
@@ -246,3 +276,6 @@ class SurfaceWiringTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# Regressioni 1.05 conservate dopo lo split cp/.

@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, request
 from shared.forge_skills import (
     WAYFINDER_BUNDLE_DIR,
     load_wayfinder_bundle,
@@ -336,13 +336,14 @@ class BundleTests(unittest.TestCase):
                 datetime=datetime,
                 timezone=timezone,
                 app=app,
+                _bp=Blueprint("forge-wayfinder-test", __name__),
                 FORGE_DIR=tmp,
                 FORGE_ADMIN_TOKEN="test",
                 _forge_lock=threading.Lock(),
                 _FORGE_TYPES={"tool", "skill", "patch"},
                 _FORGE_STATES={"draft", "review", "approved", "disabled"},
             )
-            source = Path("control-plane/main.py").read_text()
+            source = Path("control-plane/cp/forge.py").read_text()
             names = {
                 "_forge_path",
                 "_forge_write",
@@ -359,6 +360,7 @@ class BundleTests(unittest.TestCase):
             exec(
                 compile(ast.Module(body=nodes, type_ignores=[]), "main.py", "exec"), ns
             )
+            app.register_blueprint(ns["_bp"])
             client = app.test_client()
             path = "/forge/import/wayfinder"
             headers = {"X-Hyperspace-Forge-Token": "test"}
