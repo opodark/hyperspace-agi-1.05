@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="HyperSpace AGI 1.05 — Il Futuro dell'Intelligenza Artificiale che Lavora Davvero: Dai Chatbot ai Sistemi Operativi per Agenti Autonomi Governative.">
+  <title>HyperSpace AGI 1.05 · Presentazione del Progetto</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b18;
+      --panel: #0d1428ee;
+      --card-bg: #0d152a;
+      --line: #263454;
+      --text: #f4f6ff;
+      --muted: #9ba9c7;
+      --cyan: #57e6d9;
+      --violet: #9a7cff;
+      --rose: #f693bd;
+      --ok: #70e6aa;
+      --bad: #ff8295;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font: 15px/1.6 Inter, ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(circle at 15% 5%, #253160 0, transparent 32%),
+                  radial-gradient(circle at 85% 15%, #38224c 0, transparent 28%),
+                  var(--bg);
+    }
+    body:before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .2;
+      background-image: linear-gradient(#fff1 1px, transparent 1px), linear-gradient(90deg, #fff1 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, #000, transparent 80%);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      background: rgba(7, 11, 24, 0.85);
+      border-bottom: 1px solid var(--line);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 750;
+      letter-spacing: .02em;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #83fff0;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #57e6d988;
+      position: relative;
+    }
+    .mark:after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all .2s ease;
+      border: 1px solid var(--line);
+      background: #0d152a;
+      color: #dce3f7;
+    }
+    .btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .btn.primary {
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      color: #070b18;
+      border: none;
+      font-weight: 750;
+      box-shadow: 0 8px 24px #7f7cff33;
+    }
+    .btn.primary:hover {
+      filter: brightness(1.1);
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    .hero-banner {
+      text-align: center;
+      padding: 40px 20px 50px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .2em;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .hero-banner h1 {
+      font-size: clamp(34px, 5.5vw, 62px);
+      line-height: 1.05;
+      letter-spacing: -.04em;
+      margin: 0 0 18px;
+    }
+    .gradient {
+      background: linear-gradient(110deg, var(--cyan), #b2a1ff 55%, var(--rose));
+      background-clip: text;
+      color: transparent;
+    }
+    .hero-banner p {
+      font-size: clamp(16px, 2vw, 19px);
+      color: #bec8df;
+      line-height: 1.5;
+      margin: 0 auto 28px;
+      max-width: 760px;
+    }
+
+    /* Slider / Tabs Container */
+    .viewer-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 30px 100px #0009;
+      backdrop-filter: blur(20px);
+    }
+
+    /* Tab Pills */
+    .tabs-scroll {
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      background: #080d1bee;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .tab-pill {
+      flex: 0 0 auto;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      background: #0d152a;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: all .2s ease;
+      white-space: nowrap;
+    }
+    .tab-pill:hover {
+      color: #fff;
+      border-color: #3b4e78;
+    }
+    .tab-pill.active {
+      color: #070b18;
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      border-color: transparent;
+      box-shadow: 0 0 16px #57e6d944;
+    }
+
+    /* Slide Content Layout */
+    .slide-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr);
+      gap: 36px;
+      padding: 36px;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      .slide-body {
+        grid-template-columns: 1fr;
+        padding: 24px;
+        gap: 24px;
+      }
+    }
+
+    .slide-visual {
+      background: #060913;
+      border: 1px solid #1c2742;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 40px #0008;
+    }
+    .slide-visual img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform .3s ease;
+    }
+    .slide-visual:hover img {
+      transform: scale(1.015);
+    }
+
+    .slide-info h2 {
+      font-size: clamp(24px, 3vw, 34px);
+      letter-spacing: -.03em;
+      margin: 0 0 10px;
+      line-height: 1.15;
+    }
+    .slide-subtitle {
+      color: var(--cyan);
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 20px;
+      line-height: 1.4;
+    }
+    .slide-desc {
+      color: #bec8df;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13.5px;
+      color: #dce3f7;
+    }
+    .feature-list li:before {
+      content: "✦";
+      color: var(--cyan);
+      font-weight: bold;
+    }
+
+    /* Navigation Bar inside Viewer */
+    .slide-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 36px;
+      background: #080d1b;
+      border-top: 1px solid var(--line);
+    }
+    .slide-counter {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .nav-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Footer CTA */
+    .footer-cta {
+      margin-top: 60px;
+      text-align: center;
+      padding: 50px 20px;
+      background: linear-gradient(180deg, transparent, #0d1428aa);
+      border-radius: 24px;
+      border: 1px solid var(--line);
+    }
+    .footer-cta h3 {
+      font-size: 28px;
+      margin: 0 0 12px;
+    }
+    .footer-cta p {
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 24px;
+    }
+    .footer-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="./" class="brand">
+      <div class="mark"></div>
+      <span>HyperSpace AGI 1.05</span>
+    </a>
+    <div class="nav-actions">
+      <a href="./" class="btn">← Torna al Web Node</a>
+      <a href="./assets/presentation/hyperspace-1.05-presentation.pdf" download class="btn primary">
+        📥 Scarica PDF Ufficiale (16:9)
+      </a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="hero-banner">
+    <div class="eyebrow">Architettura & Visione Operativa</div>
+    <h1>L'Intelligenza Artificiale che <span class="gradient">Lavora Davvero</span></h1>
+    <p>
+      Dai semplici chatbot che allucinano ai sistemi operativi per agenti autonomi governati. 
+      Esecuzione in sandbox ermetica, memoria episodica permanente, rete mesh distribuita e garanzia di terminazione.
+    </p>
+  </div>
+
+  <div class="viewer-card">
+    <!-- Tab Pills per le 12 Slide -->
+    <div class="tabs-scroll" id="tabsScroll">
+      <!-- Inserite dinamicamente da JS -->
+    </div>
+
+    <!-- Corpo Slide Attiva -->
+    <div class="slide-body" id="slideBody">
+      <div class="slide-visual">
+        <img id="slideImg" src="./assets/presentation/diagram_01_cover.png" alt="Slide Diagram">
+      </div>
+      <div class="slide-info">
+        <h2 id="slideTitle">Copertina: Il Futuro dell'AI</h2>
+        <div class="slide-subtitle" id="slideSubtitle">Oltre i Chatbot: Sistemi Operativi Governative</div>
+        <div class="slide-desc" id="slideDesc">
+          I modelli linguistici sono brillanti ma caotici. HyperSpace è il telaio architetturale che li rende sicuri, deterministici e capaci di eseguire lavoro reale sul computer.
+        </div>
+        <ul class="feature-list" id="slideFeatures">
+          <!-- Inseriti da JS -->
+        </ul>
+      </div>
+    </div>
+
+    <!-- Controlli di Navigazione Slide -->
+    <div class="slide-nav">
+      <button class="btn" id="prevBtn">← Precedente</button>
+      <div class="slide-counter" id="slideCounter">Slide 1 di 12</div>
+      <button class="btn primary" id="nextBtn">Successiva →</button>
+    </div>
+  </div>
+
+  <div class="footer-cta">
+    <h3>Vuoi sperimentare la Mesh dal vivo?</h3>
+    <p>
+      Entra come nodo della rete direttamente dal browser oppure sblocca la chat con i modelli abliterated nativi non censurati di HyperSpace.
+    </p>
+    <div class="footer-actions">
+      <a href="./" class="btn primary">🚀 Apri il Web Node & Chat</a>
+      <a href="./assets/presentation/hyperspace-1.05-presentation.pdf" target="_blank" class="btn">
+        📄 Apri Presentazione PDF
+      </a>
+    </div>
+  </div>
+</main>
+
+<script>
+const SLIDES = [
+  {
+    tab: "1. Copertina & Visione",
+    img: "./assets/presentation/diagram_01_cover.png",
+    title: "HyperSpace AGI 1.05: L'AI che Lavora Davvero",
+    subtitle: "Dai Chatbot ai Sistemi Operativi per Agenti Autonomi Governative",
+    desc: "Un sistema operativo completo progettato per trasformare l'intelligenza artificiale da un generatore di testo libero a una forza lavoro software affidabile, privata e matematicamente controllata.",
+    features: [
+      "Zero Allucinazioni Applicate: nessun file corrotto o comandi arbitrari",
+      "Stanza Ermetica (Sandbox Docker isolata e usa-e-getta)",
+      "Memoria Episodica Hermes & Consolidamento Notturno dei Sogni",
+      "100% Locale, Privato e Sovrano: i tuoi dati non lasciano mai l'infrastruttura",
+      "Oltre 2.300 Test di Sicurezza automatizzati e rigorosi"
+    ]
+  },
+  {
+    tab: "2. Il Nuovo Paradigma",
+    img: "./assets/presentation/diagram_02_paradigma.png",
+    title: "Oltre i Chatbot: L'Architettura Governata",
+    subtitle: "Un'AI lasciata libera senza telaio è come un'auto potente senza freni",
+    desc: "Nei chatbot tradizionali, l'AI opera a testo libero e soffre di allucinazioni e loop infiniti. HyperSpace costruisce una torre di controllo (Control Plane) e una stanza ermetica: ogni operazione segue contratti tipizzati e budget di risorse rigorosi.",
+    features: [
+      "Separazione netta tra Piano di Controllo (Control Plane) ed Esecutori (Worker)",
+      "Budget tassativo su passi, tempo e token: stop ai loop infiniti",
+      "Nessuna mutazione del filesystem host senza approvazione esplicita dell'utente",
+      "Decision Engine System 1 non-autoregressivo con triage sub-50ms"
+    ]
+  },
+  {
+    tab: "3. Mission Control",
+    img: "./assets/presentation/diagram_03_mission_control.png",
+    title: "Mission Control: Il Direttore d'Orchestra",
+    subtitle: "Orchestrazione a Grafo Aciclico Diretto (DAG Bounded)",
+    desc: "Quando affidi un obiettivo complesso a un normale LLM, si perde o salta compiti. Mission Control scompone il grande obiettivo in un grafo ordinato di compiti (DAG) con ruoli specializzati e dipendenze chiare.",
+    features: [
+      "Planner specializzato che genera grafi deterministici verificati matematicamente",
+      "Divisione dei ruoli: Repo Analyst (sola lettura), Coder (sandbox), Verifier (giudice)",
+      "Verifica indipendente per ogni singolo task prima di procedere al successivo",
+      "Stato persistente e idempotente: se il sistema si riavvia, la missione riprende esattamente dal checkpoint"
+    ]
+  },
+  {
+    tab: "4. La Stanza Ermetica",
+    img: "./assets/presentation/diagram_04_sandbox_gates.png",
+    title: "La Stanza Ermetica & i 3 Cancelli di Controllo",
+    subtitle: "Rifiuto Categorico dell'Auto-Certificazione del Modello",
+    desc: "Se un modello dice 'Ho fatto tutto con successo!', HyperSpace non ci crede. Il codice gira in sandbox Docker usa-e-getta e il risultato deve superare 3 cancelli oggettivi esterni prima di qualsiasi approvazione.",
+    features: [
+      "Sandbox Container Effimera: se il codice crasha, il tuo Mac/PC resta intatto",
+      "Gate 1 (Artifact Validator): ispezione binaria reale del file generato (es. magic byte %PDF)",
+      "Gate 2 (Linter & Syntax): controllo statico e formattazione rigorosa",
+      "Gate 3 (Test Suite Gate): esecuzione di test unitari automatici al 100% prima della revisione"
+    ]
+  },
+  {
+    tab: "5. Forge & Hook Adattivi",
+    img: "./assets/presentation/diagram_05_forge_hooks.png",
+    title: "Il Laboratorio delle Abilità: Forge & Hook",
+    subtitle: "Come l'AI impara nuovi strumenti senza allargare la superficie d'attacco",
+    desc: "Forge permette di sviluppare e testare nuove skill e connettori in un laboratorio isolato. Nessuna abilità diventa attiva o richiamabile finché non viene approvata e firmata crittograficamente.",
+    features: [
+      "Laboratorio Forge: generazione di skill come bozze inerti prive di permessi",
+      "Firma crittografica: una skill non eseguita se modificata manomessa",
+      "Hook Adattivi: gli strumenti vengono montati nel contesto dell'AI solo quando servono",
+      "Minimo Privilegio: zero spreco di token per cataloghi enormi e zero rischi di chiamate tool casuali"
+    ]
+  },
+  {
+    tab: "6. Hermes & Sogno Notturno",
+    img: "./assets/presentation/diagram_06_hermes_dreams.png",
+    title: "Memoria Hermes & La Notte dei Sogni",
+    subtitle: "Consolidamento notturno dell'esperienza, proprio come il cervello umano",
+    desc: "Mentre i chatbot dimenticano tutto alla fine della sessione, HyperSpace possiede una memoria semantica a grafo (Hermes). Di notte, quando la mesh è a riposo, entra in azione il Dream Loop per consolidare la conoscenza.",
+    features: [
+      "Memoria Episodica Hermes con recupero vettoriale ultra-veloce",
+      "Dream Loop Notturno: rielabora le missioni della giornata e sintetizza nuovi pattern",
+      "Refactoring autonomo in sandbox notturna: corregge bug e propone miglioramenti all'operatore",
+      "Generazione creativa autonoma (diario delle influencer, sketch ComfyUI)"
+    ]
+  },
+  {
+    tab: "7. Rete Mesh Distribuita",
+    img: "./assets/presentation/diagram_07_mesh_network.png",
+    title: "La Rete Mesh Distribuita & Web Node",
+    subtitle: "Mac, PC, Cloud e Browser uniti in una sola infrastruttura coerente",
+    desc: "HyperSpace unisce macchine eterogenee (Mac Apple Silicon, workstation Windows con GPU NVIDIA, server Linux e nodi Web nel browser) attraverso un Federation Gateway sicuro.",
+    features: [
+      "Federation Gateway: instradamento intelligente delle richieste verso il nodo con più VRAM libera",
+      "Web Node: il browser partecipa alla rete con micro-task veloci e calcolo distribuito",
+      "Streaming SSE e compatibilità standard OpenAI (/v1/chat/completions)",
+      "Zero porte aperte esposte su Internet: tunnel crittografati sicuri"
+    ]
+  },
+  {
+    tab: "8. Reel Forge & Vision AI",
+    img: "./assets/presentation/diagram_08_reel_vision.png",
+    title: "Reel Forge & Visione Neurale su Apple Silicon",
+    subtitle: "Produzione video verticale 9:16 sincronizzata al beat musicale",
+    desc: "Un intero cantiere di automazione audiovisiva integrato. Apple Vision analizza i fotogrammi a 60 FPS, ritaglia le sagome dei personaggi ed effettua montaggi ritmici complessi con karaoke sincronizzato.",
+    features: [
+      "Tracciamento soggetti con framework nativo Apple Vision in Swift",
+      "Riconoscimento dei beat musicali ed effetti di zoom e lampi ciano sulla sagoma",
+      "Rendering FFmpeg H.264/AAC a 1080×1920 con livelli karaoke multilivello",
+      "Job queue asincrona con revisione obbligatoria prima della pubblicazione social"
+    ]
+  },
+  {
+    tab: "9. Ufficio Virtuale & Connettori",
+    img: "./assets/presentation/diagram_09_ufficio_connectors.png",
+    title: "Ufficio Virtuale & Connettori Operativi",
+    subtitle: "Interazione con Telegram, Instagram, Mail e GitHub sotto policy invalicabili",
+    desc: "L'AI interagisce con il mondo esterno per pubblicare contenuti, inviare report o leggere ticket. Per evitare disastri, le azioni di scrittura richiedono token specifici e possono essere bloccate istantaneamente con un kill-switch.",
+    features: [
+      "Connettori nativi per Instagram, Telegram, GitHub, Email e Calendario",
+      "Modalità predefinita Read-Only: nessuna pubblicazione involontaria",
+      "Kill-switch istantaneo per revocare i permessi in tempo reale",
+      "Audit trail completo in JSONL: ogni operazione esterna è tracciata con timestamp e payload"
+    ]
+  },
+  {
+    tab: "10. Collaborazione Multi-Agente",
+    img: "./assets/presentation/diagram_10_multi_agent.png",
+    title: "Collaborazione Multi-Agente sullo Stesso Repo",
+    subtitle: "Codex, Cline, Hermes e Laya: lavorare insieme senza sovrascriversi",
+    desc: "Più agenti intelligenti operano sullo stesso filesystem e sullo stesso repository senza mai creare conflitti, grazie al protocollo inter-agente unificato registrato in AGENTS.md e AGENT-LOG.md.",
+    features: [
+      "Protocollo inter-agente basato su lock e append-only log",
+      "Codex per infrastruttura, Cline per le feature, Hermes per la memoria, Laya per le decisioni sub-50ms",
+      "Nessun commit o push non autorizzato: l'essere umano resta l'unico sovrano del codice",
+      "Suite di test condivisa che deve restare costantemente verde a ogni passaggio di consegne"
+    ]
+  },
+  {
+    tab: "11. I 4 Quadranti di Valore",
+    img: "./assets/presentation/diagram_11_business_quadrants.png",
+    title: "I 4 Quadranti di Valore per l'Impresa",
+    subtitle: "Efficienza, Innovazione, Controllo e Sovranità dei Dati",
+    desc: "HyperSpace trasforma l'AI da costo d'abbonamento cloud opaco e imprevedibile a investimento infrastrutturale proprietario, garantendo sicurezza normativa e ritorno tangibile.",
+    features: [
+      "Efficienza Operativa: automatizzazione di flussi complessi senza supervisione continua",
+      "Controllo Rigoroso: rispetto integrale di budget, policy di sicurezza e vincoli GDPR",
+      "Sovranità dei Dati: i brevetti, i log e i dati aziendali non escono mai dal perimetro locale",
+      "Innovazione Continua: ciclo di auto-miglioramento con la Notte dei Sogni"
+    ]
+  },
+  {
+    tab: "12. Visione & Roadmap",
+    img: "./assets/presentation/diagram_12_summary_vision.png",
+    title: "Visione, Roadmap & Autonomia Responsabile",
+    subtitle: "Il Futuro dell'Intelligenza Artificiale Sovrana",
+    desc: "Dalla release 1.05 verso una rete sempre più interconnessa e autonoma, mantenendo sempre l'essere umano al centro del governo e della direzione strategica.",
+    features: [
+      "Architettura modulare pronta per cluster distribuiti multi-nodo",
+      "Laya Decision Engine per routing ed estrazione intent a latenza zero",
+      "Governance chiara: l'autonomia si guadagna con la verifica e la dimostrazione di sicurezza",
+      "HyperSpace AGI 1.05: Il sistema operativo per l'intelligenza artificiale moderna"
+    ]
+  }
+];
+
+let currentIndex = 0;
+
+const tabsScroll = document.getElementById("tabsScroll");
+const slideImg = document.getElementById("slideImg");
+const slideTitle = document.getElementById("slideTitle");
+const slideSubtitle = document.getElementById("slideSubtitle");
+const slideDesc = document.getElementById("slideDesc");
+const slideFeatures = document.getElementById("slideFeatures");
+const slideCounter = document.getElementById("slideCounter");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+
+// Popola le tab
+SLIDES.forEach((slide, idx) => {
+  const pill = document.createElement("button");
+  pill.className = `tab-pill ${idx === 0 ? "active" : ""}`;
+  pill.textContent = slide.tab;
+  pill.addEventListener("click", () => showSlide(idx));
+  tabsScroll.appendChild(pill);
+});
+
+function showSlide(index) {
+  currentIndex = index;
+  const slide = SLIDES[index];
+
+  // Aggiorna contenuti
+  slideImg.src = slide.img;
+  slideImg.alt = slide.title;
+  slideTitle.textContent = slide.title;
+  slideSubtitle.textContent = slide.subtitle;
+  slideDesc.textContent = slide.desc;
+  
+  // Aggiorna feature list
+  slideFeatures.innerHTML = "";
+  slide.features.forEach(f => {
+    const li = document.createElement("li");
+    li.textContent = f;
+    slideFeatures.appendChild(li);
+  });
+
+  // Aggiorna contatore
+  slideCounter.textContent = `Slide ${index + 1} di ${SLIDES.length}`;
+
+  // Aggiorna pills
+  Array.from(tabsScroll.children).forEach((el, idx) => {
+    el.classList.toggle("active", idx === index);
+  });
+
+  // Scroll pill in vista
+  tabsScroll.children[index].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+
+  // Disabilita bottoni alle estremità
+  prevBtn.disabled = index === 0;
+  nextBtn.disabled = index === SLIDES.length - 1;
+}
+
+prevBtn.addEventListener("click", () => {
+  if (currentIndex > 0) showSlide(currentIndex - 1);
+});
+
+nextBtn.addEventListener("click", () => {
+  if (currentIndex < SLIDES.length - 1) showSlide(currentIndex + 1);
+});
+
+// Supporto tastiera (frecce destra/sinistra)
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft" && currentIndex > 0) showSlide(currentIndex - 1);
+  if (e.key === "ArrowRight" && currentIndex < SLIDES.length - 1) showSlide(currentIndex + 1);
+});
+
+// Inizializza prima slide
+showSlide(0);
+</script>
+
+</body>
+</html>

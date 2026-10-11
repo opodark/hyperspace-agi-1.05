@@ -120,6 +120,7 @@
   <nav>
     <div class="brand"><i class="mark"></i><span id="siteName">ZeroZeroComputer</span></div>
     <div class="nav-actions">
+      <a href="./progetto.html" class="auth-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">📖 Il Progetto</a>
       <span class="tag">browser node · alpha</span>
       <span id="authBadge" class="pill">Ospite (Chat locale)</span>
       <button id="openAuthModal" class="auth-btn" type="button">🔑 Chiave Mesh</button>
@@ -132,6 +133,11 @@
       <h1>Un browser.<br><span class="gradient">Un nodo della mesh.</span></h1>
       <p class="lead">Lascia aperta questa pagina e contribuisci a piccoli task compatibili con il browser. Sei tu a decidere quando entrare e quando uscire.</p>
       <div class="trust"><span>Nessun accesso ai file</span><span>Nessun codice arbitrario</span><span>Stop immediato</span></div>
+      <div style="margin-top:24px">
+        <a href="./progetto.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid #334365;background:#0d152a;color:#dce3f7;font-weight:600;font-size:13.5px;box-shadow:0 8px 24px #0006;transition:all .2s ease">
+          📖 Scopri l'architettura di HyperSpace 1.05 →
+        </a>
+      </div>
     </section>
     <section class="card" aria-labelledby="joinTitle">
       <h2 id="joinTitle">Collega questo dispositivo</h2>
@@ -169,17 +175,17 @@
           <button id="modeRemoteBtn" class="mode-tab" type="button">Mesh Remota</button>
         </div>
         <div id="sideLocal">
-          <h3 style="margin-top:14px">Nel browser</h3>
-          <p class="small">WebLLM su WebGPU, esecuzione a zero-carico per la mesh.</p>
+          <h3 style="margin-top:14px">Nel browser (WebGPU)</h3>
+          <p class="small">Modelli quantizzati locali sperimentali. Richiedono download pesante nel browser.</p>
           <div class="field"><label for="llmModel">Modello locale</label><select id="llmModel"></select></div>
-          <div class="model-meta" id="llmMeta">Il modello viene scaricato nel browser al primo avvio; può richiedere alcuni GB.</div>
+          <div class="model-meta" id="llmMeta">Per risposte istantanee ad alte prestazioni usa la Mesh Remota con la tua chiave.</div>
           <button class="secondary" id="loadLlm" type="button">Carica modello locale</button>
         </div>
         <div id="sideRemote" style="display:none;">
           <h3 style="margin-top:14px">Modelli della mesh</h3>
-          <p class="small">Inferenza distribuita sui nodi con GPU attive.</p>
+          <p class="small">Inferenza ad alte prestazioni sui nodi GPU con modelli abliterated nativi.</p>
           <div class="field">
-            <label for="remoteModel">Modello remoto</label>
+            <label for="remoteModel">Modello mesh (Abliterated)</label>
             <select id="remoteModel"></select>
           </div>
           <div class="model-meta" id="remoteMeta">Accesso autorizzato tramite chiave di rete.</div>
@@ -333,6 +339,7 @@
         $("authKeyInput").disabled = true;
         $("remoteMeta").textContent = `Autenticato come ${authState.label}.`;
         loadRemoteModels();
+        switchChatMode("remote");
       } else {
         $("authBadge").className = "pill";
         $("authBadge").textContent = "Ospite (Chat locale)";
@@ -456,12 +463,16 @@
       const options = (models || []).map(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        opt.textContent = m.id;
+        const isAbliterated = /abliterated/i.test(m.id);
+        opt.textContent = isAbliterated ? `🔥 ${m.id} (Abliterated)` : m.id;
         return opt;
       });
       if (options.length) {
         $("remoteModel").replaceChildren(...options);
+        const fav = options.find(o => /abliterated/i.test(o.value)) || options[0];
+        $("remoteModel").value = fav.value;
         remoteClient.model = $("remoteModel").value;
+        $("remoteMeta").textContent = "✓ Modello mesh attivo: pronto per risposte ad alte prestazioni.";
       }
     } catch(err) {
       $("remoteMeta").textContent = `Errore catalogo: ${err.message}`;
@@ -546,6 +557,15 @@
   // ── VISUALIZZAZIONE TOPOLOGIA (CANVAS ORBITALE) ───────────────────────────
   let catalog = { models: [], machines: [] };
   const canvas = $("meshCanvas"), ctx = canvas.getContext("2d"); let tick = 0;
+  const mouse = { x: -1000, y: -1000, active: false };
+  canvas.addEventListener("mousemove", (e) => {
+    const r = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - r.left;
+    mouse.y = e.clientY - r.top;
+    mouse.active = true;
+  });
+  canvas.addEventListener("mouseleave", () => { mouse.active = false; });
+
   function drawMesh(now) {
     const density = devicePixelRatio || 1, width = canvas.clientWidth, height = canvas.clientHeight;
     if (canvas.width !== width * density || canvas.height !== height * density) {
@@ -556,11 +576,23 @@
     ctx.strokeStyle = "#263d66"; ctx.lineWidth = 1;
     for (let index = 0; index < count; index++) {
       const angle = now * .00018 + index * Math.PI * 2 / count, radius = Math.min(width, height) * (.22 + (index % 2) * .12);
-      const x = centerX + Math.cos(angle) * radius, y = centerY + Math.sin(angle) * radius * .58;
+      let x = centerX + Math.cos(angle) * radius, y = centerY + Math.sin(angle) * radius * .58;
+      if (mouse.active) {
+        const dx = mouse.x - x, dy = mouse.y - y, d = Math.hypot(dx, dy);
+        if (d < 80) { x += (dx / d) * (80 - d) * 0.15; y += (dy / d) * (80 - d) * 0.15; }
+      }
       nodes.push([x, y]); ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(x, y); ctx.stroke();
     }
+    // Impulsi di trasmissione dati sui raggi
+    const packetT = (now * 0.0007) % 1;
+    for (let index = 0; index < nodes.length; index++) {
+      const [nx, ny] = nodes[index];
+      const px = centerX + (nx - centerX) * packetT, py = centerY + (ny - centerY) * packetT;
+      ctx.fillStyle = "#83fff0"; ctx.shadowColor = "#83fff0"; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.fillStyle = "#57e6d9"; ctx.shadowColor = "#57e6d9"; ctx.shadowBlur = 24;
-    ctx.beginPath(); ctx.arc(centerX, centerY, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(centerX, centerY, 7.5, 0, Math.PI * 2); ctx.fill();
     for (let index = 0; index < nodes.length; index++) {
       const [x, y] = nodes[index];
       ctx.fillStyle = "#57e6d9"; ctx.shadowBlur = 16;
@@ -571,6 +603,13 @@
         ctx.fillStyle = "#9a7cff"; ctx.shadowColor = "#9a7cff"; ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.arc(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, 2.2, 0, Math.PI * 2); ctx.fill();
       }
+    }
+    if (mouse.active) {
+      ctx.strokeStyle = "rgba(87, 230, 217, 0.22)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, 25, 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.shadowBlur = 0; tick = now; requestAnimationFrame(drawMesh);
   }

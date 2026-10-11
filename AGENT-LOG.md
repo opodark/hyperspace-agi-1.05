@@ -3464,4 +3464,5 @@ Completata l'estensione del **Web Node** con l'aggiunta del form di contatto e d
 - `pytest tests/test_licensing.py -q`: 7/7 passati al 100% (SPDX Apache-2.0 conforme).
 - Modifiche convalidate, committate e inviate a origin/main su richiesta esplicita dell'utente per il deploy su Render.
 - Unificata la landing page ricca (join.html) direttamente come index.html per Render/hosting web pubblico (e cruscotto interno in debug.html).
+- Creata la pagina interattiva web-node/progetto.html con le 12 slide e i diagrammi di HyperSpace 1.05, download del PDF ufficiale, integrazione modelli abliterated della mesh e canvas orbitale reattivo al puntatore con impulsi di trasmissione dati.
 
