@@ -66,6 +66,11 @@ def _serve(*campi):
     return _contesto
 
 
+def _background_sospeso():
+    callback = getattr(_contesto, "background_work_allowed", None)
+    return bool(callback and not callback())
+
+
 # ── route ─────────────────────────────────────────────────────────────────────
 # Un solo blueprint, costruito all'import: le route sono funzioni chiuse sul
 # contesto e non su `app`, e i test aprono la coda su un tmpdir diverse volte
@@ -75,7 +80,8 @@ _bp = Blueprint("immagini", __name__)
 
 def monta(app, *, image_queue=None, image_memory_gate=None, connector_manager=None,
           diario=None, diario_intimo=None, intimate_diary_file="",
-          annota_sogno=None, completa_e_pubblica_sogno=None):
+          annota_sogno=None, completa_e_pubblica_sogno=None,
+          background_work_allowed=None):
     """Registra le sei route della coda e tiene i riferimenti al boot.
 
     Non crea la coda: `image_queue` arriva da `main.py` perché la condivide con i
@@ -90,6 +96,7 @@ def monta(app, *, image_queue=None, image_memory_gate=None, connector_manager=No
         diario=diario,
         diario_intimo=diario_intimo or SimpleNamespace(by_job=lambda _id: None),
         intimate_diary_file=intimate_diary_file,
+        background_work_allowed=background_work_allowed,
         annota_sogno=annota_sogno or (lambda **_fields: None),
         completa_e_pubblica_sogno=completa_e_pubblica_sogno or _instagram_publish_voce,
     )
@@ -172,6 +179,11 @@ def image_jobs():
     if errore:
         return errore
     famiglia = (request.args.get("famiglia") or "").strip()
+    if _background_sospeso():
+        _contesto.image_queue.set_auto_paused(True)
+        _contesto.image_memory_gate.release_queue()
+    elif getattr(_contesto, "background_work_allowed", None):
+        _contesto.image_queue.set_auto_paused(False)
     job = _contesto.image_queue.prossimo(capace_di=famiglia or None)
     if job is None:
         return ('', 204)
@@ -268,8 +280,13 @@ def image_result():
                 _contesto.annota_sogno(fase="disegnato", autore=str(page.get("author") or ""),
                               voce_id=voce_id, file=percorso)
             if page and page.get("tipo") in ("sogno", "poesia"):
-                threading.Thread(target=_contesto.completa_e_pubblica_sogno,
-                                 args=(voce_id, percorso), daemon=True).start()
+                if _background_sospeso():
+                    push_log('dream', 'Completamento sogno sospeso per attività foreground',
+                             detail=f'voce={voce_id} file={percorso}',
+                             source='dream-post', status='info')
+                else:
+                    threading.Thread(target=_contesto.completa_e_pubblica_sogno,
+                                     args=(voce_id, percorso), daemon=True).start()
     if (chiuso.get("stato") == "done" and chiuso.get("canale") == "instagram"
             and chiuso.get("destinazione") and esito.get("file")):
         public_base = os.getenv("INSTAGRAM_PUBLIC_BASE_URL", "").strip().rstrip("/")

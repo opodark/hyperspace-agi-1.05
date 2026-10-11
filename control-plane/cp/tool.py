@@ -32,6 +32,11 @@
 
 import json
 import os
+import ipaddress
+import socket
+import http.client
+import ssl
+from urllib.parse import urlparse
 
 import requests
 from datetime import datetime, timezone
@@ -138,6 +143,8 @@ def _handlers_nativi() -> dict:
     di modulo sarebbe un NameError già all'import.
     """
     handlers = {
+        "moltbook_status": _tool_moltbook_status,
+        "web_fetch":       _tool_web_fetch,
         "web_search":      _tool_web_search,
         "omega_query":     _omega_query,
         "omega_store":     _omega_store,
@@ -155,6 +162,55 @@ def _handlers_nativi() -> dict:
     if _extra_handlers is not None:
         handlers.update(_extra_handlers())
     return handlers
+
+
+def _tool_moltbook_status(args: dict) -> str:
+    """Read Moltbook claim status without exposing the stored API key."""
+    credentials_path = os.getenv(
+        "MOLTBOOK_CREDENTIALS_FILE", "/run/secrets/moltbook-credentials.json")
+    try:
+        if os.path.islink(credentials_path) or not os.path.isfile(credentials_path):
+            return "Credenziali Moltbook non disponibili nel Control Plane."
+        if os.path.getsize(credentials_path) > 16_384:
+            return "Errore: file credenziali Moltbook oltre il limite consentito."
+        with open(credentials_path, "r", encoding="utf-8") as handle:
+            credentials = json.load(handle)
+        if not isinstance(credentials, dict):
+            return "Errore: file credenziali Moltbook non valido."
+        api_key = str(credentials.get("api_key") or "").strip()
+        agent_name = str(credentials.get("agent_name") or "HyperSpace_AGI").strip()
+        if not api_key:
+            return "Errore: API key Moltbook assente nel file credenziali."
+    except (OSError, ValueError, TypeError) as error:
+        return f"Errore lettura credenziali Moltbook: {type(error).__name__}."
+
+    url = "https://www.moltbook.com/api/v1/agents/status"
+    try:
+        response = requests.get(url, headers={"Authorization": f"Bearer {api_key}",
+                                              "Accept": "application/json"},
+                                timeout=12, allow_redirects=False)
+    except requests.RequestException as error:
+        return f"Errore connessione Moltbook: {type(error).__name__}."
+    if 300 <= response.status_code < 400:
+        return "Moltbook ha risposto con un redirect; rifiutato per non inoltrare la credenziale."
+    if response.status_code >= 400:
+        return f"Moltbook ha risposto HTTP {response.status_code}; stato non verificato."
+    try:
+        result = response.json()
+    except ValueError:
+        return "Moltbook ha restituito una risposta non JSON; stato non verificato."
+    if not isinstance(result, dict):
+        return "Moltbook ha restituito dati inattesi; stato non verificato."
+    status = str(result.get("status") or "unknown")
+    lines = [f"Moltbook status: {status}", f"Agent: {agent_name}"]
+    if status == "pending_claim":
+        claim_url = str(credentials.get("claim_url") or "")
+        if claim_url.startswith("https://www.moltbook.com/claim/"):
+            lines.append(f"Claim URL: {claim_url}")
+        verification_code = str(credentials.get("verification_code") or "")
+        if verification_code:
+            lines.append(f"Verification code: {verification_code}")
+    return "\n".join(lines)
 
 
 def _shell_run_label(payload: dict) -> str:
@@ -359,11 +415,104 @@ def _omega_stats(args: dict) -> str:
 # Usa SearXNG self-hosted (container searxng, endpoint SEARXNG_URL).
 # SearXNG espone un JSON API su /search?q=...&format=json
 # Fallback: se SearXNG non disponibile, tenta DuckDuckGo lite (scraping HTML).
+def _tool_web_fetch(args: dict) -> str:
+    """Fetch read-only di una pagina pubblica, limitato contro SSRF e risposte enormi."""
+    raw_url = str(args.get("url", "")).strip()
+    try:
+        parsed = urlparse(raw_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return "Errore: URL non valido; sono ammessi solo URL http/https."
+        if parsed.username or parsed.password:
+            return "Errore: credenziali incorporate nell'URL non ammesse."
+        host = parsed.hostname.rstrip(".").lower()
+        if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
+            return "Errore: host locale non ammesso."
+        try:
+            indirizzi = [ipaddress.ip_address(host)]
+        except ValueError:
+            try:
+                indirizzi = [ipaddress.ip_address(item[4][0])
+                             for item in socket.getaddrinfo(
+                                 host, parsed.port or (443 if parsed.scheme == "https" else 80),
+                                 type=socket.SOCK_STREAM)]
+            except OSError:
+                return "Errore: host non risolvibile."
+        if not indirizzi or any(not address.is_global for address in indirizzi):
+            return "Errore: host locale, privato o non risolvibile in indirizzi pubblici."
+        # Connette all'IP già controllato, mantenendo il nome host per Host e TLS:
+        # requests.get(hostname) risolverebbe una seconda volta e aprirebbe DNS rebinding.
+        address = str(indirizzi[0])
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        target = parsed.path or "/"
+        if parsed.query:
+            target += "?" + parsed.query
+        if parsed.scheme == "https":
+            conn = http.client.HTTPSConnection(parsed.hostname, port, timeout=15,
+                                                context=ssl.create_default_context())
+            conn.connect()
+            peer = ipaddress.ip_address(conn.sock.getpeername()[0])
+            if not peer.is_global:
+                conn.close()
+                return "Errore: connessione risolta a un indirizzo non pubblico."
+        else:
+            conn = http.client.HTTPConnection(address, port, timeout=15)
+            conn.connect()
+        try:
+            conn.request("GET", target, headers={
+                "Host": parsed.hostname,
+                "User-Agent": "Mozilla/5.0 (compatible; HyperSpaceAGI/1.05)",
+                "Accept": "text/html,text/plain,application/json;q=0.8,*/*;q=0.2",
+                "Connection": "close",
+            })
+            response = conn.getresponse()
+            if response.status in {301, 302, 303, 307, 308}:
+                return f"Redirect HTTP {response.status}; non seguito. URL destinazione: {response.getheader('Location', '(assente)')}"
+            if response.status >= 400:
+                return f"Errore HTTP {response.status} {response.reason}"
+            content_type = (response.getheader("Content-Type") or "").lower()
+            if not any(kind in content_type for kind in ("text/", "json", "xml", "javascript")):
+                return f"Errore: tipo contenuto non testuale ({content_type or 'sconosciuto'})."
+            limit = 80_000
+            chunks = []
+            size = 0
+            while size < limit:
+                chunk = response.read(min(8192, limit - size))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+            body = b"".join(chunks).decode("utf-8", errors="replace")
+            if "html" in content_type:
+                import re
+                body = re.sub(r"<(script|style|noscript|svg)\b[^>]*>.*?</\1\s*>", " ",
+                              body, flags=re.IGNORECASE | re.DOTALL)
+                body = re.sub(r"<(?:br|/p|/div|/h[1-6]|/li|/tr)\b[^>]*>", "\n", body,
+                              flags=re.IGNORECASE)
+                body = re.sub(r"<[^>]+>", " ", body)
+                body = (body.replace("&nbsp;", " ").replace("&amp;", "&")
+                        .replace("&lt;", "<").replace("&gt;", ">"))
+                body = re.sub(r"[ \t]+", " ", body)
+                body = re.sub(r"\n\s*\n+", "\n", body).strip()
+            suffix = "\n[contenuto limitato a 80000 byte]" if size >= limit else ""
+            return f"URL: {raw_url}\nHTTP: {response.status}\nContent-Type: {content_type}\n\n{body[:60000]}{suffix}"
+        finally:
+            conn.close()
+    except (ValueError, OSError, http.client.HTTPException, ssl.SSLError) as error:
+        return f"Errore web_fetch: {error}"
+
+
 def _tool_web_search(args: dict) -> str:
     query       = str(args.get("query", "")).strip()
     max_results = min(int(args.get("max_results", 5)), 10)
     if not query:
         return "Errore: query vuota."
+    # Evita che una chiamata sbagliata trasformi una richiesta di lettura URL
+    # in una ricerca per parole chiave, fonte di risposte generiche e fuorvianti.
+    parsed_query = urlparse(query)
+    if parsed_query.scheme in {"http", "https"} and parsed_query.hostname:
+        return ("Errore: hai passato un URL diretto a web_search. Per leggerne il contenuto "
+                "chiama web_fetch con {\"url\": " + json.dumps(query) + "}; non riassumere "
+                "la pagina finché non hai ricevuto il contenuto da web_fetch.")
 
     # ── 1. SearXNG JSON API ───────────────────────────────────────────────────
     try:

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Beat detection reale su un file audio, via librosa.
 
 Oltre a tempo e griglia di beat stimiamo:

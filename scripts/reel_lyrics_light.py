@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Add two-line karaoke light to the first 50 seconds of an existing reel."""
 from __future__ import annotations
 

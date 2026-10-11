@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Optional per-scene VL analysis through HyperSpace's local control-plane."""
 from __future__ import annotations
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """The reel draft survives a process restart without Gradio session state."""
 from __future__ import annotations
 

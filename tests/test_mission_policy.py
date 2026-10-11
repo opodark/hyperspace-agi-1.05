@@ -11,6 +11,7 @@ ROOT = Path(__file__).parents[1]
 
 FAKE_CATALOG = [
     {"type": "function", "function": {"name": "web_search"}},
+    {"type": "function", "function": {"name": "web_fetch"}},
     {"type": "function", "function": {"name": "omega_query"}},
     {"type": "function", "function": {"name": "omega_store"}},
     {"type": "function", "function": {"name": "code_sandbox"}},
@@ -63,7 +64,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_tools_for_role_intersects_catalog_and_preserves_order(self):
         names = [t["function"]["name"] for t in policy.tools_for_role("repo-analyst", FAKE_CATALOG)]
-        self.assertEqual(names, ["web_search", "omega_query", "get_mesh_status"])
+        self.assertEqual(names, ["web_search", "web_fetch", "omega_query", "get_mesh_status"])
         self.assertEqual(policy.tools_for_role("planner", FAKE_CATALOG), [])
         self.assertEqual(policy.tools_for_role("coder", FAKE_CATALOG),
                          [{"type": "function", "function": {"name": "code_sandbox"}},

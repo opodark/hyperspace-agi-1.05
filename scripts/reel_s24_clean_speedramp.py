@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Cut the original S24 recording to music at 1080x1920/60 without image effects."""
 from __future__ import annotations
 

@@ -44,20 +44,22 @@ class ImageMemoryGate:
             self._chats = max(0, self._chats - 1)
             self._condition.notify_all()
 
-    def reserve_image(self, job_id: str, timeout: float = 120) -> bool:
+    def reserve_image(self, job_id: str, timeout: float = 120,
+                      lease_s: float | None = None) -> bool:
         deadline = self.clock() + timeout
+        lease = self.lease_s if lease_s is None else max(0.0, min(self.lease_s, float(lease_s)))
         with self._condition:
             self._expire_locked()
             # Dopo un riavvio il job puo' essere ritornato pending mentre il
             # bridge conserva ancora la sua prenotazione. E' lo stesso lavoro,
             # non una contesa: consentire il reclaim evita un ciclo di 503.
             if self._owner == job_id:
-                self._expires = self.clock() + self.lease_s
+                self._expires = self.clock() + lease
                 return True
             if self._owner and self._owner != self._CODA_IMMAGINI:
                 return False
             self._owner = job_id
-            self._expires = self.clock() + self.lease_s
+            self._expires = self.clock() + lease
             while self._chats:
                 remaining = deadline - self.clock()
                 if remaining <= 0:

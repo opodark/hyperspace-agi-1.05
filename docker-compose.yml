@@ -5,22 +5,25 @@
 # cartelle già presente in questo repo (registry/, node/, infra-ui/,
 # control-plane/, federation-gateway/, shared/, data/).
 #
-# USAGE — scegli UN solo profilo GPU alla volta:
+# USAGE — Profili di accelerazione e workload:
 #
-#   docker compose up -d
+#   Base (core mesh: CP, Registry, SearXNG, Node-1, WebUI, Sandbox):
+#     docker compose up -d
 #
-#   Ollama CPU:     docker compose --profile cpu up -d
-#   Ollama NVIDIA:  docker compose --profile nvidia up -d
-#   Ollama AMD:     docker compose --profile amd up -d
-#   Ollama Intel:   docker compose --profile intel up -d
-#   Ollama Vulkan:  docker compose --profile vulkan up -d
+#   GPU Ollama (scegli UN solo profilo):
+#     Ollama CPU:     docker compose --profile cpu up -d
+#     Ollama NVIDIA:  docker compose --profile nvidia up -d
+#     Ollama AMD:     docker compose --profile amd up -d
+#     Ollama Intel:   docker compose --profile intel up -d
+#     Ollama Vulkan:  docker compose --profile vulkan up -d
 #
-# Home (bridge):   http://localhost:8099   (card dei servizi NON e' la dashboard)
-# Control Plane:   http://localhost:8085   (dashboard: /dashboard   autogen: /dashboard#autogen)
-# Registry:        http://localhost:8086/nodes
-# Node 1:          http://localhost:8084
-# SearXNG:         http://localhost:8092  (web search engine self-hosted)
-# Federation GW:   http://localhost:8095  (solo endpoint esposto ai CP confederati)
+#   Profili Workload:
+#     Office (Traduzione offline Argos/LibreTranslate):
+#       docker compose --profile office up -d
+#     Security Lab (Kali Linux pentest su rete host):
+#       docker compose --profile security up -d --build kali
+#     OmniRoute (Fallback cloud multi-provider):
+#       docker compose --profile opt up -d omniroute
 # ============================================================
 
 services:
@@ -417,6 +420,7 @@ services:
     volumes:
       - libretranslate_models:/models
     restart: "no"
+    profiles: ["office"]
 
   libretranslate:
     image: libretranslate/libretranslate:v1.9.6
@@ -440,6 +444,7 @@ services:
     networks:
       - hyperspace-net
     restart: unless-stopped
+    profiles: ["office"]
 
   control-plane:
     build:
@@ -475,6 +480,9 @@ services:
       # Il nodo (./data/node-1) e il compose Windows (${HS_DATA_DIR}) lo fanno
       # gia': qui mancava solo al control-plane.
       - ./data/control-plane:/app/data
+      # Credenziale Moltbook dell'agente HyperSpace, leggibile dal CP ma mai
+      # inclusa nell'immagine o nel repository.
+      - /Users/opo/.config/moltbook/credentials.json:/run/secrets/moltbook-credentials.json:ro
       - sandbox_exchange:/sandbox-exchange
       # Output di ComfyUI (gli sketch del Mac): montato in sola lettura perché
       # /diario/immagini possa servire i PNG generati fuori dal container.
@@ -496,7 +504,9 @@ services:
       MEMORY_MAX_ENTRIES: "${MEMORY_MAX_ENTRIES:-200}"
       MEMORY_BACKEND: "${MEMORY_BACKEND:-hermes}"
       MEMORY_FILE: "${MEMORY_FILE:-/app/data/memory.json.gz}"
+      MOLTBOOK_CREDENTIALS_FILE: "/run/secrets/moltbook-credentials.json"
       DIARIO_IMMAGINI_DIR: "/app/comfy-output"
+      COMFYUI_URL: "http://host.docker.internal:8188"
       WEBUI_SHARE_DIR: "/app/hyperspace_share"
       UNLIMITED_OCR_BASE_URL: "${UNLIMITED_OCR_BASE_URL:-}"
       UNLIMITED_OCR_MODEL: "${UNLIMITED_OCR_MODEL:-baidu/Unlimited-OCR}"

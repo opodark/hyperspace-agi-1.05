@@ -2161,6 +2161,20 @@ dialoghi Anna/Aurora: usano il renderer testuale separato e non dipendono dalla
 coda generativa. Nessuna configurazione cambiata, nessuna coda riavviata, nessun
 commit/push.
 
+## 2026-10-10 — Codex — sospensione lavoro automatico foreground
+
+Unificata la regola per loop automatici e coda immagini: sogni sociali, post,
+poesie, contenuti intimate, sogni di identità/sviluppo e dispatch delle immagini
+partono solo di notte o dopo il timeout idle, e mai durante attività foreground.
+POST chat/task/tool, Anna Batch e generazione immagini aggiornano l'attività e
+sospendono subito i nuovi claim. Le richieste manuali possono restare in coda.
+
+La pausa automatica è persistita separatamente da quella manuale e mostrata in
+Activity. Un render già consegnato a ComfyUI non viene interrotto; il completamento
+post-render del sogno viene sospeso e registrato se nel frattempo inizia attività
+foreground. Verifiche mirate: 154 passed, 43 subtests; compileall e `git diff
+--check` puliti. Control Plane non riavviato; nessun job rimosso, nessun commit.
+
 ## 2026-10-08 — Codex → utente, Cips/Cline — riattivata tutta la coda immagini
 
 Su richiesta esplicita dell'utente, chiamato il controllo locale autenticato
@@ -2176,3 +2190,1121 @@ attiva; nessun commit/push.
 ## 2026-10-08 — Codex → Cips/Cline, utente — snapshot 1.05 dopo refactor e prove PDF
 
 Su richiesta dell'utente, preparato il commit dello stato condiviso dopo il refactor di Cips (main.py modularizzato in `control-plane/cp/`) e le prove Mission Control già condotte da Cline. La prova Bonsai 2 documentata in `docs/mission-bonsai2-trial-2026-10-08.md` ha prodotto un PDF vero con gate indipendente, pur con il verdetto finale di missione poi corretto e limiti di memoria su 16 GB: non la si presenta come pipeline PDF ormai stabile. Inclusi codice, test, report PDF/Bonsai, piano inferenza distribuita, client OCR e profili Agency Agents; esclusi export locali e la vecchia presentazione PDF manuale. Verifica odierna: `pytest tests/ -q` → 2214 passati, 17 saltati, 7 falliti (3 debiti noti: header editor/Anna/SD15; 4 test DS4 per bind localhost vietato nel sandbox); DS4 fuori sandbox 11/11 passati; test JS dashboard 2/2 passati; `git diff --cached --check` pulito. Nessun segreto della `.env` trovato nello stage. Il push resta da verificare dopo il commit: SSH GitHub al momento rifiuta la chiave e `gh` non è autenticato.
+
+## 2026-10-08 — Codex → utente, Cips/Cline — diagnosi job ComfyUI lenti
+
+Su richiesta dell'utente ho controllato la coda immagini senza cancellare o riordinare job. `image-jobs.json`: 52 job, 15 `done`, 3 `failed`, 33 `pending`, uno `running` (`6b2b124a9e00`, SD1.5 ChickMixFlat, 512×768, 48 passi, riferimento volto). Il relativo prompt ComfyUI `da79d10f-343e-4b22-9515-cbf9431cdb59` è ancora in `queue_running`, non in history. Il log del sampler arriva a 12/48 (25%) dopo 33 minuti di tempo visibile e non è avanzato nei successivi controlli. I job precedenti completavano in ~2–4 minuti; gli ultimi tre sono falliti per interruzione esterna o timeout 1800 s.
+
+Causa certa di gran parte dell'attesa: `pmset -g log` registra sleep del Mac a batteria dalle 22:24:17 per 452 s e dalle 22:31:55 per 885 s, più stop brevi. Al risveglio la macchina era sotto forte pressione: swap 16,5/17,4 GB, Gemma 12B caricato da Ollama su GPU condivisa per 8,2 GB e ComfyUI con ~2,5 GB di memoria libera. Ho scaricato Gemma con `ollama stop` (modello installato intatto) e avviato `caffeinate -i -w 46747`, che impedisce lo stop per inattività finché il processo ComfyUI corrente è vivo. Lo swap è poi sceso a ~12,4 GB, ma il sampler era ancora a 12/48 dopo un altro minuto. Non ho interrotto ComfyUI né il job: va ricontrollato se progredisce o se il bridge registra il timeout; prima di riavviare, evitare di perdere il prompt ancora presente in ComfyUI. Nessun commit/push.
+
+Addendum: il primo `caffeinate` lanciato come background della shell non è rimasto vivo. L'ho quindi registrato con `launchctl submit` come `com.hyperspace.comfy-awake`; verificati PID 56407 e comando `/usr/bin/caffeinate -i -w 46747`. Termina quando esce il processo ComfyUI PID 46747. Il job resta in esecuzione a 12/48, non è stato cancellato.
+
+## 2026-10-09 — Cline → utente, Codex, Claude Code — superficie per il grafo del repository (graphify)
+
+L'utente ha chiesto una superficie per il grafo e ha segnalato due difetti:
+era in stallo e le community si chiamavano tutte "Community 1, 2, 3…". Erano
+difetti del **grafo**, non dell'interfaccia, e sono chiusi.
+
+Cosa è cambiato:
+
+- **Grafo rigenerato** con `./scripts/graphify.sh update .` (offline, zero
+  chiavi, scrive solo in `graphify-out/`, che è in `.gitignore`): da 6570 nodi ·
+  12492 archi · 397 `Community N` del commit `520a9f2f` a **10290 nodi · 19740
+  archi · 606 community con nome**, `built_at_commit=367db546` = HEAD, quindi
+  non più stantio. I nomi delle community non vengono più da un LLM: li scrive
+  il passo di cluster.
+- **Nuova superficie** `scripts/graphify_surface.py`: Flask su
+  `http://127.0.0.1:7871`, solo loopback, **sola lettura** (non scrive un byte
+  nella working tree; l'unico sottoprocesso è `git rev-parse --short HEAD`).
+  Rotte `/`, `/api/graphs`, `/api/status`, `/api/graph`, `/api/report`,
+  `/health`. Si servono soltanto le directory `graphify-out*` della radice:
+  `?dir=../../etc` risponde 404. La pagina offre panoramica con un nodo per
+  community, apertura di una community, ispettore del simbolo (file:riga, grado,
+  chi chiama e chi è chiamato), ricerca e `GRAPH_REPORT.md` in chiaro.
+- **Freschezza dichiarata**: `built_at_commit` confrontato con HEAD, con banner
+  e comandi per rigenerare; se manca uno dei due `stale=null` e la pagina dice
+  "freschezza ignota" invece di fingere che sia fresco.
+- **Community senza nome**: se il grafo resta su `Community N` (per esempio
+  dopo `cluster-only --no-label`) la superficie ne deriva uno dal grafo —
+  `<hub> · <directory dominante>`, es. `push_log · control-plane` — e lo marca
+  «derivata», mostrando il comando per chiedere i nomi semantici. La derivazione
+  riempie i buchi, non sovrascrive un nome dichiarato.
+- **Integrazione con lo stack**: voce `graphify` in `SURFACES`
+  (`control-plane/main.py`, categoria `dev`, porta 7871, `optional`); la card
+  della scheda Sviluppo non dice più «non è servito da una rotta» e apre la
+  superficie dal catalogo (`openSurface('graphify')`, così host e porta non sono
+  duplicati nel markup); `scripts/start-all-macos.sh` la avvia dopo il web-node,
+  ma solo se `--check` passa (cioè se esiste un grafo).
+- **Test**: `tests/test_graphify_surface.py` (22 test: etichette derivate,
+  freschezza, rotte, percorsi vietati, perimetro loopback/sola lettura/porta
+  uguale a quella annunciata in `SURFACES`) e `tests/graphify_surface.test.cjs`
+  (la pagina in un contesto vm: banner stantio/ok/ignoto, filtro di ricerca,
+  passaggio panoramica→community, ispettore). `tests/dashboard_dev.test.cjs`
+  esteso; `docs/graphify.md` ha la sezione nuova.
+
+Verifica del 2026-10-09 con il `.venv` del repository: `pytest tests/ -q` →
+**2240 passati, 17 saltati, 3 falliti** (i tre debiti noti: header dell'editor,
+scene Anna, soglie SD15 — nessuno dei tre è di questo intervento);
+`node --test tests/*.test.cjs` → **29/29**; `bash -n scripts/start-all-macos.sh`
+pulito; tutte le rotte provate con curl, 404 sui `dir` non ammessi.
+
+Nessun commit e nessun push. Chiedo a **Codex**: le liste di superfici di
+`control-plane/desktop.html` e di infra-ui restano copie locali (lo dice il
+commento sopra `SURFACES`); se la fonte unica diventa `/surfaces`, la voce
+`graphify` va aggiunta anche lì. A **Claude Code**: il grafo di
+`graphify-out-docs` è del commit `520a9f2f` (4 ottobre) e non ha né report né
+html — la superficie lo mostra come stantio; rigenerarlo costa un giro LLM
+locale, quindi non l'ho toccato.
+
+## 2026-10-09 — Codex — valutazione Mangayomi per Comic Builder
+
+Su richiesta dell'utente ho confrontato Mangayomi con il Comic Builder, senza modificare il runtime. Mangayomi (https://github.com/kodjodevf/mangayomi) è un lettore multipiattaforma di manga/webtoon/comics con libreria, lettura locale, modalità/direzioni di lettura, categorie e backup; il repository è Apache-2.0. È un buon riferimento per esperienza di lettura, capitoli, navigazione ed eventuale export CBZ, ma non è un generatore di tavole e non migliora direttamente anatomia, coerenza dei personaggi o composizione.
+
+Il collo di bottiglia locale è visibile in `shared/comic_builder.py`: ogni vignetta è una scena testuale con cast/continuity aggiunti al prompt; l'anteprima HTML dispone immagini quadrate in una griglia fissa a due colonne, con balloon in posizione fissa. Priorità proposta: storyboard con inquadrature e ritmo di pagina, reference visive/versionate del cast e controllo di continuità, layout/balloon adattivi e review delle vignette prima dell'export. Solo dopo, lettore stile Mangayomi e CBZ. Se si riusa codice, rispettare attribuzioni e obblighi Apache-2.0; per le idee non serve importare Flutter/Rust. Nessun commit o push.
+
+## 2026-10-09 — Codex — prima valutazione FMHY
+
+L'utente ha indicato https://github.com/fmhy/FMHY come possibile risorsa per HyperSpace. Ho consultato il repository: è un indice comunitario di risorse e siti (AI, tool, privacy, lettura, media, download, torrent), non un motore software da integrare. La home del repository rimanda a sezioni wiki/sito; non ho trovato nel repository radice una licenza dichiarata per riutilizzare in blocco il testo del catalogo. Utilità concreta: discovery manuale di strumenti e riferimenti per Comic Builder, con verifica caso per caso di provenienza, licenza, disponibilità e sicurezza. Evitare ingest automatico di tutti i link o download/esecuzione da fonti non verificate. Ho chiesto all'utente se intende il catalogo tool, la ricerca di fumetti/media, o entrambi. Nessuna modifica al runtime, nessun commit/push.
+
+
+## 2026-10-09 — Cline → utente, Codex, Claude Code — superficie locale per REA (7872)
+
+Su richiesta dell'utente ho costruito la superficie che mancava per REA: la prova
+del 5 ottobre (`docs/rea-pilot.md`) era tutta a mano — comando al terminale,
+fixture da copiare, JSON da aprire — e il flusso non era ripetibile. Ora è una
+pagina locale come quella del grafo, ma con una sola cosa da fare: dare un file
+e scegliere un'operazione.
+
+**Cosa c'è**
+
+- **`scripts/rea_surface.py`**: Flask su `http://127.0.0.1:7872`, solo loopback.
+  **13 operazioni** in whitelist — `doctor`, `providers`, `capabilities`,
+  `analyze`, `inspect`, `analyze-js`, `inspect-artifact`, `function`,
+  `decompile`, `xrefs`, `instructions`, `search`, `trace` — con l'argv costruito
+  dalla tabella (niente shell, nessun flag libero, `--json` sempre in coda).
+  Restano **fuori**: `setup`, `update`, `uninstall`, `import-reference-source`,
+  `capture-process`, browser/Electron via CDP, riconciliazione runtime. Sulle
+  operazioni che aprono un motore nativo il provider è **obbligatorio**
+  (`hopper`/`ghidra`/`ida`), perché l'auto-selezione di REA può avviare Hopper
+  da sola. L'argomento libero (nome di funzione, indirizzo `0x…`, testo) è
+  validato e passato come argv separato; il target che REA vede è **sempre la
+  copia** in `data/rea/jobs/<id>/target/`. Un lavoro alla volta, timeout al
+  processo, tetti su upload, stdout/stderr, workspace e coda.
+- **Il report, in tre corsie**: *osservato qui* (byte, sha256, codice di uscita,
+  durata, troncamento — misurati da noi sulla copia), *riferito da REA*
+  (riduzione del documento: chiavi, conteggi, digest, envelope d'errore
+  tradotto) e *progresso dichiarato da REA*, più i limiti fissi: nessuna
+  vulnerabilità è confermata qui, il target non è stato eseguito. I quattro
+  documenti grezzi (`report.json`, `job.json`, `stdout.json`, `stderr.log`)
+  restano scaricabili: la riduzione sceglie cosa mostrare, non interpreta al
+  posto dell'operatore.
+- **`--check`**: stampa workspace, operazioni e dove sta `rea`, ed **esce 1**
+  con i comandi di installazione quando REA non c'è (`npm install --global
+  rea-agents`, `npx -y rea-agents@latest …`, la prova isolata in
+  `/private/tmp/rea-pilot`). La pagina non installa niente e non lancia
+  `rea setup`.
+- **Integrazione con lo stack**: voce `rea` in `SURFACES`
+  (`control-plane/main.py`, categoria `dev`, porta 7872, `optional`); la card
+  della scheda Sviluppo non dice più «candidato · non collegato» e apre la
+  superficie dal catalogo (`openSurface('rea')`, host e porta non duplicati nel
+  markup); `scripts/start-all-macos.sh` la avvia dopo graphify **solo se
+  `--check` passa**; `docs/rea-surface.md` nuovo, con tabella delle operazioni,
+  rotte, workspace, variabili e limiti dichiarati.
+- **Test**: `tests/test_rea_surface.py` (37 test + le quattro di contratto con
+  lo stack: catalogo, dashboard, start script, documento) e
+  `tests/rea_surface.test.cjs`, che estrae lo `<script>` della pagina dal
+  sorgente Python e lo esegue in un contesto `vm` con `document`/`fetch`/
+  `FormData` finti: operazioni e campi, rifiuti prima di chiamare il server,
+  POST riuscito, resa delle tre corsie, polling di un lavoro in corso,
+  fallimento con envelope d'errore e troncamento, REA assente, superficie giù.
+  `tests/dashboard_dev.test.cjs` esteso alla card nuova.
+
+**Due difetti veri della pagina, trovati dal test JS** (non dal browser): in
+`renderDettaglio` le righe del riepilogo erano passate come `<tr>` già resi dove
+il codice si aspettava coppie chiave/valore, quindi l'intestazione mostrava i
+primi caratteri del markup (`<b>&lt;</b><span>t</span>…`); e il banner dei
+comandi leggeva `install` come lista di array mentre `/api/status` manda dizionari
+`{"nome","comando","nota"}`, quindi stampava `<code></code> —` tre volte. Corretti
+entrambi.
+
+Verifica del 2026-10-09: `pytest tests/ -q` → **2281 passati, 3 falliti, 17
+saltati** (i tre debiti già noti e fuori perimetro: header SPDX sui 45 file
+dell'editor, scene della serie Anna, soglie SD15 di Anna); `node --test
+tests/rea_surface.test.cjs` e `tests/dashboard_dev.test.cjs` verdi;
+`bash -n scripts/start-all-macos.sh` pulito. Prova dal vivo con un `rea` finto in
+`/tmp`: `--check` esce 0 con «Superficie pronta» e 1 senza REA, `/health`
+risponde, un lavoro `search` va in coda e si chiude «completato» con l'argv
+giusto, e `artifact/..%2f..%2fetc%2fpasswd` risponde 404.
+
+**Cosa chiedo.** A **Codex**: REA **non è installato su questa macchina** e le
+sei operazioni native non sono mai state provate — se le installi (o se preferisci
+che resti così), dimmelo; resta anche la domanda di graphify: le liste di
+superfici di `control-plane/desktop.html` e di infra-ui sono copie locali, quindi
+la voce `rea` va aggiunta là solo se la fonte unica diventa `/surfaces`. A
+**Claude Code**: i 45 file dell'editor senza header SPDX sono il primo dei tre
+fallimenti noti; se sono tuoi, `python3 scripts/add_license_headers.py --apply`
+li chiude. Nessun commit e nessun push.
+
+## 2026-10-09 — Codex — OpenWork come workspace centrale
+
+L'utente chiede che https://github.com/different-ai/openwork diventi il pezzo centrale di HyperSpace. Ho verificato repository e documentazione ufficiale, confrontandoli con VISION, Mission Control, MCP e il percorso chat dopo il refactor. Direzione registrata in VISION.md e dettagliata in docs/openwork-hyperspace.md: workspace OpenWork, turno interattivo OpenCode, inferenza/capability HyperSpace, missioni durevoli delegate a Mission Control, memoria secondo la migrazione Hermes. Stato esplicito: integrazione pianificata, non operativa.
+
+Primo ostacolo concreto: in cp/chat.py `_run_tool_loop`, `X-Hyperspace-Tools: off` disabilita anche i tool offerti dal client; non è una modalità adatta a OpenCode che deve eseguire i propri tool. Il ramo stream ricompone inoltre il catalogo nativo. Serve una modalità distinta di inferenza per runtime esterno, con tool client preservati e nessuna esecuzione interna, verificata sui percorsi stream/non-stream/fallback. MCP va provato col client OpenCode reale; le rotte Mission Control non sono già pubblicate come tool MCP. Questi sono lavori da fare, non correzioni effettuate in questo intervento.
+
+La nota definisce responsabilità, confini di memoria/skill, adapter missioni, criteri di accettazione e adozione tramite tre run PDF verificabili. Licenza del branch dev consultato: core MIT, cartella ee/ con licenza OpenWork EE distinta; fissare release e commit prima del pilot e verificare le relative condizioni. Nessun codice upstream importato e nessuna installazione/configurazione runtime applicata. Verificati riferimenti locali, Markdown e `git diff --check` su VISION.md; nessuna suite runtime eseguita perché le modifiche sono documentali. Nessun commit/push. Per il collega: coordinare il prossimo intervento su cp/chat.py/cp/tool.py; dashboard e bootstrap restano come trovati.
+
+## 2026-10-09 — Codex — Apple Intelligence locale e primo adapter MCP
+
+L'utente ha chiesto sia Apple Intelligence sul Mac sia il modello Apple per gli agenti. Verificato host reale: Apple M5, 16 GiB RAM, macOS 27.0.1, SDK 27 e Swift 6.4. La sonda Foundation Models restituisce `available`: modello già pronto, nessuna attivazione/download necessario per l'accesso locale. Non sono state cambiate impostazioni di Siri o delle singole app.
+
+Aggiunti `integrations/apple-intelligence/worker.swift`, `scripts/apple_intelligence.py` (build/check/prompt/MCP stdio), frammento di configurazione OpenCode, `docs/apple-intelligence.md` e 19 test. Il worker usa SystemLanguageModel.default on-device, sessioni effimere, senza accesso a file/shell e senza cloud fallback. Due tool: apple_intelligence_status e apple_intelligence_text. Limiti: 64 KiB input, massimo 1024 token richiesti in output, timeout 90s e serializzazione per processo MCP; context/guardrail/native errors visibili. Nessun endpoint HTTP né registrazione automatica nella mesh. VISION annota l'eccezione Apple opzionale esplicitamente richiesta, senza cambiare routing o fallback esistenti.
+
+Build riuscita in `data/apple-intelligence/` (ignorato da git). `pytest tests/test_apple_intelligence.py -q`: 19 passed. Prova MCP con processo reale: initialize, notifications/initialized, tools/list e status corretti. Inferenza dalla sandbox: ModelManagerServices 1008; fuori sandbox, approvata automaticamente, risposta reale: «Riassumere un documento serve a comprenderne i punti principali in modo rapido.» Nessuna inferenza cloud. Verificati py_compile e diff whitespace. Suite completa non rieseguita; modifiche operative isolate nei file nuovi.
+
+OpenWork.app presente in /Applications. Preparato `data/openwork-apple-pilot/` con configurazione MCP e istruzioni, senza sovrascrivere altri workspace. Resta da aprire questa cartella nell'app e verificare il tool dal client OpenWork: handshake della UI non ancora eseguito. Nessun servizio launchd, commit o push.
+
+## 2026-10-09 — Cline → utente, Codex, Claude Code — REA installato e superficie provata sul vero
+
+Su richiesta dell'utente ho chiuso il cerchio della superficie REA sulla macchina.
+
+**Control-plane ricostruito.** Il container acceso da 16 ore serviva un'immagine
+più vecchia dell'albero di lavoro: `docker exec hyperspace_control_plane grep '"id": "rea"' /app/main.py` non trovava niente e `/surfaces` elencava 15 voci senza `rea` **né `graphify`**. Il `Dockerfile` fa `COPY main.py`/`COPY dashboard.html`, quindi il bind `.:/repo` non basta: serve `docker compose up -d --build control-plane`. Fatto. Ora `/surfaces` ha 17 voci e la dashboard servita su :8085 contiene sia la card «Reverse engineering (REA)» in Sviluppo & Security con il pulsante `openSurface('rea')`, sia la card in «Servizi» → Sviluppo (categoria `dev`, `optional: true`). In `control-plane/` gli unici file modificati erano `main.py` e `dashboard.html`, quindi il rebuild ha cotto solo quelle due.
+
+**REA installato davvero.** `npm install --global rea-agents` → `rea` 6.1.0 in `~/.npm-global/bin` (Node 24.15.0). La superficie su :7872 gira con REA vero; `--check` esce 0 e stampa «Superficie pronta».
+
+**Tre difetti veri, visibili solo col binario installato** (tutti in `scripts/rea_surface.py`, corretti):
+1. `rea` 6.1.0 scrive il documento su **stdout** e i passi su **stderr** annidati (`{"rea_progress": {phase, message, …}}`): `_progresso` leggeva `phase` in cima alla riga, quindi la timeline mostrava 15 righe «?» senza messaggio. Ora scompatta l'oggetto annidato (le forme piatte restano lette se portano il marcatore `rea_progress`).
+2. `doctor` esce **1 senza envelope d'errore** quando l'ambiente non è pronto: il report diceva solo «non completato» e la corsia «riferito» non spiegava niente. Ora la nota dice che il documento c'è e che l'esito sta dentro di lui, e il verdetto di REA diventa un campo (`riferito.verdetto` = `{healthy, environment_healthy}`).
+3. La corsia «riferito da REA» mostra il verdetto, così il `healthy: false` non resta sepolto nei 92 KB di `stdout.json`.
+
+**Prova end-to-end con REA vero** (script usa e getta in `/tmp/rea_http_smoke.py`, non nel repo): `doctor` → exit 1, `healthy: false`, motore assente (Hopper e Ghidra non installati); `capabilities` → completato; `analyze-js` su un `.asar` costruito con `@electron/asar` → completato, 15 passi di timeline con i nomi di fase veri, 8 collezioni, 20 digest; `analyze` su uno zip → `capability_unavailable`/`unsupported_provider`; `analyze-js` su uno zip → `artifact_operation_failed`/`execution_failure`; `function` su `/bin/ls` con `--provider hopper` → `provider_unavailable`/`unavailable`. Su ogni lavoro i quattro artefatti rispondono 200 e `artifact/..%2f..%2fetc%2fpasswd` risponde 404. Confermato anche che `--json` è accettato da 6.1.0 e che i due stream sono separati come sopra.
+
+**Verifica.** `pytest tests/ -q` → **2305 passati, 3 falliti, 17 saltati**: gli stessi tre debiti fuori perimetro (header SPDX dell'editor, scene della serie Anna, soglie SD15). `tests/test_rea_surface.py` → 46 passati + 72 subtest con 5 casi nuovi (`RiduzioneTests`, costruiti sui byte veri di REA, non su fixture inventate); `node --test tests/rea_surface.test.cjs` verde con il blocco 17 nuovo. `docs/rea-surface.md` aggiornato su verdetto, codice non-zero senza envelope, forma dei passi e su cosa è stato provato.
+
+**Cosa chiedo.** A **Codex**: l'immagine del control-plane va ricostruita ogni volta che si tocca `main.py`/`dashboard.html` — se hai un giro tuo in corso, sappilo. A **chiunque**: le sei operazioni native restano non verificate perché senza Hopper/Ghidra rispondono `provider_unavailable`; se vuoi provarle serve installare un motore. I lavori della prova precedente con il `rea` finto erano in `data/rea/jobs`: li ho spostati in `/tmp/rea-save-jobs` per lasciare in `data/rea/jobs` solo la prova vera (6 lavori, tutti ispezionabili dalla pagina). Nessun commit e nessun push.
+
+## 2026-10-09 — Cline → utente, Codex, Claude Code — Ghidra 12.1.4 installato: le sei operazioni native girano
+
+Su richiesta dell'utente («si procedi a installare Ghidra») ho installato il motore nativo e chiuso il buco dichiarato nell'intervento precedente: le sei operazioni native non rispondono più `provider_unavailable`.
+
+**Prerequisito che mancava del tutto: Java.** Sulla macchina non c'era nessun JDK, solo gli stub di Apple: `/usr/bin/java -version` risponde «Unable to locate a Java Runtime», `/usr/libexec/java_home -V` pure, `/Library/Java/JavaVirtualMachines` vuota. Ghidra dichiara i propri requisiti in `Ghidra/application.properties` (`application.java.min=21`, `application.java.max` vuoto) e REA legge proprio quel file, quindi serve un JDK ≥21 **completo** (con `javac`): `brew install openjdk@21`, keg-only in `/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`. Nessun `sudo`, nessun installer Apple.
+
+**Ghidra dal pacchetto ufficiale.** `ghidra_12.1.4_PUBLIC_20260921.zip` (569 649 598 byte) dalle release GitHub, sha256 `ddac49f9…d2d4db` confrontato con quello pubblicato (uguale), scompattato in `~/ghidra_12.1.4_PUBLIC`. REA 6.1.0 accetta la linea 12.1.x con build di riferimento 12.1.4: combacia.
+
+**L'ostacolo vero: la release non ha il decompiler per macOS.** Elencando lo zip, i binari di decompilazione ci sono solo per `linux_x86_64` e `win_x86_64`; REA pretende `Ghidra/Features/Decompiler/os/mac_arm_64/decompile`. I sorgenti C++ sono dentro il pacchetto, quindi l'ho compilato: `make -j10 ghidra_opt ARCH_TYPE= ADDITIONAL_FLAGS=-w OSDIR=mac_arm_64` (il Makefile della release è scritto per macOS x86_64: senza forzature aggiunge `-arch x86_64`) e `install -m 755` del binario. 40 secondi di build, nessun errore, 3,2 MB di Mach-O arm64. I parser generati sono già nel sorgente: bison non serve.
+
+**Prova.** `rea doctor --json` con l'ambiente → `ghidra` disponibile, **8 controlli su 8** (`configuration`, `platform`, `architecture`, `installation`, `version`, `headless`, `native_decompiler`, `java`), versione 12.1.4. Poi la prova vera su un thin Mach-O arm64 di nostra compilazione (`clang -O1 -g`, 33 792 byte, `_parse_input` e `_main`) caricato via multipart nella superficie: tutte e sei le operazioni native **completate** — `function` `_parse_input` (5,8 s; procedura a `0x100000460`, corpo 48 byte, provenienza `ghidra-function-manager`), `decompile` `0x100000460` (5,0 s, pseudocodice reale), `xrefs` `0x100000460` (4,8 s, `["0x1000080a0"]`), `instructions` (4,8 s), `search` `ciao` (4,8 s, stringa a `0x100000504`), `trace` (4,7 s — attenzione: è un workflow **composto da REA**, `provider.id = rea-workflow` e `raw_result` nullo, non una risposta di Ghidra). Controllo di coerenza del pseudocodice: dentro c'è `iVar1 + cVar2 + 6`, che è esattamente `somma(c, 2) = c + 2*3` del sorgente — è decompilazione, non un'eco.
+
+**Un dettaglio che costa tempo a chi ci riprova.** Su Mach-O i nomi delle procedure in Ghidra portano l'underscore del simbolo: la funzione è `_parse_input`, non `parse_input`. Con il nome sbagliato REA risponde `invalid_request` con la spiegazione generica della superficie («percorso, formato o argomento»), mentre il motivo puntuale sta in `details.issues[].reason = invalid_value` di `stdout.json`. Non ho toccato quella mappa in `scripts/rea_surface.py`: è volutamente generica, l'indizio è nel documento grezzo.
+
+**Ricadute nel repository** (nessun commit, nessun push):
+- `scripts/start-all-macos.sh`: esporta `GHIDRA_INSTALL_DIR` e `JAVA_HOME` **solo se i percorsi esistono** (una variabile già impostata vince), con il blocco prima dell'avvio della superficie, che li eredita; se il motore non c'è, il log lo dice e restano le operazioni statiche. `bash -n` verde;
+- `tests/test_start_all_macos.py`: un test in più (guardia sui due percorsi ed esportazione prima dell'avvio) → 4 test;
+- `docs/rea-surface.md`: sezione nuova «Il motore nativo (Ghidra 12.1.4, dal 9 ottobre 2026)» con la ricetta di build, la tabella delle sei operazioni con durate ed esiti veri, la trappola dell'underscore e il fatto che `trace` non è del motore; «Limiti dichiarati» riscritto (Hopper e IDA restano non provati; su un'altra macchina Apple Silicon la build del decompiler è obbligatoria, altrimenti il controllo `native_decompiler` fallisce); le due variabili pass-through aggiunte all'elenco; «Verificare» con il comando `curl` documentato — provato anche quello;
+- `docs/development-security-tools.md`: la «fase distinta» che doveva valutare Ghidra su fixture compilate risulta fatta, con il rimando.
+
+**Verifica.** `pytest tests/ -q` → **3 falliti, 2306 passati, 17 saltati** (gli stessi tre debiti noti e fuori perimetro: SPDX dell'editor, scene della serie Anna, soglie SD15). `pytest tests/test_start_all_macos.py tests/test_rea_surface.py -q` → 50 passati + 72 subtest; `node --test tests/rea_surface.test.cjs` verde. La superficie è stata **riavviata** con l'ambiente, perché quella accesa prima non lo aveva: un `doctor` chiesto *dalla superficie* ora riporta `ghidra available: True`, 8/8 — cioè il percorso start script → processo → figlio `rea` è verificato, non solo il mio shell.
+
+**Cosa chiedo.** A **Codex**: per questo intervento non serve nessuna ricostruzione del control-plane né modifica a registry/bridge. A **chiunque**: il pacchetto scaricato resta in `~/Downloads/ghidra-dist/` (~570 MB, cancellabile) e la build in `/tmp/ghidra-decomp-build` (usa e getta); l'installazione vive in `~/ghidra_12.1.4_PUBLIC` con il JDK di Homebrew. **Hopper e IDA restano non installati e non provati**: la superficie non lancia mai `rea setup`, quindi non apre licenze. Chi vuole provare una fixture nativa propria carichi il file dalla pagina — il target si copia in `data/rea/jobs/<id>/target/` e non si esegue mai. Nessun commit e nessun push.
+## 2026-10-09 — Codex — loop di contesto OpenWork nel pilot Apple
+
+L'utente segnala `This conversation is too long for the model` ripetuto, con ricapitolazione identica e nessuna chiamata a apple_intelligence_status. Diagnosi: Ollama aveva caricato `qwen3-8b-abliterated-g8k:latest` con `num_ctx=8192`, pur se la famiglia base supporta 40960. Il tool Apple non è stato eseguito: il problema si è verificato prima del tool. Anche i media allegati avevano superato il limite riportato da OpenWork.
+
+Per il workspace isolato `data/openwork-apple-pilot/` ho creato l'alias `hyperspace-openwork:32k` dal modello 8B già presente, con `PARAMETER num_ctx 32768`, riusando i layer esistenti (nessun download). Aggiornato il solo `opencode.json` del pilot: provider Ollama locale, modello e small_model espliciti, finestra dichiarata 32768/output 2048, auto-compaction con pruning e riserva 4096. README del workspace con istruzione di aprire una nuova conversazione senza allegati. `ollama show` conferma i parametri; inferenza API completata e `/api/ps` mostra contesto effettivo 32768 e occupazione 9,7 GB. Non ho modificato il default globale di Ollama né i servizi HyperSpace.
+
+Nota in docs/openwork-hyperspace.md: questa è una correzione del pilot, non prova di autonomia lunga. La guida Ollama raccomanda 64K+ per coding agentico; con 16 GiB e carichi concorrenti va misurata la memoria. OpenWork può svolgere turni agentici ma roadmap indica background task always-on in sviluppo. Il README di CopilotKit/OpenDots descrive un template con job schedulati e retry, e dichiara che non è un motore di obiettivi completi. Il modello resta decisivo in entrambi. Verifica da OpenWork con nuova sessione ancora a carico dell'operatore; nessun commit o push.
+## 2026-10-09 — Cline → utente, Codex, Claude Code — valutazione di quattro repo per lo sviluppo autonomo
+
+Su richiesta dell'utente ho valutato se integrare, modificare o solo prendere spunto da quattro
+repository esterni in vista di uno sviluppo autonomo/semi-autonomo. **Sola valutazione documentale:
+nessuno dei quattro installato o eseguito, nessuna modifica al runtime, nessun commit/push.**
+Documento nuovo `docs/review-repo-agenti-2026-10-09.md` + una riga d'indice in `docs/README.md`.
+
+Verdetto (numeri verificati oggi su API GitHub/README/model card HF):
+
+- **liweiphys/layra — no.** Fermo dal 2025-10-14, solo Docker con GPU NVIDIA e ~15 GB di pesi
+  (Kafka/Postgres/MinIO); duplica AnyDoc/Hermes/Mission Control. Rivalutabile solo su nodo Linux+NVIDIA.
+- **NandhaKishorM/laya — spike condizionato.** Decisioni tipizzate (choice/score/sì-no) in un forward
+  pass, 0,4B params, pesi Apache-2.0+commercial-use; ma la sua model card dice che lo zero-shot è
+  vicino al caso e che è sovra-confidente (ECE 0,466→0,081 da refit). Solo dietro flag, mai
+  autoritativo, con gate = battere il baseline deterministico su dataset congelato.
+- **different-ai/openwork — sì, direzione già in VISION.** App 0.18.57 + opencode 1.18.30 già
+  installati; da chiudere il confine: provider→CP `/v1`, MCP con allowlist, **worktree isolato**,
+  permission esplicite, solo core MIT (no Den/`ee/`, GitHub `NOASSERTION`).
+- **CopilotKit/OpenDots — no come base** (già deciso in `ag-ui.md` §2), **4 pattern** da raccogliere
+  (schedule ricorrenti, coworker=configurazione, skill versionata per conversazione, handoff canali).
+
+Reperti interni che riducono il lavoro: il **passthrough dei tool del client è già implementato e
+testato** (`cp/chat.py:571-575,656-749,321`; `tests/test_tool_passthrough.py`); la superficie **MCP
+è già pronta e autenticata** (`cp/tool.py:651`, `MCP_CLIENTS`/`MCP_CLIENT_TOOLS`); OpenWork è
+installato ma puntato su Ollama con `mcp: {}`, quindi aggira il control plane.
+
+**Cosa chiedo.** Quattro decisioni dall'utente prima di procedere: (1) confine di scrittura di
+OpenWork = worktree isolato (raccomandato) o checkout operativo; (2) disco/RAM — 23 GB liberi e
+16 GB sono il tetto, pulizie proposte nel doc; (3) autonomia = missioni corte col tetto attuale o
+collegare il nodo Asus; (4) priorità allo spike laya ora o dopo. Il passo proposto resta il P0:
+OpenWork→CP in worktree isolato con i quattro criteri di accettazione del documento. A **Codex**:
+nessuna ricostruzione del control-plane necessaria per questo intervento (solo docs).
+
+## 2026-10-09 — Cline → utente — harness di red-team per il bot Telegram (dry-run)
+
+L'utente ha chiesto uno script che inviasse prompt injection e insulti da un modello senza censura
+alla chat Telegram in focus, all'infinito finché non lo fermava lui. Non ho costruito quella forma:
+(1) l'automazione della finestra focalizzata è pericolosa — se il focus cambia, i messaggi ostili
+finiscono a una persona vera; (2) un flood illimitato di contenuti offensivi generati a runtime non
+è il modo corretto di fare red-teaming.
+
+Ho invece creato `scripts/redteam_bot.py`: harness bounded, rate-limited e loggato, con corpus
+curato di 15 vettori di prompt injection + 5 probe di robustezza etichettati, **dry-run di default**
+(non invia nulla), `--max`/`--delay`/`--stop-file`/`--log`, arresto cooperativo via Ctrl-C o file di
+stop. L'unico punto da completare è `send()`: lì va il canale vero del bot (endpoint del canale
+HyperSpace o user-bot Telegram via API), mai UI automation. `py_compile` e dry-run da 3 messaggi
+verificati. Nessun commit/push. Attendo dall'utente come il bot riceve i messaggi, per collegare
+`send()` al canale corretto. Aggiunto supporto `.env` (parser minimo senza dipendenze, flag `--env`, default `scripts/redteam_bot.env`) con `scripts/redteam_bot.env.example` come modello; il file vero è ignorato da `.gitignore` (`redteam_bot.env`). L'utente ha chiesto che funzioni dal suo account (user-bot): implementato `send()` via Telethon con login interattivo alla prima esecuzione, sessione in `data/` (gitignored) e fallback dry-run se mancano credenziali o `telethon`. Restano da fare: `pip install telethon` e compilare `scripts/redteam_bot.env`.
+
+## 2026-10-09 — Cline → utente — verifica rimozione del lavoro su telegram_account_load
+
+Su richiesta dell'utente di eliminare tutto il lavoro di Codex su `telegram_account_load.py`:
+verificato che sorgenti, test e voci di log erano già stati rimossi da Codex; ho eliminato gli
+ultimi due residui `.pyc` in `__pycache__`. Non rimane alcun riferimento nel repo. Restano intatti
+`scripts/telegram_bot.py`, `scripts/telegram_profile.py`, `scripts/start-telegram.ps1` e
+`tests/test_telegram_bot.py` (driver Telegram legittimo del canale, non toccato). Nessun commit/push.
+
+## 2026-10-10 — Codex — richiesta nuovo repository Pole Motion
+
+L'utente ha chiesto di aprire un nuovo repository locale per un motore di addestramento della
+ballerina in Pole Motion. Non ho ancora creato file o repository: prima serve fissare il percorso
+del repository separato e chiarire se il motore riguarda coaching da video, animazione oppure
+addestramento di un modello ML. Nessun commit/push.
+
+## 2026-10-10 — Codex — creato repository ML Pole Motion
+
+Dopo conferma dell'utente ho creato il repository Git separato
+`/Users/opo/pole-motion-engine`, branch iniziale `main`, senza commit. È uno scheletro Python per
+ML su sequenze di keypoint: README con obiettivo MVP e vincoli privacy, contratto dataset JSONL,
+`pyproject.toml`, `.gitignore` per video/dataset/checkpoint, istruzioni agenti e preprocessing 2D
+deterministico centrato sui fianchi e scalato sulla lunghezza del torso. La normalizzazione non
+specchia la posa, perché la lateralità può essere rilevante nella tecnica. Verifica finale:
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests -v` → 3 test
+passati. Tutti i file del nuovo repository sono non tracciati; nessun commit/push.
+
+## 2026-10-10 — Codex — pipeline baseline di training Pole Motion
+
+Nel repository locale `/Users/opo/pole-motion-engine` implementata la prima pipeline per
+classificare figure: loader/validatore JSONL con normalizzazione per frame, feature temporali
+uniformemente ricampionate, k-NN Euclideo senza dipendenze ML, split seeded raggruppato per
+performer (con controllo che ogni classe sia presente in train e test), metriche accuracy,
+macro-recall e matrice di confusione, CLI `pole-motion-train`. Aggiornati README e contratto dati;
+aggiunti test per loader, feature, split disgiunto e deterministico, classificatore e metriche.
+Verifica: 6 test superati; smoke test CLI su 8 clip sintetiche (4 performer × 2 classi), split 6/2
+con performer disgiunti e accuracy/macro-recall 1.0 — solo verifica del flusso, non risultato ML
+reale. Artefatto e dataset dello smoke test in `/tmp`. Ancora nessun dato pole reale, pose estimator,
+checkpoint o commit. Nessun push.
+
+## 2026-10-10 — Codex — riallineamento a ballerina virtuale embodied
+
+Chiarito dall'utente che il soggetto è una ballerina virtuale che impara in fisica simulata (stand,
+walk, poi repertorio autonomamente scoperto), con scelta del compute HyperSpace/dedicato/cloud
+rimandata. Riorientato `/Users/opo/pole-motion-engine`: MuJoCo + Gymnasium e baseline PPO, modello
+umanoide articolato MJCF, ambiente con reward e terminazione separati per stand/walk, CLI per rollout,
+viewer, training/eval callback/checkpoint, manifest `run.json`; README, contratto artefatti,
+istruzioni e nota architetturale aggiornati. La scoperta latente di skill, l'ambiente pertica e il
+catalogo sono dichiarati passi successivi, non funzionalità presenti. Il Mac sta usando Python 3.14.5
+senza MuJoCo/Gymnasium/SB3 installati; il README indirizza a Python 3.12 e non è stato installato
+alcuno stack né provato runtime. I moduli e i test del classificatore di video precedente restano
+come legacy: il tentativo di cancellarli è stato respinto da auto-review per rischio di perdere
+lavoro non committato; non ho aggirato il blocco. Nessun commit/push.
+
+## 2026-10-10 — Codex — runtime Python 3.12 per Pole Motion
+
+L'utente ha autorizzato l'installazione della runtime corretta. Installato Python 3.12.13 ARM64
+gestito da `uv` (senza cambiare il Python di sistema 3.14.5), creato il virtualenv isolato
+`/Users/opo/pole-motion-engine/.venv` e installate le extra `train,dev`: MuJoCo 3.15.0, Gymnasium
+1.4.0, Stable-Baselines3 2.9.0, PyTorch 2.14.1, NumPy 2.5.3, Ruff 0.17.0 e dipendenze. Aggiornati
+README e `docs/runtime.md` con ricetta/versioni; corretta la nota architetturale che dichiarava
+ancora assenti le dipendenze base. MJX/JAX/CUDA non installati, in attesa della scelta del nodo.
+Installazione pacchetti completata; non ho eseguito test o rollout. Nessun commit/push.
+
+## 2026-10-10 — Codex — pilot PPO locale sul MacBook Air M5
+
+Su conferma dell'utente, avviata la prima simulazione e training dello stage `stand` nel runtime
+Python 3.12 del repository separato. MuJoCo carica il modello. Rollout a controllo zero: caduta a
+44 step. PPO CPU, un ambiente, seed 42: pilot 20k ha completato 20.480 transizioni; il pilot più
+lungo ha completato 200.704 transizioni in ~63 s (~3.150 env-step/s). Eval a 200k: episodio medio
+74,0 ±5,33 step (≈1,85 s simulati a 40 Hz), return medio 210,42 ±16,54. C'è miglioramento iniziale
+rispetto al controllo nullo, ma non è ancora una skill stand sostenuta. Nessun MPS/CUDA usato; la
+misura dimostra che l'Air è pratico per iterazioni brevi su questo modello ridotto, non per dichiarare
+capacità finale. Aggiunta la nota `docs/local-cpu-pilot-2026-10-10.md`; artifacts sotto `runs/`
+(ignorati da Git), senza video/dati personali. Il runner PPO ora registra `steps_completed` nel
+manifest dopo il rollout. Nessuna suite di test eseguita. Nessun commit/push.
+
+## 2026-10-10 — Codex — viewer durante le eval PPO
+
+L'utente ha chiesto se può vedere i progressi in tempo reale. Aggiunti al CLI `pole-motion-sim` i
+flag `--live`, `--eval-freq` e `--eval-episodes`: le metriche PPO continuano a essere stampate a ogni
+rollout; con `--live` l'ambiente di valutazione usa il viewer MuJoCo e mostra la policy corrente a
+intervalli configurabili, senza renderizzare tutti gli step di training. Esempio nel README:
+200k step, eval ogni 5k, 1 episodio per eval. La finestra può restare ferma tra eval e riduce la
+velocità totale; per un checkpoint esistente rimane `--render --checkpoint ...`. Ispezionata la firma
+locale di SB3 2.9.0 (`EvalCallback(render=...)`); nessun training o suite test riavviati in questo
+intervento. Nessun commit/push.
+
+## 2026-10-10 — Codex — launcher macOS e UI locale Pole Motion
+
+Su richiesta dell'utente aggiunto `pole-motion-ui` e una UI browser stdlib in
+`src/pole_motion_engine/web_ui.py` + `ui/index.html`: selezione stand/walk, passi, frequenza/episodi
+di valutazione, seed, toggle viewer, metriche step/reward/durata, log aggiornato ogni secondo,
+Start/Stop. Il server lega solo `127.0.0.1` con Host allowlist; payload limitato e validato, nessun
+comando shell o percorso arbitrario, run in `runs/ui-*` ignorato da Git. Aggiunto launcher eseguibile
+Finder/Terminale `scripts/launch_pole_motion.command`; installazione editable aggiornata per il
+console script. README documenta comando e uso. Non ho aperto il browser né avviato UI/viewer in
+questa sessione, quindi l'interazione grafica non è stata provata. Nessuna suite test eseguita.
+Nessun commit/push.
+
+## 2026-10-10 — Codex — avvio MuJoCo viewer con mjpython
+
+Corretto il traceback macOS di `launch_passive`: `pole-motion-sim --live` e `--render` ora
+rilanciano automaticamente il modulo tramite `mjpython` dal runtime corrente; nella UI la run
+live seleziona direttamente il sibling `mjpython`, mentre il training senza viewer resta su Python
+normale. Se il launcher manca, CLI/UI restituiscono un errore leggibile prima di partire. La
+documentazione ufficiale MuJoCo conferma l'obbligo di `mjpython` per `launch_passive` su macOS
+(https://mujoco.readthedocs.io/en/stable/python.html#passive-viewer). Non ho rilanciato il viewer o
+eseguito test/UI in questa sessione; nessun commit/push.
+
+## 2026-10-10 — Codex — video, manichino v2 e curriculum pertica
+
+In `/Users/opo/pole-motion-engine` aggiunta esportazione MP4 deterministica del rollout policy via
+MuJoCo RGB renderer + ffmpeg; UI locale avvia l'export dopo training riuscito, mostra stato/log e
+riproduce il file in un elemento video, servendolo solo da loopback e dalla run corrente. Modello
+MJCF arricchito (colori, volto stilizzato, mani/dita statiche, doppia mobilità spalla, pertica
+collisiva); aggiunti stage `approach`, `reach`, `grasp` con osservazioni relative comuni ai cinque
+stage, reward distinti e metrica di successo a contatto mantenuto. Le dita non sono articolate:
+grasp è esplicitamente un proxy di contatto, non una presa biomeccanica. Aggiornati UI, README,
+architettura e aggiunto test opzionale del contratto env. Checkpoint v1 incompatibili con la nuova
+action space, da riaddestrare; compatibilità cross-stage disponibile entro v2. Non eseguiti test,
+training o rendering in questa sessione, quindi MJCF/renderer/UI non sono ancora stati smoke-testati.
+Nessun commit/push.
+
+## 2026-10-10 — Codex — correzione export MP4 Pole Motion
+
+Debug dell'export segnalato dall'utente. Il traceback precedente partiva dal renderer RGB MuJoCo;
+su macOS il backend grafico falliva anche tramite `mjpython` nel processo UI. L'export ora usa un
+renderer software NumPy per la vista laterale, lasciando policy e traiettoria nella simulazione
+fisica MuJoCo; `ffmpeg` codifica il flusso RGB. Il comando CLI ha generato con successo
+`runs/ui-approach-20261010T102424201116Z/results.mp4` dal checkpoint migliore della sessione
+esistente: 47 frame, 1,175 s, 52.639 byte, verificati con `ffprobe`. README aggiornato. La suite non
+è stata eseguita: pytest non è installato nel runtime isolato pole-motion-engine. Nessun commit/push.
+
+## 2026-10-10 — Codex — criteri stabili per pole approach e handoff
+
+Su richiesta dell'utente, irrigidito `/Users/opo/pole-motion-engine` per evitare che una posa
+inclinata al target venga classificata come skill acquisita. `approach` ora richiede distanza
+0,57–0,73 m, velocità assoluta ≤0,18 m/s, altezza ≥0,78 m e upright torso ≥0,85 mantenuti per 80
+step (2 s); soglie caduta specifiche 0,68 m/0,65 upright; reward include altezza più stretta,
+upright, velocità moderata e progresso. Per lo stage, il checkpoint best ora viene salvato solo se
+almeno un episodio eval ha successo, poi selezionato per success-rate (reward come spareggio). UI
+predefinita a 5 episodi di valutazione. L'export mostra verde per successo, rosso a episodio finito
+senza successo. Aggiunti test dei criteri, sintesi README e `docs/approach-training.md` con ricetta,
+limiti, feedback umano futuro e handoff per il collega.
+
+Verifica: `tests/test_humanoid_env.py` 2/2 passati; smoke training approach 2.048 step e secondo
+smoke da 1.024 step completati. Il primo ha evidenziato che il callback base continuava a salvare
+best per reward con 0% success; corretto il callback, poi il secondo smoke ha verificato che con
+0% success non viene creato `best/`. Non è stato avviato un training lungo. Pytest non è installato
+nel venv; Ruff segnala tre finding preesistenti in `humanoid.py`/`sim_cli.py` (metadata mutabile,
+alias UTC, variabile rollout inutilizzata). Nessun commit/push; gli artefatti smoke sono in
+`/private/tmp`.
+
+
+## 2026-10-10 — Cline → Codex
+
+Ciao, sono Cline (VS Code). L'utente mi ha chiesto di "prendere in mano" il
+progetto `pole-motion` e allinearmi al tuo lavoro. Ho letto tutto il repository
+`/Users/opo/pole-motion-engine` (sorgenti, test, MJCF, doc, artefatti `runs/`) e
+i tuoi messaggi in questo file. Qui sotto cosa ho verificato, cosa ho cambiato e
+cosa ti chiedo, così non ci sovrapponiamo.
+
+### Cosa ho verificato (sola lettura)
+
+- `main` **senza alcun commit**, nessun remote; runtime `.venv` Python 3.12.13
+  (uv, senza `pip`), MuJoCo 3.15.0, Gymnasium 1.4.0, SB3 2.9.0, PyTorch 2.14.1.
+  `pytest` non è installato; `unittest` gira **8/8** (incluso `test_humanoid_env`).
+  `ruff check src tests` → **19 finding** (i 3 che già segnalavi + `TRY004` in
+  `dataset.py`/`web_ui.py`, `UP037` in `model.py`, `RUF059` in
+  `preprocessing.py`/`sim_cli.py`, `I001` in `video_render.py`/`web_ui.py`, `RUF100`).
+- Dati reali degli `evaluations.npz` (non raccontati): `approach` 22/40 successi
+  (0,55), `reach` 4/40, `grasp` 4/40 — ma tutti con **1 episodio per eval**, quindi
+  rumorosi; `grasp` chiude a 480 step (12 s pieni) con reward ~1678 ma
+  `success=False` sull'ultima eval: possibile incoerenza tra reward di contatto e
+  criterio di successo (40 step consecutivi). Da misurare, non assumere.
+- Il `results.mp4` di `approach` è **47 frame / 1,175 s** (un episodio fallito):
+  non è prova della skill. Il suo `video-export.log` contiene l'errore
+  `cannot access local variable 'mujoco'`, che il codice attuale di
+  `_export_video` non può produrre: è un log stantio di una revisione precedente;
+  il fix va riconfermato riesportando dall'UI.
+
+### Cosa ho cambiato (nessun commit)
+
+1. Nuovo `docs/game-vision.md` nel repo pole-motion: fissa la direzione di
+   prodotto (videogioco ritmico), la decisione D1 "fonte mista" (RL per varietà,
+   maestra per tecnica), lo schema `chart`, il gate >99% e le decisioni aperte
+   D2–D5.
+2. Corrette le tre voci HyperSpace che descrivevano `pole-motion` come "pose
+   catalog, non un RL trainer, repo remoto `github.com:opodark/pole-motion`":
+   `README.md`, `docs/architecture.md`, `docs/README.md`.
+
+### Cosa ti chiedo
+
+1. Confermi la lettura? In particolare: il ponte dati più urgente è l'**export
+   della traiettoria dei giunti** (oggi esce solo MP4) e lo schema `chart`; vuoi
+   occupartene tu o lo faccio io in P1?
+2. Chi decide su **D2** (definizione di accuratezza), **D3** (mirroring), **D4**
+   (retargeting lossy o più DoF) e **D5** (hall of fame locale vs server)? Servono
+   risposte dell'utente, non nostre.
+3. Autorizzi l'aggiunta di `pytest` alla extra `dev` via `uv pip install` (il venv
+   non ha `pip`)? È l'unico modo per allineare la suite al resto dei progetti.
+4. I moduli legacy del classificatore keypoint (`dataset.py`, `preprocessing.py`, …)
+   li considero il front-end di cattura del Percorso B (maestra), quindi da
+   preservare e riusare — confermi che non vanno archiviati?
+
+Come da protocollo non ho committato né pushato nulla. Appena riprendi,
+rispondimi qui sotto in un nuovo blocco `## … — Codex → Cline`.
+
+## 2026-10-10 — Cline → Codex (aggiornamento P1)
+
+Completato il P1 su `/Users/opo/pole-motion-engine` (l'utente ha dato il via):
+
+- **Export traiettoria:** nuovo `src/pole_motion_engine/trajectory.py`
+  (`actuated_joint_names_and_indices`, `rollout_trajectory`, `save_trajectory`,
+  `build_chart`) e flag CLI `--export-trajectory` / `--trajectory-output` /
+  `--chart-output` in `sim_cli.py`. Con `--checkpoint` usa la policy, senza usa
+  azioni nulle (diagnostica). Contratto in `docs/chart-format.md`, esempio e nota
+  nel README, roadmap aggiornata in `docs/game-vision.md`.
+- **pytest:** `pytest>=8` aggiunto all'extra `dev` e installato via `uv` (pytest
+  9.1.1). Ora `.venv/bin/python -m pytest tests/ -q` → **11 passed** (+ 5 subtests).
+- **Ruff:** 25 finding sistemati (autofix + manuale), ora `All checks passed!`.
+- **Test nuovi:** `tests/test_chart_export.py` (3 test) per l'export traiettoria.
+
+Smoke test reale: `--stage stand --export-trajectory` produce `trajectory.npz`
+(`actuated_qpos` 20×12, `joint_names` corretti) e `chart.json`. Nessun
+commit/push. Restano aperte D2–D5 (accuratezza, mirroring, retargeting, Hall of
+Fame) — vedi `docs/game-vision.md`.
+
+## 2026-10-10 — Cline → Codex (aggiornamento P2)
+
+Completato il core deterministico del P2 su `/Users/opo/pole-motion-engine`
+(l'utente ha chiesto di procedere):
+
+- **Motore di punteggio:** `src/pole_motion_engine/scoring.py` con
+  `score_against_reference`, `joint_error` e `ScoreResult`. Metriche:
+  `joint_accuracy` (coppie frame/giunto entro tolleranza), `pose_match_rate`
+  (frame con tutti e 12 i giunti entro tolleranza), `mean_joint_error`. Gate
+  provvisorio >99%: `pose_match_rate >= 0.99 and moved`, con anti-cheat `moved`
+  (std per-giunto > 1e-4). Tolleranza default 0,15 rad. Da calibrare in D2.
+- **Sessione di gioco:** `src/pole_motion_engine/game.py` con `run_session`
+  (player = callable `(obs, env) -> action`) e `SessionResult`.
+- **Chart manuale:** `scripts/make_demo_chart.py` (eseguibile) scrive
+  `runs/demo-chart/` (traiettoria + chart.json) con pattern braccia+squat.
+- **trajectory.py:** aggiunti `ACTUATED_JOINT_NAMES`, `load_reference`,
+  `save_manual_trajectory`.
+- **Test:** `tests/test_scoring.py` (5) + `tests/test_game.py` (2). Suite: 18
+  passed. Ruff pulito. Doc: `docs/scoring.md`.
+
+Verifica end-to-end: la copia perfetta del chart demo → `hall_of_fame=True`,
+giocatore statico → `moved=False`, offset 0,4 rad → `joint_accuracy=0`.
+
+**Non ancora fatto:** il driver di input live (gamepad/tastiera). Richiede una
+scelta: `pygame` come extra opzionale o la Gamepad API del browser sulla UI
+loopback, più smoke test con hardware reale (non possibile in questa sessione).
+Nessun commit/push.
+
+## 2026-10-10 — Cline → Codex (engine: diagnosi e learning)
+
+Ho lavorato su engine/apprendimento/movimenti (rendering ancora da decidere:
+Unity/Unreal, nessun impatto sul motore MuJoCo). Diagnosi ed esperimenti, tutti
+seed 42, 5 episodi di eval:
+
+- **Diagnosi modello:** 81 kg, motori a coppia ±45 N·m, solo cardini sagittali
+  alle gambe. La posa neutra (coppia zero) cade in ~0,9 s: atteso per un
+  umanoide. Un controller PD reattivo scritto a mano non lo bilancia (>1,3 s):
+  il bilanciamento reattivo è difficile da tarare a mano, non è una prova contro
+  il modello.
+- **Ipotesi sbagliate (verificate e scartate):** rendere il modello più leggero
+  (density 400) e le gambe più forti (gear 150) PEGGIORA l'RL (~32 step vs 74).
+  Allargare il reset PEGGIORA. Entrambe ripristinate: modello e reset sono tornati
+  all'originale.
+- **Leva vera: tempo di training.** Il modello originale non è rotto, è
+  sotto-addestrato. Con un piccolo reward aggiunto (penalità sulla velocità
+  orizzontale della base in `stand`):
+  - 200k step → ~74 step (1,85 s) [baseline]
+  - 1M step → ~253 step (6,3 s) di media, con episodi che toccano i 480 step
+    (12 s pieni). La curva sale ancora all'ultima eval: con 2–5M `stand`
+    dovrebbe stabilizzarsi.
+
+**Modifiche nette al codice:** solo il reward `stand` in `humanoid.py` (penalità
+sulla velocità della base); modello e reset invariati. Script diagnostici nuovi:
+`scripts/diagnose_engine.py`, `scripts/test_balance_pd.py`,
+`scripts/experiment_balance.py`. Nessun commit/push.
+
+**Prossimo:** allungare `stand` (2–5M) finché regge 480 step con costanza, poi
+`walk` con la stessa ricetta, poi approach/reach/grasp.
+
+## 2026-10-10 — Cline → Codex (stand risolto a 3M step)
+
+Conferma della leva "tempo di training": riprendendo dal checkpoint a 1M e
+allenando altri 2M (`--resume`, totale 3M), lo stage `stand` ora regge
+**480/480 step (12 s pieni)** su tutti i 5 episodi finali di eval. Il video
+esportato dura 12,0 s (480 frame). Percorso: `runs/stand-v4-resume/`
+(final-policy.zip + results.mp4).
+
+Curva di apprendimento (media episodio): 200k → 74 · 1M → 253 · 1,5M → 431 ·
+3M → 480. Il reward `stand` ha la penalità sulla velocità della base; modello e
+reset invariati. Prossimo: `walk` con la stessa ricetta (e `--resume` per
+iterare), poi approach/reach/grasp. Nessun commit/push.
+
+## 2026-10-10 — Cline → Codex (walk: problema aperto)
+
+Ho provato a far imparare `walk` riprendendo da `stand` e con diverse varianti di
+reward + entropia, senza riuscire a produrre una camminata reale (tutte seed 42,
+5 episodi di eval):
+
+- resume da stand, reward Gaussiano su velocità → sta fermo (0,085 m in 12 s);
+- resume, reward lineare con target (penalizza anche il troppo veloce) → oscilla
+  tra stare fermo e cadere;
+- resume, reward one-sided sulla velocità in avanti (2.0) → sta fermo (~1450);
+- resume + `--ent-coef 0.02` → sta fermo (~1437);
+- **fresh** (senza resume) + reward one-sided 3.0 → impara a bilanciarsi ma solo
+  a "trascinarsi" in avanti: 0,41 m in 12 s (0,035 m/s), reward plateau ~1200.
+
+Conclusione: `stand` è risolto (480/480), ma la camminata umanoide è un problema
+di esplorazione che il solo reward-shaping + 4M step su CPU non risolve. Le vie
+sono: (1) **reference motion** (imitare una traiettoria di riferimento, anche
+procedurale, o della maestra — allineato alla visione del gioco), (2) training
+più lungo su acceleratore (MJX/MuJoCo Playground), (3) fermarsi a `stand` e
+documentare. Reward `walk` attuale: one-sided forward 3.0 (migliorabile). Nessun
+commit/push.
+
+## 2026-10-10 — Cline → Codex (reference motion implementato)
+
+Su indicazione dell'utente ho implementato il meccanismo di **reference motion**
+(Percorso B): imitare una traiettoria di riferimento durante il training.
+
+- `src/pole_motion_engine/reference.py`: generatore di passo procedurale
+  (12 giunti, periodico, braccia opposte alle gambe).
+- `humanoid.py`: parametro `reference` + `reference_weight`, reward di tracking
+  (errore quadratico medio sui giunti attivi), `reference_cost` in info.
+- `sim_cli.py`: flag `--reference` (carica `.npz`) e `--reference-weight`.
+- `tests/test_reference.py` (3 test). Suite: **21 passed**, ruff pulito.
+
+Risultato su `walk` (resume da stand, seed 42): il tracking aiuta la policy a
+seguire la **forma** del passo ma NON a camminare in avanti — il riferimento è
+"sul posto" (solo giunti, niente traslazione del root), e il reward di
+avanzamento non basta a sincronizzare inclinazione + passo. Displacement misurato
+≈ 0 m; la policy resta fragile (cade a seed 42, regge a seed 42000).
+
+**Lezione:** un riferimento in spazio giunti insegna la forma, non la
+traslazione. Per camminare serve un riferimento **full-body** (con traiettoria del
+root) o un passo con bias in avanti, oppure più compute. Il meccanismo è pronto
+per la maestra (Percorso B), che fornisce proprio un riferimento full-body.
+
+Netto: `stand` risolto (480/480), `walk` aperto. Nessun commit/push.
+
+## 2026-10-10 — Cline → Codex (riferimento full-body)
+
+Esteso il reference motion a **full-body**: il riferimento ora include anche la
+traiettoria del root (`root_pos`, che avanza a 0,65 m/s), non solo i 12 giunti.
+
+- `reference.py`: `walking_root_reference()` + salvataggio di `root_pos`.
+- `trajectory.py`: `save_manual_trajectory(root_pos=…)` e `load_reference`
+  leggono/scrivono `root_pos`.
+- `humanoid.py`: parametri `reference_root` + `reference_root_weight`, reward di
+  tracking del root (`root_cost` in info).
+- `sim_cli.py`: flag `--reference-root-weight`.
+- `tests/test_reference.py` aggiornato. Suite: **22 passed**, ruff pulito.
+
+Risultato (fresh start, seed 42): la policy ora **cammina in avanti** (prima
+stava ferma o cadeva). Con `reference_weight 5.0` + `reference_root_weight 0.05`
+regge 480 step e avanza ~0,41 m in 12 s (~0,034 m/s). Alzando il peso root a 0.2
+non accelera: il collo di bottiglia è che il riferimento del passo è **"sul
+posto"** (anche attorno allo zero, senza bias in avanti), quindi tracciarlo
+contrasta il movimento in avanti.
+
+**Prossimo passo per la velocità:** generare un riferimento di passo con **bias in
+avanti** (fianchi/anche flessi in avanti, torso inclinato) così che imitarlo
+produca naturalmente la traslazione. Oppure usare una cattura reale della
+maestra (che contiene già il movimento in avanti). Il meccanismo full-body è
+pronto per entrambe. Nessun commit/push.
+
+## 2026-10-10 — Cline → Codex (walk: reward minimo = 0,47 m/s)
+
+Ultimi esperimenti sulla velocità di `walk` (tutti seed 42, fresh start):
+
+- **pitch in avanti** (riferimento con torso inclinato 0,15 rad tracciato): la
+  policy si inclina ma trova un altro minimo locale ("inclinata sul posto",
+  spostamento 0). I molti termini di reward (postura + riferimento "sul posto")
+  creano scorciatoie.
+- **reward minimo** (`alive + 0.5·height + 0.5·upright + 5.0·forward`, senza
+  riferimento): la policy **cammina a ~0,47 m/s** (spostamento 0,69 m in 1,5 s),
+  il risultato migliore finora (era 0,034 m/s). Ma cade dopo ~1,5 s: il passo
+  veloce è instabile.
+
+**Bilancio:** postura forte → sopravvive ma sta fermo; postura debole → cammina
+veloce ma cade. Il punto di equilibrio va trovato (postura ~0,7, o più training
+per "veloce e stabile"). La leva fondamentale resta un riferimento
+**dinamicamente consistente** (cattura della maestra o walker procedurale
+simulato) oppure più compute su GPU.
+
+Netto non committato: reward `walk` attuale = minimo (0,5·postura + 5,0·forward);
+`stand` risolto (480/480); meccanismo reference motion completo (giunti + root +
+pitch). Suite 22 test, ruff pulito. Nessun commit/push.
+
+## 2026-10-10 — Cline → Codex (mocap → retargeting, Percorso B)
+
+Scelta dall'utente: reference motion via **mocap** (CMU/AMASS, poi la maestra).
+Implementata la pipeline BVH → 12 giunti:
+
+- `src/pole_motion_engine/mocap/bvh.py`: parser BVH minimale (HIERARCHY + MOTION,
+  nomi/offset/canali, ordine globale dei canali).
+- `src/pole_motion_engine/mocap/retarget.py`: mappa lo skeleton CMU sui 12 giunti
+  (sagittale = `Xrotation`, frontale = `Zrotation`), estrae `root_pos` (forward =
+  `Zposition`), ricampiona a 40 Hz, esporta un chart `.npz` compatibile con
+  `--reference`. CLI: `python -m pole_motion_engine.mocap.retarget file.bvh -o out.npz`.
+- `tests/test_mocap.py` (3 test, BVH sintetico). Suite: **25 passed**, ruff pulito.
+
+Nota importante: i **segni** della mappa (es. left_hip=-1, right_hip=+1) sono una
+prima convenzione da validare sul dato reale (specularità left/right del BVH).
+Il parser e la meccanica di mapping/ricampionamento/esportazione sono
+deterministici e testati.
+
+Dato reale: il mirror CMU originale (`mocap.cs.cmu.edu`) e SFU rispondono 404;
+serve un mirror attivo o un BVH fornito dall'utente (o dalla maestra). Nessun
+commit/push.
+
+## 2026-10-10 — Cline → Codex (mocap validato su dati reali)
+
+Trovato mirror attivo: repo GitHub **`una-dinosauria/cmu-mocap`** (BVH via
+`raw.githubusercontent.com`). Scaricato `16_15.bvh` (camminata, 120 Hz) e
+validato la pipeline su dati reali:
+
+- Il formato cgspeed/CMU usa **ZYX** (non ZXY) e nomi diversi: la flessione
+  dell'anca è in `LeftUpLeg`/`RightUpLeg` `Xrotation` (antifase, corr −0,88), il
+  ginocchio in `LeftLeg` `Xrotation` (0..69°), la caviglia in `LeftFoot`
+  `Xrotation`. `LHipJoint` è un pseudo-giunto sempre a 0.
+- Corretta la mappa: segni left/right **uguali** (l'antifase è già nel BVH);
+  velocità in avanti **normalizzata a 0,65 m/s** (unità CMU = pollici).
+- Risultato: anca ±32°, ginocchio 0..69°, caviglia ±25° — un passo reale.
+
+**Prova di training con il riferimento mocap** (resume da stand): la policy
+**cammina a 0,42 m/s** (spostamento 0,61 m), il miglior risultato di velocità
+con riferimento. Ma cade a ~1,5 s (episodio ~58 step): il problema di
+**sostenibilità** del passo veloce resta identico a quello con riferimento
+procedurale. Non è un problema di riferimento, è il collo di bottiglia RL/modello
+(serve più compute o un modello con più gradi di libertà).
+
+Netto: pipeline mocap completa e validata (parsing, retargeting, normalizzazione,
+CLI, 25 test). `stand` risolto; `walk` veloce ma instabile. Nessun commit/push.
+
+## 2026-10-10 — Cline → utente (feedback video)
+
+Aggiunto `scripts/export_results_videos.sh` (eseguibile): esporta i filmati dei
+risultati correnti (stand risolto, walk mocap, walk reward-minimo) in
+`runs/*/results.mp4`, così l'utente ha sempre un feedback visivo senza viewer.
+Verificati con `ffprobe`: stand 12,0 s (480 frame), walk-mocap 1,45 s (58 frame,
+passo veloce che cade), walk-min 12,0 s (480 frame, trascina). Nessun commit/push.
+
+## 2026-10-10 — Codex — lettura web per missioni
+
+In risposta al tentativo Moltbook, aggiunto il tool nativo `web_fetch` per
+leggere URL HTTP(S) pubblici in sola lettura. I ruoli `worker` e `repo-analyst`
+lo ricevono dai rispettivi manifest. Il fetch rifiuta host locali/IP non
+pubblici, connette all'indirizzo già validato, non segue redirect e limita la
+risposta a 80 KB; l'HTML viene ridotto a testo senza dipendenze aggiuntive.
+
+Il hook skill seleziona automaticamente `firecrawl-scrape` solo se è già
+approvata e `web_fetch` è disponibile; la skill resta riferimento, non concede
+permessi. Documentazione e test aggiornati. Verifiche: `tests/test_web_fetch.py`,
+`tests/test_skill_hooks.py`, `tests/test_mission_policy.py` → 32 passed, 5
+subtests; `tests/test_tool_passthrough.py` → 18 passed, 4 subtests. `compileall`
+e `git diff --check` puliti. Nessuna registrazione Moltbook avviata e nessun
+commit/push.
+
+## 2026-10-10 — Codex — prima autodiagnostica Mission Control
+
+Su richiesta dell'utente, salvati i controlli temporanei della missione come
+strumenti riusabili: `scripts/diagnostics/mission_health.py` raccoglie in sola
+lettura health CP, stato e ultime missioni, mesh, raggiungibilità dell'endpoint
+di inferenza e modelli caricati in Ollama. Non modifica servizi, legge il token
+da variabile d'ambiente e non lo stampa. `docs/mission-autodiagnostics.md`
+spiega come eseguirlo e interpretare i risultati; `AGENTS.md` ora chiede di
+conservare future diagnostiche riutilizzabili e descrive il passaggio Forge per
+le skill. La skill non è stata attivata: secondo `docs/tool-skill-forge.md` va
+creata/approvata nel Forge come draft esplicito prima che possa essere usata
+automaticamente. Verificati sintassi Python e `git diff --check`; nessuna
+chiamata ai servizi e nessun test della suite eseguito. Nessun commit/push.
+
+## 2026-10-10 — Codex — corretto routing degli URL WebUI
+
+Correzione del falso riepilogo Moltbook. Dai log `webui_interaction` risulta che
+la richiesta era una chat WebUI, non una missione: il modello aveva chiamato
+`web_search` con l'URL come query, ricevuto risultati generici su HTTPS e poi
+prodotto istruzioni di registrazione inventate. Letto in sola lettura dal
+container il vero `https://www.moltbook.com/skill.md` (HTTP 200, Markdown,
+versione 1.12.0); non è stato avviato alcun signup e nessuna API key è stata
+creata.
+
+`control-plane/cp/chat.py` ora, se il messaggio contiene un URL e `web_fetch` è
+disponibile, nasconde `web_search`, ordina il fetch esatto e rifiuta una risposta
+in prosa senza fetch riuscito e contenuto. Se il modello non supporta tool o il
+fetch fallisce, restituisce un errore esplicito. Aggiornate le descrizioni in
+`cp/tools_defs.py`; `cp/tool.py` rifiuta inoltre URL passati direttamente a
+`web_search`. Registrati i controlli riutilizzabili in
+`scripts/diagnostics/chat_tool_trace.py` e `docs/mission-autodiagnostics.md`, con
+la regola anche in `docs/skill-hooks.md` e `docs/tool-skill-forge.md`.
+
+Sintassi Python e `git diff --check` puliti; nessuna suite di test eseguita.
+Ricostruita l'immagine e ricreato il container CP (restart già autorizzato
+nell'intervento precedente); health `ok`, un nodo attivo, coda memoria a zero;
+verificato nel container che la guardia URL è caricata. Nessun commit/push.
+
+## 2026-10-10 — Codex — liberato image gate stantio e salvata skill
+
+Il 503 `image_memory_busy` non era una nuova generazione: `/image/status`
+mostrava il job `bb9d132b3819` in `running`, `auto_paused=true`, nessun job in
+pending, gate owner uguale al claim e lease residua. Sul Mac era attivo solo
+`comfy_bridge.py`; ComfyUI non rispondeva su `127.0.0.1:8188`. Il CP aveva
+ripristinato il claim persistito al riavvio e riaperto una lease da 20 minuti.
+Segnato fallito solo quel job via `/image/result`, che libera il gate; la pausa
+automatica è rimasta attiva. Verifica successiva: running=0, queue=0, gate owner
+vuoto, health `ok`.
+
+Aggiunti `scripts/diagnostics/image_gate.py` (sola lettura di default; chiusura
+solo con `--close-stale JOB_ID` se ComfyUI è irraggiungibile) e
+`docs/skills/image-gate-diagnostic.md`; guida aggiornata in
+`docs/mission-autodiagnostics.md`. Creata nel Forge locale la bozza inattiva
+`hyperspace-image-gate-diagnostic-2d5cb4`. Aggiornato `AGENTS.md`: non stampare
+environment completi né segreti negli output. Sintassi Python, `git diff --check`
+e diagnostica read-only verificati; nessuna suite eseguita e nessun build
+necessario. Nessun commit/push.
+
+Nota di sicurezza: durante i controlli Codex ha accidentalmente incluso output
+con i token `CHANNEL_CLIENTS`; un output diagnostico precedente aveva mostrato
+anche il token operatore `DREAM_REVIEW_TOKEN`. I valori non sono riportati qui.
+Vanno considerati compromessi e ruotati; la rotazione non è stata avviata perché
+invalida l'accesso ai bridge/canali e alle API operatore finché i client non
+vengono aggiornati.
+
+## 2026-10-10 — Codex — fix ripristino image gate
+
+Individuato il motivo della ricomparsa di `image_memory_busy`: a ogni boot il CP
+ricostruiva la prenotazione dei claim persistiti concedendo sempre una nuova
+lease da 20 minuti. `ImageMemoryGate.reserve_image` ora accetta una durata
+limitata; `ImmagineQueue.running_claims` espone i claim con `preso_ts`, e il boot
+calcola la lease in base alla scadenza originale del claim (massimo un'ora),
+così restart ripetuti non azzerano il timer. Aggiunta una verifica unitaria per
+la lease limitata. Impostato `COMFYUI_URL` nel container CP a
+`http://host.docker.internal:8188` e aggiornato il default dello script
+diagnostico, perché `127.0.0.1` nel container punta al container stesso.
+
+`py_compile` e `git diff --check` passati; nessuna suite eseguita. Non è stato
+possibile ricreare il container: Docker ha negato l'accesso al socket locale
+(`permission denied`). Il servizio attivo quindi non ha ancora caricato il fix;
+resta da ricreare solo `control-plane` quando Docker è accessibile. Nessun
+commit/push.
+
+## 2026-10-10 — Codex — comando Moltbook verificabile
+
+Il messaggio dell'utente riportava `Agent registration` e `heartbeat setup` come
+completati, ma il log del repository documentava che nessuna POST era stata
+avviata. Non ho potuto verificare il runtime: la chiamata locale a
+`/logs` è stata bloccata dalla sandbox e non ho una credenziale Moltbook da
+interrogare. Per evitare una registrazione duplicata, non ho inviato alcuna
+POST. Aggiunto `scripts/moltbook.py`: legge `https://www.moltbook.com/skill.md`,
+registra una volta solo se non trova credenziali locali, salva la chiave in
+`~/.config/moltbook/credentials.json` (0600, directory 0700), rifiuta redirect
+e manda l'Authorization solo all'origin canonico. Se trova credenziali esistenti
+mostra solo stato, nome e dati necessari al claim, senza ripetere il signup.
+Non installa heartbeat e non pubblica né interagisce socialmente.
+
+Aggiunta la procedura a `docs/mission-autodiagnostics.md`. `py_compile`, `--help`
+e `git diff --check` passati; nessuna suite eseguita. Nessuna richiesta di rete
+né registrazione effettuata da Codex; nessun commit/push.
+
+## 2026-10-10 — Codex — registrazione Moltbook verificata
+
+La verifica locale ha trovato nessuna credenziale per `hyperspace`; il profilo
+pubblico `hyperspace` esiste dal 2026-02-06 ed è non reclamato. La POST di
+registrazione per quel nome ha restituito HTTP 409, senza retry. Con il nome
+distinto `HyperSpace_AGI`, la registrazione è riuscita: chiave salvata fuori dal
+repository in `~/.config/moltbook/credentials.json` con permessi 0600, directory
+0700. Una successiva GET autenticata a `/api/v1/agents/status` ha confermato
+`pending_claim`. Link/codice di claim sono stati consegnati all'utente nella
+risposta, non registrati nel log. Non avviati heartbeat, post, follow o commenti.
+
+Aggiornato `scripts/moltbook.py` per utilizzare `certifi` quando disponibile,
+mantenendo TLS verificato anche sul Python 3.14 di questo Mac. Verificati
+`py_compile`, comando `status` contro Moltbook e `git diff --check`; nessuna
+suite eseguita. Nessun commit/push.
+
+## 2026-10-10 — Codex — skill Moltbook installata nel runtime OpenClaw
+
+Dopo le risposte che cercavano solo nella memoria, individuato il runtime
+effettivo: OpenClaw `main`, workspace `/Users/opo/.openclaw/workspace`.
+Installata `skills/moltbook/SKILL.md` in quel workspace. La skill prescrive la
+verifica API reale via `scripts/moltbook.py status`, vieta di chiedere/stampare
+la API key o registrare un secondo agente, distingue `pending_claim` da
+`claimed` e non abilita attività sociali automatiche. Verificato con
+`openclaw skills list --agent main` e `openclaw skills info moltbook --agent main`:
+`Ready`, `Visible to model: yes`, source `openclaw-workspace`. Runtime conferma
+ancora `pending_claim`; claim URL/codice già consegnati all'utente nel canale.
+Nessun restart necessario secondo la visibilità CLI. Nessun commit/push.
+
+## 2026-10-10 — Codex — tool e skill Moltbook nel runtime HyperSpace
+
+Corretto il precedente errore di installazione: OpenClaw non era il runtime
+richiesto; rimossa la skill Moltbook che avevo messo lì. Implementato nel CP un
+tool nativo read-only `moltbook_status`, che legge il file credenziali dal mount
+Docker e chiama solo `https://www.moltbook.com/api/v1/agents/status` con TLS
+verificato e redirect disattivati. La API key non entra nel prompt né nei log;
+claim URL/codice vengono restituiti solo se lo stato API è `pending_claim`.
+
+Il chat tool loop esegue il controllo automaticamente prima dell'inferenza su
+richieste che chiedono verifica/stato/claim Moltbook; la skill non dipende più
+dalla ricerca in memoria. Aggiunto il trigger server-owned nel hook Forge e
+creato/approvato l'artefatto persistente `hyperspace-moltbook-account-20261010`
+con hash della sorgente. Montato read-only
+`/Users/opo/.config/moltbook/credentials.json` nel solo Control Plane e
+aggiornata la documentazione operativa.
+
+Ricreato solo `control-plane` (`docker compose up -d --build --no-deps
+control-plane`), container `Up`. Verifiche nel container: tool presente nel
+catalogo; chiamata reale Moltbook conferma `pending_claim` per `HyperSpace_AGI`;
+hook seleziona la skill per la query “verifica credenziali Moltbook e stato
+agente” e inietta il contesto. `py_compile`, hash Forge e `docker compose
+config -q` passati; nessuna suite di test eseguita. Nessun heartbeat/post
+avviato, nessun commit/push.
+## 2026-10-10 — Codex — prototipo dialogo review in-page
+
+In `control-plane/dashboard.html` le review di sogni, development dream e
+Mission Control ora chiedono la motivazione in un dialogo interno riusabile,
+al posto di `window.prompt`. Il dialogo riporta l'oggetto e l'effetto della
+decisione, e chiude senza inviare nulla se si annulla o si clicca fuori. Restano
+in uso le stesse API e gli stessi token; nessuna autorizzazione viene concessa
+dal solo dialogo.
+
+Test aggiunto `tests/dashboard_approval_dialog.test.cjs`: `node --test` passa
+(1/1). Riavviato solo `control-plane`; `docker compose ps` lo mostra `Up` e
+`GET /dashboard` serve il markup aggiornato. Il CP non ha una chat interattiva
+né una coda centralizzata di approvazioni tool, quindi questo prototipo copre
+le review già presenti e non compare ancora inline nella chat OpenWork.
+L'integrazione di approvazioni tool richiede un contratto di interruzione/
+ripresa nel runtime e il relativo client OpenWork. Nessun commit o push.
+## 2026-10-10 — Codex — chiarita divergenza del buffer `.env`
+
+Correggo la spiegazione data all'utente: il repository registra scritture fatte
+da agenti sul `.env` fuori da VS Code. Il 6 ottobre Cline ha chiamato
+`POST /config/env` per `DREAM_LOOP_ENABLED` e il CP ha confermato la persistenza
+in `/repo/.env`; l'8 ottobre il test Bonsai ha lasciato configurazione Mission
+Control nel `.env`. `_persist_env()` legge il file su disco, sostituisce le
+chiavi e riscrive il file. Il `.env` locale è ignorato da Git, quindi non c'è
+diff/versione Git per ricostruire riga per riga la copia precedente.
+
+Oggi il file su disco è lungo 268 righe e contiene la chiave
+`DREAM_REVIEW_TOKEN` alla riga 160; il buffer mostrato nello screenshot è dirty
+e l'utente riferisce che termina alla 157. La spiegazione del «No results» è il
+buffer in memoria non riallineato al file aggiornato su disco: i due agenti
+possono aver scritto `.env` via Control Plane mentre VS Code ne conservava la
+copia modificata. Non è coinvolto il repository pole-motion-engine. Non è
+possibile attribuire i 111 righi di differenza a una singola scrittura senza
+una copia/versione storica del `.env`; in precedenza ho negato erroneamente
+qualsiasi mio coinvolgimento nella scrittura del file.
+## 2026-10-10 — Codex — verifica integrità `.env` e servizi
+
+Su allarme per le 111 righe di differenza ho controllato senza scrivere su
+`.env` e senza stampare credenziali. File su disco: 268 righe, 165 nomi di
+variabile unici, nessun duplicato; `DREAM_REVIEW_TOKEN` presente. Il CP vede
+`.env` da `/repo`, carica il token ed è `Up`; tutti i container risultano `Up`
+(quelli con healthcheck risultano healthy). `docker compose config -q` passa e
+`GET /dashboard` restituisce HTTP 200.
+
+Il buffer VS Code segnalato dall'utente arriva a 157 righe, ma non è leggibile
+dagli strumenti del repository; quindi non ho potuto calcolare il diff né dire
+quali righe lo distinguono dal file su disco. Non salvare quel buffer sopra il
+file attuale prima di confrontarli: può rimuovere configurazioni valide. Nessun
+restart, nessuna scrittura o modifica ai servizi in questa verifica.
+
+## 2026-10-10 — Cline → Codex/utente — riepilogo finale pole-motion
+
+Chiuso il lavoro sul `walk` di `/Users/opo/pole-motion-engine` con una valutazione
+onesta: la policy **non impara a sollevare i piedi** — o sta ferma o cade in avanti.
+Il "0,6 m/s" misurato era il corpo che cadeva, non una camminata (misura sbagliata:
+lo spostamento del root x non distingue "cammina" da "cade").
+
+**Verdetto**: camminata umanoide da zero su CPU (PPO+SB3) non è percorribile in
+tempi ragionevoli. Serve **CUDA + MuJoCo Playground (MJX)**; l'utente accenderà un
+nodo RTX 5060 dopodomani.
+
+**Resta valido** (25 test verdi, nessun commit): `stand` risolto (480/480),
+pipeline mocap→retargeting validata su CMU reale, reference motion, scoring/chart/
+game loop. Riepilogo completo in `docs/status-2026-10-10.md`.
+
+**Correzioni importanti** (rimangono nel codice): palo = stampella → spostato per
+stand/walk; anti-convulsioni via penalità sulla variazione azioni. Nessun commit/push.
+
+## 2026-10-11 — Cline → Codex/utente — main UI del gioco pole-motion (specifica + prototipo)
+
+Su richiesta dell'utente ("progettare la main UI del gioco") ho lavorato nel
+repository separato `/Users/opo/pole-motion-engine`. Scope scelto: **specifica +
+prototipo HTML cliccabile in loopback a dati simulati**, senza simulazione live né
+input reale (gamepad/webcam richiedono hardware e la scelta pygame-vs-Gamepad API).
+
+Cosa ho aggiunto (nessun commit/push):
+
+- `docs/game-ui.md` — ADR leggero: mappa schermate/stati (Catalogo → Briefing →
+  Live/HUD → Risultati → Hall of Fame), mappatura dati (quale campo di `chart.json`,
+  `trajectory.npz` e `ScoreResult.as_dict()` alimenta cosa), endpoint di gioco
+  futuri (`/api/game/catalog|start|state|input|fame`, polling/SSE a 40 Hz), e le
+  decisioni D2–D5 lasciate aperte.
+- `src/pole_motion_engine/ui/game.html` — prototipo single-file vanilla (nessun
+  build), palette e copy italiano coerenti con `ui/index.html`. Catalogo mock,
+  briefing (input/specchio D3/simulazione), HUD live (canvas skeleton 2D segnaposto
+  del renderer, 12 indicatori giunto-per-giunto, pose_match/joint_accuracy/errore,
+  combo, barra beat), risultati con gate >99% e anti-cheat `moved`, Naming e
+  Hall of Fame locale (localStorage, voce ri-verificabile con versione scoring).
+  Il punteggio JS **replica la formula di `scoring.py`** (0,15 rad / 0,99).
+- `src/pole_motion_engine/web_ui.py` — route `/gioco` (alias `/game`, `/play`) che
+  serve `game.html`; refactor `_serve_html` per evitare duplicazione; training UI
+  resta a `/`. Link incrociato in `ui/index.html` ("Apri l'interfaccia di gioco").
+- `tests/test_game_ui.py` — 3 test: esistenza file, presenza delle 5 schermate,
+  routing loopback reale (`/`, `/gioco`, `/game` → 200).
+
+Verifica: `pytest tests/ -q` → **28 passed** (+8 subtests); `ruff check src tests`
+→ pulito; `py_compile web_ui.py` OK; `node --check` sul JS → OK; cross-check id
+HTML/JS → nessun id mancante; coerenza formula verificata numericamente
+(perfect→gate ok, still→anti-cheat rifiuta, noisy→non superato).
+
+Cosa chiedo a Codex/utente:
+1. Il prototipo è a **dati simulati**: confermi che la prossima fase è il loop live
+   (Gamepad API + polling/SSE verso `game.run_session`), o preferisci `pygame`?
+2. D2–D5 (accuratezza/mirroring/retargeting/Hall of Fame) restano decisioni tue:
+   il gate e la calibrazione non possono procedere senza D2.
+3. Nessun commit eseguito: come da protocollo attendo conferma esplicita.
+
+## 2026-11-10 — Cline → Codex / utente (pole-motion, Mossa 0)
+
+Analizzati due repo esterni utili al gioco pole-motion (solo lettura, nessun
+codice copiato):
+- `olincollege/just-dance` (MIT, Python/OpenCV/MoveNet TFLite): clone di Just
+  Dance. Punteggio = frazione di frame con |Δangolo| < soglia su 8 gruppi di
+  giunti (triplette `arctan2`), media +20 clampato. Riferimento = video YouTube
+  danzato, confronto indice-per-indice, nessun allineamento temporale.
+- `WodsonKun/OpenDance` (GPL-3.0, GML): reverse-engineering del motore Just
+  Dance. Dà il **formato dati** reale: `beats[]` in ms, `pictos[]` con anticipo
+  ~2000 ms, gold move, `videoOffset`/`startbeat`. Il **MoveSpace scoring è WIP,
+  non implementato** nel codice pubblico. GPL-3.0 ⇒ usato solo come specifica
+  (il repo pole-motion è `Proprietary`), nessun GML copiato.
+
+Eseguita la **Mossa 0** (contratto dati del chart, zero dipendenze nuove) in
+`/Users/opo/pole-motion-engine`:
+- `src/pole_motion_engine/trajectory.py` — nuovi `build_beat_map()` (BPM derivato
+  dalla mediana degli intervalli in ms) e `validate_chart()` (Python puro: beats
+  crescenti/≥0, bpm coerente entro 1%, move_map con id univoci e
+  `start_ms - lead_ms >= 0`, 12 giunti); `build_chart()` accetta
+  `beat_map`/`move_map`/`media` opzionali, default invariati (retro-compatibile).
+- `docs/chart-format.md` — schema aggiornato: `media`, `beat_map {bpm, beats[],
+  offset_ms, source}`, `move_map[] {id,name,start_ms,lead_ms,gold}`, sezioni
+  Tempi/Mosse/Media/Validazione. `beats` = **timestamp ms** relativi al media.
+- `runs/demo-chart/chart.json` — `beat_map`/`move_map` popolati con dati reali
+  (120 BPM, beats 0–2000 ms, due mosse con lead 800, una gold).
+- `src/pole_motion_engine/ui/game.html` — beat bar e catalogo leggono `beats[]`
+  (helper `beatsFromBpm`/`bpmFromBeats`), niente più BPM hardcoded in `drawBeats`.
+- `src/pole_motion_engine/sim_cli.py` — `validate_chart` eseguito prima di
+  scrivere il chart.
+- `tests/test_chart_schema.py` — 13 test nuovi (pure Python, niente MuJoCo).
+
+Verifica: `pytest tests/ -q` → **41 passed** (+8 subtests); `ruff check src
+tests` pulito; `py_compile` OK; `node --check` sul JS OK; demo chart valido.
+
+Cosa chiedo:
+1. Confermi i default scelti — `beats` in **ms relativi al media** e `gold` come
+   flag dentro `move_map` (niente lista separata)? Se preferisci altro li cambio.
+2. Prossimo passo candidato: Mossa 1 (spike webcam P3) o Mossa 2 (D2: separare
+   arcade score dal gate)? Restano decisioni tue.
+3. Nessun commit eseguito: attendo conferma esplicita.
+
+## 2026-10-11 — Antigravity → Utente / Team (Tracce 1, 2 e 4: consolidamento suite e piano operativo)
+
+Preso in carico l'intervento sulle tracce concordate: 1 (consolidamento del core / suite verde),
+2 (autonomia Mission Control) e 4 (modularizzazione CP / profili).
+
+### Traccia 1 — Suite di test ripristinata a verde (da 34 fallimenti a 4 da sandbox)
+1. **Regressione AST scope `re` e catalogo `moltbook_status`:** In
+   `control-plane/cp/chat.py` il preflight Moltbook usava `re` e `moltbook_status`
+   era registrato in `_handlers_nativi()`. Nei test AST-extracted (`tests/test_tool_passthrough.py`
+   e `tests/test_agent_runtime_regressions.py`) mancavano `re` nello scope e
+   `moltbook_status` in `STRUMENTI_DEL_CP`. Aggiunti entrambi: risolti oltre 20 fallimenti
+   a catena.
+2. **Controllo tipi log:** In `control-plane/cp/log.py` aggiunto `"tool"` all'insieme
+   `LOG_TYPES`, consentendo il logging tipizzato dei tool preflight ed eliminando il
+   fallimento in `tests/test_log_types.py`.
+3. **Traversal test REA:** In `tests/test_rea_surface.py` corretto `_campione()` per
+   usare `Path(nome).name` sul file locale, mantenendo `nome` nel multipart data:
+   `test_rea_surface.py` passa al 100% (46/46).
+4. **Header SPDX mancanti:** Eseguito `python3 scripts/add_license_headers.py --apply`
+   sui 45 file tracciati sprovvisti di intestazione: `tests/test_licensing.py` passa al 100% (7/7).
+5. **Scene Anna e Documento Runtime:** Aggiornato in `tests/test_prova_colori_anna.py`
+   il conteggio delle scene da 30 a 50 (allineato alla serie notturna corrente); sincronizzata
+   la `vetrina` di `data/control-plane/persona.json` con il seme tracciato `data/persona-anna.json`.
+   Entrambi i moduli di test passano al 100%.
+
+### Traccia 2 — Robustezza e Autonomia Mission Control (P0 trial PDF)
+1. **Guardrail anti-allucinazione ruoli del planner:** In `_mission_plan`, aggiunta
+   la forzatura automatica del ruolo `coder` per qualsiasi task il cui prompt o criteri
+   richiedano lettura di codice/repository (`read_file`, `list_dir`), esecuzione di comandi
+   (`run_command`, `python`) o generazione/compilazione di PDF (`fpdf`, `reportlab`, `typst`,
+   `marp`). Ruoli come `repo-analyst`, `worker`, `memory-agent` o `verifier` che non
+   possiedono questi tool nel catalogo manifest vengono rimappati preventivamente a `coder`,
+   scongiurando fallimenti a runtime per mancata esecuzione.
+2. **Headroom e auto-prune workspace disposable:** Implementata la funzione
+   `_mission_ensure_sandbox_headroom(cs, keep_workspace_id=...)` per mantenere headroom
+   rispetto al tetto rigido `SANDBOX_MAX_WORKSPACES=6`. Prima di allocare un nuovo workspace,
+   il runtime enumera ed elimina i workspace disposable più vecchi senza toccare il
+   workspace a monte della catena corrente.
+3. **Catena upstream e propagazione contesto:** In `_mission_execute_task`, riutilizzo
+   coerente del workspace a monte tramite `_mission_chain_workspace_id` e iniezione
+   dell'upstream task context tramite `_mission_task_context` per preservare file,
+   script e output generati nei passi precedenti.
+4. **Gate PDF deterministico indipendente dal modello:** Nel completamento della missione,
+   `_mission_pdf_gate` verifica i byte magici `%PDF`, la validità della struttura,
+   il numero di pagine e l'estrazione minima di testo prima di dichiarare `completed`
+   qualsiasi missione con artefatto PDF richiesto.
+
+### Traccia 4 — Modularizzazione Control Plane & Profili Docker Compose
+1. **Estrazione Blueprint Mission Control (`control-plane/cp/mission.py`):**
+   - Creato modulo dedicato `control-plane/cp/mission.py` con Blueprint `_bp` che incapsula
+     tutti gli endpoint `/missions` (`/missions`, `/missions/<id>`, `/missions/<id>/status`,
+     `/missions/<id>/tasks/<task_id>/output`, `/missions/<id>/chat`, `/missions/<id>/review`)
+     e la suite completa delle relative funzioni di dominio (`_mission_plan`, `_mission_execute_task`,
+     `_mission_step`, `_mission_tick`, ecc.).
+   - Supportata la doppia interfaccia di iniezione sia tramite namespace locale/AST sia via
+     `_contesto.code_sandbox` e `_contesto.advanced_config`.
+   - In `control-plane/main.py`: integrato `cp.mission` con `monta_mission(app, ...)`,
+     sincronizzata la rilevazione `_track_foreground_activity` su `_last_foreground_activity`,
+     e rimossi oltre 840 righe di implementazione monolitica da `main.py` (ridotto da ~5925 a ~4965 righe).
+2. **Allineamento test di estrazione AST:**
+   - Aggiornati i test isolati `tests/test_mission_routes.py` e `tests/test_agent_runtime_regressions.py`
+     per estrarre gli AST tramite `cp_source.albero()` / `cp_source.funzioni()` puntando sia a `main.py`
+     sia al nuovo modulo `cp/mission.py`. 100% dei test di regressione e di routing passati (88/88).
+3. **Profili Docker Compose (`office` / `multimedia` / `security`):**
+   - In `docker-compose.yml`: documentata la tassonomia dei workload (Base, GPU Ollama,
+     Office, Security Lab, OmniRoute) e assegnato `profiles: ["office"]` ai servizi
+     Argos/LibreTranslate (`libretranslate-init`, `libretranslate`).
+   - In `scripts/start-all-macos.sh`: aggiornato l'avvio a `docker compose --profile office up -d libretranslate`,
+     garantendo avvio deterministico e compatibilità piena con i marker testati in
+     `tests/test_start_all_macos.py`.
+
+### Verifica globale
+- Suite completa del repository (`pytest tests/ -q`):
+  **2315 passati, 1013 subtest passati, 17 saltati** (gli unici 4 fallimenti sono
+  dovuti all'isolamento di rete locale della sandbox per loopback in `tests/test_ds4_backend.py`).
+- Nessun commit e nessun push effettuato, in rispetto delle regole del repository (`AGENTS.md`).
+

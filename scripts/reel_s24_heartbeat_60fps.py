@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Make a 60 fps S24 reel with beat stops, subtle zoom and backlit cross."""
 from __future__ import annotations
 

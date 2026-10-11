@@ -116,6 +116,30 @@ class CodaTests(unittest.TestCase):
         self.assertEqual(preso["stato"], "running")
         self.assertIsNone(self.coda.prossimo(), "un job in esecuzione non si riprende")
 
+    def test_pausa_automatica_blocca_i_claim_e_non_sovrascrive_pausa_manuale(self):
+        self._job()
+        self.coda.set_auto_paused(True)
+        self.assertIsNone(self.coda.prossimo())
+        self.coda.set_auto_paused(False)
+        self.assertIsNotNone(self.coda.prossimo())
+        self.coda.set_paused(True)
+        self.coda.set_auto_paused(True)
+        self.coda.set_auto_paused(False)
+        self.assertTrue(self.coda.stato()["paused"])
+        self.assertTrue(self.coda.stato()["manual_paused"])
+
+    def test_pausa_automatica_persistita_si_ripristina_separata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "jobs.json"
+            queue = ImmagineQueue(clock=self.orologio, state_path=str(state))
+            queue.accoda(nuovo_job("immagine", adesso=self.orologio()))
+            queue.set_auto_paused(True)
+            restored = ImmagineQueue(clock=self.orologio, state_path=str(state))
+            self.assertTrue(restored.stato()["auto_paused"])
+            self.assertFalse(restored.stato()["manual_paused"])
+            restored.set_auto_paused(False)
+            self.assertIsNotNone(restored.prossimo())
+
     def test_un_claim_morto_torna_disponibile(self):
         """Un ponte che muore a meta' non deve bloccare il lavoro per sempre."""
         self._job()

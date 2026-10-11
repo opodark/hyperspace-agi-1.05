@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Pulse violet and green costume light for two estimated bagpipe tones."""
 from __future__ import annotations
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // La scheda "Sviluppo": raccoglie Forge, Dev Sandbox, il grafo del repository e
-// il candidato REA in un solo posto. Questo test verifica che il pannello esista,
-// che rimandi alle schede giuste e che la sezione REA resti onesta (candidato,
-// non collegato) invece di promettere un'integrazione che non c'e'.
+// la superficie REA in un solo posto. Questo test verifica che il pannello
+// esista, che rimandi alle schede giuste e che la sezione REA resti onesta
+// (opzionale, da installare) invece di promettere quello che non c'e'.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -27,9 +27,22 @@ assert.match(html, /id="panel-sandbox"/);
 assert.match(html, /graphify\.sh/);
 assert.match(html, /graphify-out\/graph\.html/);
 
-// 4. REA: repo, badge "candidato" e i due documenti che ne fissano i limiti
+// 3b. il grafo ora ha una superficie: la card la apre dal catalogo /surfaces,
+//     così host e porta non vengono copiati nel markup (fonte unica) e la porta
+//     scritta nella card resta quella vera.
+assert.match(html, /onclick="openSurface\('graphify'\)"/);
+assert.match(html, /async function openSurface\(id\)/);
+assert.match(html, /fetch\('\/surfaces'\)/);
+assert.match(html, /:7871/);
+
+// 4. REA: repo, badge "opzionale", la superficie locale e i documenti che ne
+//    fissano i limiti. La card apre la superficie dal catalogo /surfaces (fonte
+//    unica di host e porta), come fa quella di graphify.
 assert.match(html, /github\.com\/morluto\/rea/);
 assert.match(html, /class="rea-badge candidate"/);
+assert.match(html, /onclick="openSurface\('rea'\)"/);
+assert.match(html, /:7872/);
+assert.match(html, /docs\/rea-surface\.md/);
 assert.match(html, /docs\/rea-pilot\.md/);
 assert.match(html, /docs\/development-security-tools\.md/);
 

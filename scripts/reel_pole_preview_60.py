@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Render a 60-second portrait pole preview with many stills and video excerpts."""
 from __future__ import annotations
 

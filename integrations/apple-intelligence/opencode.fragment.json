@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "hyperspace-apple": {
+      "type": "local",
+      "command": [
+        "{env:HYPERSPACE_ROOT}/.venv/bin/python",
+        "{env:HYPERSPACE_ROOT}/scripts/apple_intelligence.py",
+        "--mcp"
+      ],
+      "enabled": true
+    }
+  }
+}

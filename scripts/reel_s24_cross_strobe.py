@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Add a beat-synced cross eruption and whole-frame strobes to the clean S24 reel."""
 from __future__ import annotations
 

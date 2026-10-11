@@ -16,7 +16,7 @@ Architecture and deployment notes for HyperSpace-AGI. Mission, lexicon and phase
 - [dreams.md](dreams.md) — direction and staged roadmap for automatic idle-only memory reflection, including review and promotion rules.
 - [hermes.md](hermes.md) — current integration boundary and end-to-end acceptance criteria for Hermes.
 - [hermes-gadget-prototype.md](hermes-gadget-prototype.md) — simulatore Hermes Gadget collegato alla chat testuale HyperSpace, con pairing e prova locale.
-- **Pole Motion** — progetto in **repository privato separato** (`github.com:opodark/pole-motion`): catalogo, analisi video e verifica sperimentale MuJoCo delle pose di Anna. Non è un servizio del control plane; HyperSpace lo usa soltanto come strumento interno di sviluppo, non come contenitore del progetto o dei suoi asset.
+- **Pole Motion** — progetto in **repository privato separato** (`/Users/opo/pole-motion-engine`): trainer di apprendimento embodied (MuJoCo + PPO) per una ballerina virtuale e base di un videogioco ritmico in stile Just Dance in cui si ricalcano i movimenti scoperti, con gamepad o webcam. Non è un servizio del control plane; HyperSpace lo usa soltanto come strumento interno di sviluppo, non come contenitore del progetto o dei suoi asset.
 - [memory schema](../memory/schema/README.md) — the `hyperspace.memory.v1` entry contract and retention tiers (operative / project / persistent).
 - [tool-skill-forge.md](tool-skill-forge.md) — controlled authoring, review and local IDE workflow for inert tool and skill drafts.
 - [comic-builder.md](comic-builder.md) — storyline, continuity bible, episodi e vignette ComfyUI.
@@ -40,3 +40,4 @@ Architecture and deployment notes for HyperSpace-AGI. Mission, lexicon and phase
 - [growth-strategy.md](growth-strategy.md) — come Aurora e Anna passano da presenza privata a presenza seguita: posizionamento, canali, serie di contenuti, funnel e metriche.
 - [tiktok-editor.md](tiktok-editor.md) — Reel Editor locale, brief via HyperSpace, tool per passare media approvati e flusso di estensione revisionato in Auto Forge.
 - [sandbox-vita.md](sandbox-vita.md) — la simulazione della loro vita (post, poesia, sogni) su file isolati e un pubblico finto: la stessa giornata dei loop di produzione senza toccare Instagram, e il canale Telegram separato per vederla.
+- [review-repo-agenti-2026-10-09.md](review-repo-agenti-2026-10-09.md) — valutazione documentale di quattro repository esterni (layra, laya, OpenWork, OpenDots) in vista dello sviluppo autonomo/semi-autonomo: verdetto per ciascuno, i reperti interni che già coprono parte del lavoro (passthrough dei tool del client, MCP) e ciò che resta da chiudere. Nessuna modifica al runtime.

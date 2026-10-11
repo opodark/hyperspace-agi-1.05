@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Overlay grafici (titolo, watermark/logo) resi con PIL.
 
 Questa build di ffmpeg non ha il filtro `drawtext`, quindi il testo lo

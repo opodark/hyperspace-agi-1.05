@@ -18,6 +18,7 @@ env/
 # Environment
 .env
 .env.*
+redteam_bot.env
 !.env.example
 
 # Node identity — mai committare chiavi private

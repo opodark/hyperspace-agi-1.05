@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Brief in linguaggio naturale -> impostazioni di montaggio, via LLM.
 
 Supporta due provider, scelti a runtime:

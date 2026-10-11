@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Regression checks for the integrated reel editor."""
 from __future__ import annotations
 

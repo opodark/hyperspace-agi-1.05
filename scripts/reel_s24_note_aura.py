@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Render subtle performer-following note lights in two experimental styles."""
 from __future__ import annotations
 

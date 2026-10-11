@@ -36,7 +36,7 @@ ROLE_MANIFESTS = {
     "repo-analyst": {
         "title": "Repository analyst",
         "description": "Read-only inspection of code, docs, memory and mesh state.",
-        "tools": ["web_search", "omega_query", "get_mesh_status"],
+        "tools": ["web_search", "web_fetch", "omega_query", "get_mesh_status"],
         "max_iterations": 8,
         "model_class": "general",
         "requires_review": False,
@@ -86,7 +86,7 @@ ROLE_MANIFESTS = {
     "worker": {
         "title": "Worker",
         "description": "Default, conservative role for generic steps.",
-        "tools": ["web_search", "omega_query", "get_mesh_status"],
+        "tools": ["web_search", "web_fetch", "omega_query", "get_mesh_status"],
         "max_iterations": 6,
         "model_class": "general",
         "requires_review": False,

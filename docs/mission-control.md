@@ -43,12 +43,12 @@ non può chiamare un tool che non possiede, anche se il modello lo inventa.
 | Ruolo | Tool | Iterazioni | Classe modello | Review |
 | --- | --- | --- | --- | --- |
 | `planner` | — | 1 | reasoning | no |
-| `repo-analyst` | `web_search`, `omega_query`, `get_mesh_status` | 8 | general | no |
+| `repo-analyst` | `web_search`, `web_fetch`, `omega_query`, `get_mesh_status` | 8 | general | no |
 | `coder` | `code_sandbox`, `create_website` | 16 | code | sì |
 | `verifier` | `code_sandbox`, `get_mesh_status`, `website_status` | 8 | code | no |
 | `memory-agent` | `omega_query` | 4 | general | no |
 | `ops-agent` | — (spento: `shell_run`, `get_mesh_status` solo con `MISSION_OPS_AGENT_ENABLED=true`) | 4 | code | sì |
-| `worker` | `web_search`, `omega_query`, `get_mesh_status` | 6 | general | no |
+| `worker` | `web_search`, `web_fetch`, `omega_query`, `get_mesh_status` | 6 | general | no |
 
 Un ruolo sconosciuto — per esempio per un refuso nel piano — ricade sul manifest
 `worker` (`DEFAULT_ROLE`), non su quello più potente. Gli strumenti di identità

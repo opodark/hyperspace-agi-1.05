@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Pipeline di montaggio riutilizzabile.
 
 Sia la CLI (`autoedit.cli`) sia la GUI (`gui.py`) costruiscono un

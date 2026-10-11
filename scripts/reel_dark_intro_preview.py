@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Build a 30-second, very dark pole-dance opening from local media."""
 from __future__ import annotations
 

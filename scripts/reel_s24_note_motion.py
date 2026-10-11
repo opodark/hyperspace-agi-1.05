@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Sync the first 50 seconds of S24 movement to estimated harmonic note edges."""
 from __future__ import annotations
 

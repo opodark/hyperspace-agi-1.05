@@ -42,7 +42,8 @@ async function refresh(){
     const response=await fetch('/activity/data',{cache:'no-store'});
     if(!response.ok)throw Error(`HTTP ${response.status}`);
     const data=await response.json(),images=data.images||{};
-    document.getElementById('queue').textContent=`${images.paused?'IN PAUSA':'attiva'} · ${images.in_coda||0} in coda · ${images.in_esecuzione||0} in esecuzione\nCapacità: ${images.max_jobs||0} job`;
+    const reason=images.manual_paused?'pausa manuale':images.auto_paused?'pausa automatica (task foreground/finestra idle)':'';
+    document.getElementById('queue').textContent=`${images.paused?'IN PAUSA':'attiva'}${reason?' · '+reason:''} · ${images.in_coda||0} in coda · ${images.in_esecuzione||0} in esecuzione\nCapacità: ${images.max_jobs||0} job`;
     document.getElementById('anna').textContent=selection(data.anna||{});
     document.getElementById('second').textContent=selection(data.anna_second_pass||{});
     const jobs=document.getElementById('jobs');jobs.replaceChildren();

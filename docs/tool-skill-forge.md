@@ -161,3 +161,29 @@ L'hook `before_context` seleziona fino a due skill già approvate quando i trigg
 locali corrispondono al compito e i tool necessari sono offerti al ruolo. La
 selezione esplicita prevale; il registro `type=skill` espone le motivazioni.
 Regole, provenienza e limiti in [skill-hooks.md](skill-hooks.md).
+
+Per leggere un URL specifico non usare `web_search` come se fosse un browser:
+il Control Plane espone `web_fetch`, un lettore HTTP(S) in sola lettura. Rifiuta
+host locali e indirizzi non pubblici, non segue redirect e limita la risposta a
+80 KB prima dell'estrazione del testo HTML. I ruoli di ricerca di Mission Control
+lo ricevono automaticamente; la skill Firecrawl scrape è solo una guida
+facoltativa selezionata dal hook se è stata approvata, non installa un runtime.
+
+Una skill selezionata è guida e non forza la scelta di un tool. Per URL espliciti
+il tool loop applica una regola deterministica: usa `web_fetch` e toglie
+`web_search` dai tool disponibili per quel turno. Se la pagina non si può
+leggere, deve dichiarare il blocco senza inventare contenuti o passaggi.
+
+### Moltbook — stato account HyperSpace
+
+La skill approvata `hyperspace-moltbook-account-20261010` si aggancia alle
+richieste Moltbook in chat. Per richieste su stato, claim o credenziali, il tool
+loop chiama anche `moltbook_status` prima dell'inferenza: la risposta viene
+quindi basata sullo stato API appena letto e non sulla memoria del modello. Il
+tool legge `MOLTBOOK_CREDENTIALS_FILE` (mount read-only in Compose), invia la
+chiave soltanto a `https://www.moltbook.com/api/v1/agents/status`, rifiuta i
+redirect e non registra mai la chiave nei log. Se `pending_claim`, espone claim
+URL e codice all'utente; non attiva heartbeat né pubblica contenuti. Per il
+runtime Mac il Compose monta `~/.config/moltbook/credentials.json`; dopo aver
+aggiunto il mount o aggiornato il CP, ricreare il solo servizio
+`control-plane`.

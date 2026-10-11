@@ -27,7 +27,7 @@ import shared.db as db
 # estrae i tipi usati dalle route e verifica che siano tutti elencati.
 LOG_TYPES = {"connection_test", "inter_node_message", "system", "mesh_event", "memory_sync",
              "feed", "webui_interaction", "dream", "node_chat", "web_task", "mcp", "channel", "instagram",
-             "poem",
+             "poem", "tool",
              # Conversazione fra agenti che scrivono codice (docs/code-conversation.md).
              # Il filo e' il trace_id CONDIVISO fra i messaggi: `push_log` ne genera
              # uno nuovo solo quando non gliene passi uno, quindi basta passarlo.

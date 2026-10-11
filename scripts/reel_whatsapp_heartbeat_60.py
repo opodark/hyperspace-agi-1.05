@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Render recent WhatsApp pole media as a 60-second heartbeat preview."""
 from __future__ import annotations
 

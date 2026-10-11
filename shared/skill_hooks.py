@@ -14,6 +14,12 @@ from shared.forge_skills import attach_skills, source_hash
 # (artifact prefix, terms, required native tools, allowed roles)
 RULES = (
     (
+        "hyperspace-moltbook-account-",
+        ("moltbook", "claim", "credenziali", "registrazione", "status", "stato"),
+        ("moltbook_status",),
+        ("chat",),
+    ),
+    (
         "ecc-security-review-",
         ("security", "sicurezza", "vulnerability", "vulnerabilità"),
         ("code_sandbox",),
@@ -30,6 +36,12 @@ RULES = (
         ("converti", "convert", "conversione"),
         ("converti_documento_markdown",),
         ("worker", "chat"),
+    ),
+    (
+        "firecrawl-skills-firecrawl-scrape-",
+        ("url", "web", "pagina", "page", "skill.md", "leggi", "read"),
+        ("web_fetch",),
+        ("worker", "repo-analyst", "chat"),
     ),
     (
         "wayfinder-wayfinder-",

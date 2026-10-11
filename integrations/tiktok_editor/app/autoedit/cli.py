@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Entry point da riga di comando."""
 from __future__ import annotations
 

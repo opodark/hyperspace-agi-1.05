@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Experimental 60s pole reel: dense stills, mixed transitions, electric finale."""
 from __future__ import annotations
 

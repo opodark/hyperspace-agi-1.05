@@ -26,7 +26,7 @@ fi
 docker info >/dev/null 2>&1 || { warn "Docker Desktop non è pronto"; exit 1; }
 
 log "avvio traduttore offline"
-docker compose up -d libretranslate
+docker compose --profile office up -d libretranslate
 
 log "avvio registry e control-plane"
 cp_args=(up -d --no-deps)
@@ -96,6 +96,40 @@ else
   log "web-node locale avviato su http://127.0.0.1:8790"
 fi
 
+graphify_python="$REPO/.venv/bin/python"
+if curl -fsS --max-time 3 http://127.0.0.1:7871/health >/dev/null 2>&1; then
+  log "superficie graphify già attiva su http://127.0.0.1:7871"
+elif [[ -x "$graphify_python" ]] && "$graphify_python" "$REPO/scripts/graphify_surface.py" --check >/dev/null 2>&1; then
+  nohup "$graphify_python" "$REPO/scripts/graphify_surface.py" \
+    >"$REPO/data/graphify-surface.log" 2>"$REPO/data/graphify-surface.err.log" &
+  log "superficie graphify in avvio su http://127.0.0.1:7871"
+else
+  log "superficie graphify non avviata: genera prima il grafo con ./scripts/graphify.sh"
+fi
+
+# Motore nativo facoltativo per la superficie REA: Ghidra piu' il suo JDK.
+# Si esporta solo se i percorsi esistono; una variabile gia' impostata vince.
+ghidra_dir="${GHIDRA_INSTALL_DIR:-$HOME/ghidra_12.1.4_PUBLIC}"
+java_home="${JAVA_HOME:-/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home}"
+if [[ -d "$ghidra_dir" && -x "$java_home/bin/java" ]]; then
+  export GHIDRA_INSTALL_DIR="$ghidra_dir"
+  export JAVA_HOME="$java_home"
+  log "motore nativo REA disponibile: Ghidra in $ghidra_dir (JDK in $java_home)"
+else
+  log "motore nativo REA assente: restano le operazioni statiche (servono Ghidra e un JDK)"
+fi
+
+rea_python="$REPO/.venv/bin/python"
+if curl -fsS --max-time 3 http://127.0.0.1:7872/health >/dev/null 2>&1; then
+  log "superficie REA già attiva su http://127.0.0.1:7872"
+elif [[ -x "$rea_python" ]] && "$rea_python" "$REPO/scripts/rea_surface.py" --check >/dev/null 2>&1; then
+  nohup "$rea_python" "$REPO/scripts/rea_surface.py" \
+    >"$REPO/data/rea-surface.log" 2>"$REPO/data/rea-surface.err.log" &
+  log "superficie REA in avvio su http://127.0.0.1:7872"
+else
+  log "superficie REA non avviata: senza rea nel PATH non c'è niente da analizzare (npm install --global rea-agents)"
+fi
+
 editor_app_dir="$REPO/integrations/tiktok_editor/app"
 editor_python="/Users/opo/Downloads/tiktok_editor/.venv/bin/python"
 editor_domain="gui/$(id -u)/com.hyperspace.tiktok-editor"
@@ -125,6 +159,7 @@ fi
 sleep 2
 log "PRONTO: dashboard http://127.0.0.1:8085/dashboard"
 log "web-node: http://127.0.0.1:8790"
+log "grafo del repository: http://127.0.0.1:7871 (se il grafo è stato generato)"
 log "reel editor: http://127.0.0.1:7860 (se installato)"
 log "reel scheduler: attivo, output in hyperspace_share/reel-review (revisione manuale)"
 log "per ricostruire il CP: start-tutto.command --build"

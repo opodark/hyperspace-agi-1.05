@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Make a 60-second music video from one vertical WhatsApp clip, with beat stops."""
 from __future__ import annotations
 

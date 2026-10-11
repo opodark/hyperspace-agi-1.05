@@ -8,13 +8,33 @@ La piattaforma assegna agli agenti ruoli, contesto e capability, instrada il lav
 
 ## Obiettivo di prodotto
 
-**Scelta distintiva e non negoziabile:** HyperSpace usa esclusivamente modelli non censurati per l'inferenza, indipendentemente da ruolo, modalità (testo, codice, visione, immagini, voce), nodo o provider. Non è prevista una variante di prodotto che impieghi modelli censurati, né un fallback silenzioso verso di essi.
+**Regola generale del catalogo e del routing:** HyperSpace usa modelli non censurati per l'inferenza, indipendentemente da ruolo, modalità (testo, codice, visione, immagini, voce), nodo o provider. Non è previsto un fallback silenzioso verso modelli diversi da quelli approvati.
+
+**Eccezione esplicita richiesta il 2026-10-09:** il nodo Mac può offrire il
+modello locale Apple Intelligence come capability testuale opzionale e
+riconoscibile, mantenendo i guardrail Apple. Questa aggiunta non abilita il
+modello nel routing generale o nei fallback e non lo qualifica come
+non censurato. Adapter e limiti in [docs/apple-intelligence.md](docs/apple-intelligence.md).
 
 Un **Primary Brain** sempre acceso costituisce il centro operativo: coordina inferenza, task, strumenti, stato e accesso alla memoria. Il profilo Windows su Asus resta il punto di partenza da consolidare, con accesso remoto tramite rete privata e Tailscale nella fase transitoria.
 
 Il sistema deve permettere a persone e agenti di lavorare attraverso interfacce web, canali esterni e integrazioni con sistemi aziendali. Le dashboard rendono visibili risorse, code, risultati e controlli; i canali mantengono un'identità agentica dichiarata e policy condivise con il control plane.
 
 Gli agenti possono operare sull'host attraverso capability abilitate esplicitamente, con limiti, audit e conferme per le operazioni distruttive. Lo sviluppo autonomo del runtime avviene in workspace isolati: produce modifiche e risultati di test da revisionare prima di applicarli al checkout operativo. I collaboratori esterni, come Claude Code e Codex, partecipano al ciclo di sviluppo secondo le istruzioni del progetto e le autorizzazioni dell'operatore.
+
+## Workspace centrale — direzione OpenWork
+
+Dal 2026-10-09 la direzione richiesta per l'esperienza di lavoro è **OpenWork
+come workspace principale di HyperSpace**: un ambiente comune per obiettivi,
+file, skill, avanzamento e artefatti. Il percorso di integrazione proposto
+assegna a OpenCode il turno interattivo, al control plane HyperSpace inferenza
+e capability governate, e a Mission Control le missioni delegate durevoli.
+La memoria condivisa segue la direzione Hermes già definita.
+
+**L'integrazione è pianificata, non operativa.** Il primo requisito è verificare
+il confine di esecuzione dei tool, seguito da una missione PDF completa e
+osservabile. Architettura, condizioni di licenza e criteri di accettazione sono
+in [docs/openwork-hyperspace.md](docs/openwork-hyperspace.md).
 
 ## Principi architetturali
 

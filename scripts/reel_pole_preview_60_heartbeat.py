@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Render a 60-second pole preview cut to the song's heartbeat."""
 from __future__ import annotations
 

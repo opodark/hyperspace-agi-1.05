@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import unittest
 
 from shared.bot_commands import command_help, help_requested, help_text

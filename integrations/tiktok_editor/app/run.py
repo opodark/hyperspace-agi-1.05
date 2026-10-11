@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Wrapper per lanciare autoedit senza installare il pacchetto.
 
 Esempi:

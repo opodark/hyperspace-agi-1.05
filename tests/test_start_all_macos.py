@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import subprocess
 import unittest
 from pathlib import Path
@@ -25,6 +26,17 @@ class StartAllMacosTests(unittest.TestCase):
         for marker in ("telegram_bot.py", "com.hyperspace.comfy-bridge", "serve.mjs",
                        "control-plane registry libretranslate", "Comfy Desktop"):
             self.assertIn(marker, text)
+
+
+    def test_start_passa_a_rea_il_motore_nativo_solo_se_ce(self):
+        text = START.read_text(encoding="utf-8")
+        for marker in ("GHIDRA_INSTALL_DIR", "JAVA_HOME", "ghidra_dir", "java_home"):
+            self.assertIn(marker, text)
+        # i due percorsi entrano nell'ambiente solo se esistono davvero
+        self.assertIn('[[ -d "$ghidra_dir" && -x "$java_home/bin/java" ]]', text)
+        # e l'esportazione precede l'avvio della superficie, che li eredita
+        self.assertLess(text.index('export GHIDRA_INSTALL_DIR'),
+                        text.index('scripts/rea_surface.py'))
 
 
 if __name__ == "__main__":

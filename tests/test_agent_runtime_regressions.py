@@ -15,18 +15,19 @@ from shared.mission import MissionStore, task_review_status
 from shared.mission_controller import MissionController
 from shared.tool_runtime import Invocation, ExecutionStopped
 
+from tests import cp_source
+
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = runpy.run_path(str(ROOT / "tests/test_tool_passthrough.py"))
 
 
 def extracted(names, scope):
-    source = ROOT / "control-plane/main.py"
     nodes = [
         n
-        for n in ast.parse(source.read_text()).body
+        for n in cp_source.albero().body
         if isinstance(n, ast.FunctionDef) and n.name in names
     ]
-    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), "exec"), scope)
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), "<extracted>", "exec"), scope)
     return scope
 
 

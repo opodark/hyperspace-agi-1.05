@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Persistent single-user draft for the local Reel Editor."""
 from __future__ import annotations
 

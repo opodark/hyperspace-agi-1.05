@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Costruisce la Edit Decision List: quale media va in quale slot, per
 quanto, con quale movimento / transizione / effetto.
 

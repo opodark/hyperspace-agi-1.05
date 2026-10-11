@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Caricamento e ispezione dei file media (foto e video) di input."""
 from __future__ import annotations
 

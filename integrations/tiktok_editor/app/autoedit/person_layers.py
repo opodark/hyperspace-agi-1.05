@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Apple Vision person masks and separate foreground/background grades."""
 from __future__ import annotations
 

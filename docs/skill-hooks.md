@@ -26,6 +26,7 @@ non sono dipendenze importate e non vengono presentati come integrazioni attive.
 | ECC verification-loop | test, tests, pytest, verifica, regression, regressione | code_sandbox | coder, verifier, chat |
 | anydoc convert-documents-to-markdown | converti, convert, conversione | converti_documento_markdown | worker, chat |
 | Wayfinder wayfinder | wayfinder, pianifica, planning | wayfinder_map | chat |
+| Firecrawl firecrawl-scrape | url, web, pagina, page, skill.md, leggi, read | web_fetch | worker, repo-analyst, chat |
 
 Le regole sono definite nel codice server, associate ai prefissi ID dei bundle.
 Si considera l'ultimo messaggio utente testuale, che nelle missioni contiene
@@ -34,6 +35,13 @@ Sono ammessi soltanto artifact di tipo skill, approvati, con hash del sorgente
 corrispondente all'approvazione. La scelta esplicita già inserita nel contesto
 ha precedenza. Si caricano al massimo due skill nel limite condiviso di 24000
 byte, inclusa l'introduzione di sicurezza e l'eventuale adattatore Wayfinder.
+
+Le skill sono contesto di supporto e non impongono da sole una specifica scelta
+di tool. Per una richiesta che contiene un URL esplicito, il tool loop del chat
+usa una regola deterministica: offre `web_fetch`, nasconde `web_search` per quel
+turno e blocca la risposta in prosa se il fetch non riesce o restituisce nessun
+contenuto. Questo evita che una ricerca per URL venga scambiata per lettura della
+pagina.
 
 ## Osservabilità e limiti
 

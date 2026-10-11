@@ -132,8 +132,8 @@ class ProvaColoriTests(unittest.TestCase):
             self.assertIn(nome, testo)
         self.assertNotIn("01-volto-aurora", testo, "ha girato la serie al posto delle prove")
         self.assertNotIn("RIFIUTATA", testo)
-        self.assertEqual(len(self.mod.serie_anna.SCENE), 30,
-                         "le trenta scene della serie sono rimaste cambiate")
+        self.assertEqual(len(self.mod.serie_anna.SCENE), 50,
+                         "le cinquanta scene della serie sono rimaste cambiate")
 
 
 if __name__ == "__main__":

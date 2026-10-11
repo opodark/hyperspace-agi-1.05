@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Rendering dei singoli segmenti (foto/video) e assemblaggio finale.
 
 Sincronizzazione col beat

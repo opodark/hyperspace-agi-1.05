@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Foreground/background grading is wired to a real pixel mask."""
 from __future__ import annotations
 

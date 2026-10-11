@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Build a full-song vertical video from an explicit folder of photos."""
 from __future__ import annotations
 

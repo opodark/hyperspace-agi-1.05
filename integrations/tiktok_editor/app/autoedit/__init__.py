@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """autoedit -- motore di montaggio automatico stile TikTok/CapCut.
 
 Prende una cartella di foto/video, un brano musicale, rileva il beat

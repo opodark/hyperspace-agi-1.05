@@ -47,11 +47,13 @@ The infra UI is the operational view of the mesh. It is separate from the contro
 
 ## Pole Motion project (separate private repository)
 
-`pole-motion` is developed in its **own private repository**
-(`github.com:opodark/pole-motion`), separate from this one. Its optional
-MuJoCo/Mink `sim` extra builds a physical reference body and checks draft poses
-for static plausibility. It is not a control-plane service or an RL trainer, and
-its results are not safety certification.
+`pole-motion-engine` is developed in its **own private repository**
+(`/Users/opo/pole-motion-engine`), separate from this one. It is an embodied
+reinforcement-learning trainer (MuJoCo + Gymnasium + PPO) that teaches a
+simulated articulated dancer balance, locomotion and pole-contact skills, and is
+the foundation of a Just Dance–style rhythm game in which players reproduce
+discovered movements to music via gamepad or webcam. It is not a control-plane
+service, and its results are not safety certification.
 
 HyperSpace relates to it only as an **internal development tool** — a place to
 build, review and run things — never as a host for the project, its models or

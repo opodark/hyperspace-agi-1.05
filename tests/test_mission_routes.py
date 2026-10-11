@@ -19,12 +19,16 @@ from shared import mission_policy as policy
 from shared.mission import TASK_STATUSES
 
 
+from tests import cp_source
+
 ROOT = Path(__file__).parents[1]
 MAIN_SOURCE = (ROOT / "control-plane" / "main.py").read_text(encoding="utf-8")
 DASHBOARD = (ROOT / "control-plane" / "dashboard.html").read_text(encoding="utf-8")
 
 
-def functions(path):
+def functions(path=None):
+    if path is None or path == ROOT / "control-plane" / "main.py":
+        return cp_source.funzioni()
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source)
     return {node.name: node for node in tree.body
@@ -51,8 +55,8 @@ def routes(tree):
 class MissionRouteTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.tree = ast.parse(MAIN_SOURCE)
-        cls.control_plane = functions(ROOT / "control-plane" / "main.py")
+        cls.tree = cp_source.albero()
+        cls.control_plane = cp_source.funzioni()
         cls.route_map = routes(cls.tree)
 
     def unparse(self, name):
@@ -263,7 +267,7 @@ class MissionSandboxArtifactTests(unittest.TestCase):
 
     @classmethod
     def helpers(cls, client):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef) and node.name in cls.HELPERS],
@@ -336,7 +340,7 @@ class MissionWebsiteArtifactTests(unittest.TestCase):
 
     @staticmethod
     def _load(website_dir):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef)
@@ -395,7 +399,7 @@ class MissionPlannerAttemptTests(unittest.TestCase):
 
     @classmethod
     def planner(cls, budget_attempts=2, raw=RAW):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef)
@@ -447,7 +451,7 @@ class MissionPlannerAttemptTests(unittest.TestCase):
         tool loop, quindi il prompt del planner deve dirlo.
         """
         prompts = []
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef)
@@ -485,7 +489,7 @@ class MissionPlannerShapeTests(unittest.TestCase):
                "_mission_roles_hint")
 
     def setUp(self):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef) and node.name in self.HELPERS],
@@ -560,7 +564,7 @@ class MissionWorkerFailureTests(unittest.TestCase):
 
     @staticmethod
     def worker(loop_response, seen=None, reasoning_model=False):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef)
@@ -698,7 +702,7 @@ class MissionPdfGateTests(unittest.TestCase):
 
     @classmethod
     def helpers(cls, client):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef) and node.name in cls.HELPERS],
@@ -809,7 +813,7 @@ class MissionInferenceEndpointTests(unittest.TestCase):
 
     @staticmethod
     def base(env_url, cp_url):
-        tree = ast.parse(MAIN_SOURCE)
+        tree = cp_source.albero()
         module = ast.Module(
             body=[node for node in tree.body
                   if isinstance(node, ast.FunctionDef)

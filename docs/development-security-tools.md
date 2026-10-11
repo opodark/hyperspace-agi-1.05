@@ -151,7 +151,11 @@ riuscita se almeno un percorso funzionale viene ricostruito con riferimenti
 verificabili e l'analisi non lancia l'app. Nessun `rea setup` automatico:
 quel comando modifica la configurazione MCP degli agenti e può proporre
 l'installazione di Hopper. Una fase distinta potrà valutare Ghidra e i binari
-su fixture compilate di nostra proprietà.
+su fixture compilate di nostra proprietà: **fatta il 9 ottobre 2026** su questa
+macchina — Ghidra 12.1.4 con OpenJDK 21 e le sei operazioni native verificate su
+un Mach-O arm64 compilato qui (dettagli in [docs/rea-surface.md](rea-surface.md)).
+Il decompiler nativo per macOS non è nella release ufficiale: va compilato dai
+sorgenti C++ inclusi nel pacchetto.
 
 Un futuro adapter HyperSpace dovrebbe esporre solo operazioni esplicite su
 percorsi in un workspace temporaneo, produrre report nel contratto comune e

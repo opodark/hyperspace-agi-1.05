@@ -250,6 +250,12 @@ main{padding:18px 20px;display:grid}
 .model-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);background:var(--surface2);font-family:var(--font-mono);font-size:.75rem}
 .model-dot{width:5px;height:5px;border-radius:50%;background:var(--success)}
 .modal-close{margin-left:auto;background:var(--surface3);border:none;cursor:pointer;padding:4px 10px;border-radius:var(--radius);color:var(--text-muted);font-size:.75rem}
+.approval-dialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:500;align-items:center;justify-content:center;padding:16px}
+.approval-dialog.open{display:flex}
+.approval-dialog-card{width:min(100%,520px);background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:20px;box-shadow:0 18px 70px rgba(0,0,0,.38)}
+.approval-dialog-title{font-size:.95rem;font-weight:700;margin-bottom:8px}
+.approval-dialog-detail{font-size:.8rem;line-height:1.5;color:var(--text-muted);white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:12px}
+.approval-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--surface)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -793,6 +799,14 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
     </div>
     <div id="socialList" style="margin-top:8px"></div>
   </div>
+  <div class="card">
+    <div class="card-title">&#128203; Attività Mission Control</div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <span class="hint" id="socialMissionSummary">Caricamento&hellip;</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadSocialMissionLogs()">&#8634; Ricarica log</button>
+    </div>
+    <div id="socialMissionLogs" class="diag-out" style="margin-top:8px;max-height:360px;overflow:auto">Caricamento&hellip;</div>
+  </div>
 </div>
 
 <div id="panel-setup" class="panel">
@@ -883,7 +897,7 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
 <!-- SVILUPPO & SECURITY -->
 <div id="panel-dev" class="panel">
   <div class="sec-title">Sviluppo &amp; Security</div>
-  <p class="hint">Un unico punto d'ingresso per gli strumenti di sviluppo e sicurezza. Forge e Dev Sandbox restano schede piene: qui sono raccolte e spiegate insieme al grafo del repository e al candidato per il reverse engineering.</p>
+  <p class="hint">Un unico punto d'ingresso per gli strumenti di sviluppo e sicurezza. Forge e Dev Sandbox restano schede piene: qui sono raccolte e spiegate insieme al grafo del repository e alla superficie di reverse engineering.</p>
   <div class="dev-grid" style="margin-top:12px">
     <a class="dev-card" href="#forge">
       <div class="dev-card-title">&#128736; Tool &amp; Skill Forge</div>
@@ -897,17 +911,20 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
     </a>
     <div class="dev-card">
       <div class="dev-card-title">&#128200; Grafo del repository (graphify)</div>
-      <p>Il grafo statico del codice (funzioni e archi di chiamata) non è servito da una rotta: si genera a parte e resta un artefatto.</p>
-      <p><code>./scripts/graphify.sh</code></p>
-      <p>Output in <code>graphify-out/graph.html</code>, spiegato in <code>docs/graphify.md</code>.</p>
+      <p>Mappa del codice (funzioni e archi di chiamata) servita dalla superficie locale su <b>:7871</b>: community con nome, hub, ricerca, ispettore dei simboli e <b>freschezza</b> rispetto a HEAD. Solo loopback, sola lettura.</p>
+      <p>Primo giro <code>./scripts/graphify.sh</code>; dopo ogni modifica <code>./scripts/graphify.sh update .</code> (offline, nessuna chiave).</p>
+      <p>L'artefatto statico resta anche in <code>graphify-out/graph.html</code>, spiegato in <code>docs/graphify.md</code>.</p>
+      <div class="dev-links">
+        <button class="btn btn-ghost btn-sm" onclick="openSurface('graphify')">Apri la superficie &rarr;</button>
+      </div>
     </div>
     <div class="dev-card dev-full">
-      <div class="dev-card-title">&#129520; Reverse engineering (REA) <span class="rea-badge candidate">candidato &middot; non collegato</span></div>
+      <div class="dev-card-title">&#129520; Reverse engineering (REA) <span class="rea-badge candidate">opzionale &middot; REA non incluso</span></div>
       <p><a href="https://github.com/morluto/rea" target="_blank" rel="noopener">REA</a> (MIT) offre una CLI e un server MCP per il reverse engineering guidato da agenti: binari nativi, app JavaScript/Electron, .NET e siti, con risultati accompagnati da evidenze e limiti dichiarati. Non sostituisce Bandit per il nostro sorgente né Nmap/ZAP per la rete.</p>
-      <p>Stato: <b>candidato, non collegato al runtime</b>. Una prima prova statica è già stata eseguita (vedi <code>docs/rea-pilot.md</code>, REA 3.2.1): ha prodotto un inventario verificabile ma con etichette Electron/&laquo;endpoint&raquo; non valide per il target, quindi il risultato grezzo va normalizzato prima dell'integrazione.</p>
-      <p>Requisiti: Node con parser JavaScript; l'analisi nativa richiede <b>Hopper o Ghidra</b> (Ghidra su Windows è ancora sperimentale). <code>rea setup</code> tocca la configurazione MCP degli agenti e può proporre l'installazione di Hopper: <b>nessun setup automatico</b>.</p>
-      <p>Prossimo passo: un adapter che esponga solo operazioni esplicite su un workspace temporaneo e produca report nel contratto comune, tenendo <code>capture-process</code>, browser runtime e avvio dei provider fuori dall'analisi statica. Dettagli in <code>docs/development-security-tools.md</code>.</p>
+      <p><b>Superficie locale</b> su <b>:7872</b> (solo loopback, sola lettura): si indica un artefatto, si sceglie una delle operazioni esposte (<code>analyze</code>, <code>inspect</code>, <code>function</code>, <code>search</code>, &hellip;) e si legge un report ridotto su tre corsie — <b>osservato qui</b>, <b>riferito da REA</b>, <b>progresso dichiarato</b>. Il target non viene eseguito e <code>rea setup</code> non parte mai da qui.</p>
+      <p>Requisiti: Node con parser JavaScript; l'analisi nativa richiede <b>Hopper o Ghidra</b> (Ghidra su Windows è ancora sperimentale). Se <code>rea</code> non è nel PATH la superficie parte lo stesso e mostra i comandi (<code>npm install --global rea-agents</code>, <code>npx -y rea-agents@latest &hellip;</code>, oppure una prova isolata in <code>/private/tmp/rea-pilot</code>): <b>non installa niente da sola</b>. Dettagli in <code>docs/rea-surface.md</code>; limiti e prova statica in <code>docs/rea-pilot.md</code> e <code>docs/development-security-tools.md</code>.</p>
       <div class="dev-links">
+        <button class="btn btn-ghost btn-sm" onclick="openSurface('rea')">Apri la superficie &rarr;</button>
         <a class="btn btn-ghost btn-sm" href="https://github.com/morluto/rea" target="_blank" rel="noopener">Apri il repository REA</a>
       </div>
     </div>
@@ -915,7 +932,19 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
 </div>
 </main>
 
-<!-- OLLAMA MODAL -->
+<!-- REVIEW AND OLLAMA MODALS -->
+<div class="approval-dialog" id="approvalDialog" role="dialog" aria-modal="true" aria-labelledby="approvalDialogTitle" onclick="if(event.target===this)closeApprovalDialog(false)">
+  <div class="approval-dialog-card">
+    <div class="approval-dialog-title" id="approvalDialogTitle">Conferma review</div>
+    <div class="approval-dialog-detail" id="approvalDialogDetail"></div>
+    <label class="fg" for="approvalDialogRationale"><span class="label">Motivazione</span><textarea id="approvalDialogRationale" class="inp" rows="3" maxlength="2000" placeholder="Scrivi perché approvi o rifiuti"></textarea></label>
+    <div class="approval-dialog-actions">
+      <button class="btn btn-ghost" type="button" onclick="closeApprovalDialog(false)">Annulla</button>
+      <button class="btn btn-primary" id="approvalDialogSubmit" type="button" onclick="closeApprovalDialog(true)">Conferma</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="ollamaModal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-title"><span class="ollama-dot" id="modalDot"></span>&#129302; Ollama<button class="modal-close" onclick="closeModal()">&#10005; Close</button></div>
@@ -961,7 +990,7 @@ function showPanel(name,btn){
   if(name==='sandbox')sandboxLoad();
   if(name==='autogen'){refreshNodes();if(missionToken())loadMissions();}
   if(name==='setup'){loadCfg();loadEnv();loadConnectors();}
-  if(name==='social')loadSocial();
+  if(name==='social'){loadSocial();loadSocialMissionLogs();}
   if(name==='network'){
     document.getElementById('netAdminToken').value=networkToken();
     refreshNetwork();refreshBottles();
@@ -1030,6 +1059,19 @@ async function loadSurfaces(){
       .then(function(){surfaceUp(el,true);})
       .catch(function(){surfaceUp(el,false);});
   });
+}
+
+// Apre una superficie del catalogo per `id`. La usa la scheda Sviluppo per il
+// grafo del repository: cosi' host e porta non vengono copiati nel markup (il
+// catalogo e' la fonte unica) e aprendo la pagina da un altro computer il link
+// continua a puntare alla macchina giusta.
+async function openSurface(id){
+  var data;
+  try{ data=await(await fetch('/surfaces')).json(); }
+  catch(e){ alert('Catalogo superfici non raggiungibile: '+e); return; }
+  var s=((data&&data.surfaces)||[]).filter(function(x){return x.id===id;})[0];
+  if(!s){ alert('Superficie "'+id+'" non presente in /surfaces.'); return; }
+  window.open(surfaceUrl(s),'_blank','noopener');
 }
 
 // ── Deep-link di scheda (#autogen, #nodes, ...) ──────────────────────────────
@@ -2425,6 +2467,26 @@ async function checkDreamWorker(){
   var out=document.getElementById('dDreamWorker');out.textContent='Caricamento...';
   try{var response=await fetch('/dreams/status?node_id='+encodeURIComponent(id));out.textContent=JSON.stringify(await response.json(),null,2);}catch(e){out.textContent=e.message;}
 }
+var approvalDialogResolve=null;
+function closeApprovalDialog(accepted){
+  var dialog=document.getElementById('approvalDialog');
+  if(!dialog)return;
+  var rationale=document.getElementById('approvalDialogRationale').value.trim();
+  if(accepted&&!rationale){document.getElementById('approvalDialogRationale').focus();return;}
+  dialog.classList.remove('open');
+  if(approvalDialogResolve){approvalDialogResolve(accepted?rationale:null);approvalDialogResolve=null;}
+}
+function requestApprovalRationale(action,detail){
+  var dialog=document.getElementById('approvalDialog');
+  document.getElementById('approvalDialogTitle').textContent='Conferma: '+action;
+  document.getElementById('approvalDialogDetail').textContent=detail||'La decisione verrà registrata e non applica automaticamente artifact.';
+  document.getElementById('approvalDialogSubmit').textContent=action;
+  document.getElementById('approvalDialogRationale').value='';
+  dialog.classList.add('open');
+  document.getElementById('approvalDialogRationale').focus();
+  return new Promise(function(resolve){approvalDialogResolve=resolve;});
+}
+document.addEventListener('keydown',function(event){if(event.key==='Escape'&&approvalDialogResolve)closeApprovalDialog(false);});
 function dreamActionButton(label,action,dreamId){
   var button=document.createElement('button');
   button.className='btn btn-ghost btn-sm';button.textContent=label;
@@ -2453,7 +2515,7 @@ async function loadDreamInbox(){
   try{var response=await fetch('/dreams?node_id='+encodeURIComponent(node)+'&status='+encodeURIComponent(status));var data=await response.json();if(!response.ok)throw new Error(data.error||'Errore inbox');renderDreamInbox(data.dreams||[]);}catch(error){inbox.textContent='Errore: '+error.message;}
 }
 async function reviewDream(dreamId,action){
-  var rationale=window.prompt('Motivazione obbligatoria per '+action+':','');if(!rationale||!rationale.trim())return;
+  var rationale=await requestApprovalRationale(action,'Review sogno '+dreamId+'. La decisione modifica lo stato della memoria secondo la policy di review.');if(!rationale)return;
   var payload={node_id:document.getElementById('dreamReviewNode').value,action:action,reviewer:document.getElementById('dreamReviewer').value||'operator',rationale:rationale.trim()};
   var token=document.getElementById('dreamReviewToken').value;
   try{var response=await fetch('/dreams/'+encodeURIComponent(dreamId)+'/review',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});var data=await response.json();if(!response.ok)throw new Error(data.detail||data.error||'Revisione fallita');await loadDreamInbox();}catch(error){window.alert('Errore: '+error.message);}
@@ -2483,7 +2545,7 @@ async function loadDevelopmentDreams(){
   try{var results=await Promise.all([fetch('/development-dreams/status'),fetch('/development-dreams?status='+encodeURIComponent(status))]);var engine=await results[0].json(),data=await results[1].json();if(!results[1].ok)throw new Error(data.error||'Errore inbox sviluppo');document.getElementById('developmentDreamEngine').textContent=JSON.stringify(engine,null,2);renderDevelopmentDreams(data.dreams||[]);}catch(error){inbox.textContent='Errore: '+error.message;}
 }
 async function reviewDevelopmentDream(dreamId,action){
-  var rationale=window.prompt('Motivazione obbligatoria per '+action+':','');if(!rationale||!rationale.trim())return;
+  var rationale=await requestApprovalRationale(action,'Review proposta di sviluppo '+dreamId+'. L’approvazione registra la decisione; il diff resta soggetto al flusso di applicazione previsto.');if(!rationale)return;
   var token=document.getElementById('dreamReviewToken').value,payload={action:action,reviewer:document.getElementById('dreamReviewer').value||'operator',rationale:rationale.trim()};
   try{var response=await fetch('/development-dreams/'+encodeURIComponent(dreamId)+'/review',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});var data=await response.json();if(!response.ok)throw new Error(data.error||'Revisione fallita');await loadDevelopmentDreams();}catch(error){window.alert('Errore: '+error.message);}
 }
@@ -2742,7 +2804,7 @@ async function cancelMission(missionId){
   try{var response=await fetch('/missions/'+encodeURIComponent(missionId)+'/cancel',{method:'POST',headers:missionHeaders(true),body:JSON.stringify({reason:reason})});var data=await response.json();if(!response.ok)throw new Error(data.error||'Annullamento fallito');await loadMissions();}catch(error){window.alert('Errore: '+error.message);}
 }
 async function reviewMission(missionId,action){
-  var rationale=window.prompt('Motivazione obbligatoria per '+action+':','');if(!rationale||!rationale.trim())return;
+  var rationale=await requestApprovalRationale(action,'Review missione '+missionId+'. La decisione viene registrata; gli artifact non vengono applicati da questa review.');if(!rationale)return;
   var payload={action:action,reviewer:document.getElementById('dreamReviewer').value||'operator',rationale:rationale.trim()};
   try{var response=await fetch('/missions/'+encodeURIComponent(missionId)+'/review',{method:'POST',headers:missionHeaders(true),body:JSON.stringify(payload)});var data=await response.json();if(!response.ok)throw new Error(data.error||'Revisione fallita');document.getElementById('missionEngine').textContent='Review recorded; no artifact was applied.';await loadMissions();}catch(error){window.alert('Errore: '+error.message);}
 }
@@ -3036,6 +3098,32 @@ async function loadSocial(){
     +'<div class="sec-title" style="margin-top:14px">Placeholder</div>'
     +(later.length?later.map(card).join(''):'<span class="hint">Nessuno.</span>');
 }
+async function loadSocialMissionLogs(){
+  var summary=document.getElementById('socialMissionSummary');
+  var box=document.getElementById('socialMissionLogs');
+  if(!summary||!box)return;
+  try{
+    var response=await fetch('/logs?type=mission&per_page=30');
+    var data=await response.json();
+    if(!response.ok)throw new Error(data.error||'richiesta non riuscita');
+    var logs=data.logs||[];
+    summary.textContent=logs.length+' eventi recenti'+(data.total?' · '+data.total+' totali':'');
+    if(!logs.length){box.textContent='Nessun log missione registrato.';return;}
+    box.innerHTML=logs.map(function(item){
+      var when=item.ts||'', title=item.summary||item.type||'missione';
+      var detail=item.detail||'';
+      return '<div style="padding:7px 4px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap"><strong>'+escH(title)+'</strong><span class="hint">'+escH(when)+'</span>'
+        +(item.status?'<span class="hint">'+escH(item.status)+'</span>':'')+'</div>'
+        +(detail?'<div class="hint" style="white-space:pre-wrap;margin-top:3px">'+escH(detail)+'</div>':'')
+        +'</div>';
+    }).join('');
+  }catch(error){summary.textContent='Log non disponibili';box.textContent=error.message;}
+}
+setInterval(function(){
+  var panel=document.getElementById('panel-social');
+  if(panel&&panel.classList.contains('active'))loadSocialMissionLogs();
+},10000);
 async function connectChannel(key,disconnect){
   var tok=document.getElementById('tok_'+key).value.trim();
   if(!disconnect && !tok){showMsg('Token vuoto per '+key);return;}

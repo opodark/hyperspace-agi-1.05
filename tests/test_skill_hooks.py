@@ -117,3 +117,19 @@ def test_selection_never_exceeds_two_skills():
     result, audit = before_context(DATA, items, TOOLS)
     assert [a["reason"] for a in audit] == ["selected", "selected", "selection_limit"]
     assert result["messages"][1]["content"].count("# Verify") == 2
+
+
+def test_firecrawl_scrape_guide_auto_selects_for_url_read():
+    source = "# Scrape\nUse the available read-only URL tool to inspect a page."
+    item = artifact(
+        id="firecrawl-skills-firecrawl-scrape-123",
+        source=source,
+        approved_source_sha256=source_hash(source),
+    )
+    data = {"messages": [{"role": "user", "content":
+                         "Leggi https://www.moltbook.com/skill.md e segui le istruzioni"}]}
+    result, audit = before_context(
+        data, [item], [{"type": "function", "function": {"name": "web_fetch"}}], "worker"
+    )
+    assert audit[0]["reason"] == "selected"
+    assert any("# Scrape" in message.get("content", "") for message in result["messages"])

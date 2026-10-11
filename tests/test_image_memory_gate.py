@@ -90,6 +90,15 @@ class ImageMemoryGateTests(unittest.TestCase):
         self.assertTrue(gate.reserve_image("image-1"))
         self.assertEqual(gate.status()["image_job"], "image-1")
 
+    def test_restored_claim_lease_can_be_bounded_to_original_deadline(self):
+        now = [100.0]
+        gate = ImageMemoryGate(clock=lambda: now[0], lease_s=1200)
+        self.assertTrue(gate.reserve_image("image-1", timeout=0, lease_s=90))
+        self.assertEqual(gate.status()["lease_remaining_s"], 90)
+        now[0] += 91
+        self.assertTrue(gate.enter_chat(timeout=0.01))
+        gate.leave_chat()
+
 
 if __name__ == "__main__":
     unittest.main()

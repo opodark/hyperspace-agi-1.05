@@ -417,6 +417,7 @@ class ImmagineQueue:
         self._job: dict = {}
         self._storico: list = []
         self.paused = False
+        self.auto_paused = False
         self.state_path = str(state_path or "")
         self._restore()
 
@@ -442,7 +443,7 @@ class ImmagineQueue:
         """
         with self._lock:
             self._pota_locked()
-            if self.paused:
+            if self.paused or self.auto_paused:
                 return None
             candidati = [j for j in self._job.values() if j["stato"] == "pending"]
             capaci = famiglie_capaci(capace_di)
@@ -540,6 +541,7 @@ class ImmagineQueue:
                     if job["stato"] == "pending":
                         job["creato_ts"] = self.clock()
             self.paused = bool(paused)
+            self.auto_paused = False
             self._save_locked()
             return self.paused
 
@@ -551,6 +553,15 @@ class ImmagineQueue:
                     if j["stato"] == "running"
                     and (not capaci or j.get("famiglia") in capaci)]
 
+    def running_claims(self, famiglia: str = "") -> list[dict]:
+        """Return active claims with their original claim timestamp."""
+        with self._lock:
+            self._pota_locked()
+            capaci = famiglie_capaci(famiglia)
+            return [dict(j) for j in self._job.values()
+                    if j["stato"] == "running"
+                    and (not capaci or j.get("famiglia") in capaci)]
+
     def ha_in_coda(self, famiglia: str = "") -> bool:
         """True se resta un job pending per una delle famiglie richieste."""
         with self._lock:
@@ -559,6 +570,13 @@ class ImmagineQueue:
             return any(j["stato"] == "pending"
                        and (not capaci or j.get("famiglia") in capaci)
                        for j in self._job.values())
+
+    def set_auto_paused(self, paused: bool) -> bool:
+        """Pause/resume image dispatch from the foreground-idle coordinator."""
+        with self._lock:
+            self.auto_paused = bool(paused)
+            self._save_locked()
+            return self.paused or self.auto_paused
 
     def da_consegnare(self, canale: str) -> list:
         """Le immagini PRONTE da consegnare a questo canale, non ancora consegnate.
@@ -607,7 +625,9 @@ class ImmagineQueue:
                 "in_esecuzione": per_stato["running"],
                 "da_consegnare": len(da_consegnare),
                 "max_jobs": self.max_jobs,
-                "paused": self.paused,
+                "paused": self.paused or self.auto_paused,
+                "manual_paused": self.paused,
+                "auto_paused": self.auto_paused,
                 "ttl_s": self.ttl_s,
                 "attivi": [{"id": j["id"], "stato": j["stato"],
                             "famiglia": j["famiglia"]}
@@ -655,7 +675,8 @@ class ImmagineQueue:
                 saved = json.load(handle)
             jobs = saved.get("jobs", {})
             history = saved.get("history", [])
-            self.paused = bool(saved.get("paused", False))
+            self.paused = bool(saved.get("manual_paused", saved.get("paused", False)))
+            self.auto_paused = bool(saved.get("auto_paused", False))
             if not isinstance(jobs, dict) or not isinstance(history, list):
                 return
             self._job = {str(key): dict(value) for key, value in jobs.items()
@@ -679,7 +700,9 @@ class ImmagineQueue:
             temporary = self.state_path + ".tmp"
             with open(temporary, "w", encoding="utf-8") as handle:
                 json.dump({"version": 1, "jobs": self._job, "history": self._storico,
-                           "paused": self.paused},
+                           "paused": self.paused or self.auto_paused,
+                           "manual_paused": self.paused,
+                           "auto_paused": self.auto_paused},
                           handle, ensure_ascii=False, separators=(",", ":"))
                 handle.flush()
                 os.fsync(handle.fileno())

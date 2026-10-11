@@ -24,8 +24,28 @@ _NATIVE_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "moltbook_status",
+            "description": "Controlla via API lo stato dell'account Moltbook HyperSpace usando la credenziale montata in sola lettura. Riporta solo pending_claim/claimed, claim URL e codice di verifica se pending. Non mostrare mai la API key. Usa questo tool quando l'utente chiede registrazione, claim o stato Moltbook.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_fetch",
+            "description": "Legge il contenuto testuale di una pagina web pubblica da un URL http/https. Usa questo tool quando l'utente fornisce un URL preciso e chiede di leggerlo/aprirlo; non usare web_search con l'URL come query. Sola lettura: non invia form né interagisce con account. Rifiuta host locali/privati; i redirect vengono restituiti senza seguirli.",
+            "parameters": {
+                "type": "object",
+                "properties": {"url": {"type": "string"}},
+                "required": ["url"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "web_search",
-            "description": "Cerca informazioni aggiornate sul web tramite SearXNG (motore self-hosted).",
+            "description": "Cerca informazioni aggiornate sul web tramite SearXNG (motore self-hosted). Per leggere un URL preciso fornito dall'utente, usa web_fetch; non passare un URL come query.",
             "parameters": {
                 "type": "object",
                 "properties": {

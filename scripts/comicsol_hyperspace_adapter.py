@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Export a HyperSpace comic into a reviewable Comic Sol storyboard.
 
 This is deliberately an adapter, not a second image generator.  Raster art is

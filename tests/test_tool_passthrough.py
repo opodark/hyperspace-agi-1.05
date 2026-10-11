@@ -22,6 +22,7 @@ from types import SimpleNamespace
 
 from tests import cp_source
 import json
+import re
 import sys
 import time
 import unittest
@@ -51,6 +52,8 @@ CATALOGO_FINTO = [
 # Il test `test_la_tabella_copre_gli_handler_veri` verifica che questa tabella non
 # resti indietro rispetto a `_handlers_nativi()` del control-plane.
 STRUMENTI_DEL_CP = {
+    "moltbook_status": "_tool_moltbook_status",
+    "web_fetch": "_tool_web_fetch",
     "web_search": "_tool_web_search",
     "omega_query": "_omega_query",
     "omega_store": "_omega_store",
@@ -146,7 +149,7 @@ def carica(risposte, client_tools=True):
         return finto
 
     scope = {
-        "json": json, "uuid": uuid, "time": time,
+        "json": json, "uuid": uuid, "time": time, "re": re,
         "DEFAULT_MODEL": "modello-finto",
         "NodeBusyError": NodeBusyError,
         "BUILTIN_TOOLS": CATALOGO_FINTO,

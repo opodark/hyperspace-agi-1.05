@@ -101,6 +101,65 @@ Il server MCP (`--mcp`) è **stdio**, come si aspetta un client MCP dentro l'IDE
 Esiste anche un transport HTTP (`python -m graphify.serve … --transport http`),
 ma senza `--host 0.0.0.0` resta loopback-only: qui non si espone.
 
+## Superficie locale: guardare il grafo (porta 7871)
+
+`graph.html` è un artefatto statico: nessuno lo serve, invecchia in silenzio e di
+suo non dice *quanto* è vecchio. `scripts/graphify_surface.py` è la superficie
+minima che chiude quel buco — HTTP su **loopback**, sola lettura, come gli altri
+strumenti di sviluppo:
+
+```bash
+.venv/bin/python scripts/graphify_surface.py --check   # radice e grafi disponibili, senza avviare
+.venv/bin/python scripts/graphify_surface.py           # http://127.0.0.1:7871
+```
+
+La porta è `7871` (`GRAPHIFY_SURFACE_PORT` per cambiarla). Nella dashboard la
+superficie è la card **Grafo del repository** della scheda *Sviluppo* e la voce
+`graphify` della scheda *Servizi* (catalogo `/surfaces`, categoria `dev`,
+opzionale): se il servizio non gira, la card resta lì e non promette niente.
+`scripts/start-all-macos.sh` la avvia dopo il web-node, ma solo dopo un
+`--check` riuscito — cioè solo se esiste un `graphify-out*/graph.json`. Senza
+grafo il servizio non parte e la dashboard lo dice.
+
+| Rotta | Cosa risponde |
+|---|---|
+| `/` | la pagina: panoramica per community, dettaglio dei membri, ispettore dei simboli, ricerca |
+| `/api/graphs` | i grafi disponibili (`graphify-out`, `graphify-out-docs`, …) con conteggi e freschezza |
+| `/api/status?dir=` | conteggi, commit di costruzione, `HEAD`, `stale`, età, presenza di report e HTML |
+| `/api/graph?dir=` | il grafo, alleggerito dei campi che la pagina non usa, con community, gradi e vicinanze |
+| `/api/report?dir=` | `GRAPH_REPORT.md` in chiaro |
+| `/health` | `ok`, `read_only` e l'elenco dei grafi |
+
+Due cose che la superficie non inventa:
+
+- **la freschezza è dichiarata, non stimata.** Il confronto è fra
+  `built_at_commit` (scritto da graphify) e `git rev-parse --short HEAD`: se i
+  due non tornano la pagina mette un banner con i comandi per rigenerare; se uno
+  dei due manca, `stale` resta `null` e la pagina dice "freschezza ignota" —
+  non sapere non è "fresco".
+- **i nomi delle community.** `update`/`cluster` riempiono `community_name`; se
+  il grafo è invece un `cluster-only --no-label` i nomi restano
+  `Community 0`, `Community 1`… In quel caso la superficie ne **deriva** uno dal
+  grafo stesso — `<nodo hub> · <directory dominante>`, per esempio
+  `push_log · control-plane` — e lo marca come «derivata», con il comando per
+  chiedere i nomi semantici a un modello locale:
+  `./scripts/graphify.sh cluster-only .`. La derivazione riempie i buchi, non
+  sovrascrive un nome dichiarato.
+
+Il perimetro è verificato dai test (`tests/test_graphify_surface.py`): solo
+`127.0.0.1` (nessun `0.0.0.0` nel file), nessuna scrittura, un solo
+sottoprocesso (`git rev-parse --short HEAD`), e si servono **solo** le directory
+`graphify-out*` che stanno nella radice del repository — `?dir=../../etc`
+risponde 404. Come `graph.html`, la pagina carica `vis-network` da CDN con hash
+SRI: il grafo resta locale, per disegnarlo serve la rete.
+
+Per rinfrescare il grafo basta il comando offline (nessun LLM, nessuna chiave):
+
+```bash
+./scripts/graphify.sh update .          # re-indicizza il codice; aggiorna graph.json, report e html
+./scripts/graphify.sh cluster-only .    # solo cluster + report + graph.html
+```
+
 ## Backend LLM: resta locale
 
 L'estrazione da documenti e immagini è l'unico passo che può contattare un LLM.

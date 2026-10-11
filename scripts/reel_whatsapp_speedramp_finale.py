@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Replace the last 10s of the WhatsApp heartbeat reel with rhythmic video speed ramps."""
 from __future__ import annotations
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Filtri ffmpeg: color grading, movimenti, effetti d'impatto, transizioni."""
 from __future__ import annotations
 

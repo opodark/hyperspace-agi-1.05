@@ -40,9 +40,25 @@ indirizzati qui dall'utente.
    (`obsidian/*`, `memory-graph/*`, i `.json` di `data/obsidian-vault/.obsidian/`).
    Obsidian è uscito dallo stack: la memoria è `hermes` (`docs/hermes.md`), il
    grafo del repository è `graphify` (`docs/graphify.md`).
-4. **Nessun segreto nei file.** I file `.env` tracciati sono già in storia: non
-   aggiungere valori reali, nemmeno in `.env.example`.
+4. **Nessun segreto nei file o negli output.** I file `.env` tracciati sono già
+   in storia: non aggiungere valori reali, nemmeno in `.env.example`. Non
+   stampare environment completi (`docker inspect ... Config.Env`, `env`, `printenv`)
+   né copiare token in log o diagnostiche: interrogare solo i campi necessari e
+   redigere credenziali prima di mostrare output.
 5. **I test girano nel `.venv` del repository**, non in quello dell'editor.
+6. **Le diagnostiche riutilizzabili diventano strumenti di HyperSpace.** Se
+   durante un intervento viene scritto o composto uno script di monitoraggio,
+   health check o troubleshooting che può servire ancora, salvarlo in
+   `scripts/diagnostics/` con nome descrittivo e istruzioni d'uso; documentare
+   i flussi operativi in `docs/`. Se è un flusso per l'agente, preparare anche
+   una skill Forge come draft inerte, seguendo il workflow in
+   `docs/tool-skill-forge.md`: una skill non è attiva finché non è approvata.
+   Registrare script, documentazione e skill nel `AGENT-LOG.md`. Non salvare
+   output effimeri o segreti: usare
+   variabili d'ambiente per token e credenziali, stampando solo risultati
+   sintetici. Gli script che leggono/modificano servizi devono dichiarare
+   chiaramente il perimetro e richiedere un'opzione esplicita per le azioni
+   mutanti.
 
 ## Verificare
 

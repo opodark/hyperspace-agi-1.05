@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Replace the final ten seconds with five stop/jump motion cycles per beat."""
 from __future__ import annotations
 
