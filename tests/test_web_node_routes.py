@@ -24,6 +24,7 @@ WEB_ROUTES = {
     "web_contacts_list": "/web/contacts",
     "web_contact_update": "/web/contacts/<contact_id>",
     "web_auth_verify": "/web/auth/verify",
+    "web_topology": "/web/topology",
 }
 
 
@@ -81,7 +82,7 @@ class WebRouteGuardTests(unittest.TestCase):
         self.assertIn("_network_admin_error", calls)
 
     def test_read_only_routes_do_not_require_the_operator_token(self):
-        for name in ("web_register", "web_poll", "web_result", "web_status", "web_contact", "web_auth_verify"):
+        for name in ("web_register", "web_poll", "web_result", "web_status", "web_contact", "web_auth_verify", "web_topology"):
             with self.subTest(route=name):
                 calls = [n.func.id for n in ast.walk(self.functions[name])
                          if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]

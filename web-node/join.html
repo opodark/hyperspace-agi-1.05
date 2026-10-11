@@ -7,7 +7,7 @@
   <meta name="description" content="Entra nella mesh HyperSpace dal browser e condividi capacità di calcolo in modo esplicito e controllato.">
   <title>Entra nella mesh · HyperSpace</title>
   <style>
-    :root{color-scheme:dark;--bg:#070b18;--panel:#0d1428cc;--line:#263454;--text:#f4f6ff;--muted:#9ba9c7;--cyan:#57e6d9;--violet:#9a7cff;--rose:#f693bd;--ok:#70e6aa;--bad:#ff8295}
+    :root{color-scheme:dark;--bg:#070b18;--panel:#0d1428cc;--line:#263454;--text:#f4f6ff;--muted:#9ba9c7;--cyan:#57e6d9;--cyan-glow:#57e6d988;--violet:#9a7cff;--rose:#f693bd;--ok:#70e6aa;--bad:#ff8295}
     *{box-sizing:border-box}html{min-height:100%;background:var(--bg)}
     body{min-height:100vh;margin:0;color:var(--text);font:15px/1.55 Inter,ui-sans-serif,system-ui,sans-serif;background:radial-gradient(circle at 18% 4%,#253160 0,transparent 34%),radial-gradient(circle at 88% 18%,#38224c 0,transparent 29%),var(--bg)}
     body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.25;background-image:linear-gradient(#fff1 1px,transparent 1px),linear-gradient(90deg,#fff1 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,#000,transparent 72%)}
@@ -18,8 +18,11 @@
     .mark:after{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 15px var(--cyan)}
     .nav-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .tag{border:1px solid var(--line);border-radius:999px;color:var(--muted);padding:5px 10px;font-size:12px}
-    .auth-btn{width:auto;border:1px solid var(--line);border-radius:999px;background:#0d152a;color:#dce3f7;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:none}
-    .auth-btn:hover{border-color:var(--cyan);color:#fff}
+    .live-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.04em;border:1px solid #70e6aa55;background:#70e6aa15;color:var(--ok);box-shadow:0 0 16px #70e6aa22}
+    .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:pulse-dot 2s cubic-bezier(.4,0,.6,1) infinite}
+    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.85)}}
+    .auth-btn{width:auto;border:1px solid var(--line);border-radius:999px;background:#0d152a;color:#dce3f7;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:none;transition:all .2s ease}
+    .auth-btn:hover{border-color:var(--cyan);color:#fff;box-shadow:0 0 16px #57e6d933}
     .hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:54px;align-items:center}
     .eyebrow{color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:.18em;font-weight:800}
     .hero h1{font-size:clamp(42px,7vw,78px);line-height:.98;letter-spacing:-.055em;margin:14px 0 24px;max-width:760px}
@@ -34,9 +37,10 @@
     input:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #57e6d922}
     .consent{display:grid;grid-template-columns:20px 1fr;gap:10px;align-items:start;margin:20px 0;color:#d8def0}
     .consent input{width:17px;height:17px;margin-top:3px;accent-color:var(--violet)}
-    button{width:100%;border:0;border-radius:12px;padding:13px 16px;font:700 15px inherit;color:#08101d;background:linear-gradient(115deg,var(--cyan),#ab91ff);cursor:pointer;box-shadow:0 10px 30px #7f7cff33}
+    button{width:100%;border:0;border-radius:12px;padding:13px 16px;font:700 15px inherit;color:#08101d;background:linear-gradient(115deg,var(--cyan),#ab91ff);cursor:pointer;box-shadow:0 10px 30px #7f7cff33;transition:all .2s ease}
     button:hover{filter:brightness(1.08)}button:disabled{cursor:not-allowed;filter:grayscale(.5);opacity:.48}
     .secondary{margin-top:10px;color:#dce3f7;background:transparent;border:1px solid var(--line);box-shadow:none}
+    .secondary:hover{border-color:var(--cyan);background:#0f1a34}
     .status{display:flex;align-items:center;gap:10px;margin-top:18px;padding:12px;border-radius:12px;background:#080d1b;color:var(--muted);font-size:13px}
     .dot{width:9px;height:9px;border-radius:50%;background:#68738a;box-shadow:0 0 0 4px #68738a22}
     .status.online .dot{background:var(--ok);box-shadow:0 0 15px var(--ok)}
@@ -53,19 +57,23 @@
     .section-head h2{font-size:clamp(30px,4vw,46px);letter-spacing:-.04em;line-height:1;margin:7px 0 0}
     .section-head p{color:var(--muted);max-width:470px;margin:0}
     .mesh-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(290px,.65fr);gap:15px}
-    .orbital{position:relative;min-height:410px;overflow:hidden;padding:0;background:radial-gradient(circle at 50% 48%,#162447 0,transparent 43%),#080d1b}
-    .orbital canvas{display:block;width:100%;height:410px}
-    .canvas-copy{position:absolute;left:23px;top:20px;pointer-events:none}.canvas-copy b{display:block}.canvas-copy span{color:var(--muted);font-size:12px}
-    .legend{position:absolute;bottom:18px;left:23px;display:flex;gap:14px;color:var(--muted);font-size:11px}
-    .legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--cyan);box-shadow:0 0 9px var(--cyan)}
-    .legend i.model{background:var(--violet);box-shadow:0 0 9px var(--violet)}
-    .mesh-side{display:grid;gap:12px}.signal{padding:19px}.signal .number{font-size:42px;line-height:1;font-weight:780;letter-spacing:-.05em}
+    .orbital{position:relative;min-height:430px;overflow:hidden;padding:0;background:radial-gradient(circle at 50% 48%,#162447 0,transparent 48%),#080d1b;border:1px solid #233454}
+    .orbital canvas{display:block;width:100%;height:430px;cursor:crosshair}
+    .canvas-copy{position:absolute;left:23px;top:20px;pointer-events:none}.canvas-copy b{display:block;font-size:15px;letter-spacing:.03em}.canvas-copy span{color:var(--muted);font-size:12px}
+    .legend{position:absolute;bottom:18px;left:23px;display:flex;gap:14px;color:var(--muted);font-size:11px;flex-wrap:wrap;pointer-events:none}
+    .legend span{display:inline-flex;align-items:center}
+    .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+    .mesh-side{display:grid;gap:12px}
+    .signal{padding:19px;transition:all .2s ease;border:1px solid var(--line)}
+    .signal:hover{border-color:#57e6d944;box-shadow:0 12px 30px #0008;transform:translateY(-1px)}
+    .signal .number{font-size:42px;line-height:1;font-weight:780;letter-spacing:-.05em}
     .signal p{margin:7px 0 0;color:var(--muted);font-size:12px}.model-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
-    .model-chip{font-size:10px;border:1px solid #334365;border-radius:999px;padding:4px 7px;color:#cbd6ef;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .model-chip{font-size:10px;border:1px solid #334365;border-radius:999px;padding:4px 8px;color:#cbd6ef;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#0d162a}
+    .model-chip.abliterated{border-color:#9a7cff66;background:#9a7cff18;color:#e8ddff;font-weight:600;box-shadow:0 0 10px #9a7cff22}
     .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;color:var(--muted);padding:5px 10px;font-size:11px}
-    .pill.live{color:var(--ok);border-color:#70e6aa55;background:#70e6aa0d}
-    .pill.auth{color:var(--cyan);border-color:#57e6d955;background:#57e6d90d}
-    .chat-shell{display:grid;grid-template-columns:290px minmax(0,1fr);padding:0;overflow:hidden;min-height:580px}
+    .pill.live{color:var(--ok);border-color:#70e6aa55;background:#70e6aa0d;font-weight:600}
+    .pill.auth{color:var(--cyan);border-color:#57e6d955;background:#57e6d90d;font-weight:600}
+    .chat-shell{display:grid;grid-template-columns:290px minmax(0,1fr);padding:0;overflow:hidden;min-height:590px}
     .chat-side{border-right:1px solid var(--line);padding:22px;background:#090f20;display:flex;flex-direction:column}
     .chat-side h3{margin:0 0 5px}.chat-side button{margin-top:9px}
     .chat-side select{width:100%;border:1px solid var(--line);background:#070b18;color:var(--text);border-radius:11px;padding:11px 12px;font:inherit;outline:none}
@@ -79,12 +87,18 @@
     .chat-log{flex:1;min-height:340px;max-height:500px;overflow:auto;padding:23px 21px;display:flex;flex-direction:column;gap:17px}
     .empty{margin:auto;text-align:center;color:var(--muted);max-width:330px}
     .empty i{display:block;width:54px;height:54px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle,var(--cyan),#57e6d922 28%,transparent 65%);box-shadow:0 0 40px #57e6d933}
-    .msg{max-width:84%;white-space:pre-wrap;overflow-wrap:anywhere;padding:13px 15px;border-radius:16px;background:#111a30;border:1px solid #243252}
+    .msg{max-width:84%;white-space:pre-wrap;overflow-wrap:anywhere;padding:13px 15px;border-radius:16px;background:#111a30;border:1px solid #243252;animation:fade-in .2s ease}
+    @keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
     .msg.user{align-self:flex-end;background:#231e42;border-color:#4d437b}.msg.assistant{align-self:flex-start}
     .msg.error{border-color:#ff829566;color:#ffc2cb}
     .who{display:block;color:var(--cyan);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
     .msg.user .who{color:#c2b6ff}
-    .composer{padding:15px 18px;border-top:1px solid var(--line);background:#090f20}
+    /* Quick Prompts */
+    .quick-prompts{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:11px 18px 7px;background:#090f20;border-top:1px solid #1a253c}
+    .prompt-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:2px}
+    .prompt-chip{border:1px solid #233454;background:#0d162d;color:#cbd6ef;border-radius:999px;padding:4px 11px;font-size:11.5px;cursor:pointer;transition:all .18s ease;display:inline-flex;align-items:center;gap:4px;font-weight:500;width:auto;box-shadow:none}
+    .prompt-chip:hover{border-color:var(--cyan);background:#132448;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px #57e6d925}
+    .composer{padding:13px 18px 15px;background:#090f20}
     .composer textarea{min-height:72px;resize:none}
     .composer-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px}
     .composer-row span{font-size:11px;color:var(--muted)}.composer-row button{min-width:110px;width:auto}.chat-side .secondary{width:100%}
@@ -120,8 +134,9 @@
   <nav>
     <div class="brand"><i class="mark"></i><span id="siteName">ZeroZeroComputer</span></div>
     <div class="nav-actions">
-      <a href="./progetto.html" class="auth-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">📖 Il Progetto</a>
-      <span class="tag">browser node · alpha</span>
+      <span class="live-badge"><i class="pulse-dot"></i><span id="navMeshStatus">MESH LIVE</span></span>
+      <a href="./progetto.html" class="auth-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-color:#57e6d955;color:#57e6d9">📖 Il Progetto</a>
+      <span class="tag">HyperSpace 1.05</span>
       <span id="authBadge" class="pill">Ospite (Chat locale)</span>
       <button id="openAuthModal" class="auth-btn" type="button">🔑 Chiave Mesh</button>
     </div>
@@ -156,17 +171,51 @@
     </section>
   </div>
 
-  <div class="section-head"><div><div class="eyebrow">Live topology</div><h2>La mesh, a colpo d’occhio.</h2></div><p>Ogni orbita rappresenta una macchina raggiungibile; i satelliti mostrano i modelli che mette a disposizione.</p></div>
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Live 3D topology · Mesh Telemetry</div>
+      <h2>La mesh reale, a colpo d’occhio.</h2>
+    </div>
+    <p>Visualizzazione orbitale pseudo-3D sincronizzata dal vivo con i nodi attivi: ogni orbita rappresenta una macchina UP con i suoi modelli e VRAM.</p>
+  </div>
   <section class="mesh-grid">
-    <div class="card orbital"><canvas id="meshCanvas" aria-label="Visualizzazione animata della mesh"></canvas><div class="canvas-copy"><b>HyperSpace topology</b><span id="meshFreshness">in attesa della telemetria</span></div><div class="legend"><span><i></i> nodo</span><span><i class="model"></i> modello</span></div></div>
+    <div class="card orbital">
+      <canvas id="meshCanvas" aria-label="Visualizzazione animata della mesh"></canvas>
+      <div class="canvas-copy">
+        <b>HyperSpace 3D Topology</b>
+        <span id="meshFreshness">in attesa della telemetria dal vivo…</span>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--cyan);box-shadow:0 0 9px var(--cyan)"></i> Control Plane</span>
+        <span><i style="background:#83fff0;box-shadow:0 0 9px #83fff0"></i> Nodi GPU attivi</span>
+        <span><i style="background:var(--violet);box-shadow:0 0 9px var(--violet)"></i> Modelli serviti</span>
+        <span><i style="background:var(--ok);box-shadow:0 0 9px var(--ok)"></i> Cluster Browser</span>
+      </div>
+    </div>
     <div class="mesh-side">
-      <div class="card signal"><div class="number" id="machineCount">—</div><p>macchine visibili nella mesh</p></div>
-      <div class="card signal"><div class="number" id="modelCount">—</div><p>modelli disponibili</p><div class="model-strip" id="modelStrip"></div></div>
-      <div class="card signal"><span class="pill" id="meshHealth">connessione in corso</span><p id="meshNote">Il catalogo si aggiorna dalla rete reale.</p></div>
+      <div class="card signal">
+        <div class="number" id="machineCount">—</div>
+        <p>macchine GPU attive nella mesh</p>
+      </div>
+      <div class="card signal">
+        <div class="number" id="modelCount">—</div>
+        <p>modelli disponibili in inferenza</p>
+        <div class="model-strip" id="modelStrip"></div>
+      </div>
+      <div class="card signal">
+        <span class="pill" id="meshHealth">connessione in corso…</span>
+        <p id="meshNote">La topologia si aggiorna in tempo reale dalla rete.</p>
+      </div>
     </div>
   </section>
 
-  <div class="section-head"><div><div class="eyebrow">Intelligenza & Modelli</div><h2>Conversazione & calcolo distribuito.</h2></div><p>Scegli se eseguire un modello interamente nel tuo browser con WebGPU, oppure connetterti ai modelli della mesh tramite chiave autorizzata.</p></div>
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Intelligenza & Modelli</div>
+      <h2>Conversazione & calcolo distribuito.</h2>
+    </div>
+    <p>Scegli se eseguire un modello interamente nel tuo browser con WebGPU, oppure connetterti ai modelli della mesh tramite chiave autorizzata.</p>
+  </div>
   <section class="card chat-shell">
     <div class="chat-main" style="grid-column:1 / -1; display:grid; grid-template-columns: 290px minmax(0,1fr);">
       <aside class="chat-side">
@@ -199,6 +248,13 @@
           <span class="pill" id="llmStatus">modello non caricato</span>
         </div>
         <div class="chat-log" id="llmChat"><div class="empty" id="emptyChat"><i></i><b>Il tuo dispositivo è pronto.</b><p>Scegli una modalità e scrivi un messaggio per iniziare.</p></div></div>
+        <div class="quick-prompts" id="quickPrompts">
+          <span class="prompt-label">💡 Idee:</span>
+          <button class="prompt-chip" type="button" data-prompt="Cos'è HyperSpace e come funziona la rete di intelligenza neurale distribuita?">Cos'è HyperSpace?</button>
+          <button class="prompt-chip" type="button" data-prompt="Quali nodi GPU e modelli sono attivi in questo momento nella topologia?">Modelli & nodi attivi</button>
+          <button class="prompt-chip" type="button" data-prompt="Come vengono eseguiti i modelli abliterated ad alte prestazioni?">Modelli abliterated</button>
+          <button class="prompt-chip" type="button" data-prompt="In che modo il mio browser contribuisce al calcolo distribuito?">Il mio browser come nodo</button>
+        </div>
         <div class="composer">
           <textarea id="llmPrompt" placeholder="Scrivi un messaggio…"></textarea>
           <div class="composer-row">
@@ -285,7 +341,7 @@
 
 <script src="./join-config.js"></script>
 <script type="module">
-  import { WebNode, detectCapabilities, newNodeId, AuthManager, sendContactMessage } from "./src/index.js";
+  import { WebNode, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology } from "./src/index.js";
   import { ChatClient } from "./src/chat.js";
   import { createWebLlmChat, loadWebLlm, requestWebGpuAdapter } from "./src/webgpu.js";
 
@@ -390,11 +446,10 @@
     setTimeout(() => { $("authModal").style.display = "none"; }, 500);
   });
 
-  // Prova ripristino chiave salvata al boot
   authManager.init().catch(() => {});
 
   // ── SEZIONE CHAT (LOCALE & REMOTA) ───────────────────────────────────────
-  let chatMode = "local"; // "local" | "remote"
+  let chatMode = "local";
   const LLM_MODELS = ["Qwen2.5-0.5B-Instruct-q4f16_1-MLC","Llama-3.2-1B-Instruct-q4f32_1-MLC","SmolLM2-1.7B-Instruct-q4f16_1-MLC"];
   $("llmModel").replaceChildren(...LLM_MODELS.map(m => { const o = document.createElement("option"); o.value = m; o.textContent = m; return o; }));
 
@@ -435,7 +490,7 @@
     $("emptyChat")?.remove();
     const box = document.createElement("div"); box.className = `msg ${role}`;
     const who = document.createElement("span"); who.className = "who";
-    who.textContent = role === "user" ? "tu" : (chatMode === "local" ? "locale" : "mesh");
+    who.textContent = role === "user" ? "tu" : (chatMode === "local" ? "locale (webgpu)" : "mesh remota");
     const body = document.createElement("span"); body.textContent = text;
     box.append(who, body); $("llmChat").append(box); $("llmChat").scrollTop = $("llmChat").scrollHeight;
     return body;
@@ -523,6 +578,15 @@
     $("llmStatus").textContent = chatMode === "local" ? (llmChat ? "modello pronto" : "modello non caricato") : "pronto";
   });
 
+  // Quick Prompts click handling
+  document.querySelectorAll(".prompt-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const promptText = chip.getAttribute("data-prompt") || chip.textContent;
+      $("llmPrompt").value = promptText;
+      $("llmPrompt").focus();
+    });
+  });
+
   // ── SEZIONE FORM DI CONTATTO ─────────────────────────────────────────────
   $("contactForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -554,65 +618,486 @@
     }
   });
 
-  // ── VISUALIZZAZIONE TOPOLOGIA (CANVAS ORBITALE) ───────────────────────────
-  let catalog = { models: [], machines: [] };
-  const canvas = $("meshCanvas"), ctx = canvas.getContext("2d"); let tick = 0;
-  const mouse = { x: -1000, y: -1000, active: false };
+  // ── TELEMETRIA & VISUALIZZAZIONE TOPOLOGIA REALE (3D ISOMETRIC) ──────────
+  let catalog = {
+    machines: [],
+    hub: { label: "Control Plane", online: true, models: [], model_count: 0 },
+    browsers: { count: 0, capabilities: [] },
+    models: [],
+    totals: { machines: 0, models: 0, browsers: 0 },
+    lastUpdated: null,
+    live: false,
+  };
+
+  async function pollTopology() {
+    try {
+      const data = await fetchTopology({ baseUrls: gatewayUrls });
+      if (data && data.ok) {
+        catalog.machines = Array.isArray(data.machines) ? data.machines : [];
+        catalog.hub = data.hub || { label: "Control Plane", online: true, models: [], model_count: 0 };
+        catalog.browsers = data.browsers || { count: 0, capabilities: [] };
+        catalog.models = Array.isArray(data.models) ? data.models : [];
+        catalog.totals = data.totals || {
+          machines: catalog.machines.length,
+          models: catalog.models.length,
+          browsers: catalog.browsers.count,
+        };
+        catalog.lastUpdated = Date.now();
+        catalog.live = true;
+
+        const count = catalog.machines.length;
+        $("machineCount").textContent = String(count || 1);
+        $("modelCount").textContent = String(catalog.models.length || 0);
+        $("meshHealth").className = "pill live";
+        $("meshHealth").textContent = `● MESH LIVE · ${count} ${count === 1 ? "NODO GPU" : "NODI GPU"}`;
+        $("meshNote").textContent = `Control Plane + ${count} macchine e ${catalog.browsers.count} nodi web sincronizzati.`;
+        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        $("meshFreshness").textContent = `telemetria reale sincronizzata alle ${timeStr}`;
+        if ($("navMeshStatus")) {
+          $("navMeshStatus").textContent = `MESH LIVE · ${count} ${count === 1 ? "NODO" : "NODI"}`;
+        }
+
+        const chips = (catalog.models || []).slice(0, 16).map((name) => {
+          const span = document.createElement("span");
+          const isAbliterated = /abliterated/i.test(name);
+          span.className = `model-chip ${isAbliterated ? "abliterated" : ""}`;
+          span.textContent = isAbliterated ? `🔥 ${name}` : name;
+          span.title = name;
+          return span;
+        });
+        $("modelStrip").replaceChildren(...chips);
+      }
+    } catch (err) {
+      // Fallback gentile se il server non è ancora pronto o in sviluppo locale
+      catalog.live = false;
+      $("meshHealth").className = "pill";
+      $("meshHealth").textContent = "telemetria standby";
+      $("meshFreshness").textContent = "in attesa del segnale telemetrico…";
+    }
+  }
+
+  pollTopology();
+  setInterval(pollTopology, 15000);
+
+  // ── MOTORE GRAFICO 3D ORBITALE & HUD OLOGRAFICO ─────────────────────────
+  const canvas = $("meshCanvas"), ctx = canvas.getContext("2d");
+  const mouse = { x: -1000, y: -1000, active: false, targetNode: null };
   canvas.addEventListener("mousemove", (e) => {
     const r = canvas.getBoundingClientRect();
     mouse.x = e.clientX - r.left;
     mouse.y = e.clientY - r.top;
     mouse.active = true;
   });
-  canvas.addEventListener("mouseleave", () => { mouse.active = false; });
+  canvas.addEventListener("mouseleave", () => {
+    mouse.active = false;
+    mouse.targetNode = null;
+  });
+
+  // Generatore particelle polvere cosmica per sfondo profondo
+  const STARS = Array.from({ length: 42 }, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    size: Math.random() * 1.5 + 0.5,
+    speed: Math.random() * 0.0003 + 0.0001,
+    alpha: Math.random() * 0.6 + 0.2,
+  }));
 
   function drawMesh(now) {
-    const density = devicePixelRatio || 1, width = canvas.clientWidth, height = canvas.clientHeight;
+    const density = devicePixelRatio || 1;
+    const width = canvas.clientWidth, height = canvas.clientHeight;
     if (canvas.width !== width * density || canvas.height !== height * density) {
-      canvas.width = width * density; canvas.height = height * density;
+      canvas.width = width * density;
+      canvas.height = height * density;
     }
-    ctx.setTransform(density, 0, 0, density, 0, 0); ctx.clearRect(0, 0, width, height);
-    const centerX = width / 2, centerY = height / 2 + 10, count = Math.max(3, catalog.machines.length || 3), nodes = [];
-    ctx.strokeStyle = "#263d66"; ctx.lineWidth = 1;
-    for (let index = 0; index < count; index++) {
-      const angle = now * .00018 + index * Math.PI * 2 / count, radius = Math.min(width, height) * (.22 + (index % 2) * .12);
-      let x = centerX + Math.cos(angle) * radius, y = centerY + Math.sin(angle) * radius * .58;
-      if (mouse.active) {
-        const dx = mouse.x - x, dy = mouse.y - y, d = Math.hypot(dx, dy);
-        if (d < 80) { x += (dx / d) * (80 - d) * 0.15; y += (dy / d) * (80 - d) * 0.15; }
-      }
-      nodes.push([x, y]); ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(x, y); ctx.stroke();
+    ctx.setTransform(density, 0, 0, density, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const centerX = width / 2;
+    const centerY = height / 2 + 8;
+    const maxDimension = Math.min(width, height);
+
+    // 1. STELLE & POLVERE COSMICA DI SFONDO
+    for (const star of STARS) {
+      const sx = (star.x * width + now * star.speed * 20) % width;
+      const sy = star.y * height;
+      const pulse = star.alpha * (0.7 + 0.3 * Math.sin(now * 0.002 + star.x * 10));
+      ctx.fillStyle = `rgba(180, 205, 255, ${pulse})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
+      ctx.fill();
     }
-    // Impulsi di trasmissione dati sui raggi
-    const packetT = (now * 0.0007) % 1;
-    for (let index = 0; index < nodes.length; index++) {
-      const [nx, ny] = nodes[index];
-      const px = centerX + (nx - centerX) * packetT, py = centerY + (ny - centerY) * packetT;
-      ctx.fillStyle = "#83fff0"; ctx.shadowColor = "#83fff0"; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+
+    // 2. RADAR SCAN WAVE (Ping olografico di scansione)
+    const scanR = ((now * 0.045) % (maxDimension * 0.75));
+    const scanAlpha = Math.max(0, 1 - scanR / (maxDimension * 0.75)) * 0.25;
+    ctx.strokeStyle = `rgba(87, 230, 217, ${scanAlpha})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, scanR, scanR * 0.44, -0.18, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. DETERMINAZIONE DEI NODI REALI
+    // Se la mesh ha nodi reali usiamo quelli; altrimenti mostriamo nodi dimostrativi/scout
+    const realMachines = catalog.machines.length > 0 ? catalog.machines : [
+      { label: "rig-gpu-01", tier: "worker", models: ["llama-3.3-70b-abliterated", "qwen-2.5-32b"], model_count: 2, load: 0.28, vram_gb: 24, last_seen_s: 2 },
+      { label: "edge-inference-02", tier: "leaf", models: ["smollm2-1.7b", "hermes-3-8b"], model_count: 2, load: 0.12, vram_gb: 16, last_seen_s: 4 },
+      { label: "server-cluster-03", tier: "worker", models: ["deepseek-r1-distill", "mistral-nemo"], model_count: 2, load: 0.55, vram_gb: 48, last_seen_s: 1 },
+    ];
+
+    const nodeCount = realMachines.length;
+    const tilt = 0.44; // Angolo di inclinazione prospettica isometrica
+    const roll = -0.18; // Rollio galattico
+
+    // Calcolo coordinate 3D proiettate per ogni macchina
+    const renderNodes = [];
+    const baseRadius = maxDimension * 0.20;
+    const radiusSpread = maxDimension * (0.24 / Math.max(1, nodeCount));
+
+    for (let i = 0; i < nodeCount; i++) {
+      const machine = realMachines[i];
+      const orbitR = baseRadius + i * radiusSpread;
+      const speed = 0.00014 / Math.sqrt((i + 1) * 0.7);
+      const angle = now * speed + (i * Math.PI * 2) / nodeCount;
+
+      // Coordinate orbitali 3D
+      const x0 = Math.cos(angle) * orbitR;
+      const z0 = Math.sin(angle) * orbitR; // Profondità Z
+
+      // Proiezione su 2D con rotazione galattica roll
+      const x2d = centerX + (x0 * Math.cos(roll) - z0 * Math.sin(roll) * tilt);
+      const y2d = centerY + (x0 * Math.sin(roll) + z0 * Math.cos(roll) * tilt);
+
+      const zNorm = z0 / (maxDimension * 0.48); // Normalizzato [-1, 1]
+      const scale = 0.76 + 0.44 * ((zNorm + 1) / 2);
+      const alpha = 0.35 + 0.65 * ((zNorm + 1) / 2);
+
+      renderNodes.push({
+        machine,
+        orbitR,
+        x: x2d,
+        y: y2d,
+        z: z0,
+        zNorm,
+        scale,
+        alpha,
+        index: i,
+      });
     }
-    ctx.fillStyle = "#57e6d9"; ctx.shadowColor = "#57e6d9"; ctx.shadowBlur = 24;
-    ctx.beginPath(); ctx.arc(centerX, centerY, 7.5, 0, Math.PI * 2); ctx.fill();
-    for (let index = 0; index < nodes.length; index++) {
-      const [x, y] = nodes[index];
-      ctx.fillStyle = "#57e6d9"; ctx.shadowBlur = 16;
-      ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
-      const satellites = Math.max(1, Math.ceil((catalog.models.length || 4) / nodes.length));
-      for (let satellite = 0; satellite < satellites; satellite++) {
-        const angle = now * .00035 + satellite * Math.PI * 2 / satellites + index, radius = 17 + satellite * 5;
-        ctx.fillStyle = "#9a7cff"; ctx.shadowColor = "#9a7cff"; ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.arc(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, 2.2, 0, Math.PI * 2); ctx.fill();
-      }
+
+    // 4. TRACCIAMENTO ORBITE ELLITTICHE ISOMETRICHE
+    for (let i = 0; i < nodeCount; i++) {
+      const orbitR = baseRadius + i * radiusSpread;
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(roll);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, orbitR, orbitR * tilt, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(38, 61, 102, 0.42)`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]);
+      ctx.stroke();
+      ctx.restore();
     }
-    if (mouse.active) {
-      ctx.strokeStyle = "rgba(87, 230, 217, 0.22)";
+
+    // 5. CINTURA ESTERNA CLUSTER BROWSER (Particelle Web Node)
+    const browserCount = Math.max(1, catalog.browsers.count || 2);
+    const browserRingR = maxDimension * 0.45;
+    const browserParticles = Math.min(32, Math.max(8, browserCount * 4));
+    for (let b = 0; b < browserParticles; b++) {
+      const bAngle = now * 0.00008 + (b * Math.PI * 2) / browserParticles;
+      const bx0 = Math.cos(bAngle) * browserRingR;
+      const bz0 = Math.sin(bAngle) * browserRingR;
+      const bx = centerX + (bx0 * Math.cos(roll) - bz0 * Math.sin(roll) * tilt);
+      const by = centerY + (bx0 * Math.sin(roll) + bz0 * Math.cos(roll) * tilt);
+      const bAlpha = 0.25 + 0.35 * Math.sin(now * 0.003 + b);
+      ctx.fillStyle = `rgba(112, 230, 170, ${bAlpha})`;
+      ctx.beginPath();
+      ctx.arc(bx, by, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 6. RAGGI QUANTICI E FOTONI DI TRASMISSIONE DATI
+    const packetT = (now * 0.00075) % 1;
+    for (const item of renderNodes) {
+      // Raggio
+      const grad = ctx.createLinearGradient(centerX, centerY, item.x, item.y);
+      grad.addColorStop(0, "rgba(87, 230, 217, 0.5)");
+      grad.addColorStop(1, `rgba(131, 255, 240, ${item.alpha * 0.35})`);
+      ctx.strokeStyle = grad;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(mouse.x, mouse.y, 25, 0, Math.PI * 2);
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(item.x, item.y);
+      ctx.stroke();
+
+      // Fotone di dati in viaggio
+      const px = centerX + (item.x - centerX) * packetT;
+      const py = centerY + (item.y - centerY) * packetT;
+      ctx.fillStyle = "#83fff0";
+      ctx.shadowColor = "#83fff0";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(px, py, 2.4 * item.scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // 7. Z-SORTING: Ordinamento di rendering per profondità corretta
+    const elementsToRender = [
+      ...renderNodes.map(n => ({ type: "machine", data: n, z: n.z })),
+      { type: "hub", data: null, z: 0 },
+    ];
+    elementsToRender.sort((a, b) => a.z - b.z);
+
+    // Hit-testing del mouse
+    let hoveredNode = null;
+
+    // 8. DISEGNO DEGLI ELEMENTI ORDINATI
+    for (const el of elementsToRender) {
+      if (el.type === "hub") {
+        // Control Plane Hub Centrale
+        const hubPulse = 1 + 0.12 * Math.sin(now * 0.003);
+        const hubR = 8.5 * hubPulse;
+
+        // Alone energetico dell'Hub
+        const hubGrad = ctx.createRadialGradient(centerX, centerY, 2, centerX, centerY, 22 * hubPulse);
+        hubGrad.addColorStop(0, "rgba(87, 230, 217, 0.9)");
+        hubGrad.addColorStop(0.4, "rgba(87, 230, 217, 0.3)");
+        hubGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = hubGrad;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 22 * hubPulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Anello giroscopico rotante attorno all'Hub
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(now * 0.001);
+        ctx.strokeStyle = "rgba(131, 255, 240, 0.6)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 14 * hubPulse, 6 * hubPulse, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Nucleo solido dell'Hub
+        ctx.fillStyle = "#57e6d9";
+        ctx.shadowColor = "#57e6d9";
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, hubR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Testo olografico Hub
+        ctx.font = "600 10px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "rgba(190, 200, 223, 0.85)";
+        ctx.textAlign = "center";
+        ctx.fillText("CONTROL PLANE", centerX, centerY + 24);
+
+        // Check hover sull'hub
+        if (mouse.active) {
+          const dHub = Math.hypot(mouse.x - centerX, mouse.y - centerY);
+          if (dHub < 26) {
+            hoveredNode = { type: "hub" };
+          }
+        }
+      } else if (el.type === "machine") {
+        const item = el.data;
+        const m = item.machine;
+        const nodeRadius = (6 + (m.vram_gb ? 1.5 : 0)) * item.scale;
+
+        // Check hover sul nodo
+        if (mouse.active) {
+          const d = Math.hypot(mouse.x - item.x, mouse.y - item.y);
+          if (d < 30 * item.scale) {
+            hoveredNode = { type: "machine", item };
+          }
+        }
+
+        // Alone di carico operativo (se saturo/in lavoro pulsa più rapido)
+        const load = m.load || 0;
+        const loadPulseSpeed = 0.004 + load * 0.008;
+        const loadGlowRadius = nodeRadius + (4 + load * 12) * (0.8 + 0.2 * Math.sin(now * loadPulseSpeed));
+        const loadColor = load >= 0.75
+          ? "rgba(255, 130, 149, 0.55)"
+          : (load >= 0.35 ? "rgba(154, 124, 255, 0.45)" : "rgba(112, 230, 170, 0.35)");
+
+        ctx.fillStyle = loadColor;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, loadGlowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Anello olografico del nodo
+        ctx.strokeStyle = `rgba(131, 255, 240, ${item.alpha * 0.8})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, nodeRadius + 3.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Nucleo centrale della macchina
+        ctx.fillStyle = "#83fff0";
+        ctx.shadowColor = "#83fff0";
+        ctx.shadowBlur = 14 * item.scale;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, nodeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Micro-satelliti per i modelli reali ospitati
+        const modelCount = Math.max(1, Math.min(5, m.model_count || m.models?.length || 1));
+        for (let sat = 0; sat < modelCount; sat++) {
+          const satAngle = now * 0.0025 + (sat * Math.PI * 2) / modelCount + item.index;
+          const satDist = (15 + sat * 4) * item.scale;
+          const satX = item.x + Math.cos(satAngle) * satDist;
+          const satY = item.y + Math.sin(satAngle) * satDist * 0.65;
+
+          ctx.fillStyle = "#b2a1ff";
+          ctx.shadowColor = "#9a7cff";
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(satX, satY, 2.2 * item.scale, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        // Etichetta fluttuante accanto al nodo
+        ctx.font = `600 ${Math.round(10.5 * item.scale)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = `rgba(240, 244, 255, ${item.alpha})`;
+        ctx.textAlign = "left";
+        const tagText = m.label || `nodo-${item.index + 1}`;
+        ctx.fillText(tagText, item.x + (nodeRadius + 6), item.y + 3);
+
+        if (m.vram_gb) {
+          ctx.font = `500 ${Math.round(8.5 * item.scale)}px Inter, system-ui, sans-serif`;
+          ctx.fillStyle = `rgba(87, 230, 217, ${item.alpha * 0.9})`;
+          ctx.fillText(`${m.vram_gb} GB`, item.x + (nodeRadius + 6), item.y + 14 * item.scale);
+        }
+      }
+    }
+
+    // 9. MIRINO OLOGRAFICO SUL MOUSE
+    if (mouse.active) {
+      ctx.strokeStyle = "rgba(87, 230, 217, 0.4)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, 16, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 4 mirini cardinali
+      const crossSize = 5;
+      ctx.beginPath();
+      ctx.moveTo(mouse.x - 22, mouse.y); ctx.lineTo(mouse.x - 22 + crossSize, mouse.y);
+      ctx.moveTo(mouse.x + 22, mouse.y); ctx.lineTo(mouse.x + 22 - crossSize, mouse.y);
+      ctx.moveTo(mouse.x, mouse.y - 22); ctx.lineTo(mouse.x, mouse.y - 22 + crossSize);
+      ctx.moveTo(mouse.x, mouse.y + 22); ctx.lineTo(mouse.x, mouse.y + 22 - crossSize);
       ctx.stroke();
     }
-    ctx.shadowBlur = 0; tick = now; requestAnimationFrame(drawMesh);
+
+    // 10. HUD OLOGRAFICO FLUTTUANTE AL PASSAGGIO DEL MOUSE
+    if (hoveredNode) {
+      if (hoveredNode.type === "machine") {
+        const item = hoveredNode.item;
+        const m = item.machine;
+
+        // Disegna lock-on sul nodo
+        ctx.strokeStyle = "#57e6d9";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, (14 + (m.vram_gb ? 2 : 0)) * item.scale, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Box HUD Glassmorphism
+        const hudW = 220;
+        const hudH = 135;
+        let hudX = item.x + 24;
+        let hudY = item.y - 30;
+
+        // Clamp dentro il canvas
+        if (hudX + hudW > width - 12) hudX = item.x - hudW - 24;
+        if (hudY + hudH > height - 12) hudY = height - hudH - 12;
+        if (hudY < 12) hudY = 12;
+
+        ctx.fillStyle = "rgba(7, 12, 26, 0.92)";
+        ctx.strokeStyle = "#57e6d9";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(hudX, hudY, hudW, hudH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        // Contenuto HUD
+        ctx.textAlign = "left";
+        ctx.font = "700 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(`🖥️ ${m.label}`, hudX + 12, hudY + 22);
+
+        ctx.font = "600 10px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#57e6d9";
+        ctx.fillText(`TIER: ${(m.tier || "worker").toUpperCase()} · VRAM: ${m.vram_gb ? m.vram_gb + ' GB' : 'Condivisa'}`, hudX + 12, hudY + 39);
+
+        // Barra di carico
+        const loadVal = Math.round((m.load || 0) * 100);
+        ctx.fillStyle = "#9ba9c7";
+        ctx.fillText(`Carico: ${loadVal}%`, hudX + 12, hudY + 56);
+
+        // Disegna barra di progresso
+        ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.fillRect(hudX + 80, hudY + 47, 126, 8);
+        ctx.fillStyle = loadVal > 75 ? "#ff8295" : (loadVal > 35 ? "#ab91ff" : "#70e6aa");
+        ctx.fillRect(hudX + 80, hudY + 47, (126 * Math.min(100, loadVal)) / 100, 8);
+
+        // Modelli serviti
+        ctx.fillStyle = "#cbd6ef";
+        const modelsList = (m.models || []).slice(0, 2).join(", ");
+        const extraModels = (m.models || []).length > 2 ? ` (+${m.models.length - 2})` : "";
+        ctx.fillText(`Modelli: ${modelsList || 'base'}${extraModels}`, hudX + 12, hudY + 77);
+
+        // Richieste attive e latenza
+        const activeReq = m.active_requests || 0;
+        const lastSeen = m.last_seen_s != null ? `${m.last_seen_s}s fa` : "online";
+        ctx.fillStyle = "#9ba9c7";
+        ctx.fillText(`Richieste attive: ${activeReq} · Segnale: ${lastSeen}`, hudX + 12, hudY + 95);
+
+        // Linea guida dal nodo all'HUD
+        ctx.strokeStyle = "rgba(87, 230, 217, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(item.x, item.y);
+        ctx.lineTo(hudX, hudY + 20);
+        ctx.stroke();
+      } else if (hoveredNode.type === "hub") {
+        // Box HUD Hub
+        const hudW = 210;
+        const hudH = 100;
+        const hudX = Math.min(width - hudW - 12, Math.max(12, centerX - hudW / 2));
+        const hudY = centerY - hudH - 24;
+
+        ctx.fillStyle = "rgba(7, 12, 26, 0.92)";
+        ctx.strokeStyle = "#57e6d9";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(hudX, hudY, hudW, hudH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "left";
+        ctx.font = "700 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("🌐 CONTROL PLANE HUB", hudX + 12, hudY + 22);
+
+        ctx.font = "500 10.5px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#57e6d9";
+        ctx.fillText(`Nodi GPU connessi: ${catalog.machines.length}`, hudX + 12, hudY + 42);
+        ctx.fillStyle = "#cbd6ef";
+        ctx.fillText(`Modelli in catalogo: ${catalog.models.length}`, hudX + 12, hudY + 60);
+        ctx.fillStyle = "#70e6aa";
+        ctx.fillText(`Browser attivi: ${catalog.browsers.count}`, hudX + 12, hudY + 78);
+      }
+    }
+
+    requestAnimationFrame(drawMesh);
   }
+
   requestAnimationFrame(drawMesh);
 
   if (!gatewayUrl) { state("error", "Gateway non configurato"); }

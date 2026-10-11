@@ -12,11 +12,13 @@ import { TransportError, WebNodeTransport } from "./transport.js";
 import { TaskUnsupported, runTask, supportedTaskTypes } from "./task-runner.js";
 import { ContactError, validateContactForm, sendContactMessage } from "./contact.js";
 import { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey } from "./auth.js";
+import { fetchTopology, sanitizeTopologyData } from "./topology.js";
 
 export { PROTOCOL_VERSION, TransportError, TaskUnsupported, supportedTaskTypes };
 export { detectCapabilities, describeEnvironment };
 export { ContactError, validateContactForm, sendContactMessage };
 export { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey };
+export { fetchTopology, sanitizeTopologyData };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

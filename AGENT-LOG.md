@@ -3466,3 +3466,43 @@ Completata l'estensione del **Web Node** con l'aggiunta del form di contatto e d
 - Unificata la landing page ricca (join.html) direttamente come index.html per Render/hosting web pubblico (e cruscotto interno in debug.html).
 - Creata la pagina interattiva web-node/progetto.html con le 12 slide e i diagrammi di HyperSpace 1.05, download del PDF ufficiale, integrazione modelli abliterated della mesh e canvas orbitale reattivo al puntatore con impulsi di trasmissione dati.
 
+## 2026-10-11 — Antigravity → Utente / Team (Topologia Mesh Reale & Motore Grafico 3D Orbitale)
+
+Completata l'integrazione della telemetria reale della rete mesh nel Web Node e rinnovato il motore visivo del canvas con rendering pseudo-3D isometrico interattivo:
+
+### Cosa è stato fatto:
+
+1. **Backend e Proiezione Sanificata della Topologia (`shared/web_topology.py`, `control-plane/cp/webnode.py`, `federation-gateway/main.py`):**
+   - Creato modulo `shared/web_topology.py`: proiezione sicura del registro della rete (`public_topology`). Espone macchine attive e chiamabili, tier, modelli serviti (fino a 24 per macchina), VRAM e carico arrotondati, conteggio browser e capacità aggregate; **zero-leak garantito** su IP, endpoint interni, Tailscale, `node_id` completi ed etichette dei visitatori.
+   - Aggiunta rotta pubblica `GET /web/topology` e `OPTIONS /web/topology` su Control Plane con cache thread-safe di 10s.
+   - Registrata e rate-limitata la rotta sul Federation Gateway.
+
+2. **Client Modulare Web Node (`web-node/src/topology.js`, `web-node/src/index.js`, `web-node/package.json`):**
+   - Creato modulo `topology.js` con funzione `fetchTopology` (gestione fallback multi-endpoint trasparente) e `sanitizeTopologyData`.
+   - Aggiunta suite di test unitari `web-node/tests/topology.test.mjs` (3 check su default, chiamata e fallback).
+
+3. **Frontend & Motore Grafico 3D Orbitale (`web-node/index.html` e `web-node/join.html`):**
+   - **Binding Dati Reali:** Polling automatico ogni 15s su `/web/topology`; aggiornati contatori live `machineCount`, `modelCount`, `meshHealth`, `meshFreshness` e chip modelli `modelStrip` (con stile differenziato per i modelli abliterated).
+   - **Pipeline 3D Orbitale Isometrica (`drawMesh`):**
+     - Angolo di pitch isometrico a 0.44 con rollio galattico a -0.18 rad.
+     - Z-sorting completo (ordinamento per profondità Z) con scala e luminosità prospettica.
+     - Starfield cosmico con particelle animate e onda sonar/radar pulsante concentrica.
+     - Control Plane Hub centrale pulsante con doppio anello giroscopico rotante e glow turchese.
+     - Nodi GPU reali distribuiti su orbite ellittiche isometriche con etichette fluttuanti, badge VRAM e anello di carico proporzionale alla saturazione reale.
+     - Micro-satelliti per ciascun modello ospitato dal nodo e fotoni di pacchetti dati ad alta velocità lungo i raggi.
+     - Sciame planetario esterno per i nodi browser connessi.
+   - **HUD Olografico Interattivo al Mouse:**
+     - Mirino cyberpunk che traccia il puntatore.
+     - Lock-on visuale al passaggio su un nodo o sull'Hub con card HUD semitrasparente: etichetta, tier, VRAM, barra grafica di saturazione del carico, elenco modelli e tempo dall'ultimo segnale.
+   - **Quick Prompts nella Chat:**
+     - Inserite pillole cliccabili di ispirazione immediata per testare l'IA ("💡 Cos'è HyperSpace?", "⚡ Modelli & nodi attivi", "🧠 Modelli abliterated", "🛡️ Il mio browser come nodo").
+   - **Badge Live:** Indicatore animato `● MESH LIVE` nella navbar con animazione radar pulse.
+   - Sincronizzato `index.html` su `join.html` in conformità assoluta ai vincoli dei test (nessuna parola token, nessun percorso vietato).
+
+### Verifiche:
+- `npm test` in `web-node`: 8 suite passate al 100% (web-node, contact, auth, chat, models, topology, webgpu, webgpu-e2e).
+- `npm run check` in `web-node`: sintassi valida su tutti i file.
+- `pytest tests/test_web_topology.py tests/test_web_node_routes.py tests/test_federation_gateway.py tests/test_licensing.py -q`: 33 passati, 27 subtest passati al 100%.
+- Nessun commit e nessun push effettuato senza autorizzazione dell'utente (Regola 3 `AGENTS.md`).
+
+

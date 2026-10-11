@@ -33,10 +33,13 @@
 
 import os
 import re
+import threading
+import time
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
+import cp.mesh as mesh
 import shared.db as db
 from cp.config import (WEB_NODE_ENABLED, WEB_NODE_HEARTBEAT_S, WEB_NODE_MAX_NODES,
                        WEB_NODE_MAX_PAYLOAD, WEB_NODE_MAX_POLL_S, WEB_NODE_MAX_QUEUE,
@@ -47,6 +50,7 @@ from cp.mesh import _known_endpoints, _nodes_by_id
 from shared.network_security import token_authorized
 from shared.web_node import (WebNodeError, WebNodeRegistry, WebNodeUnknown,
                              WebTaskRejected)
+from shared.web_topology import public_topology
 
 _bp = Blueprint("webnode", __name__)
 
@@ -224,6 +228,45 @@ def web_status():
                     **web_registry.status(),
                     "recent_results": web_registry.results(limit=10),
                     "contacts": db.count_web_contacts()})
+
+
+# Vista pubblica della mesh per la landing: solo nodi attivi e chiamabili,
+# senza endpoint/IP/node_id (la proiezione e' in shared/web_topology.py).
+# Cache breve: la rotta e' anonima, e _aggregate_mesh_models interroga i nodi.
+_TOPOLOGY_CACHE_S = 10
+_topology_cache = {"ts": 0.0, "data": None}
+_topology_lock = threading.Lock()
+
+
+def _build_public_topology():
+    nodes = mesh._node_list()
+    callable_ids = {n.get("node_id") for n in nodes if mesh._best_endpoint(n)}
+    contesto = getattr(mesh, "_contesto", None)
+    aggregate = {"bare": [], "per_node": []}
+    if contesto is not None and getattr(contesto, "aggregate_mesh_models", None):
+        try:
+            aggregate = contesto.aggregate_mesh_models() or aggregate
+        except Exception:
+            pass
+    return public_topology(
+        nodes, aggregate.get("per_node"), web_registry.status().get("nodes"),
+        callable_ids=callable_ids, aliases=dict(mesh._node_aliases),
+        hub_models=aggregate.get("bare"))
+
+
+@_bp.route('/web/topology', methods=['GET', 'OPTIONS'])
+def web_topology():
+    """Nodi realmente attivi, in forma pubblica. Nessun token: e' la vetrina."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    now = time.time()
+    with _topology_lock:
+        if _topology_cache["data"] is None or now - _topology_cache["ts"] > _TOPOLOGY_CACHE_S:
+            _topology_cache.update(ts=now, data=_build_public_topology())
+        data = _topology_cache["data"]
+    response = jsonify(data)
+    response.headers["Cache-Control"] = f"public, max-age={_TOPOLOGY_CACHE_S}"
+    return response
 
 
 _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
