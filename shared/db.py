@@ -9,6 +9,7 @@ import json
 import os
 import sqlite3
 import threading
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
 
@@ -111,6 +112,20 @@ def init_db():
                 alias    TEXT UNIQUE NOT NULL,
                 set_at   TEXT DEFAULT (datetime('now'))
             );
+
+            CREATE TABLE IF NOT EXISTS web_contacts (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                contact_id TEXT UNIQUE,
+                ts         TEXT DEFAULT (datetime('now')),
+                name       TEXT NOT NULL,
+                email      TEXT NOT NULL,
+                subject    TEXT DEFAULT '',
+                message    TEXT NOT NULL,
+                ip         TEXT DEFAULT '',
+                status     TEXT DEFAULT 'unread'
+            );
+            CREATE INDEX IF NOT EXISTS idx_web_contacts_ts ON web_contacts(ts);
+            CREATE INDEX IF NOT EXISTS idx_web_contacts_status ON web_contacts(status);
         """)
     print(f"[DB] Initialized at {DB_PATH}")
 
@@ -342,3 +357,49 @@ def get_alias_map() -> dict:
 def delete_node_alias(node_id: str):
     with _conn() as con:
         con.execute("DELETE FROM node_aliases WHERE node_id = ?", (node_id,))
+
+
+# ── WEB CONTACTS ────────────────────────────────────────────────────────────
+
+def insert_web_contact(name: str, email: str, message: str, subject: str = "", ip: str = "", contact_id: str | None = None) -> dict:
+    cid = contact_id or f"cnt-{uuid.uuid4().hex[:12]}"
+    with _conn() as con:
+        con.execute("""
+            INSERT INTO web_contacts (contact_id, name, email, subject, message, ip, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'unread')
+        """, (cid, name.strip(), email.strip(), (subject or "").strip(), message.strip(), (ip or "").strip()))
+        row = con.execute("SELECT * FROM web_contacts WHERE contact_id = ?", (cid,)).fetchone()
+    return dict(row) if row else {
+        "contact_id": cid, "name": name.strip(), "email": email.strip(),
+        "subject": (subject or "").strip(), "message": message.strip(),
+        "ip": (ip or "").strip(), "status": "unread"
+    }
+
+
+def list_web_contacts(limit: int = 50, offset: int = 0, status: str | None = None) -> list[dict]:
+    clauses, params = [], []
+    if status:
+        clauses.append("status = ?")
+        params.append(status)
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    sql = f"SELECT * FROM web_contacts {where} ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([max(1, limit), max(0, offset)])
+    with _conn() as con:
+        rows = con.execute(sql, params).fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_web_contact_status(contact_id: str, status: str) -> bool:
+    with _conn() as con:
+        cur = con.execute(
+            "UPDATE web_contacts SET status = ? WHERE contact_id = ?",
+            (status, contact_id),
+        )
+    return cur.rowcount > 0
+
+
+def count_web_contacts() -> dict:
+    with _conn() as con:
+        total = con.execute("SELECT COUNT(*) as c FROM web_contacts").fetchone()["c"]
+        unread = con.execute("SELECT COUNT(*) as c FROM web_contacts WHERE status = 'unread'").fetchone()["c"]
+    return {"total": total, "unread": unread}

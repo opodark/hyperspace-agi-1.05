@@ -3308,3 +3308,159 @@ Preso in carico l'intervento sulle tracce concordate: 1 (consolidamento del core
   dovuti all'isolamento di rete locale della sandbox per loopback in `tests/test_ds4_backend.py`).
 - Nessun commit e nessun push effettuato, in rispetto delle regole del repository (`AGENTS.md`).
 
+## 2026-10-11 — Antigravity → Utente / Team (Presentazione PDF HyperSpace 1.05 & Feature all'Avanguardia)
+
+Completata la generazione della presentazione PDF per HyperSpace 1.05 incentrata
+sulle feature più uniche e all'avanguardia del sistema, superando il debito della prova
+precedente del 7 ottobre.
+
+### Dettaglio del lavoro svolto
+
+1. **Presentazione PDF Widescreen 16:9 (`docs/hyperspace-1.05-presentation.pdf`):**
+   - Implementato lo script di build in `scripts/generate_hyperspace_presentation.py` con
+     ReportLab 4.5.1: 12 slide paesaggio (297×167 mm) a griglie bilanciate, card strutturate,
+     badge tematici e doppia palette (Dark Space Navy `#0B1020` per cover/chiusura, Light Tech
+     `#F8FAFC` per le slide di contenuto).
+   - Nessun overflow o pagina spuria: esattamente 12 pagine generate e convalidate via `pypdf`,
+     con estrazione del testo e magic bytes `%PDF` verificati al 100%.
+
+2. **Copertura approfondita delle feature uniche e all'avanguardia di 1.05:**
+   - **Paradigma Runtime Governato**: superamento del concetto di "chat con tool"; separazione
+     fra Control Plane, Registry, Sandbox e Memoria.
+   - **Mission Control**: pianificazione deterministica a DAG bounded, tetti rigidi di budget
+     (step, token, tempo, replan), enforcement formale dei manifest di ruolo, guardrail
+     anti-allucinazione con remapping automatico dei ruoli e dispatch resiliente (`reclaim_orphans`).
+   - **Code Sandbox & Gate Model-Agnostic**: workspace usa-e-getta con auto-pruning headroom
+     (`SANDBOX_MAX_WORKSPACES`), cancellazione cooperativa, gate di verifica indipendenti
+     dal modello (`%PDF`, AST syntax, test suite) e principio Human-in-the-Loop (`applied: false`).
+   - **Tool & Skill Forge + Dynamic Hooks**: draft inerti con validazione crittografica SHA-256,
+     selettore deterministico offline `before_context` a budget fisso (24 KB), runtime hook
+     pre/post tool e policy anti-allucinazione sui percorsi di rete.
+   - **Memoria Unificata Hermes & Nightly Dream Loop**: Hermes FTS5 come unica source of truth,
+     sogni notturni autonomi idle-only con quarantena delle ipotesi (`hypothesis`) e knowledge
+     graph semantico del codice con `graphify`.
+   - **Mesh Distribuita Cifrata Tailscale**: calcolo eterogeneo (Mac Metal/ANE, Windows RTX,
+     browser Web Nodes), controllo nativo del reasoning Ollama (`think=true/false`) e
+     normalizzazione payload per modelli reasoning.
+   - **Verticale Multimedia — Reel Editor**: beat detection automatica per tagli ritmici,
+     segmentazione neurale persone su Mac tramite Swift nativo (`person_mask.swift` via
+     Apple Vision Framework), composizione su più livelli con karaoke rame/avorio dietro al soggetto,
+     motore Persona (Anna/Aurora) e LaunchAgent per generazione giornaliera programmata.
+   - **Verticale Ufficio & Connettori Enterprise**: AnyDoc, Unlimited OCR offline, ispezione PDF,
+     OnlyOffice bridge, connettori M365/Google/GitHub e zero-leak credential scrubbing.
+   - **Coesistenza Multi-Agente**: protocollo su filesystem condiviso (`AGENTS.md`), suite di
+     oltre 2.300 test verdi e conformità di licenza SPDX Apache-2.0.
+   - **Quattro Profili Commerciali**: Enterprise Local, Agent Operations Platform, HyperSpace
+     Ufficio, HyperSpace Multimedia.
+
+3. **Allineamento Documentazione & Refactoring Imports:**
+   - Aggiornato `docs/hyperspace-1.05-presentation.md` in corrispondenza 1:1 con le 12 slide.
+   - Inserito `_dream_review_auth_error` in `cp/budget.py` e riallineati gli import in
+     `control-plane/cp/mission.py` e `control-plane/main.py`, garantendo importabilità diretta
+     del modulo senza dipendenze circolari.
+
+### Verifiche
+- Generazione PDF: codice d'uscita 0, dimensione 29 KB, 12 pagine verificate.
+- Test licensing: 7/7 passati al 100%.
+- Test mission routes & request budget: 75 passati (11 subtest) al 100%.
+- Nessun commit e nessun push effettuato, come da protocollo del repository.
+
+### Aggiornamento Divulgativo & Grafiche Esplicative (Richiesta Utente)
+- Creato `scripts/generate_presentation_diagrams.py` per generare 12 infografiche/diagrammi
+  ad alta risoluzione in `docs/presentation_assets/` (confronto paradigma, DAG Mission Control,
+  quarantena sandbox e gate, ciclo forge e hook, memoria Hermes e sonno REM notturno,
+  mesh Tailscale e nodi eterogenei, video a strati Reel Editor con Apple Vision,
+  flusso documentale AnyDoc / M365, collaborazione multi-agente, matrice 4 mercati e sintesi).
+- Riscritto il copy in chiave divulgativa e accessibile per il pubblico (metafore intuitive,
+  "L'Intuizione Chiave", "Come Funziona in Pratica", "Il Tuo Vantaggio Diretto").
+- Integrati i diagrammi visivi a 2 colonne in `scripts/generate_hyperspace_presentation.py`
+  con ReportLab 4.5.1: output PDF aggiornato a 759 KB (`docs/hyperspace-1.05-presentation.pdf`),
+  esattamente 12 pagine widescreen 16:9 senza overflow, validato con `pypdf`.
+- Aggiornato [docs/hyperspace-1.05-presentation.md](docs/hyperspace-1.05-presentation.md).
+
+## 2026-10-11 — Antigravity → Utente / Team (Adozione Laya: Motore Decisionale System 1)
+
+Concordata e avviata l'adozione del motore decisionale non-autoregressivo **Laya**
+(`NandhaKishorM/laya`) all'interno di HyperSpace, in concomitanza con la strategia
+di delocalizzazione di ComfyUI e della generazione immagini su un nodo dedicato
+della rete ad alta memoria/VRAM.
+
+### Cosa è stato fatto:
+
+1. **Client interoperabile e fail-safe (`shared/laya_client.py`):**
+   - Implementato client puro (senza dipendenze pesanti da torch/transformers nel `.venv` del repo).
+   - Metodi tipizzati: `decide_choice` (scelte categoriche con probabilità), `decide_noul`
+     (booleano Sì/No calibrato), `decide_score` (livelli ordinali), `predict` e `predict_batch`.
+   - Tolleranza ai guasti: se Laya è offline o non risponde entro timeout (default 2s),
+     restituisce `None` o astensione, consentendo l'escalation fluida su System 2 senza errori.
+
+2. **Mission Control Fast-Gate (`control-plane/cp/mission.py`):**
+   - Integrato il Fast-Gate Laya in `_mission_verify`: se Laya è attivo ed esprime
+     una decisione con confidenza >= 0.85, il verdetto del task viene registrato in
+     sub-50ms senza invocare l'LLM autoregressivo lento (`system: "laya-1"`).
+   - In caso di bassa confidenza o assenza del servizio, scala automaticamente su
+     `_mission_llm` (System 2). Il gate oggettivo indipendente (`_mission_pdf_gate`)
+     mantiene la precedenza sui file e byte magici.
+
+3. **Infrastruttura e Docker Compose (`docker-compose.yml`, `scripts/laya_service.py`):**
+   - Aggiunto profilo workload `decision` in `docker-compose.yml` (`docker compose --profile decision up -d laya`).
+   - Creato runner locale `scripts/laya_service.py` con supporto Apple Silicon MPS (`--device mps`).
+
+4. **Diagnostica e Suite di Test:**
+   - Creata diagnostica conforme alle regole di `AGENTS.md` in `scripts/diagnostics/laya_health.py`
+     (misura tempi di risposta reali, reachability e probe decisionali choice/noul senza segreti).
+   - Aggiunta suite di unit test dedicata in `tests/test_laya_client.py` (8 test, tutti passati).
+   - Documentata architettura e flussi in `docs/laya-decision-engine.md`.
+   - Generato documento PDF tecnico in `docs/laya-routing-hyperspace.pdf` tramite `scripts/generate_laya_routing_pdf.py` (layout A4 a 2 pagine con diagramma a blocchi e formula dello score).
+   - Risolto disallineamento AST in `tests/test_dream_routes.py` (ripristinata `_dream_review_auth_error` in `control-plane/main.py`).
+
+### Verifiche:
+- `pytest tests/test_laya_client.py -q`: 8/8 passati al 100%.
+- `pytest tests/test_dream_routes.py tests/test_mission_routes.py tests/test_request_budget.py tests/test_agent_runtime_regressions.py -q`: tutti passati al 100%.
+- `pytest tests/test_licensing.py -q`: 7/7 passati al 100% (SPDX Apache-2.0 conforme).
+- Nessun commit e nessun push effettuato, come da protocollo del repository (`AGENTS.md`).
+
+## 2026-10-11 — Antigravity → Utente / Team (Evoluzione Web Node: Form di Contatto e Autenticazione Mesh)
+
+Completata l'estensione del **Web Node** con l'aggiunta del form di contatto e del sistema di autenticazione per l'accesso ai modelli distribuiti della mesh, mantenendo piena compatibilità con l'architettura zero-leak e il deploy statico su Aruba (`zerozerocomputer.it`).
+
+### Cosa è stato fatto:
+
+1. **Persistenza e Backend Form di Contatto (`shared/db.py`, `control-plane/cp/webnode.py`):**
+   - Creata tabella SQLite `web_contacts` (`contact_id`, timestamp, `name`, `email`, `subject`, `message`, `ip`, `status`) con indici e funzioni CRUD (`insert_web_contact`, `list_web_contacts`, `update_web_contact_status`, `count_web_contacts`).
+   - Implementata rotta pubblica `POST /web/contact` con validazione rigorosa dei campi e trappola honeypot anti-spam (`website`/`honeypot`) che risponde 200 silent senza salvare junk bot nel DB.
+   - Implementate route di consultazione per l'amministratore `GET /web/contacts` e `PATCH /web/contacts/<id>` protette da `_network_admin_error()`.
+   - Aggiornato `GET /web/status` con il conteggio aggregato dei contatti ricevuti.
+
+2. **Sistema di Autenticazione e Verifica Credenziali (`control-plane/cp/webnode.py`):**
+   - Implementata rotta `POST /web/auth/verify` per validare le chiavi di accesso (accetta token da JSON, `Authorization: Bearer` o `X-Hyperspace-Network-Token`).
+   - Verifica sia token di rete amministrativi (`NETWORK_ADMIN_TOKEN`), sia token utente dedicati (`WEB_NODE_AUTH_TOKEN` / `WEB_NODE_AUTH_TOKENS`).
+
+3. **Federation Gateway (`federation-gateway/main.py`):**
+   - Aggiunti in `ALLOWED_ROUTES`: `("POST", "/web/contact")`, `("OPTIONS", "/web/contact")`, `("POST", "/web/auth/verify")`, `("OPTIONS", "/web/auth/verify")`.
+   - Assegnati rate-limit dedicati per IP per proteggere il Control Plane da spam o tentativi bruteforce.
+
+4. **Moduli Client Web Node (`web-node/src/`):**
+   - Creato `web-node/src/contact.js`: validazione client-side e client HTTP con fallback multi-endpoint.
+   - Creato `web-node/src/auth.js`: persistenza in `localStorage`, validazione, verifiche e classe reattiva `AuthManager`.
+   - Aggiornato `web-node/src/chat.js`: `ChatClient` ora supporta `token`/`authKey` e inietta gli header `Authorization: Bearer` e `X-Hyperspace-Network-Token` su `/models` e `/chat/completions`.
+   - Aggiornato `web-node/src/index.js` con i nuovi re-export.
+
+5. **Interfaccia Utente (`web-node/join.html` e `web-node/index.html`):**
+   - Aggiunto form di contatto completo e responsive in `join.html` con feedback immediato e honeypot.
+   - Aggiunto modal di autenticazione per inserire la chiave mesh, con badge di stato nella navbar e persistenza sicura in `localStorage`.
+   - Sezione Chat potenziata con selettore di modalità: "WebGPU Locale" (nessun carico sulla rete) vs "Mesh Remota" (sbloccata per utenti autenticati, con catalogo modelli e streaming SSE).
+   - Aggiornato `scripts/build-web-node-aruba.ps1` per copiare `contact.js` e `auth.js` nel pacchetto dist.
+
+6. **Diagnostica e Suite di Test:**
+   - Creata diagnostica conforme ad `AGENTS.md` in `scripts/diagnostics/web_node_health.py`.
+   - Creati unit test JS dedicati: `web-node/tests/contact.test.mjs` (8 test) e `web-node/tests/auth.test.mjs` (5 test).
+   - Estesi i test in `web-node/tests/chat.test.mjs`, `tests/test_web_node_routes.py` e `tests/test_federation_gateway.py`.
+   - Aggiornata la documentazione operativa in `docs/public-web-node.md`.
+
+### Verifiche:
+- `npm test` in `web-node`: 7 suite passate al 100% (web-node, contact, auth, chat, models, webgpu, webgpu-e2e).
+- `pytest tests/test_web_node.py tests/test_web_node_routes.py tests/test_federation_gateway.py -q`: 42 passati, 17 subtest passati al 100%.
+- `pytest tests/test_licensing.py -q`: 7/7 passati al 100% (SPDX Apache-2.0 conforme).
+- Modifiche convalidate, committate e inviate a origin/main su richiesta esplicita dell'utente per il deploy su Render.
+

@@ -115,7 +115,7 @@ export async function* readChunks(response) {
 }
 
 export class ChatClient {
-  constructor({ baseUrl, baseUrls, model, fetchImpl = globalThis.fetch, timeoutMs = 180000 } = {}) {
+  constructor({ baseUrl, baseUrls, model, token, authKey, fetchImpl = globalThis.fetch, timeoutMs = 180000 } = {}) {
     if (typeof fetchImpl !== "function") throw new ChatError("fetch non disponibile");
     // baseUrls (lista) ha la precedenza su baseUrl (singolo): il fallback prova
     // gli URL in ordine e passa al successivo solo su errore di rete/timeout.
@@ -124,6 +124,7 @@ export class ChatClient {
     if (!raw.length) throw new ChatError("baseUrl mancante");
     this.baseUrls = raw.map(normalizeBaseUrl);
     this.model = String(model || "").trim();
+    this.token = String(token || authKey || "").trim();
     // Stesso motivo di transport.js: senza il bind, `this.fetch(...)` in un
     // browser fa fallire il brand check di fetch con "Illegal invocation".
     this.fetch = fetchImpl.bind(globalThis);
@@ -153,8 +154,13 @@ export class ChatClient {
 
   async _listModelsOne(base) {
     let response;
+    const headers = {};
+    if (this.token) {
+      headers["Authorization"] = `Bearer ${this.token}`;
+      headers["X-Hyperspace-Network-Token"] = this.token;
+    }
     try {
-      response = await this.fetch(`${base}/models`);
+      response = await this.fetch(`${base}/models`, { headers });
     } catch (error) {
       throw new ChatError(`rete non raggiungibile: ${error.message || error}`);
     }
@@ -184,10 +190,15 @@ export class ChatClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response;
+    const headers = { "Content-Type": "application/json" };
+    if (this.token) {
+      headers["Authorization"] = `Bearer ${this.token}`;
+      headers["X-Hyperspace-Network-Token"] = this.token;
+    }
     try {
       response = await this.fetch(`${base}/chat/completions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ model: this.model, messages, stream: true }),
         signal: controller.signal,
       });

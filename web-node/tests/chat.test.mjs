@@ -315,6 +315,32 @@ await check("send: stream interrotto dopo un delta non cambia CP", async () => {
   assert.equal(calls, 1);
 });
 
+console.log("== autenticazione e token ==");
+await check("ChatClient passa l'header Authorization quando fornito di token", async () => {
+  const recorded = [];
+  const fakeFetch = async (url, options = {}) => {
+    recorded.push({ url, headers: options.headers });
+    if (url.endsWith("/models")) {
+      return { ok: true, status: 200, json: async () => ({ data: [{ id: "m1" }] }) };
+    }
+    return streamResponse([delta("auth ok"), DONE]);
+  };
+
+  const client = new ChatClient({
+    baseUrl: "http://cp:8085",
+    model: "m1",
+    token: "test-auth-token-xyz",
+    fetchImpl: fakeFetch,
+  });
+
+  const models = await client.listModels();
+  assert.equal(models.length, 1);
+  assert.equal(recorded[0].headers["Authorization"], "Bearer test-auth-token-xyz");
+
+  await client.send([{ role: "user", content: "test" }]);
+  assert.equal(recorded[1].headers["Authorization"], "Bearer test-auth-token-xyz");
+});
+
 console.log();
 if (process.exitCode) {
   console.error("TEST CHAT: FALLITI");

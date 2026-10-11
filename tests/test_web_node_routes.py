@@ -20,6 +20,10 @@ WEB_ROUTES = {
     "web_result": "/web/result",
     "web_enqueue": "/web/tasks",
     "web_status": "/web/status",
+    "web_contact": "/web/contact",
+    "web_contacts_list": "/web/contacts",
+    "web_contact_update": "/web/contacts/<contact_id>",
+    "web_auth_verify": "/web/auth/verify",
 }
 
 
@@ -77,11 +81,40 @@ class WebRouteGuardTests(unittest.TestCase):
         self.assertIn("_network_admin_error", calls)
 
     def test_read_only_routes_do_not_require_the_operator_token(self):
-        for name in ("web_register", "web_poll", "web_result", "web_status"):
+        for name in ("web_register", "web_poll", "web_result", "web_status", "web_contact", "web_auth_verify"):
             with self.subTest(route=name):
                 calls = [n.func.id for n in ast.walk(self.functions[name])
                          if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
                 self.assertNotIn("_network_admin_error", calls)
+
+    def test_contact_management_routes_require_operator_token(self):
+        for name in ("web_contacts_list", "web_contact_update"):
+            with self.subTest(route=name):
+                calls = [n.func.id for n in ast.walk(self.functions[name])
+                         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
+                self.assertIn("_network_admin_error", calls)
+
+    def test_contact_db_roundtrip(self):
+        import shared.db as db
+        db.init_db()
+        cnt = db.insert_web_contact(
+            name="Test User",
+            email="test@example.com",
+            message="Questo è un messaggio di test unitario",
+            subject="Test Oggetto",
+            ip="127.0.0.1",
+        )
+        self.assertTrue(cnt["contact_id"].startswith("cnt-"))
+        self.assertEqual(cnt["status"], "unread")
+
+        lista = db.list_web_contacts(limit=10)
+        self.assertTrue(any(c["contact_id"] == cnt["contact_id"] for c in lista))
+
+        aggiornato = db.update_web_contact_status(cnt["contact_id"], "read")
+        self.assertTrue(aggiornato)
+
+        conteggi = db.count_web_contacts()
+        self.assertGreaterEqual(conteggi["total"], 1)
 
     def test_registry_is_built_from_env_limits(self):
         source = cp_source.SORGENTE()

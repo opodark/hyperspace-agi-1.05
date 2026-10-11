@@ -10,9 +10,13 @@ import { PROTOCOL_VERSION, parseTask, registrationPayload, resultPayload } from 
 import { detectCapabilities, describeEnvironment } from "./capabilities.js";
 import { TransportError, WebNodeTransport } from "./transport.js";
 import { TaskUnsupported, runTask, supportedTaskTypes } from "./task-runner.js";
+import { ContactError, validateContactForm, sendContactMessage } from "./contact.js";
+import { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey } from "./auth.js";
 
 export { PROTOCOL_VERSION, TransportError, TaskUnsupported, supportedTaskTypes };
 export { detectCapabilities, describeEnvironment };
+export { ContactError, validateContactForm, sendContactMessage };
+export { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

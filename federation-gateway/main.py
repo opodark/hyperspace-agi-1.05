@@ -78,6 +78,10 @@ ALLOWED_ROUTES = {
     ("OPTIONS", "/web/register"),
     ("OPTIONS", "/web/poll"),
     ("OPTIONS", "/web/result"),
+    ("POST", "/web/contact"),
+    ("OPTIONS", "/web/contact"),
+    ("POST", "/web/auth/verify"),
+    ("OPTIONS", "/web/auth/verify"),
     # Esperienza pubblica della mesh: catalogo e chat OpenAI-compatible.
     # Restano escluse dashboard, log, task manuali e configurazione. Il rate
     # limit qui sotto protegge il CP da uso anonimo eccessivo.
@@ -107,6 +111,8 @@ _RATE_LIMITS = {
     "/web/register":    (int(os.getenv("GATEWAY_WEB_REGISTER_MAX_PER_MINUTE", "12")), 60),
     "/web/poll":        (int(os.getenv("GATEWAY_WEB_POLL_MAX_PER_MINUTE", "30")), 60),
     "/web/result":      (int(os.getenv("GATEWAY_WEB_RESULT_MAX_PER_MINUTE", "30")), 60),
+    "/web/contact":     (int(os.getenv("GATEWAY_WEB_CONTACT_MAX_PER_HOUR", "10")), 3600),
+    "/web/auth/verify": (int(os.getenv("GATEWAY_WEB_AUTH_MAX_PER_MINUTE", "20")), 60),
     "/v1/models":       (int(os.getenv("GATEWAY_MODELS_MAX_PER_MINUTE", "30")), 60),
     "/v1/chat/completions": (int(os.getenv("GATEWAY_CHAT_MAX_PER_MINUTE", "12")), 60),
 }

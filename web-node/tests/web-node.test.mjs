@@ -328,3 +328,4 @@ if (process.exitCode) {
 } else {
   console.log(`PASS web-node: ${passed} check su protocollo, capability, task, trasporto e ciclo`);
 }
+process.exit(process.exitCode || 0);

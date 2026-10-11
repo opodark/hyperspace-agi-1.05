@@ -75,11 +75,16 @@
     <input type="url" id="baseUrl" placeholder="http://localhost:8085">
     <label for="label">Etichetta di questo nodo</label>
     <input type="text" id="label" placeholder="es. MacBook di Alberto - Chrome">
+    <label for="authKey">Chiave di rete / Access Key (opzionale per funzioni mesh)</label>
+    <input type="password" id="authKey" placeholder="es. token di amministrazione o chiave membro">
     <p>Identificativo: <code id="nodeId">-</code></p>
     <div class="row">
       <button class="primary" id="start" disabled>Avvia nodo</button>
       <button id="stop" disabled>Ferma</button>
     </div>
+    <p style="margin-top:14px;font-size:12px;color:#9aa3b2">
+      Per i visitatori esterni, usa la <a href="./join.html" style="color:#57e6d9">landing page pubblica (join.html)</a> dotata di form di contatto e autenticazione integrata.
+    </p>
   </section>
 
   <section>

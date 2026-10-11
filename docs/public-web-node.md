@@ -64,7 +64,9 @@ In alternativa, caricare manualmente mantenendo questa struttura:
 join.html
 join-config.js
 src/
+  auth.js
   capabilities.js
+  contact.js
   index.js
   protocol.js
   task-runner.js
@@ -106,8 +108,14 @@ La prima chiamata deve restituire il servizio gateway; la seconda deve
 raggiungere il validatore del control-plane e rifiutare il payload incompleto.
 Un `404` su `/web/tasks` conferma che l'inserimento pubblico di task è escluso.
 
+## Form di contatto e autenticazione
+
+La landing page pubblica offre:
+1. **Form di contatto (`POST /web/contact`)**: i visitatori possono inviare messaggi, richieste di supporto o richieste di abilitazione. I messaggi sono salvati in SQLite sul Control Plane (`web_contacts`), protetti da rate-limiting sul gateway e filtro honeypot anti-spam.
+2. **Sistema di autenticazione opzionale (`POST /web/auth/verify`)**:
+   - Gli utenti anonimi possono usare liberamente il nodo (task web-safe) e la chat locale WebLLM on-device.
+   - Gli utenti o amministratori in possesso di una chiave/token di rete possono autenticarsi (memorizzata in modo sicuro in `localStorage`), sbloccando la chat remota con i modelli distribuiti della mesh e l'interrogazione del catalogo.
+
 ## Dati e consenso
 
-Il browser conserva in `localStorage` soltanto un identificativo casuale e
-l'etichetta scelta. La pagina non contiene token. Il nodo parte solo dopo il
-consenso esplicito e scompare chiudendo la scheda o premendo **Esci dalla mesh**.
+Il browser conserva in `localStorage` l'identificativo casuale del nodo, l'etichetta scelta e l'eventuale chiave di autenticazione dell'utente per la mesh. Il nodo parte solo dopo il consenso esplicito e scompare chiudendo la scheda o premendo **Esci dalla mesh**.

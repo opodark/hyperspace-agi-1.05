@@ -110,3 +110,4 @@ if (process.exitCode) {
 } else {
   console.log(`PASS webgpu-e2e: ${passed} check sul flusso runtime -> capability -> task`);
 }
+process.exit(process.exitCode || 0);
