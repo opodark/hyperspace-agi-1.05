@@ -52,9 +52,9 @@ function fakeFetch(responses) {
   return { impl, calls };
 }
 
-console.log("== index.html cabla il runtime ==");
-await check("index.html importa webgpu.js e inietta il runtime nel nodo", () => {
-  const html = fs.readFileSync(path.join(WEB_NODE, "index.html"), "utf8");
+console.log("== debug.html cabla il runtime ==");
+await check("debug.html importa webgpu.js e inietta il runtime nel nodo", () => {
+  const html = fs.readFileSync(path.join(WEB_NODE, "debug.html"), "utf8");
   assert.match(html, /from "\.\/src\/webgpu\.js"/);
   assert.match(html, /runtime: modelRuntime/);
   assert.match(html, /detectCapabilities\(globalThis, \{ runtime: modelRuntime \}\)/);
