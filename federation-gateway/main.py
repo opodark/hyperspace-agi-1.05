@@ -297,6 +297,18 @@ def proxy(path):
     )
 
 
+@app.after_request
+def _add_cors_headers(response):
+    origin = request.headers.get("Origin") or "*"
+    if "Access-Control-Allow-Origin" not in response.headers:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    if "Access-Control-Allow-Methods" not in response.headers:
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    if "Access-Control-Allow-Headers" not in response.headers:
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Hyperspace-Network-Token"
+    return response
+
+
 @app.route("/health")
 def health():
     """Unico endpoint informativo extra, utile per gli healthcheck Docker

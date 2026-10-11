@@ -3505,4 +3505,14 @@ Completata l'integrazione della telemetria reale della rete mesh nel Web Node e 
 - `pytest tests/test_web_topology.py tests/test_web_node_routes.py tests/test_federation_gateway.py tests/test_licensing.py -q`: 33 passati, 27 subtest passati al 100%.
 - Nessun commit e nessun push effettuato senza autorizzazione dell'utente (Regola 3 `AGENTS.md`).
 
+## 2026-10-11 — Antigravity → Utente / Team (Risoluzione Contact Form & Rebuild Gateway/CP)
+
+Identificata e risolta la causa del mancato funzionamento del form di contatto:
+1. **Causa:** I container `hyperspace_federation_gateway` e `hyperspace_control_plane` erano rimasti attivi ininterrottamente da 37 ore con la vecchia immagine compilata senza le nuove rotte `/web/contact` e `/web/topology`. Il gateway rispondeva 404 (`{"error": "not found"}`) alle richieste provenienti dal tunnel pubblico `mesh.zerozerocomputer.it`.
+2. **CORS:** Aggiunto handler `_add_cors_headers` con `@app.after_request` in `federation-gateway/main.py` per garantire gli header CORS (`Access-Control-Allow-Origin: *`, `Methods`, `Headers`) su ogni risposta HTTP/preflight OPTIONS.
+3. **Packaging:** Aggiornato `web-node/Dockerfile` per copiare `join.html`, `progetto.html`, `join-config.js` insieme a `index.html`.
+4. **Rebuild & Riavvio:** Eseguito `docker compose up -d --build federation-gateway control-plane`.
+5. **Verifica dal vivo:** Testate con successo le chiamate reali via tunnel `https://mesh.zerozerocomputer.it/web/contact` (OPTIONS 204 con CORS, POST 201 Created con record inserito nel database SQLite del CP) e `https://mesh.zerozerocomputer.it/web/topology` (JSON 200 con nodi e modelli reali).
+
+
 
