@@ -3529,6 +3529,44 @@ Attivato l'inoltro in tempo reale dei messaggi ricevuti dal form di contatto pub
 4. **Verifica dal vivo:**
    - Testata la notifica end-to-end con esito positivo: ogni nuovo messaggio inviato sul form viene istantaneamente recapitato su Telegram.
 
+## 2026-10-11 — Antigravity → Utente / Team (Sistema di Rilascio Chiavi Mesh Dinamiche)
+
+Implementato il meccanismo per generare e convalidare chiavi di accesso (Access Key) alla mesh per gli utenti che ne fanno richiesta:
+1. **Database SQLite (`shared/db.py`):**
+   - Aggiunta tabella `web_auth_keys` (`id`, `key_id`, `auth_key`, `label`, `email`, `role`, `status`, `created_at`, `expires_at`, `last_used`) e relativo indice.
+   - Aggiunte funzioni CRUD: `insert_auth_key`, `get_auth_key`, `list_auth_keys`, `revoke_auth_key`, `touch_auth_key`.
+   - Auto-detection intelligente del path al database SQLite live del Control Plane (`data/control-plane/hyperspace.db` su host, `/app/data/hyperspace.db` in Docker).
+2. **Validazione Autenticazione (`control-plane/cp/webnode.py`):**
+   - In `web_auth_verify()`, integrato il lookup dinamico su `db.get_auth_key(provided)` con verifica di stato `active` e aggiornamento `touch_auth_key()`.
+3. **Strumento di Gestione Chiavi (`scripts/diagnostics/manage_keys.py`):**
+   - Creazione, listing e revoca chiavi da riga di comando.
+   - Fornisce automaticamente all'operatore un messaggio formattato pronto da copiare/incollare per rispondere all'utente (con istruzioni passo-passo).
+4. **Verifiche dal vivo:**
+   - Eseguito `manage_keys.py --create --name "Ugo" --email "tecnicirollout@gmail.com"` -> emessa chiave `hs-mesh-ugo-7c6e924c`.
+   - Rebuilt container `hyperspace_control_plane`.
+   - Test di convalida HTTP POST su `http://localhost:8085/web/auth/verify` e via tunnel pubblico `https://mesh.zerozerocomputer.it/web/auth/verify`: risponde `{"authenticated": true, "label": "Ugo", "ok": true, "role": "member"}` e aggiorna `last_used`.
+
+## 2026-10-11 — Antigravity → Utente / Team (Bot Interattivo Telegram & Invio Token via Email SMTP)
+
+Implementata la gestione completa e automatizzata delle chiavi mesh tramite bot Telegram e invio email all'utente:
+1. **Modulo Email (`shared/mailer.py`):**
+   - Invio email multipart (Plain Text + HTML cyberpunk responsive e brandizzato) tramite standard library Python (`smtplib` + `email.message`).
+   - Supporto STARTTLS (porta 587) e SSL (porta 465) con fallback e diagnostica trasparente.
+   - Variabili configurabili in `.env`: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_USE_SSL`.
+2. **Bot Interattivo Operatore (`scripts/infobot_service.py`):**
+   - Polling dedicato su `@hyperspace_infobot` con autorizzazione stretta sulla chat dell'operatore.
+   - Gestione pulsanti inline sui messaggi di notifica contatti: tocco su `[ 🔑 Emetti e Invia Token a <Nome> ]` genera la chiave nel DB, la invia via email all'utente, risponde all'operatore e aggiorna il pulsante.
+   - Comandi chat supportati: `/grant <email_o_id>`, `/keygen <nome> <email>`, `/contacts`, `/keys`, `/revoke <chiave>`, `/status`.
+   - Se SMTP non è ancora configurato in `.env`, il bot emette comunque la chiave in SQLite e invia all'operatore su Telegram il template pronto da inoltrare manualmente.
+3. **Pulsanti Inline nel Control Plane (`control-plane/cp/webnode.py`):**
+   - Le notifiche inviate a Telegram ora includono automaticamente il pulsante `InlineKeyboardMarkup` per il rilascio istantaneo con un tocco.
+4. **Tool CLI (`scripts/diagnostics/manage_keys.py`):**
+   - Aggiunto flag `--send-email` per emettere la chiave e spedirla via email in un solo comando da terminale.
+5. **Verifiche dal vivo:**
+   - Test di rendering e compilazione template email superati.
+   - Ricostruito `control-plane` e inviato messaggio di prova con pulsante inline recapitato con successo su Telegram.
+
+
 
 
 

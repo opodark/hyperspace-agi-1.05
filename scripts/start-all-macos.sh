@@ -86,6 +86,15 @@ else
   fi
 fi
 
+if running '[i]nfobot_service.py'; then
+  log "InfoBot Telegram già attivo"
+else
+  if [[ -f "$REPO/.venv/bin/python" && -f "$REPO/scripts/infobot_service.py" ]]; then
+    nohup "$REPO/.venv/bin/python" "$REPO/scripts/infobot_service.py" >data/infobot.log 2>data/infobot.err.log &
+    log "InfoBot Telegram avviato (log: data/infobot.log)"
+  fi
+fi
+
 if running '[n]ode serve.mjs'; then
   log "web-node locale già attivo"
 else

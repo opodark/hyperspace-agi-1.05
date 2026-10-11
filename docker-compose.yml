@@ -518,6 +518,12 @@ services:
       BUILDER_PUBLIC_BASE_URL: "${BUILDER_PUBLIC_BASE_URL:-http://localhost:8085}"
       CONTACT_TELEGRAM_BOT_TOKEN: "${CONTACT_TELEGRAM_BOT_TOKEN:-}"
       CONTACT_TELEGRAM_CHAT_ID: "${CONTACT_TELEGRAM_CHAT_ID:-}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+      SMTP_USE_SSL: "${SMTP_USE_SSL:-false}"
       # Memoria locale-prima (shared/memory_sync.py): mirror sempre scritto, coda
       # delle voci che Hermes non ha ancora accettato, lettura degradata dal mirror.
       MEMORY_MIRROR: "${MEMORY_MIRROR:-true}"

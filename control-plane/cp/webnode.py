@@ -293,11 +293,22 @@ def _send_telegram_notification(token: str, chat_id: str, item: dict):
             f"💬 <b>Messaggio:</b>\n{msg}"
         )
         url = f"https://api.telegram.org/bot{token}/sendMessage"
+        button_name = (str(item.get("name", "")).strip() or "utente")[:20]
         payload = {
             "chat_id": chat_id,
             "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": True,
+            "reply_markup": {
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": f"🔑 Emetti e Invia Token a {button_name}",
+                            "callback_data": f"grant:{cid}"
+                        }
+                    ]
+                ]
+            }
         }
         res = requests.post(url, json=payload, timeout=6.0)
         if not res.ok:
@@ -443,5 +454,17 @@ def web_auth_verify():
                 "role": "member",
                 "label": "Utente Mesh Autorizzato"
             })
+
+    # 3. Controllo chiavi dinamiche a database SQLite
+    db_key = db.get_auth_key(provided)
+    if db_key and db_key.get("status") == "active":
+        db.touch_auth_key(provided)
+        label = db_key.get("label") or "Utente Mesh Autorizzato"
+        return jsonify({
+            "ok": True,
+            "authenticated": True,
+            "role": db_key.get("role", "member"),
+            "label": label
+        })
 
     return jsonify({"ok": False, "authenticated": False, "error": "Chiave o token non valido"}), 401

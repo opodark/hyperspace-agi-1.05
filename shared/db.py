@@ -13,7 +13,16 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime
 
-DB_PATH = os.getenv("DB_PATH", "./data/hyperspace.db")
+def _default_db_path() -> str:
+    env = os.getenv("DB_PATH")
+    if env:
+        return env
+    if os.path.exists("./data/control-plane/hyperspace.db"):
+        return "./data/control-plane/hyperspace.db"
+    return "./data/hyperspace.db"
+
+
+DB_PATH = _default_db_path()
 _DB_LOCK = threading.RLock()
 
 
@@ -126,6 +135,20 @@ def init_db():
             );
             CREATE INDEX IF NOT EXISTS idx_web_contacts_ts ON web_contacts(ts);
             CREATE INDEX IF NOT EXISTS idx_web_contacts_status ON web_contacts(status);
+
+            CREATE TABLE IF NOT EXISTS web_auth_keys (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                key_id     TEXT UNIQUE,
+                auth_key   TEXT UNIQUE NOT NULL,
+                label      TEXT DEFAULT '',
+                email      TEXT DEFAULT '',
+                role       TEXT DEFAULT 'member',
+                status     TEXT DEFAULT 'active',
+                created_at TEXT DEFAULT (datetime('now')),
+                expires_at TEXT,
+                last_used  TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_web_auth_keys_key ON web_auth_keys(auth_key);
         """)
     print(f"[DB] Initialized at {DB_PATH}")
 
@@ -398,8 +421,78 @@ def update_web_contact_status(contact_id: str, status: str) -> bool:
     return cur.rowcount > 0
 
 
+def get_web_contact(contact_id: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute("SELECT * FROM web_contacts WHERE contact_id = ?", (contact_id.strip(),)).fetchone()
+        return dict(row) if row else None
+
+
+def get_web_contact_by_email(email: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute("SELECT * FROM web_contacts WHERE email = ? ORDER BY id DESC LIMIT 1", (email.strip(),)).fetchone()
+        return dict(row) if row else None
+
+
 def count_web_contacts() -> dict:
     with _conn() as con:
         total = con.execute("SELECT COUNT(*) as c FROM web_contacts").fetchone()["c"]
         unread = con.execute("SELECT COUNT(*) as c FROM web_contacts WHERE status = 'unread'").fetchone()["c"]
     return {"total": total, "unread": unread}
+
+
+# ── WEB AUTH KEYS ─────────────────────────────────────────────────────────────
+
+def insert_auth_key(auth_key: str, label: str = "", email: str = "", role: str = "member", expires_at: str | None = None) -> dict:
+    key_id = f"key-{uuid.uuid4().hex[:12]}"
+    clean_key = auth_key.strip()
+    with _conn() as con:
+        con.execute("""
+            INSERT INTO web_auth_keys (key_id, auth_key, label, email, role, status, expires_at)
+            VALUES (?, ?, ?, ?, ?, 'active', ?)
+        """, (key_id, clean_key, label.strip(), email.strip(), role.strip(), expires_at))
+        row = con.execute("SELECT * FROM web_auth_keys WHERE auth_key = ?", (clean_key,)).fetchone()
+    return dict(row) if row else {
+        "key_id": key_id, "auth_key": clean_key, "label": label.strip(),
+        "email": email.strip(), "role": role.strip(), "status": "active"
+    }
+
+
+def get_auth_key(auth_key: str) -> dict | None:
+    clean_key = str(auth_key or "").strip()
+    if not clean_key:
+        return None
+    with _conn() as con:
+        row = con.execute("SELECT * FROM web_auth_keys WHERE auth_key = ?", (clean_key,)).fetchone()
+        return dict(row) if row else None
+
+
+def list_auth_keys(status: str | None = None) -> list[dict]:
+    sql = "SELECT * FROM web_auth_keys"
+    params = []
+    if status:
+        sql += " WHERE status = ?"
+        params.append(status)
+    sql += " ORDER BY id DESC"
+    with _conn() as con:
+        rows = con.execute(sql, params).fetchall()
+    return [dict(r) for r in rows]
+
+
+def revoke_auth_key(auth_key: str) -> bool:
+    clean = str(auth_key or "").strip()
+    with _conn() as con:
+        cur = con.execute(
+            "UPDATE web_auth_keys SET status = 'revoked' WHERE auth_key = ? OR key_id = ?",
+            (clean, clean),
+        )
+    return cur.rowcount > 0
+
+
+def touch_auth_key(auth_key: str) -> None:
+    clean = str(auth_key or "").strip()
+    with _conn() as con:
+        con.execute(
+            "UPDATE web_auth_keys SET last_used = datetime('now') WHERE auth_key = ?",
+            (clean,),
+        )
+
