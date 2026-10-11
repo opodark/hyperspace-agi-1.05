@@ -2669,9 +2669,6 @@ def _reachable_dream_node(node_id):
     return node
 
 
-DREAM_REVIEW_TOKEN = os.getenv("DREAM_REVIEW_TOKEN", "")
-
-
 def _dream_review_auth_error():
     if len(DREAM_REVIEW_TOKEN) < 32:
         return jsonify({"error": "DREAM_REVIEW_TOKEN assente o troppo corto — revisione disabilitata"}), 503

@@ -17,7 +17,19 @@
 import os
 import time
 
-from flask import jsonify
+from flask import jsonify, request
+from shared.network_security import token_authorized
+
+DREAM_REVIEW_TOKEN = os.getenv("DREAM_REVIEW_TOKEN", "")
+
+def _dream_review_auth_error():
+    token = os.getenv("DREAM_REVIEW_TOKEN", DREAM_REVIEW_TOKEN)
+    if len(token) < 32:
+        return jsonify({"error": "DREAM_REVIEW_TOKEN assente o troppo corto — revisione disabilitata"}), 503
+    provided = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    if not token_authorized(provided, token):
+        return jsonify({"error": "Token revisione sogni non valido"}), 401
+    return None
 
 
 INFERENCE_TIMEOUT_S           = int(os.getenv("INFERENCE_TIMEOUT_S", "180"))

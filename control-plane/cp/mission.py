@@ -28,9 +28,8 @@ from shared.mission_controller import MissionController
 import shared.mission_policy as mission_policy
 from cp.inferenza import _call_ollama
 from cp.log import push_log
-from cp.model_caps import _decide_thinking, _is_reasoning_model
-from cp.budget import _dream_review_auth_error
-from cp.chat import _run_tool_loop, _catalogo_nativi
+from cp.budget import _dream_review_auth_error, _is_reasoning_model
+from cp.chat import _run_tool_loop, _catalogo_nativi, _decide_thinking
 
 _bp = Blueprint("mission", __name__)
 
@@ -764,20 +763,51 @@ def _mission_verify(scope, mission, task=None, outcome=None):
                   "contradicts the instruction.\n"
                   "Does the output satisfy this task? Answer with STRICT JSON only: "
                   '{"verdict":"pass|retry|replan|fail","reason":"one sentence"}')
-    _think, prefix = _mission_reasoning(MISSION_MODEL, {}, [], [])
-    payload = _mission_json(_mission_llm(
-        prompt, MISSION_MODEL, temperature=0.0,
-        system=prefix + "You are a strict verifier. You never execute code and never approve a change.",
-        mission=mission))
-    verdict = str(payload.get("verdict", "")).strip().lower()
-    if verdict not in {"pass", "retry", "replan", "fail"}:
-        verdict = "retry" if scope == "task" else "fail"
-        result = {"verdict": verdict,
-                  "reason": "verification unavailable: missing or invalid verdict",
-                  "verified": False}
+    laya_fast_verdict = None
+    laya_reason = ""
+    try:
+        import os
+        if os.getenv("MISSION_LAYA_VERIFY_ENABLED", "true").lower() in ("true", "1", "yes"):
+            from shared.laya_client import decide_choice
+            choices = {
+                "pass": "The output and evidence satisfy the instruction completely",
+                "retry": "Evidence is missing, command failed, or task is incomplete",
+                "replan": "Preconditions are impossible or the task plan is flawed",
+                "fail": "Fatal unrecoverable error"
+            }
+            instr = f"Judge if output satisfies: {task.get('instruction', '') if task else mission.get('objective', '')}"
+            state_data = {
+                "instruction": task.get("instruction", "") if task else mission.get("objective", ""),
+                "output": str((outcome or {}).get("output", ""))[:2000]
+            }
+            res = decide_choice(
+                state_data, choices, instr,
+                min_confidence=float(os.getenv("MISSION_LAYA_VERIFY_MIN_CONF", "0.85"))
+            )
+            if res and not res.get("abstention") and res.get("confidence", 0) >= float(os.getenv("MISSION_LAYA_VERIFY_MIN_CONF", "0.85")):
+                laya_fast_verdict = res["choice"]
+                laya_reason = f"Laya System 1 gate: {res['choice']} (conf: {res['confidence']:.2f}, model: {res.get('model_used')})"
+    except Exception:
+        laya_fast_verdict = None
+
+    if laya_fast_verdict in {"pass", "retry", "replan", "fail"}:
+        verdict = laya_fast_verdict
+        result = {"verdict": verdict, "reason": laya_reason, "system": "laya-1"}
     else:
-        reason = str(payload.get("reason") or "").strip()[:500]
-        result = {"verdict": verdict, "reason": reason or f"verifier verdict: {verdict}"}
+        _think, prefix = _mission_reasoning(MISSION_MODEL, {}, [], [])
+        payload = _mission_json(_mission_llm(
+            prompt, MISSION_MODEL, temperature=0.0,
+            system=prefix + "You are a strict verifier. You never execute code and never approve a change.",
+            mission=mission))
+        verdict = str(payload.get("verdict", "")).strip().lower()
+        if verdict not in {"pass", "retry", "replan", "fail"}:
+            verdict = "retry" if scope == "task" else "fail"
+            result = {"verdict": verdict,
+                      "reason": "verification unavailable: missing or invalid verdict",
+                      "verified": False}
+        else:
+            reason = str(payload.get("reason") or "").strip()[:500]
+            result = {"verdict": verdict, "reason": reason or f"verifier verdict: {verdict}"}
     if gate is not None and not gate.get("ok"):
         result = {"verdict": "retry" if scope == "task" else "fail",
                   "reason": gate.get("reason") or "PDF artifact not verified",

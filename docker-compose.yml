@@ -24,6 +24,8 @@
 #       docker compose --profile security up -d --build kali
 #     OmniRoute (Fallback cloud multi-provider):
 #       docker compose --profile opt up -d omniroute
+#     Decision Engine (Laya System 1 non-autoregressive sub-50ms):
+#       docker compose --profile decision up -d laya
 # ============================================================
 
 services:
@@ -661,6 +663,23 @@ services:
     networks:
       - hyperspace-net
     restart: unless-stopped
+
+  # -- Laya Decision Engine (System 1 non-autoregressive) ----------------------------
+  # Triage sub-50ms di intent, verifier Mission Control, sentiment e routing multilingua
+  laya:
+    image: convaiinnovations/laya:latest
+    container_name: hyperspace_laya
+    ports:
+      - "${LAYA_PORT:-8098}:8098"
+    environment:
+      LAYA_PORT: "${LAYA_PORT:-8098}"
+      LAYA_HOST: "0.0.0.0"
+      LAYA_MODELS: "${LAYA_MODELS:-multilingual,english}"
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - hyperspace-net
+    restart: unless-stopped
+    profiles: ["decision"]
 
 networks:
   hyperspace-net:
