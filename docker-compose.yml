@@ -516,6 +516,8 @@ services:
       WEBUI_ANNA_IMAGES_DIR: "/app/anna-images"
       WEBUI_TOOLS_TOKEN: "${WEBUI_TOOLS_TOKEN:-}"
       BUILDER_PUBLIC_BASE_URL: "${BUILDER_PUBLIC_BASE_URL:-http://localhost:8085}"
+      CONTACT_TELEGRAM_BOT_TOKEN: "${CONTACT_TELEGRAM_BOT_TOKEN:-}"
+      CONTACT_TELEGRAM_CHAT_ID: "${CONTACT_TELEGRAM_CHAT_ID:-}"
       # Memoria locale-prima (shared/memory_sync.py): mirror sempre scritto, coda
       # delle voci che Hermes non ha ancora accettato, lettura degradata dal mirror.
       MEMORY_MIRROR: "${MEMORY_MIRROR:-true}"

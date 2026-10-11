@@ -31,6 +31,7 @@
 # va bene perche' il mesh li muta in posto e non li riassegna mai — se un giorno
 # li riassegna, questo import diventa una copia morta e va rifatto dal modulo.
 
+import html
 import os
 import re
 import threading
@@ -38,6 +39,7 @@ import time
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
+import requests
 
 import cp.mesh as mesh
 import shared.db as db
@@ -272,6 +274,54 @@ def web_topology():
 _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def _send_telegram_notification(token: str, chat_id: str, item: dict):
+    try:
+        name = html.escape(str(item.get("name", "")))
+        email = html.escape(str(item.get("email", "")))
+        subject = html.escape(str(item.get("subject", ""))) or "Nessun oggetto"
+        msg = html.escape(str(item.get("message", "")))
+        cid = html.escape(str(item.get("contact_id", "")))
+        ts = html.escape(str(item.get("ts", "")))
+
+        text = (
+            f"📬 <b>Nuovo contatto da HyperSpace Web Node!</b>\n\n"
+            f"👤 <b>Da:</b> {name}\n"
+            f"📧 <b>Email:</b> <code>{email}</code>\n"
+            f"🏷️ <b>Oggetto:</b> {subject}\n"
+            f"🆔 <b>ID:</b> <code>{cid}</code>\n"
+            f"⏰ <b>Data:</b> {ts}\n\n"
+            f"💬 <b>Messaggio:</b>\n{msg}"
+        )
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        }
+        res = requests.post(url, json=payload, timeout=6.0)
+        if not res.ok:
+            push_log('web_contact_notify', f"Errore notifica Telegram HTTP {res.status_code}",
+                     detail=res.text[:200], source='web-node', status='warning')
+        else:
+            push_log('web_contact_notify', f"Notifica Telegram inviata per {cid}",
+                     source='web-node', status='success')
+    except Exception as exc:
+        push_log('web_contact_notify', f"Eccezione notifica Telegram: {exc}",
+                 source='web-node', status='warning')
+
+
+def _notify_web_contact(item: dict):
+    token = os.getenv("CONTACT_TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.getenv("CONTACT_TELEGRAM_CHAT_ID", "").strip()
+    if token and chat_id:
+        threading.Thread(
+            target=_send_telegram_notification,
+            args=(token, chat_id, item),
+            daemon=True
+        ).start()
+
+
 @_bp.route('/web/contact', methods=['POST', 'OPTIONS'])
 def web_contact():
     """Riceve un messaggio dal form di contatto della landing page pubblica."""
@@ -305,6 +355,8 @@ def web_contact():
     push_log('web_contact', f"Nuovo messaggio da {name}",
              f"email={email} subject={subject[:50]} id={item['contact_id']}",
              source='web-node', status='info')
+
+    _notify_web_contact(item)
 
     return jsonify({
         "ok": True,

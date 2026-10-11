@@ -3514,5 +3514,21 @@ Identificata e risolta la causa del mancato funzionamento del form di contatto:
 4. **Rebuild & Riavvio:** Eseguito `docker compose up -d --build federation-gateway control-plane`.
 5. **Verifica dal vivo:** Testate con successo le chiamate reali via tunnel `https://mesh.zerozerocomputer.it/web/contact` (OPTIONS 204 con CORS, POST 201 Created con record inserito nel database SQLite del CP) e `https://mesh.zerozerocomputer.it/web/topology` (JSON 200 con nodi e modelli reali).
 
+## 2026-10-11 — Antigravity → Utente / Team (Notifiche Push Telegram per Form di Contatto)
+
+Attivato l'inoltro in tempo reale dei messaggi ricevuti dal form di contatto pubblico verso Telegram:
+1. **Integrazione Backend (`control-plane/cp/webnode.py`):**
+   - Implementate le funzioni `_send_telegram_notification` e `_notify_web_contact` con invio asincrono non bloccante via thread daemon (`parse_mode="HTML"`, escaping sicuro dei campi utente, gestione timeout ed errori).
+   - Lettura credenziali da variabili d'ambiente `CONTACT_TELEGRAM_BOT_TOKEN` e `CONTACT_TELEGRAM_CHAT_ID`.
+2. **Infrastruttura & Docker (`docker-compose.yml`, `.env.example`, `.env`):**
+   - Configurate le variabili in `docker-compose.yml` e documentate in `.env.example` senza segreti.
+   - Salvato il token del bot `@hyperspace_infobot` e il chat ID operatore nel file `.env` locale ignorato da git.
+   - Riavviato il container `hyperspace_control_plane`.
+3. **Strumenti CLI (`scripts/diagnostics/list_contacts.py`):**
+   - Creato strumento di consultazione rapida da terminale con filtraggio non letti e `--mark-read`.
+4. **Verifica dal vivo:**
+   - Testata la notifica end-to-end con esito positivo: ogni nuovo messaggio inviato sul form viene istantaneamente recapitato su Telegram.
+
+
 
 
