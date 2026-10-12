@@ -3666,3 +3666,20 @@ Implementate e integrate completamente tutte e tre le funzionalità avanzate nel
    - Pacchetto Aruba: aggiornato e rigenerato `dist/web-node-aruba.zip` tramite `scripts/build-web-node-aruba.sh`.
    - Nessun commit e nessun push senza conferma esplicita dell'utente.
 
+## 2026-10-12 — Antigravity → Utente / Team (Automazione Deploy FTP Aruba Linux per Web-Node e Chat Estesa)
+
+Creata pipeline di pubblicazione one-click verso l'hosting Linux di Aruba (`zerozerocomputer.it`) per eliminare la sincronizzazione manuale:
+
+1. **Script di Deploy (`scripts/deploy_web_node_aruba.py`):**
+   - **Zero dipendenze esterne:** utilizza la libreria standard Python (`ftplib`, `argparse`, `subprocess`, `pathlib`, `socket`).
+   - **Bypass automatico Proxy Cloudflare:** poiché `ftp.zerozerocomputer.it` risolve su IP proxy Cloudflare (`172.67.182.169` / `104.21.43.180`) che bloccano la porta 21, lo script interroga/usa direttamente l'IP del cluster FTP Aruba Linux (`89.46.104.211`, rilevato dai nameserver autoritativi `dns.technorail.com`) e punta alla document root `www.zerozerocomputer.it`.
+   - **Gestione sicura credenziali:** legge `ARUBA_FTP_HOST`, `ARUBA_FTP_USER`, `ARUBA_FTP_PASSWORD`, `ARUBA_FTP_DIR` dal file `.env` locale. Nessuna credenziale o password viene mai stampata a schermo o registrata nei log (conformità regola 4 di `AGENTS.md`).
+   - **Build integrata & Sync intelligente:** esegue `scripts/build-web-node-aruba.sh`, aggiorna sempre tutti i file sorgente/markup (`.html`, `.js`, `.css`, `.htaccess`) e salta gli asset binari pesanti (`.png`, `.pdf`) già allineati per dimensione.
+   - **Opzioni operative:** `--test`, `--dry-run`, `--force`, `--skip-build`.
+2. **Verifiche & Deploy Live:**
+   - Eseguito deploy completo via FTP: 31 file sorgente/HTML/JS caricati e 15 asset binari verificati in `13.5s` su `/www.zerozerocomputer.it`.
+   - Verificata pagina live `https://www.zerozerocomputer.it/chat.html` con tutti i nuovi connettori e il link alla guida PDF.
+   - Validazione sintassi con `py_compile` e conformità licenza `tests/test_licensing.py` (7/7 passed).
+
+
+
