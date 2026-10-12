@@ -120,6 +120,23 @@
     .composer textarea{min-height:72px;resize:none}
     .composer-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px}
     .composer-row span{font-size:11px;color:var(--muted)}.composer-row button{min-width:110px;width:auto}.chat-side .secondary{width:100%}
+    /* Session History & Sidebar */
+    .new-chat-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:linear-gradient(115deg,#57e6d922,#9a7cff22);border:1px solid #57e6d966;border-radius:12px;color:#fff;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px;transition:all .2s ease;box-shadow:0 4px 14px #57e6d915}
+    .new-chat-btn:hover{background:linear-gradient(115deg,#57e6d944,#9a7cff44);border-color:var(--cyan);box-shadow:0 6px 20px #57e6d933;transform:translateY(-1px)}
+    .history-section{display:flex;flex-direction:column;flex:1;min-height:0;margin-top:16px;border-top:1px solid #1a253c;padding-top:14px}
+    .history-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .history-badge{background:#111a30;border:1px solid #233454;border-radius:999px;padding:2px 7px;font-size:10px;color:var(--cyan)}
+    .history-list{display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:220px;padding-right:4px}
+    .history-list::-webkit-scrollbar{width:4px}
+    .history-list::-webkit-scrollbar-thumb{background:#233454;border-radius:4px}
+    .history-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;border:1px solid transparent;background:transparent;cursor:pointer;transition:all .15s ease;text-align:left;color:#cbd6ef;font-size:12.5px;gap:8px}
+    .history-item:hover{background:#101a33;border-color:#243556;color:#fff}
+    .history-item.active{background:#142244;border-color:var(--cyan);color:#fff;font-weight:600;box-shadow:0 0 12px #57e6d922}
+    .history-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .history-del-btn{background:none;border:none;color:#687796;padding:2px 6px;font-size:12px;cursor:pointer;border-radius:4px;opacity:0;transition:opacity .15s;width:auto;box-shadow:none}
+    .history-item:hover .history-del-btn{opacity:1}
+    .history-del-btn:hover{color:#ff8295;background:#ff829522}
+    .history-empty{color:var(--muted);font-size:11.5px;text-align:center;padding:18px 0;font-style:italic}
     /* Modal Autenticazione */
     .modal-backdrop{position:fixed;inset:0;background:#03060fbf;backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
     .modal-card{width:min(440px,100%);padding:26px;position:relative;box-shadow:0 30px 100px #000c}
@@ -237,28 +254,38 @@
   <section class="card chat-shell">
     <div class="chat-main" style="grid-column:1 / -1; display:grid; grid-template-columns: 290px minmax(0,1fr);">
       <aside class="chat-side">
+        <button id="newChatBtn" class="new-chat-btn" type="button">✨ + Nuova Chat</button>
         <div class="chat-mode-tabs">
           <button id="modeLocalBtn" class="mode-tab active" type="button">WebGPU Locale</button>
           <button id="modeRemoteBtn" class="mode-tab" type="button">Mesh Remota</button>
         </div>
         <div id="sideLocal">
           <h3 style="margin-top:14px">Nel browser (WebGPU)</h3>
-          <p class="small">Modelli quantizzati locali sperimentali. Richiedono download pesante nel browser.</p>
+          <p class="small">Modelli quantizzati locali sperimentali. Download on-device.</p>
           <div class="field"><label for="llmModel">Modello locale</label><select id="llmModel"></select></div>
-          <div class="model-meta" id="llmMeta">Per risposte istantanee ad alte prestazioni usa la Mesh Remota con la tua chiave.</div>
-          <button class="secondary" id="loadLlm" type="button">Carica modello locale</button>
+          <button class="secondary" id="loadLlm" type="button">Carica motore</button>
         </div>
         <div id="sideRemote" style="display:none;">
           <h3 style="margin-top:14px">Modelli della mesh</h3>
-          <p class="small">Inferenza ad alte prestazioni sui nodi GPU con modelli abliterated nativi.</p>
+          <p class="small">Inferenza ad alte prestazioni sui nodi GPU distribuiti.</p>
           <div class="field">
             <label for="remoteModel">Modello mesh (Abliterated)</label>
             <select id="remoteModel"></select>
           </div>
-          <div class="model-meta" id="remoteMeta">Accesso autorizzato tramite chiave di rete.</div>
           <button class="secondary" id="refreshRemote" type="button">Aggiorna modelli</button>
         </div>
-        <button class="secondary" id="llmClear" type="button" style="margin-top:auto">Nuova conversazione</button>
+
+        <div class="history-section">
+          <div class="history-head">
+            <span>Le tue Conversazioni</span>
+            <span id="historyCount" class="history-badge">0</span>
+          </div>
+          <div id="historyList" class="history-list">
+            <div class="history-empty">Nessuna conversazione salvata</div>
+          </div>
+        </div>
+
+        <button class="secondary" id="llmClear" type="button" style="margin-top:auto; font-size:11px; padding:8px;">Pulisci cronologia</button>
       </aside>
       <div style="display:flex; flex-direction:column; min-width:0;">
         <div class="chat-top">
@@ -268,9 +295,9 @@
         <div class="chat-log" id="llmChat"><div class="empty" id="emptyChat"><i></i><b>Il tuo dispositivo è pronto.</b><p>Scegli una modalità e scrivi un messaggio per iniziare.</p></div></div>
         <div class="quick-prompts" id="quickPrompts">
           <span class="prompt-label">💡 Idee:</span>
+          <button class="prompt-chip" type="button" data-prompt="Scrivi uno script Python completo con spiegazione dettagliata, blocchi di codice ed elenchi puntati.">🧪 Test Codice & Markdown</button>
           <button class="prompt-chip" type="button" data-prompt="Cos'è HyperSpace e come funziona la rete di intelligenza neurale distribuita?">Cos'è HyperSpace?</button>
           <button class="prompt-chip" type="button" data-prompt="Quali nodi GPU e modelli sono attivi in questo momento nella topologia?">Modelli & nodi attivi</button>
-          <button class="prompt-chip" type="button" data-prompt="Come vengono eseguiti i modelli abliterated ad alte prestazioni?">Modelli abliterated</button>
           <button class="prompt-chip" type="button" data-prompt="In che modo il mio browser contribuisce al calcolo distribuito?">Il mio browser come nodo</button>
         </div>
         <div class="composer">
@@ -476,31 +503,141 @@
   const LLM_MODELS = ["Qwen2.5-0.5B-Instruct-q4f16_1-MLC","Llama-3.2-1B-Instruct-q4f32_1-MLC","SmolLM2-1.7B-Instruct-q4f16_1-MLC"];
   $("llmModel").replaceChildren(...LLM_MODELS.map(m => { const o = document.createElement("option"); o.value = m; o.textContent = m; return o; }));
 
-  let llmChat = null, llmHistory = [], remoteHistory = [];
+  let llmChat = null;
   let remoteClient = null;
 
-  function saveChatHistory() {
+  // ── GESTIONE SESSIONI CHAT (STILE CHATGPT / CLAUDE) ─────────────────────
+  let chatSessions = [];
+  let currentSessionId = null;
+
+  function loadSessions() {
     try {
-      if (chatMode === "remote") {
-        localStorage.setItem("hyperspace.chatHistory.remote", JSON.stringify(remoteHistory));
-      } else {
-        localStorage.setItem("hyperspace.chatHistory.local", JSON.stringify(llmHistory));
+      const raw = localStorage.getItem("hyperspace.chat.sessions");
+      chatSessions = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(chatSessions)) chatSessions = [];
+    } catch {
+      chatSessions = [];
+    }
+    // Migrazione automatica se c'era storico precedente
+    const legacyRemote = localStorage.getItem("hyperspace.chatHistory.remote");
+    const legacyLocal = localStorage.getItem("hyperspace.chatHistory.local");
+    if (chatSessions.length === 0 && (legacyRemote || legacyLocal)) {
+      if (legacyRemote) {
+        try {
+          const msgs = JSON.parse(legacyRemote);
+          if (msgs.length) {
+            chatSessions.push({
+              id: "sess-" + Date.now(),
+              title: msgs[0].content.slice(0, 32) || "Chat Mesh",
+              mode: "remote",
+              messages: msgs,
+              updatedAt: Date.now()
+            });
+          }
+        } catch {}
       }
-    } catch { /* storage limit */ }
+      if (legacyLocal) {
+        try {
+          const msgs = JSON.parse(legacyLocal);
+          if (msgs.length) {
+            chatSessions.push({
+              id: "sess-" + (Date.now() + 1),
+              title: msgs[0].content.slice(0, 32) || "Chat WebGPU",
+              mode: "local",
+              messages: msgs,
+              updatedAt: Date.now()
+            });
+          }
+        } catch {}
+      }
+      saveSessions();
+    }
   }
 
-  function restoreChatHistory() {
+  function saveSessions() {
     try {
-      const savedRemote = localStorage.getItem("hyperspace.chatHistory.remote");
-      if (savedRemote) remoteHistory = JSON.parse(savedRemote) || [];
-      const savedLocal = localStorage.getItem("hyperspace.chatHistory.local");
-      if (savedLocal) llmHistory = JSON.parse(savedLocal) || [];
+      localStorage.setItem("hyperspace.chat.sessions", JSON.stringify(chatSessions));
+    } catch { /* storage limit */ }
+    renderSessionsList();
+  }
+
+  function renderSessionsList() {
+    const listEl = $("historyList");
+    const countEl = $("historyCount");
+    if (!listEl) return;
+    if (countEl) countEl.textContent = chatSessions.length;
+
+    if (!chatSessions.length) {
+      listEl.innerHTML = '<div class="history-empty">Nessuna conversazione salvata</div>';
+      return;
+    }
+
+    listEl.innerHTML = "";
+    const sorted = [...chatSessions].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    for (const sess of sorted) {
+      const item = document.createElement("div");
+      item.className = `history-item ${sess.id === currentSessionId ? "active" : ""}`;
+      
+      const title = document.createElement("span");
+      title.className = "history-title";
+      const icon = sess.mode === "remote" ? "🌐" : "⚡";
+      title.textContent = `${icon} ${sess.title || "Conversazione"}`;
+      title.title = sess.title || "Conversazione";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "history-del-btn";
+      delBtn.type = "button";
+      delBtn.innerHTML = "✕";
+      delBtn.title = "Elimina chat";
+      delBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteSession(sess.id);
+      });
+
+      item.append(title, delBtn);
+      item.addEventListener("click", () => selectSession(sess.id));
+      listEl.append(item);
+    }
+  }
+
+  function selectSession(sessionId) {
+    const sess = chatSessions.find(s => s.id === sessionId);
+    if (!sess) return;
+    currentSessionId = sess.id;
+    switchChatMode(sess.mode, false);
+    renderActiveHistory();
+    renderSessionsList();
+  }
+
+  function deleteSession(sessionId) {
+    chatSessions = chatSessions.filter(s => s.id !== sessionId);
+    if (currentSessionId === sessionId) {
+      currentSessionId = null;
       renderActiveHistory();
-    } catch { /* parse error */ }
+    }
+    saveSessions();
+  }
+
+  function startNewChat() {
+    currentSessionId = null;
+    $("llmPrompt").value = "";
+    renderActiveHistory();
+    renderSessionsList();
+    $("llmPrompt").focus();
+  }
+
+  function getCurrentSession() {
+    if (!currentSessionId) return null;
+    return chatSessions.find(s => s.id === currentSessionId) || null;
+  }
+
+  function getActiveMessages() {
+    const sess = getCurrentSession();
+    return sess ? sess.messages : [];
   }
 
   function renderActiveHistory() {
-    const list = chatMode === "remote" ? remoteHistory : llmHistory;
+    const list = getActiveMessages();
     $("llmChat").innerHTML = "";
     if (!list.length) {
       $("llmChat").innerHTML = '<div class="empty" id="emptyChat"><i></i><b>Il tuo dispositivo è pronto.</b><p>Scegli una modalità e scrivi un messaggio per iniziare.</p></div>';
@@ -511,7 +648,7 @@
     }
   }
 
-  function switchChatMode(mode) {
+  function switchChatMode(mode, triggerRender = true) {
     if (mode === "remote" && !authManager.getState().authenticated) {
       $("authModal").style.display = "flex";
       showAuthFeedback("Inserisci una chiave di rete per sbloccare la chat remota con i modelli della mesh.", false);
@@ -536,11 +673,12 @@
       $("llmSend").disabled = false;
       if (!remoteClient) loadRemoteModels();
     }
-    renderActiveHistory();
+    if (triggerRender) renderActiveHistory();
   }
 
   $("modeLocalBtn").addEventListener("click", () => switchChatMode("local"));
   $("modeRemoteBtn").addEventListener("click", () => switchChatMode("remote"));
+  $("newChatBtn").addEventListener("click", startNewChat);
 
   function bubble(role, text) {
     $("emptyChat")?.remove();
@@ -630,13 +768,36 @@
     const text = $("llmPrompt").value.trim();
     if (!text) return;
 
+    // Se non c'è una sessione attiva, creane una nuova con il prompt come titolo
+    if (!currentSessionId) {
+      currentSessionId = "sess-" + Date.now();
+      const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
+      chatSessions.unshift({
+        id: currentSessionId,
+        title,
+        mode: chatMode,
+        messages: [],
+        updatedAt: Date.now()
+      });
+      saveSessions();
+    }
+
+    const sess = getCurrentSession();
+    const history = sess ? sess.messages : [];
+
+    $("llmPrompt").value = "";
+    bubble("user", text);
+    history.push({ role: "user", content: text });
+    if (sess) sess.updatedAt = Date.now();
+    saveSessions();
+
     if (chatMode === "local") {
       if (!llmChat) return;
-      $("llmPrompt").value = ""; bubble("user", text); llmHistory.push({ role: "user", content: text });
-      saveChatHistory();
-      const target = bubble("assistant", ""); $("llmSend").disabled = true; $("llmStatus").textContent = "genero…";
+      const target = bubble("assistant", "");
+      $("llmSend").disabled = true;
+      $("llmStatus").textContent = "genero…";
       try {
-        const reply = await llmChat.generate(llmHistory, {
+        const reply = await llmChat.generate(history, {
           onDelta: (_p, whole) => {
             target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
             attachCopyEvents(target);
@@ -646,20 +807,29 @@
         const finalText = reply || target.textContent;
         target.innerHTML = renderMarkdown(finalText);
         attachCopyEvents(target);
-        llmHistory.push({ role: "assistant", content: finalText });
-        saveChatHistory();
+        history.push({ role: "assistant", content: finalText });
+        if (sess) sess.updatedAt = Date.now();
+        saveSessions();
         $("llmStatus").textContent = "risposta completata";
       } catch(err) {
-        target.parentElement.classList.add("error"); target.textContent = err.message; llmHistory.pop(); saveChatHistory(); $("llmStatus").textContent = "errore";
-      } finally { $("llmSend").disabled = !llmChat; }
+        target.parentElement.classList.add("error");
+        target.textContent = err.message;
+        history.pop();
+        saveSessions();
+        $("llmStatus").textContent = "errore";
+      } finally {
+        $("llmSend").disabled = !llmChat;
+      }
     } else {
-      if (!remoteClient) remoteClient = new ChatClient({ baseUrls: gatewayUrls, authKey: authManager.getKey(), model: $("remoteModel").value });
+      if (!remoteClient) {
+        remoteClient = new ChatClient({ baseUrls: gatewayUrls, authKey: authManager.getKey(), model: $("remoteModel").value });
+      }
       remoteClient.model = $("remoteModel").value;
-      $("llmPrompt").value = ""; bubble("user", text); remoteHistory.push({ role: "user", content: text });
-      saveChatHistory();
-      const target = bubble("assistant", ""); $("llmSend").disabled = true; $("llmStatus").textContent = "genero dalla mesh…";
+      const target = bubble("assistant", "");
+      $("llmSend").disabled = true;
+      $("llmStatus").textContent = "genero dalla mesh…";
       try {
-        const reply = await remoteClient.send(remoteHistory, {
+        const reply = await remoteClient.send(history, {
           onDelta: (_p, whole) => {
             target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
             attachCopyEvents(target);
@@ -669,26 +839,43 @@
         const finalText = reply.text || target.textContent;
         target.innerHTML = renderMarkdown(finalText);
         attachCopyEvents(target);
-        remoteHistory.push({ role: "assistant", content: finalText });
-        saveChatHistory();
+        history.push({ role: "assistant", content: finalText });
+        if (sess) sess.updatedAt = Date.now();
+        saveSessions();
         $("llmStatus").textContent = "risposta completata";
       } catch(err) {
-        target.parentElement.classList.add("error"); target.textContent = err.message; remoteHistory.pop(); saveChatHistory(); $("llmStatus").textContent = "errore";
-      } finally { $("llmSend").disabled = false; }
+        target.parentElement.classList.add("error");
+        target.textContent = err.message;
+        history.pop();
+        saveSessions();
+        $("llmStatus").textContent = "errore";
+      } finally {
+        $("llmSend").disabled = false;
+      }
     }
   }
 
   $("llmSend").addEventListener("click", handleSend);
   $("llmPrompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
   $("llmClear").addEventListener("click", () => {
-    llmHistory = []; remoteHistory = [];
-    localStorage.removeItem("hyperspace.chatHistory.remote");
-    localStorage.removeItem("hyperspace.chatHistory.local");
-    $("llmChat").innerHTML = '<div class="empty" id="emptyChat"><i></i><b>Il tuo dispositivo è pronto.</b><p>Scegli una modalità e scrivi un messaggio per iniziare.</p></div>';
-    $("llmStatus").textContent = chatMode === "local" ? (llmChat ? "modello pronto" : "modello non caricato") : "pronto";
+    if (confirm("Vuoi cancellare tutte le conversazioni salvate?")) {
+      chatSessions = [];
+      currentSessionId = null;
+      localStorage.removeItem("hyperspace.chat.sessions");
+      localStorage.removeItem("hyperspace.chatHistory.remote");
+      localStorage.removeItem("hyperspace.chatHistory.local");
+      saveSessions();
+      renderActiveHistory();
+    }
   });
 
-  restoreChatHistory();
+  loadSessions();
+  if (chatSessions.length > 0) {
+    selectSession(chatSessions[0].id);
+  } else {
+    renderActiveHistory();
+  }
+
 
   // Quick Prompts click handling
   document.querySelectorAll(".prompt-chip").forEach(chip => {

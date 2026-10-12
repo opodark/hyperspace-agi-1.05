@@ -42,6 +42,14 @@ window.HYPERSPACE_JOIN = Object.freeze({
 });
 EOF
 
+# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /deletion/)
+for ep in privacy-policy privacy deletion data-deletion; do
+  if [[ -f "$TARGET/$ep.html" ]]; then
+    mkdir -p "$TARGET/$ep"
+    cp "$TARGET/$ep.html" "$TARGET/$ep/index.html"
+  fi
+done
+
 # Crea archivio ZIP
 ZIP_FILE="$TARGET.zip"
 rm -f "$ZIP_FILE"
