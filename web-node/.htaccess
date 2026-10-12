@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Zero Zero Computer - Aruba Linux Hosting .htaccess
+
+RewriteEngine On
+
+# Forza HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Supporto URL senza estensione .html (es. /privacy, /privacy-policy, /deletion)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# Gestione MIME per moduli ES Javascript
+AddType application/javascript .js .mjs
+AddType application/json .json
+AddType text/html .html

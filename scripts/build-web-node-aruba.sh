@@ -15,6 +15,19 @@ mkdir -p "$DIST_ROOT"
 # Copia index.html (join.html)
 cp "$REPO_ROOT/web-node/join.html" "$TARGET/index.html"
 
+# Copia pagine ausiliarie (policy, deletion, debug, ecc.)
+for page in "$REPO_ROOT/web-node/"*.html; do
+  name="$(basename "$page")"
+  if [[ "$name" != "join.html" && "$name" != "index.html" ]]; then
+    cp "$page" "$TARGET/$name"
+  fi
+done
+
+# Copia .htaccess per Apache / Aruba Linux
+if [[ -f "$REPO_ROOT/web-node/.htaccess" ]]; then
+  cp "$REPO_ROOT/web-node/.htaccess" "$TARGET/.htaccess"
+fi
+
 # Copia tutti i sorgenti JS
 cp "$REPO_ROOT/web-node/src/"*.js "$TARGET/src/"
 
@@ -32,6 +45,6 @@ EOF
 # Crea archivio ZIP
 ZIP_FILE="$TARGET.zip"
 rm -f "$ZIP_FILE"
-(cd "$TARGET" && zip -r -q "$ZIP_FILE" .)
+(cd "$TARGET" && zip -r -q "$ZIP_FILE" . -i '*' -i '.*')
 
 echo "Pacchetto Aruba generato con successo: $ZIP_FILE"
