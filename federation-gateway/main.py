@@ -48,6 +48,8 @@ app.logger.setLevel("INFO")
 
 CP_URL = os.getenv("CP_URL", "http://control-plane:8085").rstrip("/")
 CHAT_UPSTREAM_TIMEOUT_S = max(130, int(os.getenv("GATEWAY_CHAT_TIMEOUT_S", "600")))
+GATEWAY_CHAT_MAX_TOKENS = int(os.getenv("GATEWAY_CHAT_MAX_TOKENS", "2048"))
+GATEWAY_CHAT_AUTH_MAX_TOKENS = int(os.getenv("GATEWAY_CHAT_AUTH_MAX_TOKENS", "4096"))
 
 # Whitelist esplicita (metodo, path). Aggiungere qui SOLO endpoint pensati
 # per essere pubblici by design — non aggiungere mai /config/*, /task/*,
@@ -214,7 +216,14 @@ def proxy(path):
         # qui sotto la risposta JSON viene comunque esposta al browser come SSE.
         public_payload["stream"] = False
         public_payload["think"] = False
-        public_payload["max_tokens"] = min(256, max(1, int(public_payload.get("max_tokens", 256))))
+        has_auth = bool(
+            request.headers.get("Authorization") or
+            request.headers.get("X-Hyperspace-Network-Token") or
+            request.headers.get("X-Hyperspace-Auth-Key")
+        )
+        max_allowed = GATEWAY_CHAT_AUTH_MAX_TOKENS if has_auth else GATEWAY_CHAT_MAX_TOKENS
+        requested_tokens = int(public_payload.get("max_tokens", max_allowed))
+        public_payload["max_tokens"] = min(max_allowed, max(1, requested_tokens))
         options = public_payload.get("options") if isinstance(public_payload.get("options"), dict) else {}
         public_payload["options"] = {**options, "num_ctx": min(4096, max(2048, int(options.get("num_ctx", 4096))))}
         body = json.dumps(public_payload, ensure_ascii=False).encode("utf-8")

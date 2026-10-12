@@ -3566,7 +3566,44 @@ Implementata la gestione completa e automatizzata delle chiavi mesh tramite bot 
    - Test di rendering e compilazione template email superati.
    - Ricostruito `control-plane` e inviato messaggio di prova con pulsante inline recapitato con successo su Telegram.
 
+## 2026-10-12 — Antigravity → Utente / Team (Risoluzione e Diagnostica Parametri SMTP Aruba)
 
+Risolti gli errori nell'invio email per la consegna delle chiavi mesh:
+1. **Host SMTP non raggiungibile (`SMTP_HOST`):**
+   - In `.env` era indicato `mail.zerozerocomputer.it`, ma il dominio è dietro proxy Cloudflare (IP `172.67.182.169`) che non fa proxy per le porte SMTP (465/587), generando `No route to host` / timeout.
+   - Dai record MX (`_dc-mx.426a6b045687.zerozerocomputer.it` -> `mxd8.aruba.it`), il provider effettivo della posta è Aruba.
+   - Corretto `SMTP_HOST` in `.env` con l'endpoint ufficiale `smtps.aruba.it` (porta 465, SSL attivo).
+2. **Autenticazione convalidata:**
+   - Testata autenticazione su `smtps.aruba.it:465` con utente `info@zerozerocomputer.it` e la password in `.env`: esito `235 2.7.0 authentication succeeded` (le credenziali sono corrette).
+3. **Miglioramenti nel modulo mailer (`shared/mailer.py`):**
+   - Pulizia apici (`_clean_val`): evita che valori con virgolette in `.env` (es. `SMTP_FROM="..."`) preservino i doppi apici letterali.
+   - Verifica SSL con `certifi`: risolve il fallimento `ssl.SSLCertVerificationError` tipico dell'ambiente Python su macOS.
+   - Parsing RFC 5321/5322 (`email.utils.parseaddr`): l'envelope `MAIL FROM` usa l'indirizzo email puro (senza display name), mentre l'header `From:` nell'email mantiene il nome brandizzato (`HyperSpace Mesh <info@zerozerocomputer.it>`).
+4. **Script diagnostico riutilizzabile (`scripts/diagnostics/check_smtp.py`):**
+   - Creato strumento di verifica a 4 passi (sintassi FROM, risoluzione DNS/TCP, handshake TLS/SSL ed eventuale invio di prova).
+5. **Servizio InfoBot riavviato:**
+   - Terminato e riavviato `scripts/infobot_service.py` con i nuovi parametri e codice attivo.
+6. **Test di regressione:**
+   - Aggiunto `tests/test_mailer.py` (5 test passati).
 
+## 2026-10-12 — Antigravity → Utente / Team (Calcolo Distribuito Web-Node, Sblocco Lunghezza Chat e UI Commerciale ChatGPT/Claude)
 
+Completata l'evoluzione per trasformare i browser connessi in nodi di calcolo distribuito ad alte prestazioni e rinnovare la chat del `web-node` verso standard commerciali:
+1. **Calcolo Distribuito & Dispatcher Map-Reduce (`shared/web_dispatcher.py` & `shared/web_node.py`):**
+   - In `shared/web_node.py`, aggiunto il metodo thread-safe `wait_for_result(task_id, timeout_s)` basato su `threading.Condition` per attendere in tempo reale il ritorno dei risultati dai browser.
+   - Creato `shared/web_dispatcher.py`: modulo di orchestrazione che implementa il pattern Map-Reduce. Consente a Mission Control o al backend di spezzare documenti pesanti in chunk ed eseguire `embed_texts`, `summarize_documents`, `moderate` e `validate_json` in parallelo su centinaia di client web connessi, con bilanciamento del carico, failover automatico e fallback locale se nessun browser è disponibile o in caso di timeout.
+   - Aggiunto `web-node/src/worker.js`: esecuzione task in background tramite Web Worker per garantire un thread UI fluido senza freezing per l'utente del browser.
+   - Creato `tests/test_web_dispatcher.py` (5 test passati).
+2. **Sblocco Limite Lunghezza Testo Chat Gateway (`federation-gateway/main.py`):**
+   - Rimosso il collo di bottiglia `min(256, ...)` che troncava a metà le risposte articolate o il codice.
+   - Aggiunte variabili configurabili: `GATEWAY_CHAT_MAX_TOKENS` (default 2048 token) e `GATEWAY_CHAT_AUTH_MAX_TOKENS` (4096 token per utenti con chiave mesh `hs-mesh-*` o Bearer token valido).
+   - Aggiornato `tests/test_federation_gateway.py` (8 test passati).
+3. **Chat Web-Node Stile ChatGPT / Claude (`web-node/src/render.js` & `join.html`):**
+   - Creato `web-node/src/render.js`: rendering Markdown reattivo e sicuro con sanitizzazione XSS, parsing blocchi di codice con header del linguaggio e pulsante "Copia codice", formattazione inline per grassetto, corsivo, liste e blocchi citazione, e pulsante "Copia risposta" sotto ogni messaggio dell'assistente.
+   - Aggiornato `web-node/join.html`: cursore di digitazione dinamico (`▊`) durante lo streaming SSE e persistenza dello storico delle conversazioni in `localStorage` con ripristino automatico e opzione per cancellare la chat.
+   - Aggiunto `web-node/tests/render.test.mjs` (4 test passati).
+4. **Packaging e Distribuzione Statica Aruba (`scripts/build-web-node-aruba.*`):**
+   - Aggiornato `scripts/build-web-node-aruba.ps1` per includere tutti i file JS della cartella `src/` (inclusi `render.js` e `worker.js`).
+   - Creato `scripts/build-web-node-aruba.sh` per consentire la compilazione del pacchetto statico `dist/web-node-aruba.zip` anche su macOS e Linux.
+   - Testata con successo la generazione dell'archivio (16 file verificati).
 

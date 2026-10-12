@@ -87,11 +87,29 @@
     .chat-log{flex:1;min-height:340px;max-height:500px;overflow:auto;padding:23px 21px;display:flex;flex-direction:column;gap:17px}
     .empty{margin:auto;text-align:center;color:var(--muted);max-width:330px}
     .empty i{display:block;width:54px;height:54px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle,var(--cyan),#57e6d922 28%,transparent 65%);box-shadow:0 0 40px #57e6d933}
-    .msg{max-width:84%;white-space:pre-wrap;overflow-wrap:anywhere;padding:13px 15px;border-radius:16px;background:#111a30;border:1px solid #243252;animation:fade-in .2s ease}
+    .msg{max-width:86%;white-space:normal;overflow-wrap:anywhere;padding:14px 16px;border-radius:16px;background:#111a30;border:1px solid #243252;animation:fade-in .2s ease;font-size:14.5px;line-height:1.6}
     @keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-    .msg.user{align-self:flex-end;background:#231e42;border-color:#4d437b}.msg.assistant{align-self:flex-start}
+    .msg.user{align-self:flex-end;background:#231e42;border-color:#4d437b;white-space:pre-wrap}
+    .msg.assistant{align-self:flex-start;max-width:92%}
+    .msg.assistant p{margin:0 0 10px 0}
+    .msg.assistant p:last-child{margin-bottom:0}
+    .msg.assistant ul,.msg.assistant ol{margin:6px 0 10px 20px;padding:0}
+    .msg.assistant li{margin-bottom:4px}
+    .msg.assistant code{background:#070c18;padding:2px 6px;border-radius:6px;border:1px solid #233454;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:var(--cyan)}
+    .code-box{margin:12px 0;border:1px solid #2a3b5c;border-radius:10px;background:#060913;overflow:hidden}
+    .code-box-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#0c1426;border-bottom:1px solid #1f2c46;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+    .code-box pre{margin:0;padding:12px 14px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5;color:#e2e8f0}
+    .code-box pre code{background:transparent;border:none;padding:0;color:inherit}
+    .copy-code-btn{width:auto;background:transparent;border:1px solid #273856;border-radius:6px;color:#cbd5e1;font-size:11px;font-weight:600;padding:3px 9px;cursor:pointer;box-shadow:none;transition:all .15s ease}
+    .copy-code-btn:hover{background:#1a2744;border-color:var(--cyan);color:#fff}
+    .copy-code-btn.copied{border-color:var(--ok);color:var(--ok)}
+    .msg-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;padding-top:6px;border-top:1px solid #1a253c}
+    .copy-msg-btn{width:auto;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 6px;box-shadow:none;font-weight:600}
+    .copy-msg-btn:hover{color:var(--cyan)}
+    .cursor-blink{display:inline-block;width:7px;height:15px;vertical-align:middle;background:var(--cyan);margin-left:3px;animation:blink 1s step-end infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     .msg.error{border-color:#ff829566;color:#ffc2cb}
-    .who{display:block;color:var(--cyan);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
+    .who{display:block;color:var(--cyan);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
     .msg.user .who{color:#c2b6ff}
     /* Quick Prompts */
     .quick-prompts{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:11px 18px 7px;background:#090f20;border-top:1px solid #1a253c}
@@ -344,6 +362,7 @@
   import { WebNode, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology } from "./src/index.js";
   import { ChatClient } from "./src/chat.js";
   import { createWebLlmChat, loadWebLlm, requestWebGpuAdapter } from "./src/webgpu.js";
+  import { renderMarkdown, attachCopyEvents } from "./src/render.js";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -456,6 +475,38 @@
   let llmChat = null, llmHistory = [], remoteHistory = [];
   let remoteClient = null;
 
+  function saveChatHistory() {
+    try {
+      if (chatMode === "remote") {
+        localStorage.setItem("hyperspace.chatHistory.remote", JSON.stringify(remoteHistory));
+      } else {
+        localStorage.setItem("hyperspace.chatHistory.local", JSON.stringify(llmHistory));
+      }
+    } catch { /* storage limit */ }
+  }
+
+  function restoreChatHistory() {
+    try {
+      const savedRemote = localStorage.getItem("hyperspace.chatHistory.remote");
+      if (savedRemote) remoteHistory = JSON.parse(savedRemote) || [];
+      const savedLocal = localStorage.getItem("hyperspace.chatHistory.local");
+      if (savedLocal) llmHistory = JSON.parse(savedLocal) || [];
+      renderActiveHistory();
+    } catch { /* parse error */ }
+  }
+
+  function renderActiveHistory() {
+    const list = chatMode === "remote" ? remoteHistory : llmHistory;
+    $("llmChat").innerHTML = "";
+    if (!list.length) {
+      $("llmChat").innerHTML = '<div class="empty" id="emptyChat"><i></i><b>Il tuo dispositivo è pronto.</b><p>Scegli una modalità e scrivi un messaggio per iniziare.</p></div>';
+      return;
+    }
+    for (const msg of list) {
+      bubble(msg.role, msg.content);
+    }
+  }
+
   function switchChatMode(mode) {
     if (mode === "remote" && !authManager.getState().authenticated) {
       $("authModal").style.display = "flex";
@@ -481,6 +532,7 @@
       $("llmSend").disabled = false;
       if (!remoteClient) loadRemoteModels();
     }
+    renderActiveHistory();
   }
 
   $("modeLocalBtn").addEventListener("click", () => switchChatMode("local"));
@@ -491,8 +543,38 @@
     const box = document.createElement("div"); box.className = `msg ${role}`;
     const who = document.createElement("span"); who.className = "who";
     who.textContent = role === "user" ? "tu" : (chatMode === "local" ? "locale (webgpu)" : "mesh remota");
-    const body = document.createElement("span"); body.textContent = text;
-    box.append(who, body); $("llmChat").append(box); $("llmChat").scrollTop = $("llmChat").scrollHeight;
+    const body = document.createElement("div"); body.className = "msg-body";
+    if (role === "assistant" && text) {
+      body.innerHTML = renderMarkdown(text);
+      attachCopyEvents(body);
+    } else {
+      body.textContent = text;
+    }
+    box.append(who, body);
+
+    if (role === "assistant") {
+      const footer = document.createElement("div");
+      footer.className = "msg-footer";
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy-msg-btn";
+      copyBtn.type = "button";
+      copyBtn.textContent = "📋 Copia risposta";
+      copyBtn.addEventListener("click", async () => {
+        const fullText = body.innerText || body.textContent;
+        try {
+          await navigator.clipboard.writeText(fullText);
+          copyBtn.textContent = "✓ Copiato!";
+          setTimeout(() => { copyBtn.textContent = "📋 Copia risposta"; }, 2000);
+        } catch {
+          copyBtn.textContent = "Errore copia";
+        }
+      });
+      footer.append(copyBtn);
+      box.append(footer);
+    }
+
+    $("llmChat").append(box);
+    $("llmChat").scrollTop = $("llmChat").scrollHeight;
     return body;
   }
 
@@ -547,25 +629,47 @@
     if (chatMode === "local") {
       if (!llmChat) return;
       $("llmPrompt").value = ""; bubble("user", text); llmHistory.push({ role: "user", content: text });
+      saveChatHistory();
       const target = bubble("assistant", ""); $("llmSend").disabled = true; $("llmStatus").textContent = "genero…";
       try {
-        const reply = await llmChat.generate(llmHistory, { onDelta: (_p, whole) => { target.textContent = whole; $("llmChat").scrollTop = $("llmChat").scrollHeight; } });
-        target.textContent = reply || target.textContent; llmHistory.push({ role: "assistant", content: reply });
+        const reply = await llmChat.generate(llmHistory, {
+          onDelta: (_p, whole) => {
+            target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
+            attachCopyEvents(target);
+            $("llmChat").scrollTop = $("llmChat").scrollHeight;
+          }
+        });
+        const finalText = reply || target.textContent;
+        target.innerHTML = renderMarkdown(finalText);
+        attachCopyEvents(target);
+        llmHistory.push({ role: "assistant", content: finalText });
+        saveChatHistory();
         $("llmStatus").textContent = "risposta completata";
       } catch(err) {
-        target.parentElement.classList.add("error"); target.textContent = err.message; llmHistory.pop(); $("llmStatus").textContent = "errore";
+        target.parentElement.classList.add("error"); target.textContent = err.message; llmHistory.pop(); saveChatHistory(); $("llmStatus").textContent = "errore";
       } finally { $("llmSend").disabled = !llmChat; }
     } else {
       if (!remoteClient) remoteClient = new ChatClient({ baseUrls: gatewayUrls, authKey: authManager.getKey(), model: $("remoteModel").value });
       remoteClient.model = $("remoteModel").value;
       $("llmPrompt").value = ""; bubble("user", text); remoteHistory.push({ role: "user", content: text });
+      saveChatHistory();
       const target = bubble("assistant", ""); $("llmSend").disabled = true; $("llmStatus").textContent = "genero dalla mesh…";
       try {
-        const reply = await remoteClient.send(remoteHistory, { onDelta: (_p, whole) => { target.textContent = whole; $("llmChat").scrollTop = $("llmChat").scrollHeight; } });
-        target.textContent = reply.text || target.textContent; remoteHistory.push({ role: "assistant", content: reply.text });
+        const reply = await remoteClient.send(remoteHistory, {
+          onDelta: (_p, whole) => {
+            target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
+            attachCopyEvents(target);
+            $("llmChat").scrollTop = $("llmChat").scrollHeight;
+          }
+        });
+        const finalText = reply.text || target.textContent;
+        target.innerHTML = renderMarkdown(finalText);
+        attachCopyEvents(target);
+        remoteHistory.push({ role: "assistant", content: finalText });
+        saveChatHistory();
         $("llmStatus").textContent = "risposta completata";
       } catch(err) {
-        target.parentElement.classList.add("error"); target.textContent = err.message; remoteHistory.pop(); $("llmStatus").textContent = "errore";
+        target.parentElement.classList.add("error"); target.textContent = err.message; remoteHistory.pop(); saveChatHistory(); $("llmStatus").textContent = "errore";
       } finally { $("llmSend").disabled = false; }
     }
   }
@@ -574,9 +678,13 @@
   $("llmPrompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
   $("llmClear").addEventListener("click", () => {
     llmHistory = []; remoteHistory = [];
+    localStorage.removeItem("hyperspace.chatHistory.remote");
+    localStorage.removeItem("hyperspace.chatHistory.local");
     $("llmChat").innerHTML = '<div class="empty" id="emptyChat"><i></i><b>Il tuo dispositivo è pronto.</b><p>Scegli una modalità e scrivi un messaggio per iniziare.</p></div>';
     $("llmStatus").textContent = chatMode === "local" ? (llmChat ? "modello pronto" : "modello non caricato") : "pronto";
   });
+
+  restoreChatHistory();
 
   // Quick Prompts click handling
   document.querySelectorAll(".prompt-chip").forEach(chip => {

@@ -11,24 +11,61 @@ from __future__ import annotations
 import os
 import smtplib
 import ssl
+import email.utils
 from email.message import EmailMessage
 from pathlib import Path
 
+_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _clean_val(val: str) -> str:
+    """Rimuove spazi ed eventuali apici singoli o doppi racchiudenti."""
+    s = (val or "").strip()
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        s = s[1:-1].strip()
+    return s
+
+
+def _create_ssl_context() -> ssl.SSLContext:
+    """Crea contesto SSL robusto usando certifi se disponibile (fondamentale su macOS)."""
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
+
+
+def _ensure_env():
+    """Carica variabili da .env se non già presenti."""
+    env_file = _ROOT / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.strip()
+            v = _clean_val(v)
+            if k not in os.environ:
+                os.environ[k] = v
+
 
 def is_smtp_configured() -> bool:
-    host = os.getenv("SMTP_HOST", "").strip()
-    user = os.getenv("SMTP_USER", "").strip()
+    _ensure_env()
+    host = _clean_val(os.getenv("SMTP_HOST", ""))
+    user = _clean_val(os.getenv("SMTP_USER", ""))
     return bool(host and user)
 
 
 def get_smtp_config() -> dict:
+    _ensure_env()
     return {
-        "host": os.getenv("SMTP_HOST", "").strip(),
-        "port": int(os.getenv("SMTP_PORT", "587").strip() or 587),
-        "user": os.getenv("SMTP_USER", "").strip(),
-        "password": os.getenv("SMTP_PASSWORD", "").strip(),
-        "from_addr": os.getenv("SMTP_FROM", "").strip() or os.getenv("SMTP_USER", "").strip(),
-        "use_ssl": os.getenv("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"},
+        "host": _clean_val(os.getenv("SMTP_HOST", "")),
+        "port": int(_clean_val(os.getenv("SMTP_PORT", "587")) or 587),
+        "user": _clean_val(os.getenv("SMTP_USER", "")),
+        "password": _clean_val(os.getenv("SMTP_PASSWORD", "")),
+        "from_addr": _clean_val(os.getenv("SMTP_FROM", "")) or _clean_val(os.getenv("SMTP_USER", "")),
+        "use_ssl": _clean_val(os.getenv("SMTP_USE_SSL", "false")).lower() in {"1", "true", "yes"},
     }
 
 
@@ -144,25 +181,33 @@ def send_key_email(to_email: str, name: str, auth_key: str, landing_url: str = "
 
     text_body, html_body = render_key_email(name=name, auth_key=auth_key, landing_url=landing_url)
 
+    display_name, clean_from = email.utils.parseaddr(cfg["from_addr"])
+    if not clean_from:
+        clean_from = cfg["user"]
+
     msg = EmailMessage()
     msg["Subject"] = f"🔑 La tua Chiave di Accesso a HyperSpace Mesh ({auth_key})"
-    msg["From"] = cfg["from_addr"]
+    if display_name:
+        msg["From"] = f"{display_name} <{clean_from}>"
+    else:
+        msg["From"] = clean_from
     msg["To"] = clean_to
     msg.set_content(text_body)
     msg.add_alternative(html_body, subtype="html")
 
+    envelope_from = clean_from
+
     try:
+        context = _create_ssl_context()
         if cfg["use_ssl"] or cfg["port"] == 465:
-            context = ssl.create_default_context()
             with smtplib.SMTP_SSL(cfg["host"], cfg["port"], context=context, timeout=12.0) as server:
                 if cfg["password"]:
                     server.login(cfg["user"], cfg["password"])
-                server.send_message(msg)
+                server.send_message(msg, from_addr=envelope_from)
         else:
             with smtplib.SMTP(cfg["host"], cfg["port"], timeout=12.0) as server:
                 server.ehlo()
                 try:
-                    context = ssl.create_default_context()
                     server.starttls(context=context)
                     server.ehlo()
                 except Exception:
@@ -170,7 +215,7 @@ def send_key_email(to_email: str, name: str, auth_key: str, landing_url: str = "
                     pass
                 if cfg["password"]:
                     server.login(cfg["user"], cfg["password"])
-                server.send_message(msg)
+                server.send_message(msg, from_addr=envelope_from)
         return True, f"Email inviata con successo a {clean_to}"
     except Exception as exc:
         return False, f"Errore SMTP durante l'invio a {clean_to}: {exc}"

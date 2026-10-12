@@ -75,13 +75,32 @@ class FederationGatewayTests(unittest.TestCase):
         forwarded = json.loads(request_call.call_args.kwargs["data"])
         self.assertFalse(forwarded["stream"])
         self.assertFalse(forwarded["think"])
-        self.assertEqual(forwarded["max_tokens"], 256)
+        self.assertEqual(forwarded["max_tokens"], 999)
         self.assertEqual(forwarded["options"]["num_ctx"], 4096)
         self.assertEqual(
             request_call.call_args.kwargs["headers"]["X-Hyperspace-Tools"], "off")
         self.assertEqual(request_call.call_args.kwargs["timeout"],
                          (10, gateway.CHAT_UPSTREAM_TIMEOUT_S))
         self.assertGreaterEqual(gateway.CHAT_UPSTREAM_TIMEOUT_S, 600)
+
+    def test_public_chat_authenticated_allows_higher_token_ceiling(self):
+        upstream = Mock(
+            status_code=200,
+            headers={"Content-Type": "application/json"},
+        )
+        upstream.json.return_value = {
+            "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]
+        }
+        with patch.object(gateway, "_rate_check", return_value=True), \
+             patch.object(gateway.requests, "request", return_value=upstream) as request_call:
+            response = self.client.post(
+                "/v1/chat/completions",
+                headers={"Authorization": "Bearer hs-mesh-test-key"},
+                json={"model": "qwen3.5:4b", "stream": True, "max_tokens": 3500})
+            _ = response.data
+        self.assertEqual(response.status_code, 200)
+        forwarded = json.loads(request_call.call_args.kwargs["data"])
+        self.assertEqual(forwarded["max_tokens"], 3500)
 
     def test_public_chat_preflight_keeps_cors_headers(self):
         upstream = Mock(

@@ -256,6 +256,25 @@ class WebNodeRegistry:
             self._lock.notify_all()
             return dict(entry)
 
+    def wait_for_result(self, task_id, timeout_s=30.0):
+        """Attende l'esito di un task specifico fino al timeout.
+
+        Ritorna il dict del risultato o None se il task scade o non viene completato.
+        """
+        task_id = str(task_id or "").strip()
+        deadline = time.monotonic() + max(0.1, float(timeout_s))
+        with self._lock:
+            while True:
+                for res in reversed(self._results):
+                    if res["task_id"] == task_id:
+                        return dict(res)
+                if task_id not in self._tasks:
+                    return None
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return None
+                self._lock.wait(min(remaining, 1.0))
+
     def cancel(self, task_id):
         task_id = _clean_id(task_id, "task_id")
         with self._lock:

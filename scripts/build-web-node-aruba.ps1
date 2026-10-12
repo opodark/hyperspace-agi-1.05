@@ -17,10 +17,10 @@ New-Item -ItemType Directory -Force -Path $target | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $target "src") | Out-Null
 Copy-Item -LiteralPath (Join-Path $repo "web-node/join.html") `
     -Destination (Join-Path $target "index.html") -Force
-foreach ($name in @("capabilities.js", "index.js", "protocol.js", "task-runner.js", "transport.js", "webgpu.js", "contact.js", "auth.js")) {
-    Copy-Item -LiteralPath (Join-Path $repo "web-node/src/$name") `
-        -Destination (Join-Path $target "src/$name") -Force
+Get-ChildItem -Path (Join-Path $repo "web-node/src") -Filter "*.js" | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $target "src/$($_.Name)") -Force
 }
+
 
 $escapedUrl = $GatewayUrl.TrimEnd("/").Replace("\", "\\").Replace('"', '\"')
 $config = @"

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+set -euo pipefail
+
+GATEWAY_URL="${1:-https://mesh.zerozerocomputer.it}"
+OUTPUT_DIR="${2:-dist/web-node-aruba}"
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="$REPO_ROOT/$OUTPUT_DIR"
+DIST_ROOT="$REPO_ROOT/dist"
+
+mkdir -p "$TARGET/src"
+mkdir -p "$DIST_ROOT"
+
+# Copia index.html (join.html)
+cp "$REPO_ROOT/web-node/join.html" "$TARGET/index.html"
+
+# Copia tutti i sorgenti JS
+cp "$REPO_ROOT/web-node/src/"*.js "$TARGET/src/"
+
+# Genera join-config.js
+ESCAPED_URL="${GATEWAY_URL%/}"
+cat <<EOF > "$TARGET/join-config.js"
+// SPDX-License-Identifier: Apache-2.0
+window.HYPERSPACE_JOIN = Object.freeze({
+  gatewayUrl: "$ESCAPED_URL",
+  siteName: "ZeroZeroComputer",
+  meshName: "HyperSpace",
+});
+EOF
+
+# Crea archivio ZIP
+ZIP_FILE="$TARGET.zip"
+rm -f "$ZIP_FILE"
+(cd "$TARGET" && zip -r -q "$ZIP_FILE" .)
+
+echo "Pacchetto Aruba generato con successo: $ZIP_FILE"
