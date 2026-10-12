@@ -3630,3 +3630,10 @@ Riorganizzazione dell'esperienza utente su `zerozerocomputer.it` e completamento
    - Aggiornato `scripts/build-web-node-aruba.*` per generare le strutture di directory per clean URLs (`/chat`, `/privacy-policy`, `/deletion`) e generato `dist/web-node-aruba.zip` (34 file pronti per Aruba).
 
 
+
+## 2026-10-12 — Antigravity → Utente / Team (Grafiche di progetto.html: fix packaging e restyling)
+
+1. **Causa delle grafiche mancanti:** `web-node/assets/presentation/` (12 PNG + PDF) non veniva copiata nel pacchetto pubblico, quindi `progetto.html` dava 404 sulle immagini. Corretti `scripts/build-web-node-aruba.sh`, `scripts/build-web-node-aruba.ps1` e `web-node/Dockerfile` (`COPY assets`). `dist/web-node-aruba.zip` rigenerato con gli asset.
+2. **Restyling dei 12 diagrammi:** riscritto `scripts/generate_presentation_diagrams.py` con tema scuro coerente con `progetto.html` (palette ciano/viola/rosa, griglia, glow, rendering 2x, testo con a capo automatico, cornice e numerazione `NN / 12`). Stessi nomi file e stesse proporzioni, quindi il PDF e la pagina non cambiano layout.
+3. **Rigenerati:** `docs/presentation_assets/*.png`, `docs/hyperspace-1.05-presentation.pdf` (interprete con reportlab: `/Library/Frameworks/Python.framework/Versions/3.14/bin/python3`, il `.venv` del repo non lo ha) e copia in `web-node/assets/presentation/`.
+4. Non verificato a occhio il rendering delle pagine del PDF. Nessun commit, nessun push, nessun upload su Aruba.

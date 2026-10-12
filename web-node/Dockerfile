@@ -9,3 +9,4 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY *.html /usr/share/nginx/html/
 COPY join-config.js /usr/share/nginx/html/join-config.js
 COPY src /usr/share/nginx/html/src
+COPY assets /usr/share/nginx/html/assets

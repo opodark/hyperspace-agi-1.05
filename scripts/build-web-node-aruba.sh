@@ -31,6 +31,12 @@ fi
 # Copia tutti i sorgenti JS
 cp "$REPO_ROOT/web-node/src/"*.js "$TARGET/src/"
 
+# Copia asset della presentazione (diagrammi PNG e PDF usati da progetto.html)
+if [[ -d "$REPO_ROOT/web-node/assets" ]]; then
+  mkdir -p "$TARGET/assets"
+  cp -R "$REPO_ROOT/web-node/assets/." "$TARGET/assets/"
+fi
+
 # Genera join-config.js
 ESCAPED_URL="${GATEWAY_URL%/}"
 cat <<EOF > "$TARGET/join-config.js"

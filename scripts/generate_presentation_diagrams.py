@@ -1,667 +1,775 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Generate high-resolution explanatory visual diagrams for the HyperSpace 1.05 presentation."""
+"""Generate high-resolution explanatory visual diagrams for the HyperSpace 1.05 presentation.
 
+Stile: tema scuro "mission control" coerente con web-node/progetto.html
+(sfondo #070b18, accenti ciano / viola / rosa), rendering a 2x con glow e
+testo a capo automatico. Stessi nomi file e proporzioni di prima, quindi il PDF
+(generate_hyperspace_presentation.py) e la pagina web non cambiano layout.
+"""
+
+import math
 import os
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS_DIR = ROOT / "docs" / "presentation_assets"
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
-# System fonts
-FONT_PATH = "/System/Library/Fonts/Supplemental/Arial.ttf"
-if not os.path.exists(FONT_PATH):
-    FONT_PATH = "/System/Library/Fonts/Helvetica.ttc"
+S = 2  # supersampling: tutte le coordinate sono "logiche" (1200 px di larghezza)
 
-def get_font(size, bold=False):
-    try:
-        return ImageFont.truetype(FONT_PATH, size)
-    except Exception:
-        return ImageFont.load_default()
-
-# Palette
-C_DARK_BG = "#0B1020"
-C_DARK_CARD = "#151D30"
-C_LIGHT_BG = "#F8FAFC"
-C_WHITE = "#FFFFFF"
-C_BORDER = "#E2E8F0"
-C_BORDER_DARK = "#1E293B"
-
-C_CYAN = "#0284C7"
-C_CYAN_LIGHT = "#38BDF8"
-C_CYAN_BG = "#E0F2FE"
-
-C_PURPLE = "#7C3AED"
-C_PURPLE_LIGHT = "#A855F7"
-C_PURPLE_BG = "#F3E8FF"
-
-C_EMERALD = "#059669"
-C_EMERALD_LIGHT = "#10B981"
-C_EMERALD_BG = "#D1FAE5"
-
-C_AMBER = "#D97706"
-C_AMBER_LIGHT = "#F59E0B"
-C_AMBER_BG = "#FEF3C7"
-
-C_RED = "#DC2626"
-C_RED_BG = "#FEE2E2"
-
-C_TEXT_DARK = "#0F172A"
-C_TEXT_MUTED = "#64748B"
-C_TEXT_LIGHT = "#FFFFFF"
-C_TEXT_LIGHT_MUTED = "#94A3B8"
+# --------------------------------------------------------------------------
+# Palette (identica alle variabili CSS di progetto.html)
+# --------------------------------------------------------------------------
+BG = "#070b18"
+CARD = "#0d152a"
+CARD2 = "#111b36"
+LINE = "#263454"
+TEXT = "#f4f6ff"
+SOFT = "#c3cde6"
+MUTED = "#8d9bbd"
+CYAN = "#57e6d9"
+VIOLET = "#9a7cff"
+ROSE = "#f693bd"
+OK = "#70e6aa"
+AMBER = "#ffcf70"
+BAD = "#ff8295"
 
 
-def draw_arrow(draw, p1, p2, color=C_CYAN, width=3, arrow_size=12):
-    x1, y1 = p1
-    x2, y2 = p2
-    draw.line([p1, p2], fill=color, width=width)
-    import math
-    angle = math.atan2(y2 - y1, x2 - x1)
-    a1 = angle + math.pi * 0.85
-    a2 = angle - math.pi * 0.85
-    p_left = (x2 + arrow_size * math.cos(a1), y2 + arrow_size * math.sin(a1))
-    p_right = (x2 + arrow_size * math.cos(a2), y2 + arrow_size * math.sin(a2))
-    draw.polygon([p2, p_left, p_right], fill=color)
+def rgba(hexcolor, a=255):
+    h = hexcolor.lstrip("#")
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a)
 
 
-def draw_badge(draw, xy, text, bg=C_CYAN_BG, text_color=C_CYAN, font_size=16):
-    font = get_font(font_size)
-    x, y = xy
-    bbox = font.getbbox(text)
-    w = bbox[2] - bbox[0] + 20
-    h = bbox[3] - bbox[1] + 10
-    draw.rounded_rectangle((x, y, x + w, y + h), radius=8, fill=bg)
-    draw.text((x + 10, y + 4), text, fill=text_color, font=font)
-    return w, h
+# --------------------------------------------------------------------------
+# Font
+# --------------------------------------------------------------------------
+_FONT_CACHE = {}
 
 
-# -----------------------------------------------------------------------------
-# 1. DIAGRAM 01: COVER HERO EMBLEM
-# -----------------------------------------------------------------------------
+def font(size, bold=False, mono=False):
+    key = (size, bold, mono)
+    if key in _FONT_CACHE:
+        return _FONT_CACHE[key]
+    px = int(round(size * S))
+    f = None
+    if mono and os.path.exists("/System/Library/Fonts/Menlo.ttc"):
+        f = ImageFont.truetype("/System/Library/Fonts/Menlo.ttc", px, index=1 if bold else 0)
+    elif os.path.exists("/System/Library/Fonts/SFNS.ttf"):
+        try:
+            f = ImageFont.truetype("/System/Library/Fonts/SFNS.ttf", px)
+            f.set_variation_by_name("Bold" if bold else "Regular")
+        except Exception:
+            f = None
+    if f is None:
+        for path, idx in (
+            ("/System/Library/Fonts/Helvetica.ttc", 1 if bold else 0),
+            ("/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf", 0),
+        ):
+            if os.path.exists(path):
+                try:
+                    f = ImageFont.truetype(path, px, index=idx)
+                    break
+                except Exception:
+                    pass
+    if f is None:
+        f = ImageFont.load_default()
+    _FONT_CACHE[key] = f
+    return f
+
+
+# --------------------------------------------------------------------------
+# Canvas
+# --------------------------------------------------------------------------
+class Canvas:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.im = Image.new("RGBA", (w * S, h * S), rgba(BG))
+        self._background()
+
+    # -- background: aurora + griglia + stelle ------------------------------
+    def _background(self):
+        w, h = self.w * S, self.h * S
+        glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        g = ImageDraw.Draw(glow)
+        g.ellipse((-w * 0.15, -h * 0.5, w * 0.45, h * 0.55), fill=rgba("#253160", 210))
+        g.ellipse((w * 0.62, -h * 0.4, w * 1.15, h * 0.5), fill=rgba("#38224c", 190))
+        g.ellipse((w * 0.25, h * 0.75, w * 0.8, h * 1.4), fill=rgba("#12304a", 120))
+        glow = glow.filter(ImageFilter.GaussianBlur(120 * S / 2))
+        self.im = Image.alpha_composite(self.im, glow)
+
+        grid = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(grid)
+        step = 40 * S
+        for x in range(0, w, step):
+            d.line([(x, 0), (x, h)], fill=(255, 255, 255, 12), width=1)
+        for y in range(0, h, step):
+            d.line([(0, y), (w, y)], fill=(255, 255, 255, 12), width=1)
+        mask = Image.new("L", (w, h), 0)
+        md = ImageDraw.Draw(mask)
+        for y in range(h):
+            md.line([(0, y), (w, y)], fill=int(255 * (1 - y / h * 0.75)))
+        grid.putalpha(Image.composite(grid.getchannel("A"), Image.new("L", (w, h), 0), mask))
+        self.im = Image.alpha_composite(self.im, grid)
+
+        # polvere di stelle deterministica
+        stars = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        sd = ImageDraw.Draw(stars)
+        seed = 7
+        for _ in range(70):
+            seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+            x = seed % w
+            seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+            y = seed % h
+            r = 1 + (seed % 2)
+            sd.ellipse((x, y, x + r, y + r), fill=(255, 255, 255, 40 + seed % 60))
+        self.im = Image.alpha_composite(self.im, stars)
+
+    # -- primitive -----------------------------------------------------------
+    def _layer(self):
+        layer = Image.new("RGBA", self.im.size, (0, 0, 0, 0))
+        return layer, ImageDraw.Draw(layer)
+
+    def _commit(self, layer):
+        self.im = Image.alpha_composite(self.im, layer)
+
+    def _glow(self, draw_fn, color, radius=14, alpha=160):
+        layer = Image.new("RGBA", self.im.size, (0, 0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        draw_fn(d, rgba(color, alpha))
+        layer = layer.filter(ImageFilter.GaussianBlur(radius * S / 2))
+        self._commit(layer)
+
+    def rrect(self, box, r=16, fill=CARD, outline=LINE, width=1, glow=None, fill_alpha=235, dashed=False):
+        x1, y1, x2, y2 = [v * S for v in box]
+        rr = r * S
+        if glow:
+            self._glow(lambda d, c: d.rounded_rectangle((x1, y1, x2, y2), radius=rr, outline=c, width=max(2, int(width * S * 2))), glow, 12, 150)
+        layer, d = self._layer()
+        if fill:
+            d.rounded_rectangle((x1, y1, x2, y2), radius=rr, fill=rgba(fill, fill_alpha))
+        if outline:
+            if dashed:
+                self._dashed_rrect(d, (x1, y1, x2, y2), rr, rgba(outline), int(width * S))
+            else:
+                d.rounded_rectangle((x1, y1, x2, y2), radius=rr, outline=rgba(outline), width=int(width * S))
+        self._commit(layer)
+
+    def _dashed_rrect(self, d, box, rr, color, width, dash=14, gap=10):
+        x1, y1, x2, y2 = box
+        sides = [((x1 + rr, y1), (x2 - rr, y1)), ((x2, y1 + rr), (x2, y2 - rr)), ((x2 - rr, y2), (x1 + rr, y2)), ((x1, y2 - rr), (x1, y1 + rr))]
+        for a, b in sides:
+            self._dash(d, a, b, color, width, dash * S // 2, gap * S // 2)
+        d2 = 2 * rr
+        d.arc((x1, y1, x1 + d2, y1 + d2), 180, 270, fill=color, width=width)
+        d.arc((x2 - d2, y1, x2, y1 + d2), 270, 360, fill=color, width=width)
+        d.arc((x2 - d2, y2 - d2, x2, y2), 0, 90, fill=color, width=width)
+        d.arc((x1, y2 - d2, x1 + d2, y2), 90, 180, fill=color, width=width)
+
+    @staticmethod
+    def _dash(d, a, b, color, width, dash, gap):
+        length = math.hypot(b[0] - a[0], b[1] - a[1])
+        if length == 0:
+            return
+        ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+        pos = 0
+        while pos < length:
+            end = min(pos + dash, length)
+            d.line([(a[0] + ux * pos, a[1] + uy * pos), (a[0] + ux * end, a[1] + uy * end)], fill=color, width=width)
+            pos += dash + gap
+
+    def text(self, xy, s, size=15, color=TEXT, bold=False, mono=False, anchor="la", spacing=0):
+        layer, d = self._layer()
+        f = font(size, bold, mono)
+        x, y = xy[0] * S, xy[1] * S
+        if spacing:
+            # tracking manuale per etichette in maiuscolo
+            total = sum(f.getlength(ch) + spacing * S for ch in s) - spacing * S
+            if anchor[0] == "m":
+                x -= total / 2
+            elif anchor[0] == "r":
+                x -= total
+            for ch in s:
+                d.text((x, y), ch, font=f, fill=rgba(color), anchor="l" + anchor[1])
+                x += f.getlength(ch) + spacing * S
+        else:
+            d.text((x, y), s, font=f, fill=rgba(color), anchor=anchor)
+        self._commit(layer)
+
+    def measure(self, s, size=15, bold=False, mono=False):
+        return font(size, bold, mono).getlength(s) / S
+
+    def wrap(self, s, size, maxw, bold=False):
+        lines = []
+        for para in s.split("\n"):
+            words, cur = para.split(), ""
+            for wd in words:
+                trial = f"{cur} {wd}".strip()
+                if self.measure(trial, size, bold) <= maxw:
+                    cur = trial
+                else:
+                    if cur:
+                        lines.append(cur)
+                    cur = wd
+            lines.append(cur)
+        return lines
+
+    def paragraph(self, xy, s, size=14.5, color=SOFT, maxw=300, lh=1.42, bold=False):
+        x, y = xy
+        for line in self.wrap(s, size, maxw, bold):
+            self.text((x, y), line, size, color, bold)
+            y += size * lh
+        return y
+
+    def chip(self, xy, label, color=CYAN, size=11.5, solid=False):
+        w = self.measure(label, size, True) + 1.25 * len(label) + 28
+        x, y = xy
+        h = size + 14
+        self.rrect((x, y, x + w, y + h), r=h / 2, fill=color if solid else color, outline=color, width=1, fill_alpha=255 if solid else 34)
+        self.text((x + w / 2, y + h / 2 + 0.5), label, size, BG if solid else color, True, anchor="mm", spacing=1.2)
+        return w, h
+
+    def dot(self, c, r, color, glow=True):
+        x, y = c[0] * S, c[1] * S
+        if glow:
+            self._glow(lambda d, col: d.ellipse((x - r * S * 1.6, y - r * S * 1.6, x + r * S * 1.6, y + r * S * 1.6), fill=col), color, 8, 190)
+        layer, d = self._layer()
+        d.ellipse((x - r * S, y - r * S, x + r * S, y + r * S), fill=rgba(color))
+        self._commit(layer)
+
+    def badge_num(self, c, n, color, r=15):
+        x, y = c
+        self._glow(lambda d, col: d.ellipse(((x - r) * S, (y - r) * S, (x + r) * S, (y + r) * S), outline=col, width=4 * S), color, 8, 200)
+        layer, d = self._layer()
+        d.ellipse(((x - r) * S, (y - r) * S, (x + r) * S, (y + r) * S), fill=rgba(BG), outline=rgba(color), width=2 * S)
+        self._commit(layer)
+        self.text((x, y + 0.5), str(n), 15, color, True, anchor="mm")
+
+    def line(self, p1, p2, color=CYAN, width=2, glow=True, dashed=False):
+        a = (p1[0] * S, p1[1] * S)
+        b = (p2[0] * S, p2[1] * S)
+        if glow:
+            self._glow(lambda d, c: d.line([a, b], fill=c, width=int(width * S * 2)), color, 8, 140)
+        layer, d = self._layer()
+        if dashed:
+            self._dash(d, a, b, rgba(color), int(width * S), 9 * S, 7 * S)
+        else:
+            d.line([a, b], fill=rgba(color), width=int(width * S))
+        self._commit(layer)
+
+    def arrow(self, p1, p2, color=CYAN, width=2.5, head=11, dashed=False):
+        # accorcia leggermente per non finire dentro il bordo della card
+        ang = math.atan2(p2[1] - p1[1], p2[0] - p1[0])
+        tip = p2
+        base = (p2[0] - head * 0.9 * math.cos(ang), p2[1] - head * 0.9 * math.sin(ang))
+        self.line(p1, base, color, width, True, dashed)
+        left = (tip[0] - head * math.cos(ang - 0.42), tip[1] - head * math.sin(ang - 0.42))
+        right = (tip[0] - head * math.cos(ang + 0.42), tip[1] - head * math.sin(ang + 0.42))
+        layer, d = self._layer()
+        d.polygon([(v[0] * S, v[1] * S) for v in (tip, left, right)], fill=rgba(color))
+        self._commit(layer)
+
+    def ring(self, c, r, color, width=2, glow=True, alpha=255):
+        x, y = c[0] * S, c[1] * S
+        rr = r * S
+        if glow:
+            self._glow(lambda d, col: d.ellipse((x - rr, y - rr, x + rr, y + rr), outline=col, width=int(width * S * 2)), color, 12, 130)
+        layer, d = self._layer()
+        d.ellipse((x - rr, y - rr, x + rr, y + rr), outline=rgba(color, alpha), width=int(width * S))
+        self._commit(layer)
+
+    def orb(self, c, r, color):
+        x, y = c[0] * S, c[1] * S
+        rr = r * S
+        self._glow(lambda d, col: d.ellipse((x - rr, y - rr, x + rr, y + rr), fill=col), color, r * 0.55, 150)
+        layer, d = self._layer()
+        d.ellipse((x - rr, y - rr, x + rr, y + rr), fill=rgba("#0a1124"), outline=rgba(color), width=3 * S)
+        self._commit(layer)
+
+    def save(self, name):
+        out = self.im.convert("RGB").filter(ImageFilter.UnsharpMask(radius=1.2, percent=40, threshold=2))
+        out.save(ASSETS_DIR / name, optimize=True)
+
+
+# --------------------------------------------------------------------------
+# Elementi condivisi
+# --------------------------------------------------------------------------
+W, H = 1200, 820
+
+
+def frame(num, tag, title, accent):
+    """Cornice standard: tag, titolo a gradiente-accento, barra footer."""
+    c = Canvas(W, H)
+    c.chip((56, 46), tag, accent)
+    c.text((56, 86), title, 28, TEXT, True)
+    c.line((56, 134), (200, 134), accent, 3)
+    c.line((200, 134), (1144, 134), LINE, 1, glow=False)
+    # footer
+    c.line((56, 780), (1144, 780), LINE, 1, glow=False)
+    c.dot((64, 800), 4, CYAN)
+    c.text((78, 800), "HYPERSPACE AGI 1.05", 11, MUTED, True, anchor="lm", spacing=1.6)
+    c.text((1144, 800), f"{num:02d} / 12", 11, MUTED, True, mono=True, anchor="rm")
+    c.text((600, 800), "zerozerocomputer.it/progetto", 11, MUTED, False, anchor="mm")
+    return c
+
+
+def card(c, box, color, title, body=None, num=None, title_size=18, body_size=14, glow=False, fill=CARD, dashed=False, pad=22, body_color=SOFT):
+    x1, y1, x2, y2 = box
+    c.rrect(box, 16, fill, color, 1.5, glow=color if glow else None, dashed=dashed)
+    # barra accento a sinistra
+    c.rrect((x1 + 1, y1 + 18, x1 + 5, y2 - 18), 2, color, None)
+    tx = x1 + pad
+    ty = y1 + pad - 2
+    if num is not None:
+        c.badge_num((x1 + pad + 12, ty + 12), num, color)
+        tx = x1 + pad + 36
+    lines = c.wrap(title, title_size, x2 - tx - pad + 4, True)
+    for ln in lines:
+        c.text((tx, ty), ln, title_size, color, True)
+        ty += title_size * 1.3
+    if body:
+        c.paragraph((x1 + pad, ty + 8 if num is None else max(ty + 8, y1 + pad + 32)), body, body_size, body_color, x2 - x1 - 2 * pad)
+
+
+# --------------------------------------------------------------------------
+# 01 - Cover
+# --------------------------------------------------------------------------
 def gen_diagram_01():
-    img = Image.new("RGB", (1200, 520), color=C_DARK_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_title = get_font(28)
-    f_sub = get_font(18)
-    f_badge = get_font(15)
-
-    # Central Core
-    cx, cy = 600, 240
-    draw.ellipse((cx - 160, cy - 160, cx + 160, cy + 160), fill=C_DARK_CARD, outline=C_CYAN_LIGHT, width=3)
-    draw.ellipse((cx - 130, cy - 130, cx + 130, cy + 130), fill=C_DARK_BG, outline=C_PURPLE_LIGHT, width=2)
-    
-    t1 = "HYPERSPACE 1.05"
-    t2 = "AGI OPERATING SYSTEM"
-    b1 = f_title.getbbox(t1)
-    b2 = f_sub.getbbox(t2)
-    draw.text((cx - (b1[2]-b1[0])//2, cy - 25), t1, fill=C_TEXT_LIGHT, font=f_title)
-    draw.text((cx - (b2[2]-b2[0])//2, cy + 12), t2, fill=C_CYAN_LIGHT, font=f_sub)
-
-    # 4 Satellite Nodes
-    nodes = [
-        (180, 110, "MISSION CONTROL", "Bounded DAG Orchestration", C_CYAN),
-        (1020, 110, "CODE SANDBOX", "Quarantine & Model-Agnostic Gates", C_EMERALD_LIGHT),
-        (180, 370, "HERMES MEMORY", "FTS5 SQLite & Dream Loop", C_PURPLE_LIGHT),
-        (1020, 370, "TAILSCALE MESH", "Private Encrypted Fabric", C_AMBER_LIGHT),
+    w, h = 1200, 433
+    c = Canvas(w, h)
+    cx, cy = 600, 205
+    # orbite ellittiche
+    for rx, ry, col, a in ((330, 120, CYAN, 120), (250, 90, VIOLET, 150), (410, 150, ROSE, 70)):
+        layer, d = c._layer()
+        d.ellipse(((cx - rx) * S, (cy - ry) * S, (cx + rx) * S, (cy + ry) * S), outline=rgba(col, a), width=S)
+        c._commit(layer)
+    # nodi satellite
+    sats = [
+        (190, 96, "MISSION CONTROL", "Orchestrazione DAG bounded", CYAN),
+        (1010, 96, "STANZA ERMETICA", "Sandbox e gate di qualità", OK),
+        (190, 310, "MEMORIA HERMES", "FTS5 e Dream Loop notturno", VIOLET),
+        (1010, 310, "MESH PRIVATA", "Tailscale cifrata, 0 porte aperte", AMBER),
     ]
+    for sx, sy, t, sub, col in sats:
+        c.line((cx, cy), (sx + (140 if sx < 600 else -140), sy), col, 1.5, dashed=True)
+    for sx, sy, t, sub, col in sats:
+        c.rrect((sx - 150, sy - 44, sx + 150, sy + 44), 14, CARD, col, 1.5, glow=col, fill_alpha=255)
+        c.text((sx, sy - 12), t, 15, col, True, anchor="mm", spacing=1.4)
+        c.text((sx, sy + 15), sub, 12.5, SOFT, anchor="mm")
+    c.orb((cx, cy), 104, CYAN)
+    c.ring((cx, cy), 120, VIOLET, 1.5, alpha=150)
+    c.text((cx, cy - 34), "HYPERSPACE", 19, TEXT, True, anchor="mm", spacing=2.5)
+    c.text((cx, cy + 6), "1.05", 54, CYAN, True, anchor="mm")
+    c.text((cx, cy + 50), "AGI OPERATING SYSTEM", 9.5, MUTED, True, anchor="mm", spacing=1.6)
+    # pill
+    label = "100% LOCALE  ·  ZERO LEAK DEI DATI  ·  HUMAN-IN-THE-LOOP"
+    pw = c.measure(label, 11.5, True) + 1.4 * len(label) + 48
+    c.rrect((cx - pw / 2, 392, cx + pw / 2, 422), 15, CARD, CYAN, 1, fill_alpha=245)
+    c.text((cx, 407), label, 11.5, CYAN, True, anchor="mm", spacing=1.4)
+    c.save("diagram_01_cover.png")
 
-    for nx, ny, title, sub, col in nodes:
-        draw_arrow(draw, (cx, cy), (nx, ny), color=col, width=2, arrow_size=10)
-        draw.rounded_rectangle((nx - 150, ny - 50, nx + 150, ny + 50), radius=14, fill=C_DARK_CARD, outline=col, width=2)
-        bt = f_sub.getbbox(title)
-        bs = f_badge.getbbox(sub)
-        draw.text((nx - (bt[2]-bt[0])//2, ny - 24), title, fill=C_TEXT_LIGHT, font=f_sub)
-        draw.text((nx - (bs[2]-bs[0])//2, ny + 6), sub, fill=col, font=f_badge)
 
-    # Bottom Pill
-    foot_text = "100% INFERENZA LOCALE SOVRANA  ·  ZERO LEAK DEI DATI  ·  HUMAN-IN-THE-LOOP DIRETTO"
-    bf = f_badge.getbbox(foot_text)
-    fx = cx - (bf[2]-bf[0])//2 - 20
-    draw.rounded_rectangle((fx, 465, fx + (bf[2]-bf[0]) + 40, 505), radius=10, fill=C_DARK_CARD, outline=C_CYAN, width=1)
-    draw.text((fx + 20, 475), foot_text, fill=C_CYAN_LIGHT, font=f_badge)
-
-    img.save(ASSETS_DIR / "diagram_01_cover.png")
-
-
-# -----------------------------------------------------------------------------
-# 2. DIAGRAM 02: PARADIGMA - CHATBOT VS GOVERNED RUNTIME
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 02 - Paradigma
+# --------------------------------------------------------------------------
 def gen_diagram_02():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
+    c = frame(2, "PARADIGMA", "Dal chatbot al runtime governato", CYAN)
 
-    f_head = get_font(24)
-    f_sub = get_font(18)
-    f_body = get_font(15)
-    f_pill = get_font(14)
-
-    # Top: Chatbot tradizionale
-    draw.rounded_rectangle((40, 40, 1160, 380), radius=18, fill=C_WHITE, outline=C_RED, width=2)
-    draw_badge(draw, (70, 65), "MODELLO TRADIZIONALE", bg=C_RED_BG, text_color=C_RED, font_size=15)
-    draw.text((310, 68), "Chatbot con Tool Esterni (Rischio Alto & Instabile)", fill=C_TEXT_DARK, font=f_head)
-
-    # Steps traditional
-    boxes_trad = [
-        (80, 140, 260, 240, "Utente / Prompt", "Richiesta aperta in chat", "#F1F5F9", C_TEXT_DARK),
-        (380, 140, 580, 240, "Loop LLM Aperto", "Generazione libera non vincolata", "#FEF2F2", C_RED),
-        (700, 140, 940, 240, "Azioni Dirette Host", "Scrittura immediata su file", "#FEF2F2", C_RED),
-        (1010, 140, 1120, 240, "Disastro", "Loop infiniti\nFile rotti", C_RED_BG, C_RED),
-    ]
-    for x1, y1, x2, y2, t, s, bg, tc in boxes_trad:
-        draw.rounded_rectangle((x1, y1, x2, y2), radius=12, fill=bg, outline=tc, width=1)
-        draw.text((x1 + 15, y1 + 25), t, fill=tc, font=f_sub)
-        draw.text((x1 + 15, y1 + 55), s, fill=C_TEXT_MUTED, font=f_body)
-
-    draw_arrow(draw, (260, 190), (380, 190), color=C_TEXT_MUTED, width=2)
-    draw_arrow(draw, (580, 190), (700, 190), color=C_RED, width=2)
-    draw_arrow(draw, (940, 190), (1010, 190), color=C_RED, width=2)
-
-    draw.text((80, 280), "Criticità tipiche: L'AI inventa di aver completato il lavoro, cancella codice host o consuma token all'infinito.", fill=C_RED, font=f_body)
-
-    # Bottom: HyperSpace Governed Runtime
-    draw.rounded_rectangle((40, 420, 1160, 780), radius=18, fill=C_WHITE, outline=C_EMERALD, width=2)
-    draw_badge(draw, (70, 445), "HYPERSPACE 1.05", bg=C_EMERALD_BG, text_color=C_EMERALD, font_size=15)
-    draw.text((250, 448), "Runtime Operativo Governato (Sicuro, Deterministico, Verificabile)", fill=C_TEXT_DARK, font=f_head)
-
-    boxes_hs = [
-        (80, 520, 250, 630, "Obiettivo Chiaro", "Prompt + Criteri oggettivi", "#F8FAFC", C_TEXT_DARK),
-        (300, 520, 510, 630, "Mission Control", "DAG con Budget rigido", C_CYAN_BG, C_CYAN),
-        (560, 520, 780, 630, "Stanza Ermetica", "Sandbox Docker effimera", C_PURPLE_BG, C_PURPLE),
-        (830, 520, 990, 630, "Gate Qualità", "Verifica binaria / test", C_EMERALD_BG, C_EMERALD),
-        (1030, 520, 1130, 630, "Review", "OK Umano", "#ECFDF5", C_EMERALD),
-    ]
-    for x1, y1, x2, y2, t, s, bg, tc in boxes_hs:
-        draw.rounded_rectangle((x1, y1, x2, y2), radius=12, fill=bg, outline=tc, width=1)
-        draw.text((x1 + 12, y1 + 25), t, fill=tc, font=f_sub)
-        draw.text((x1 + 12, y1 + 55), s, fill=C_TEXT_DARK, font=f_body)
-
-    draw_arrow(draw, (250, 575), (300, 575), color=C_CYAN, width=2)
-    draw_arrow(draw, (510, 575), (560, 575), color=C_PURPLE, width=2)
-    draw_arrow(draw, (780, 575), (830, 575), color=C_EMERALD, width=2)
-    draw_arrow(draw, (990, 575), (1030, 575), color=C_EMERALD, width=2)
-
-    draw.text((80, 670), "Vantaggio Assoluto: Nessuna riga di codice tocca il tuo computer senza verifica algoritmica e tua autorizzazione esplicita.", fill=C_EMERALD, font=f_body)
-
-    img.save(ASSETS_DIR / "diagram_02_paradigma.png")
-
-
-# -----------------------------------------------------------------------------
-# 3. DIAGRAM 03: MISSION CONTROL DAG
-# -----------------------------------------------------------------------------
-def gen_diagram_03():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-    f_badge = get_font(13)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "MISSION CONTROL", bg=C_PURPLE_BG, text_color=C_PURPLE, font_size=15)
-    draw.text((270, 68), "Decomposizione a DAG Bounded (Grafo Aciclico con Limiti)", fill=C_TEXT_DARK, font=f_head)
-
-    # Goal Box
-    draw.rounded_rectangle((80, 150, 360, 260), radius=14, fill=C_CYAN_BG, outline=C_CYAN, width=2)
-    draw.text((105, 175), "Obiettivo Operatore", fill=C_CYAN, font=f_sub)
-    draw.text((105, 205), "Es: 'Analizza dati vendite\ne crea presentazione PDF'", fill=C_TEXT_DARK, font=f_body)
-
-    # Planner Box
-    draw.rounded_rectangle((440, 150, 720, 260), radius=14, fill=C_PURPLE_BG, outline=C_PURPLE, width=2)
-    draw.text((465, 175), "Planner (Architetto)", fill=C_PURPLE, font=f_sub)
-    draw.text((465, 205), "Scompone in task ordinati\ncon dipendenze rigide", fill=C_TEXT_DARK, font=f_body)
-
-    draw_arrow(draw, (360, 205), (440, 205), color=C_CYAN, width=3)
-
-    # Tasks Level
-    # Task 1
-    draw.rounded_rectangle((800, 110, 1120, 200), radius=12, fill="#F8FAFC", outline=C_BORDER, width=2)
-    draw.text((820, 125), "Task 1: Lettura & Ingestion", fill=C_TEXT_DARK, font=f_sub)
-    draw.text((820, 155), "Ruolo: repo-analyst (Sola lettura)", fill=C_TEXT_MUTED, font=f_body)
-
-    # Task 2
-    draw.rounded_rectangle((800, 220, 1120, 310), radius=12, fill="#F8FAFC", outline=C_CYAN, width=2)
-    draw.text((820, 235), "Task 2: Compilazione & Script", fill=C_CYAN, font=f_sub)
-    draw.text((820, 265), "Ruolo: coder (Code Sandbox protetta)", fill=C_TEXT_DARK, font=f_body)
-
-    # Task 3
-    draw.rounded_rectangle((800, 330, 1120, 420), radius=12, fill="#F8FAFC", outline=C_EMERALD, width=2)
-    draw.text((820, 345), "Task 3: Validazione Qualità", fill=C_EMERALD, font=f_sub)
-    draw.text((820, 375), "Ruolo: verifier (Quality Gate)", fill=C_TEXT_DARK, font=f_body)
-
-    draw_arrow(draw, (720, 185), (800, 155), color=C_PURPLE, width=2)
-    draw_arrow(draw, (720, 205), (800, 265), color=C_PURPLE, width=2)
-    draw_arrow(draw, (720, 225), (800, 375), color=C_PURPLE, width=2)
-
-    # Governance & Budget Box
-    draw.rounded_rectangle((80, 470, 1120, 740), radius=14, fill="#F8FAFC", outline=C_BORDER, width=1)
-    draw.text((110, 495), "I Guardrail Matematici di Sicurezza (Budget Invalicabili)", fill=C_TEXT_DARK, font=f_sub)
-
-    budgets = [
-        ("Max Steps: 40", "Nessun ciclo infinito; se sforato, si arresta con errore pulito", C_CYAN),
-        ("Token/Task: 4096", "Quota massima di pensiero per prevenire allucinazioni", C_PURPLE),
-        ("Timeout: 1200s", "Deadline assoluta prima di dichiarare fallito il task", C_AMBER),
-        ("Replan: Max 3", "L'AI può correggersi al massimo 3 volte prima di chiedere aiuto", C_EMERALD),
-    ]
-
-    bx = 110
-    by = 545
-    for title, desc, col in budgets:
-        draw.rounded_rectangle((bx, by, bx + 225, by + 155), radius=10, fill=C_WHITE, outline=col, width=2)
-        draw.text((bx + 15, by + 20), title, fill=col, font=f_sub)
-        draw.text((bx + 15, by + 60), desc, fill=C_TEXT_DARK, font=f_body)
-        bx += 245
-
-    img.save(ASSETS_DIR / "diagram_03_mission_control.png")
-
-
-# -----------------------------------------------------------------------------
-# 4. DIAGRAM 04: CODE SANDBOX & QUALITY GATES
-# -----------------------------------------------------------------------------
-def gen_diagram_04():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "STANZA ERMETICA & GATE", bg=C_EMERALD_BG, text_color=C_EMERALD, font_size=15)
-    draw.text((320, 68), "Code Sandbox Effimera & Gate di Qualità Model-Agnostic", fill=C_TEXT_DARK, font=f_head)
-
-    # Left: Host OS
-    draw.rounded_rectangle((80, 150, 450, 450), radius=16, fill="#F8FAFC", outline=C_EMERALD, width=2)
-    draw.text((110, 180), "COMPUTER HOST (Reale)", fill=C_EMERALD, font=f_sub)
-    draw.text((110, 215), "• Il tuo filesystem operativo\n• Dati aziendali e codice sorgente\n• Zero accessi diretti da codice AI\n• File protetti da scrittura non autorizzata\n• Nessun commit automatico", fill=C_TEXT_DARK, font=f_body)
-
-    # Center: The Wall
-    draw.rounded_rectangle((490, 150, 570, 450), radius=10, fill=C_DARK_CARD, outline=C_CYAN, width=2)
-    draw.text((515, 230), "B\nA\nR\nR\nI\nE\nR\nA", fill=C_CYAN_LIGHT, font=f_sub)
-
-    # Right: Sandbox
-    draw.rounded_rectangle((610, 150, 1120, 450), radius=16, fill="#FEF3C7", outline=C_AMBER, width=2)
-    draw.text((640, 180), "CODE SANDBOX EFFIMERA (Docker)", fill=C_AMBER, font=f_sub)
-    draw.text((640, 215), "• Spazio usa-e-getta temporaneo\n• L'agente genera ed esegue script qui dentro\n• Auto-pruning automatico dei workspace vecchi\n• Chiusura forzata immediata su stop\n• Output in quarantena (applied: false)", fill=C_TEXT_DARK, font=f_body)
-
-    # Bottom: Quality Gates
-    draw.rounded_rectangle((80, 500, 1120, 740), radius=16, fill=C_WHITE, outline=C_CYAN, width=2)
-    draw.text((110, 525), "I 3 Cancelli di Validazione Indipendente (Model-Agnostic Gates)", fill=C_CYAN, font=f_sub)
-
-    gates = [
-        ("Cancello 1: File Header", "Verifica fisica dei byte magici (%PDF, PNG, ELF)\nNon si fida del nome file o del testo dell'LLM.", C_CYAN),
-        ("Cancello 2: Parsing AST", "Analisi sintattica dell'albero di codice\nBlocca errori di sintassi prima di qualsiasi test.", C_PURPLE),
-        ("Cancello 3: Test Automatici", "Esecuzione suite Pytest nel container\nSolo se tutti i test sono VERDI si può procedere.", C_EMERALD),
-    ]
-
-    gx = 110
-    for title, desc, col in gates:
-        draw.rounded_rectangle((gx, 570, gx + 315, 710), radius=12, fill="#F8FAFC", outline=col, width=1)
-        draw.text((gx + 15, 590), title, fill=col, font=f_sub)
-        draw.text((gx + 15, 630), desc, fill=C_TEXT_DARK, font=f_body)
-        gx += 335
-
-    img.save(ASSETS_DIR / "diagram_04_sandbox_gates.png")
-
-
-# -----------------------------------------------------------------------------
-# 5. DIAGRAM 05: TOOL & SKILL FORGE
-# -----------------------------------------------------------------------------
-def gen_diagram_05():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "FORGE DELLE ABILITÀ", bg=C_CYAN_BG, text_color=C_CYAN, font_size=15)
-    draw.text((310, 68), "Ciclo di Vita delle Skill & Hook Adattivi Deterministici", fill=C_TEXT_DARK, font=f_head)
-
-    # 4 Steps of Skill Lifecycle
+    # corsia 1: chatbot tradizionale
+    c.rrect((56, 156, 1144, 436), 20, "#150f1c", BAD, 1.5, dashed=True)
+    c.chip((78, 174), "MODELLO TRADIZIONALE", BAD)
+    c.text((1122, 192), "rischio alto · instabile", 12.5, BAD, anchor="rm")
     steps = [
-        (80, 160, "1. Proposta Agente", "L'AI sintetizza un nuovo\nscript o ricetta d'azione", C_CYAN),
-        (350, 160, "2. Bozza Inerte", "Stato DRAFT con lucchetto;\nimpossibile eseguirla", C_AMBER),
-        (620, 160, "3. Firma SHA-256", "Revisione umana & hash\ncrittografico verificato", C_PURPLE),
-        (890, 160, "4. Skill Attiva", "Caricabile in sicurezza\nsolo per ruoli autorizzati", C_EMERALD),
+        ("Prompt", "Richiesta aperta in chat", MUTED),
+        ("Loop LLM aperto", "Generazione libera, nessun vincolo", BAD),
+        ("Azioni dirette sull'host", "Scrittura immediata su file", BAD),
+        ("Disastro", "Loop infiniti, file rotti", BAD),
     ]
+    xs = [78, 340, 620, 900]
+    ws = [214, 232, 232, 222]
+    for (t, s, col), x, wd in zip(steps, xs, ws):
+        card(c, (x, 226, x + wd, 350), col, t, s, title_size=16, body_size=13.5, fill="#101426")
+    for i in range(3):
+        c.arrow((xs[i] + ws[i] + 4, 288), (xs[i + 1] - 6, 288), BAD if i else MUTED, 2.2, 10)
+    c.paragraph((78, 372), "Criticità tipiche: l'AI dichiara di aver finito senza averlo fatto, sovrascrive codice host o consuma token all'infinito.", 14, BAD, 1030)
 
-    for x, y, title, desc, col in steps:
-        draw.rounded_rectangle((x, y, x + 230, y + 150), radius=14, fill="#F8FAFC", outline=col, width=2)
-        draw.text((x + 15, y + 25), title, fill=col, font=f_sub)
-        draw.text((x + 15, y + 65), desc, fill=C_TEXT_DARK, font=f_body)
+    # corsia 2: HyperSpace
+    c.rrect((56, 462, 1144, 760), 20, "#0a1a1f", OK, 1.5, glow=OK)
+    c.chip((78, 480), "HYPERSPACE 1.05", OK, solid=True)
+    c.text((1122, 498), "sicuro · deterministico · verificabile", 12.5, OK, anchor="rm")
+    steps = [
+        ("Obiettivo", "Prompt + criteri oggettivi", CYAN),
+        ("Mission Control", "DAG con budget rigido", CYAN),
+        ("Stanza ermetica", "Sandbox Docker effimera", VIOLET),
+        ("Gate di qualità", "Verifica binaria e test", OK),
+        ("Review", "OK umano esplicito", OK),
+    ]
+    x = 78
+    wd = 188
+    for i, (t, s, col) in enumerate(steps):
+        card(c, (x, 530, x + wd, 654), col, t, s, title_size=16, body_size=13.5, fill=CARD, glow=(i == 4))
+        if i < 4:
+            c.arrow((x + wd + 3, 592), (x + wd + 22, 592), col, 2.2, 9)
+        x += wd + 25
+    c.paragraph((78, 680), "Vantaggio: nessuna riga di codice tocca il tuo computer senza verifica algoritmica e tua autorizzazione.", 14, OK, 1030)
+    c.save("diagram_02_paradigma.png")
 
-    draw_arrow(draw, (310, 235), (350, 235), color=C_CYAN, width=2)
-    draw_arrow(draw, (580, 235), (620, 235), color=C_AMBER, width=2)
-    draw_arrow(draw, (850, 235), (890, 235), color=C_PURPLE, width=2)
 
-    # Bottom: Adaptive Hook Engine
-    draw.rounded_rectangle((80, 370, 1120, 730), radius=16, fill="#F8FAFC", outline=C_BORDER, width=1)
-    draw.text((110, 400), "Hook 'before_context': Iniezione Intelligente Senza Spreco di Token", fill=C_TEXT_DARK, font=f_sub)
+# --------------------------------------------------------------------------
+# 03 - Mission Control
+# --------------------------------------------------------------------------
+def gen_diagram_03():
+    c = frame(3, "MISSION CONTROL", "Decomposizione a DAG bounded", VIOLET)
 
+    card(c, (56, 164, 330, 292), CYAN, "Obiettivo operatore", "«Analizza i dati di vendita e crea una presentazione PDF»", title_size=17, body_size=13.5)
+    card(c, (400, 164, 690, 292), VIOLET, "Planner", "Scompone in task ordinati con dipendenze rigide, validate prima dell'avvio.", title_size=17, body_size=13.5, glow=True)
+    c.arrow((334, 228), (396, 228), CYAN, 2.5)
+
+    tasks = [
+        ("Task 1 · Lettura e ingestion", "repo-analyst · sola lettura", MUTED, 154),
+        ("Task 2 · Compilazione e script", "coder · sandbox protetta", CYAN, 246),
+        ("Task 3 · Validazione qualità", "verifier · quality gate", OK, 338),
+    ]
+    for t, s, col, y in tasks:
+        c.rrect((790, y, 1144, y + 78), 14, CARD, col, 1.5, glow=col if col != MUTED else None)
+        c.rrect((791, y + 14, 795, y + 64), 2, col, None)
+        c.text((812, y + 24), t, 16, col if col != MUTED else TEXT, True)
+        c.text((812, y + 50), s, 13, SOFT)
+    c.arrow((694, 214), (786, 192), VIOLET, 2.2, 10)
+    c.arrow((694, 228), (786, 284), VIOLET, 2.2, 10, dashed=True)
+    c.arrow((694, 242), (786, 376), VIOLET, 2.2, 10, dashed=True)
+    c.arrow((1000, 233), (1000, 246), MUTED, 2, 8)
+    c.arrow((1000, 325), (1000, 338), MUTED, 2, 8)
+    c.text((1144, 436), "verifica indipendente prima di procedere", 12, MUTED, anchor="rm")
+
+    # budget
+    c.rrect((56, 456, 1144, 740), 20, CARD, LINE, 1.5)
+    c.text((82, 470), "GUARDRAIL MATEMATICI · BUDGET INVALICABILI", 12.5, MUTED, True, spacing=1.8)
+    budgets = [
+        ("40", "max step", "Nessun ciclo infinito: se sfora, si arresta con errore pulito.", CYAN),
+        ("4096", "token per task", "Quota massima di ragionamento: meno spazio per le allucinazioni.", VIOLET),
+        ("1200s", "timeout", "Scadenza assoluta prima di dichiarare il task fallito.", AMBER),
+        ("3", "replan max", "L'AI può correggersi al massimo 3 volte, poi chiede aiuto.", OK),
+    ]
+    x = 82
+    for big, label, desc, col in budgets:
+        c.rrect((x, 506, x + 245, 706), 16, CARD2, col, 1.5)
+        c.text((x + 22, 556), big, 44, col, True, anchor="lm")
+        c.text((x + 22, 596), label.upper(), 12, MUTED, True, spacing=1.6)
+        c.paragraph((x + 22, 622), desc, 13, SOFT, 202)
+        x += 262
+    c.save("diagram_03_mission_control.png")
+
+
+# --------------------------------------------------------------------------
+# 04 - Stanza ermetica
+# --------------------------------------------------------------------------
+def gen_diagram_04():
+    c = frame(4, "STANZA ERMETICA", "Sandbox effimera e tre cancelli di verifica", OK)
+
+    c.rrect((56, 162, 456, 440), 20, CARD, OK, 1.5)
+    c.chip((78, 180), "COMPUTER HOST · REALE", OK)
+    items = ["Il tuo filesystem operativo", "Dati aziendali e codice sorgente", "Zero accessi diretti dal codice AI", "Scritture non autorizzate bloccate", "Nessun commit automatico"]
+    y = 236
+    for it in items:
+        c.dot((86, y + 9), 3.5, OK, glow=False)
+        c.text((102, y), it, 14.5, SOFT)
+        y += 34
+
+    # barriera
+    c.rrect((492, 162, 556, 440), 18, "#0a1a1f", CYAN, 2, glow=CYAN)
+    for yy in range(190, 420, 22):
+        c.line((506, yy), (542, yy), CYAN, 1.2, glow=False)
+    c.text((524, 458), "BARRIERA", 11, CYAN, True, anchor="mm", spacing=1.5)
+    c.arrow((596, 330), (560, 330), AMBER, 2, 8, dashed=True)
+    c.text((524, 476), "applied: false", 11.5, MUTED, True, mono=True, anchor="mm")
+
+    c.rrect((592, 162, 1144, 440), 20, "#1d1708", AMBER, 1.5, dashed=True)
+    c.chip((614, 180), "CODE SANDBOX · DOCKER USA E GETTA", AMBER)
+    items = ["Spazio temporaneo, distrutto a fine task", "L'agente genera ed esegue script qui dentro", "Pruning automatico dei workspace vecchi", "Chiusura forzata immediata su stop", "Output in quarantena fino all'ok umano"]
+    y = 236
+    for it in items:
+        c.dot((622, y + 9), 3.5, AMBER, glow=False)
+        c.text((638, y), it, 14.5, SOFT)
+        y += 34
+
+    # gate
+    c.text((56, 486), "TRE CANCELLI INDIPENDENTI DAL MODELLO", 12.5, MUTED, True, spacing=1.8)
+    gates = [
+        ("Cancello 1 · File header", "Controlla i byte magici reali (%PDF, PNG, ELF). Non si fida del nome del file né del testo dell'LLM.", CYAN),
+        ("Cancello 2 · Parsing AST", "Analisi sintattica del codice: blocca gli errori prima di lanciare qualsiasi test.", VIOLET),
+        ("Cancello 3 · Test automatici", "Suite Pytest nel container. Si procede solo se tutto è verde.", OK),
+    ]
+    x = 56
+    for i, (t, d, col) in enumerate(gates):
+        card(c, (x, 512, x + 332, 690), col, t, d, num=i + 1, title_size=16.5, body_size=13.5, glow=True)
+        if i < 2:
+            c.arrow((x + 336, 626), (x + 366, 626), col, 2.5, 10)
+        x += 372
+    c.save("diagram_04_sandbox_gates.png")
+
+
+# --------------------------------------------------------------------------
+# 05 - Forge e hook
+# --------------------------------------------------------------------------
+def gen_diagram_05():
+    c = frame(5, "FORGE DELLE ABILITÀ", "Ciclo di vita delle skill e hook adattivi", CYAN)
+
+    steps = [
+        ("Proposta agente", "L'AI sintetizza uno script o una ricetta d'azione.", CYAN),
+        ("Bozza inerte", "Stato DRAFT con lucchetto: impossibile eseguirla.", AMBER),
+        ("Firma SHA-256", "Revisione umana e hash crittografico verificato.", VIOLET),
+        ("Skill attiva", "Caricabile in sicurezza solo dai ruoli autorizzati.", OK),
+    ]
+    x = 56
+    for i, (t, d, col) in enumerate(steps):
+        card(c, (x, 164, x + 248, 336), col, t, d, num=i + 1, title_size=16.5, body_size=13.5, glow=(i == 3), dashed=(i == 1))
+        if i < 3:
+            c.arrow((x + 252, 250), (x + 280, 250), col, 2.5, 10)
+        x += 280
+
+    c.rrect((56, 372, 1144, 760), 20, CARD, LINE, 1.5)
+    c.chip((78, 392), "HOOK · BEFORE_CONTEXT", CYAN)
+    c.text((1122, 410), "iniezione intelligente, zero spreco di token", 12.5, MUTED, anchor="rm")
     examples = [
-        ("Trigger 'security' / 'sicurezza'", "Inietta automaticamente le best practice di security review nel contesto dell'agente", C_PURPLE),
-        ("Trigger 'convert' / 'documento'", "Inietta le linee guida di conversione AnyDoc per estrarre Markdown pulito", C_CYAN),
-        ("Trigger con URL Esplicito", "Impone obbligatoriamente il tool web_fetch e spegne la ricerca libera web_search", C_EMERALD),
+        ("security · sicurezza", "Inietta le best practice di security review nel contesto dell'agente.", VIOLET),
+        ("convert · documento", "Inietta le linee guida AnyDoc per estrarre Markdown pulito.", CYAN),
+        ("URL esplicito", "Impone il tool web_fetch e spegne la ricerca libera web_search.", OK),
     ]
+    y = 440
+    for trig, act, col in examples:
+        c.rrect((78, y, 1122, y + 72), 14, CARD2, col, 1.2)
+        c.text((100, y + 36), "TRIGGER", 10.5, MUTED, True, anchor="lm", spacing=1.6)
+        c.text((100, y + 54), trig, 15.5, col, True, anchor="lm")
+        c.arrow((330, y + 36), (372, y + 36), col, 2, 9)
+        c.paragraph((392, y + 26), act, 14.5, SOFT, 700)
+        y += 86
+    c.paragraph((78, 704), "Regola aurea: al massimo 2 skill contemporanee e tetto rigido di 24.000 byte per proteggere la finestra di contesto.", 13.5, MUTED, 1030)
+    c.save("diagram_05_forge_hooks.png")
 
-    ey = 460
-    for trigger, action, col in examples:
-        draw.rounded_rectangle((110, ey, 1090, ey + 65), radius=10, fill=C_WHITE, outline=col, width=1)
-        draw.text((130, ey + 22), trigger, fill=col, font=f_sub)
-        draw.text((450, ey + 22), action, fill=C_TEXT_DARK, font=f_body)
-        ey += 85
 
-    draw.text((110, 685), "Regola Aurea: Massimo 2 skill contemporanee e tetto rigido di 24.000 byte per preservare la finestra di contesto.", fill=C_TEXT_MUTED, font=f_body)
-
-    img.save(ASSETS_DIR / "diagram_05_forge_hooks.png")
-
-
-# -----------------------------------------------------------------------------
-# 6. DIAGRAM 06: HERMES MEMORY & DREAM LOOP
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 06 - Hermes e Dream Loop
+# --------------------------------------------------------------------------
 def gen_diagram_06():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
+    c = frame(6, "MEMORIA E SOGNI", "Memoria Hermes e Dream Loop notturno", VIOLET)
 
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "MEMORIA & SOGNI", bg=C_PURPLE_BG, text_color=C_PURPLE, font_size=15)
-    draw.text((280, 68), "Memoria Hermes & Nightly Dream Loop (Il Sonno REM dell'AI)", fill=C_TEXT_DARK, font=f_head)
-
-    # Top: Hermes Single Source of Truth
-    draw.rounded_rectangle((80, 150, 1120, 350), radius=16, fill="#F8FAFC", outline=C_CYAN, width=2)
-    draw.text((110, 175), "DI GIORNO: Hermes Agent come Unica Fonte di Verità", fill=C_CYAN, font=f_sub)
-
-    mem_boxes = [
-        ("MEMORY.md & USER.md", "Fatti consolidati sull'utente e preferenze di lavoro", 110, 220),
-        ("SQLite FTS5 (state.db)", "Ricerca full-text istantanea ad altissima velocità", 460, 220),
-        ("Graphify Code Graph", "Mappa delle dipendenze del codice generata localmente", 810, 220),
+    c.rrect((56, 160, 1144, 372), 20, CARD, CYAN, 1.5)
+    c.chip((78, 178), "DI GIORNO · UNICA FONTE DI VERITÀ", CYAN)
+    mem = [
+        ("MEMORY.md e USER.md", "Fatti consolidati sull'utente e preferenze di lavoro."),
+        ("SQLite FTS5 · state.db", "Ricerca full-text istantanea sugli episodi passati."),
+        ("Graphify · code graph", "Mappa locale delle dipendenze del codice."),
     ]
-    for title, desc, mx, my in mem_boxes:
-        draw.rounded_rectangle((mx, my, mx + 300, my + 95), radius=10, fill=C_WHITE, outline=C_BORDER, width=1)
-        draw.text((mx + 15, my + 18), title, fill=C_TEXT_DARK, font=f_sub)
-        draw.text((mx + 15, my + 50), desc, fill=C_TEXT_MUTED, font=f_body)
+    x = 78
+    for t, d in mem:
+        card(c, (x, 222, x + 336, 346), CYAN, t, d, title_size=16, body_size=13.5, fill=CARD2)
+        x += 356
 
-    # Bottom: Dream Loop
-    draw.rounded_rectangle((80, 400, 1120, 730), radius=16, fill="#F3E8FF", outline=C_PURPLE, width=2)
-    draw.text((110, 425), "DI NOTTE / IN PAUSA: Il Dream Loop (Riflessione Cognitiva Idle-Only)", fill=C_PURPLE, font=f_sub)
+    c.arrow((600, 376), (600, 410), VIOLET, 3, 12)
+    c.text((622, 393), "ogni notte, a riposo", 12, MUTED, True, anchor="lm", spacing=1.2)
 
-    steps_dream = [
-        ("1. Attivazione a Riposo", "Parte solo quando il computer non ha lavoro prioritario in corso", 110, 475),
-        ("2. Sintesi delle Memorie", "Trova contraddizioni, collegamenti nascosti e idee evolutive", 460, 475),
-        ("3. Quarantena Ipotesi", "I risultati restano 'ipotesi': NON toccano la memoria senza ok", 810, 475),
+    c.rrect((56, 418, 1144, 760), 20, "#120e24", VIOLET, 1.5, glow=VIOLET)
+    c.chip((78, 436), "DI NOTTE · DREAM LOOP IDLE-ONLY", VIOLET, solid=True)
+    steps = [
+        ("Attivazione a riposo", "Parte solo se il computer non ha lavoro prioritario in corso."),
+        ("Sintesi delle memorie", "Trova contraddizioni, collegamenti nascosti e idee evolutive."),
+        ("Quarantena ipotesi", "I risultati restano ipotesi: non toccano la memoria senza ok."),
     ]
-    for title, desc, sx, sy in steps_dream:
-        draw.rounded_rectangle((sx, sy, sx + 300, sy + 105), radius=10, fill=C_WHITE, outline=C_PURPLE, width=1)
-        draw.text((sx + 15, sy + 20), title, fill=C_PURPLE, font=f_sub)
-        draw.text((sx + 15, sy + 55), desc, fill=C_TEXT_DARK, font=f_body)
+    x = 78
+    for i, (t, d) in enumerate(steps):
+        card(c, (x, 480, x + 322, 628), VIOLET, t, d, num=i + 1, title_size=16, body_size=13.5, fill=CARD)
+        if i < 2:
+            c.arrow((x + 326, 554), (x + 352, 554), VIOLET, 2.5, 10)
+        x += 356
+    c.rrect((78, 654, 1122, 734), 14, "#1d1708", AMBER, 1.2)
+    c.chip((98, 678), "PREEMPTION", AMBER)
+    c.paragraph((246, 685), "Se l'utente scrive anche una sola parola, il sogno si interrompe in millisecondi per rispondere subito.", 14, SOFT, 860)
+    c.save("diagram_06_hermes_dreams.png")
 
-    draw_arrow(draw, (410, 525), (460, 525), color=C_PURPLE, width=2)
-    draw_arrow(draw, (760, 525), (810, 525), color=C_PURPLE, width=2)
 
-    draw.text((110, 640), "Preemption Istantanea: Se l'utente scrive anche una sola parola, il sogno si interrompe in millisecondi per rispondere subito!", fill=C_PURPLE, font=f_body)
-
-    img.save(ASSETS_DIR / "diagram_06_hermes_dreams.png")
-
-
-# -----------------------------------------------------------------------------
-# 7. DIAGRAM 07: TAILSCALE MESH & DISTRIBUTED HARDWARE
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 07 - Mesh
+# --------------------------------------------------------------------------
 def gen_diagram_07():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
+    c = frame(7, "RETE DISTRIBUITA", "Mesh privata cifrata e calcolo eterogeneo", CYAN)
+    cx, cy = 600, 452
 
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "RETE NERVOSA DISTRIBUITA", bg=C_CYAN_BG, text_color=C_CYAN, font_size=15)
-    draw.text((370, 68), "Mesh Privata Cifrata Tailscale & Calcolo Eterogeneo Ibrido", fill=C_TEXT_DARK, font=f_head)
-
-    # Central Cloud Overlay
-    draw.rounded_rectangle((440, 280, 760, 540), radius=20, fill=C_DARK_CARD, outline=C_CYAN_LIGHT, width=3)
-    draw.text((475, 360), "TESSUTO PRIVATO", fill=C_TEXT_LIGHT, font=f_head)
-    draw.text((505, 400), "TAILSCALE MESH", fill=C_CYAN_LIGHT, font=f_sub)
-    draw.text((470, 440), "VPN Cifrata P2P WireGuard", fill=C_TEXT_LIGHT_MUTED, font=f_body)
-
-    # 4 Nodes
     nodes = [
-        (80, 140, "Mac Studio / MacBook", "Apple Silicon Metal & Neural Engine\nVision & Audio ultra-veloci in locale", C_EMERALD, (380, 210), (460, 310)),
-        (720, 140, "PC Windows Workstation", "GPU Dedicate NVIDIA RTX\nRendering ComfyUI & simulazioni pesanti", C_PURPLE, (720, 210), (680, 310)),
-        (80, 550, "Server Linux On-Premise", "Istanza Ollama Locale\nModelli linguistici aperti, zero costi API", C_CYAN, (380, 620), (460, 510)),
-        (720, 550, "Web Nodes nel Browser", "Nodi leggeri su portatili/tablet\nTrascrizione, OCR e piccoli task di supporto", C_AMBER, (720, 620), (680, 510)),
+        (56, 164, "Mac Studio / MacBook", "Apple Silicon: Metal e Neural Engine, vision e audio in locale.", OK, (456, 262)),
+        (744, 164, "Workstation Windows", "GPU NVIDIA RTX per ComfyUI e simulazioni pesanti.", VIOLET, (744, 262)),
+        (56, 540, "Server Linux on-premise", "Ollama locale: modelli aperti, zero costi API.", CYAN, (456, 642)),
+        (744, 540, "Web Node nel browser", "Portatili e tablet: trascrizione, OCR e micro-task.", AMBER, (744, 642)),
     ]
+    for _, _, _, _, col, edge in nodes:
+        c.line((cx, cy), edge, col, 2, dashed=True)
+        mx, my = (cx + edge[0]) / 2, (cy + edge[1]) / 2
+        c.dot((mx, my), 4, col)
+    # anelli hub
+    c.ring((cx, cy), 128, CYAN, 1, alpha=70)
+    c.ring((cx, cy), 98, VIOLET, 1, alpha=110)
+    c.orb((cx, cy), 72, CYAN)
+    c.text((cx, cy - 18), "TAILSCALE", 17, CYAN, True, anchor="mm", spacing=2.5)
+    c.text((cx, cy + 6), "MESH", 24, TEXT, True, anchor="mm", spacing=4)
+    c.text((cx, cy + 32), "WireGuard P2P", 11.5, MUTED, anchor="mm")
+    for x, y, t, d, col, _ in nodes:
+        card(c, (x, y, x + 400, y + 120), col, t, d, title_size=17, body_size=13.5, glow=True)
+    c.text((cx, 748), "Nessuna porta esposta a Internet · nessun dato inviato a terzi", 13.5, OK, True, anchor="mm")
+    c.save("diagram_07_mesh_network.png")
 
-    for nx, ny, title, desc, col, p_start, p_end in nodes:
-        draw.rounded_rectangle((nx, ny, nx + 400, ny + 140), radius=14, fill="#F8FAFC", outline=col, width=2)
-        draw.text((nx + 20, ny + 25), title, fill=col, font=f_sub)
-        draw.text((nx + 20, ny + 65), desc, fill=C_TEXT_DARK, font=f_body)
-        draw.line([p_start, p_end], fill=col, width=2)
 
-    draw.text((110, 730), "Vantaggio di Sovranità: I nodi comunicano tra loro senza esporre porte a Internet e senza inviare dati a terzi.", fill=C_EMERALD, font=f_body)
-
-    img.save(ASSETS_DIR / "diagram_07_mesh_network.png")
-
-
-# -----------------------------------------------------------------------------
-# 8. DIAGRAM 08: REEL EDITOR & APPLE VISION
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 08 - Reel Forge
+# --------------------------------------------------------------------------
 def gen_diagram_08():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
+    c = frame(8, "PRODUZIONE MULTIMEDIA", "Reel Forge: montaggio a ritmo e vision neurale", AMBER)
 
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_AMBER_BG, width=2)
-    draw_badge(draw, (70, 65), "PRODUZIONE MULTIMEDIA", bg=C_AMBER_BG, text_color=C_AMBER, font_size=15)
-    draw.text((340, 68), "Reel Editor: Montaggio Dinamico & Vision Neurale Apple", fill=C_TEXT_DARK, font=f_head)
-
-    # 9:16 Video Phone Mockup on Left
-    draw.rounded_rectangle((90, 150, 420, 720), radius=28, fill=C_DARK_CARD, outline=C_CYAN, width=3)
-    draw.rounded_rectangle((110, 180, 400, 690), radius=18, fill=C_DARK_BG, outline=C_BORDER_DARK, width=1)
-    draw.text((150, 210), "REEL 9:16 (1080x1920)", fill=C_CYAN_LIGHT, font=f_sub)
-    draw.text((130, 260), "1. Traccia Musicale", fill=C_TEXT_LIGHT_MUTED, font=f_body)
-    draw.text((130, 310), "2. Beat Detection (Tagli)", fill=C_EMERALD_LIGHT, font=f_body)
-    draw.text((130, 360), "3. Testo Karaoke Dietro", fill=C_AMBER_LIGHT, font=f_body)
-    draw.text((130, 420), "4. Soggetto in Primo Piano\n   (Scontornato da AI)", fill=C_WHITE, font=f_sub)
-    draw.text((130, 520), "Durate: 30s | 60s | 120s\nExport: MP4 TikTok/Reels", fill=C_CYAN_LIGHT, font=f_body)
-
-    # Explanatory Layers on Right
+    # telefono 9:16
+    px1, py1, px2, py2 = 70, 160, 390, 760
+    c.rrect((px1, py1, px2, py2), 38, "#0a1124", CYAN, 2.5, glow=CYAN)
+    c.rrect((px1 + 14, py1 + 14, px2 - 14, py2 - 14), 28, BG, LINE, 1)
+    c.rrect(((px1 + px2) / 2 - 36, py1 + 24, (px1 + px2) / 2 + 36, py1 + 34), 5, LINE, None)
+    c.text(((px1 + px2) / 2, py1 + 66), "REEL 9:16 · 1080×1920", 11.5, CYAN, True, anchor="mm", spacing=1.4)
     layers = [
-        ("Analisi Audio & Beat Detection", "Rileva i picchi ritmici della musica e posiziona i cambi di inquadratura al millisecondo esatto sul ritmo musicale.", C_CYAN),
-        ("Segmentazione Swift Apple Vision", "Modulo nativo in Swift (person_mask.swift) su macOS: isola il corpo umano istantaneamente senza green screen.", C_PURPLE),
-        ("Composizione a Più Livelli", "Permette di posizionare titoli, karaoke rame/avorio ed effetti dietro la persona, creando un look da studio televisivo.", C_EMERALD),
-        ("Generazione Giornaliera alle 09:00", "Un LaunchAgent macOS monta un nuovo video ogni mattina e lo invia alla coda di revisione senza pubblicarlo subito.", C_AMBER),
+        ("Traccia musicale", MUTED, 100),
+        ("Beat detection · tagli", OK, 100),
+        ("Testo karaoke dietro", AMBER, 100),
+        ("Soggetto scontornato", ROSE, 100),
     ]
+    y = 244
+    for i, (t, col, _) in enumerate(layers):
+        inset = i * 6
+        c.rrect((px1 + 38 - inset, y, px2 - 38 + inset, y + 72), 14, CARD2, col, 1.5, glow=col if i == 3 else None)
+        c.text((px1 + 58 - inset, y + 36), f"L{4 - i}", 12, col, True, mono=True, anchor="lm")
+        c.text((px1 + 94 - inset, y + 36), t, 14, TEXT if i == 3 else SOFT, i == 3, anchor="lm")
+        y += 88
+    c.text(((px1 + px2) / 2, 628), "30 s  ·  60 s  ·  120 s", 13, CYAN, True, anchor="mm")
+    c.text(((px1 + px2) / 2, 654), "Export H.264/AAC per TikTok e Reels", 12, MUTED, anchor="mm")
+    c.chip(((px1 + px2) / 2 - 62, 690), "REVIEW OBBLIGATORIA", ROSE, 10.5)
 
-    ly = 160
-    for title, desc, col in layers:
-        draw.rounded_rectangle((460, ly, 1120, ly + 115), radius=14, fill="#F8FAFC", outline=col, width=2)
-        draw.text((485, ly + 20), title, fill=col, font=f_sub)
-        draw.text((485, ly + 55), desc, fill=C_TEXT_DARK, font=f_body)
-        ly += 140
+    cards = [
+        ("Audio e beat detection", "Rileva i picchi ritmici e posiziona i cambi di inquadratura al millisecondo.", CYAN),
+        ("Segmentazione Apple Vision", "person_mask.swift su macOS: isola il corpo umano senza green screen.", VIOLET),
+        ("Composizione a livelli", "Titoli, karaoke ed effetti dietro la persona: look da studio televisivo.", OK),
+        ("Generazione alle 09:00", "Un LaunchAgent monta un video ogni mattina e lo manda in revisione, mai in pubblicazione diretta.", AMBER),
+    ]
+    y = 164
+    for i, (t, d, col) in enumerate(cards):
+        card(c, (440, y, 1144, y + 132), col, t, d, num=i + 1, title_size=17, body_size=14, glow=(i == 1))
+        if i < 3:
+            c.arrow((792, y + 134), (792, y + 148), col, 2, 8)
+        y += 150
+    c.save("diagram_08_reel_vision.png")
 
-    img.save(ASSETS_DIR / "diagram_08_reel_vision.png")
 
-
-# -----------------------------------------------------------------------------
-# 9. DIAGRAM 09: HYPERSPACE UFFICIO & CONNECTORS
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 09 - Ufficio
+# --------------------------------------------------------------------------
 def gen_diagram_09():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "UFFICIO & ENTERPRISE", bg=C_CYAN_BG, text_color=C_CYAN, font_size=15)
-    draw.text((320, 68), "HyperSpace Ufficio: AnyDoc, Unlimited OCR & Connettori", fill=C_TEXT_DARK, font=f_head)
-
-    # 3 Pillars: Ingestion, Engine, Connectors
+    c = frame(9, "UFFICIO ED ENTERPRISE", "AnyDoc, OCR illimitato e connettori governati", CYAN)
     cols = [
-        (80, 150, "1. INGESTION UNIVERSALE", [
-            ("PDF Complessi", "Estratti e analizzati a fondo"),
-            ("Scansioni Cartacee", "Unlimited OCR offline gratuito"),
-            ("Documenti Office", "Word, Excel e presentazioni"),
-            ("Contratti & Moduli", "Riconoscimento campi e firme"),
-        ], C_CYAN),
-        (440, 150, "2. CORE ELABORAZIONE", [
-            ("AnyDoc Markdown", "Conversione in testo pulito"),
-            ("OnlyOffice Bridge", "Editing e commenti collaborativi"),
-            ("Ispezione PDF", "Verifica metadati e firme digitali"),
-            ("Memoria di Progetto", "Tutto memorizzato in Hermes"),
-        ], C_PURPLE),
-        (800, 150, "3. CONNETTORI ENTERPRISE", [
-            ("Microsoft 365", "Outlook, Teams, OneDrive"),
-            ("Google Workspace", "Gmail, Drive, Docs"),
-            ("GitHub Enterprise", "Repository e automazioni"),
-            ("Zero Credential Leak", "Password cancellate dai log"),
-        ], C_EMERALD),
+        (56, "1 · INGESTION", CYAN, [("PDF complessi", "Estratti e analizzati a fondo"), ("Scansioni cartacee", "OCR offline illimitato"), ("Documenti Office", "Word, Excel, presentazioni"), ("Contratti e moduli", "Campi e firme riconosciuti")]),
+        (432, "2 · ELABORAZIONE", VIOLET, [("AnyDoc Markdown", "Conversione in testo pulito"), ("OnlyOffice bridge", "Editing e commenti condivisi"), ("Ispezione PDF", "Metadati e firme digitali"), ("Memoria di progetto", "Tutto salvato in Hermes")]),
+        (808, "3 · CONNETTORI", OK, [("Microsoft 365", "Outlook, Teams, OneDrive"), ("Google Workspace", "Gmail, Drive, Docs"), ("GitHub", "Repository e automazioni"), ("Zero credential leak", "Password rimosse dai log")]),
     ]
+    for x, title, col, items in cols:
+        c.rrect((x, 160, x + 336, 760), 20, CARD, col, 1.5, glow=col)
+        c.text((x + 24, 190), title, 13.5, col, True, spacing=2)
+        c.line((x + 24, 214), (x + 312, 214), LINE, 1, glow=False)
+        y = 232
+        for t, d in items:
+            c.rrect((x + 18, y, x + 318, y + 106), 14, CARD2, LINE, 1)
+            c.rrect((x + 19, y + 18, x + 23, y + 88), 2, col, None)
+            c.text((x + 40, y + 28), t, 16.5, TEXT, True)
+            c.text((x + 40, y + 60), d, 13.5, SOFT)
+            y += 122
+    c.arrow((396, 460), (428, 460), CYAN, 3, 11)
+    c.arrow((772, 460), (804, 460), VIOLET, 3, 11)
+    c.save("diagram_09_ufficio_connectors.png")
 
-    for cx, cy, title, items, col in cols:
-        draw.rounded_rectangle((cx, cy, cx + 320, cy + 560), radius=16, fill="#F8FAFC", outline=col, width=2)
-        draw.text((cx + 20, cy + 30), title, fill=col, font=f_sub)
-        iy = cy + 90
-        for ititle, idesc in items:
-            draw.rounded_rectangle((cx + 15, iy, cx + 305, iy + 90), radius=10, fill=C_WHITE, outline=C_BORDER, width=1)
-            draw.text((cx + 30, iy + 18), ititle, fill=C_TEXT_DARK, font=f_sub)
-            draw.text((cx + 30, iy + 50), idesc, fill=C_TEXT_MUTED, font=f_body)
-            iy += 105
 
-    draw_arrow(draw, (400, 430), (440, 430), color=C_CYAN, width=3)
-    draw_arrow(draw, (760, 430), (800, 430), color=C_PURPLE, width=3)
-
-    img.save(ASSETS_DIR / "diagram_09_ufficio_connectors.png")
-
-
-# -----------------------------------------------------------------------------
-# 10. DIAGRAM 10: MULTI-AGENT COEXISTENCE
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 10 - Multi agente
+# --------------------------------------------------------------------------
 def gen_diagram_10():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "INGEGNERIA MULTI-AGENTE", bg=C_EMERALD_BG, text_color=C_EMERALD, font_size=15)
-    draw.text((360, 68), "Coesistenza Multi-Agente Sullo Stesso Repository", fill=C_TEXT_DARK, font=f_head)
-
-    # The 4 Agents
-    agents = [
-        ("CLINE", "Lavoro su editor in VS Code", C_CYAN),
-        ("CODEX", "Infrastruttura e Control Plane", C_PURPLE),
-        ("CLAUDE CODE", "Sviluppo motore editor reel", C_AMBER),
-        ("ANTIGRAVITY", "Orchestrazione, test e audit", C_EMERALD),
-    ]
-
-    ax = 80
+    c = frame(10, "INGEGNERIA MULTI-AGENTE", "Più agenti, un solo repository, zero conflitti", OK)
+    agents = [("CLINE", "Feature in VS Code", CYAN), ("CODEX", "Infrastruttura e Control Plane", VIOLET), ("CLAUDE CODE", "Motore dell'editor reel", AMBER), ("ANTIGRAVITY", "Orchestrazione, test e audit", OK)]
+    x = 56
     for name, role, col in agents:
-        draw.rounded_rectangle((ax, 150, ax + 235, 290), radius=14, fill="#F8FAFC", outline=col, width=2)
-        draw.text((ax + 20, 180), name, fill=col, font=f_sub)
-        draw.text((ax + 20, 220), role, fill=C_TEXT_DARK, font=f_body)
-        draw_arrow(draw, (ax + 117, 290), (ax + 117, 360), color=col, width=2)
-        ax += 270
-
-    # Shared Foundation Box
-    draw.rounded_rectangle((80, 360, 1120, 730), radius=16, fill=C_DARK_CARD, outline=C_CYAN_LIGHT, width=2)
-    draw.text((110, 390), "IL PROTOCOLLO DI CONVIVENZA (Come Lavorare Insieme Senza Conflitti)", fill=C_TEXT_LIGHT, font=f_head)
-
+        c.rrect((x, 160, x + 250, 262), 16, CARD, col, 1.5, glow=col)
+        c.orb((x + 38, 211), 17, col)
+        c.text((x + 70, 198), name, 15, col, True, anchor="lm", spacing=1.6)
+        c.text((x + 70, 226), role, 12.5, SOFT, anchor="lm")
+        c.arrow((x + 125, 266), (x + 125, 330), col, 2.2, 10)
+        x += 279
+    c.rrect((56, 336, 1144, 760), 20, "#0a1a1f", CYAN, 1.5, glow=CYAN)
+    c.text((82, 366), "IL PROTOCOLLO DI CONVIVENZA", 13.5, CYAN, True, spacing=2)
     rules = [
-        ("1. AGENTS.md (La Costituzione)", "Definisce perimetro, strumenti permessi e regole inderogabili. Nessun agente tocca file fuori dal proprio incarico."),
-        ("2. AGENT-LOG.md (Il Diario di Bordo)", "Registro append-only condiviso: prima di iniziare ogni agente legge cosa è stato fatto, e alla fine firma il proprio operato."),
-        ("3. La Verità è solo nel Repository", "Vietate cartelle esterne o copie divergenti: l'unico codice valido è quello sincronizzato nel progetto."),
-        ("4. Oltre 2.300 Test di Sicurezza", "Suite monolitica continuamente verificata a verde: nessuno può lasciare la codebase rotta per l'agente successivo."),
+        ("AGENTS.md", "La costituzione", "Perimetro, strumenti permessi e regole inderogabili: nessun agente tocca file fuori dal proprio incarico.", CYAN),
+        ("AGENT-LOG.md", "Diario di bordo", "Registro append-only: prima di iniziare si legge cosa è stato fatto, alla fine si firma.", VIOLET),
+        ("Il repository", "L'unica verità", "Niente cartelle esterne o copie divergenti: vale solo il codice nel progetto.", OK),
+        ("Test", "Sempre verdi", "Suite continuamente verificata: nessuno lascia la codebase rotta all'agente successivo.", AMBER),
     ]
+    y = 396
+    for i, (t, sub, d, col) in enumerate(rules):
+        c.rrect((78, y, 1122, y + 78), 14, CARD, col, 1.2)
+        c.badge_num((110, y + 39), i + 1, col)
+        c.text((144, y + 28), t, 16, col, True, anchor="lm")
+        c.text((144, y + 52), sub, 12.5, MUTED, anchor="lm")
+        c.paragraph((400, y + 20), d, 14, SOFT, 690)
+        y += 88
+    c.save("diagram_10_multi_agent.png")
 
-    ry = 450
-    for rtitle, rdesc in rules:
-        draw.rounded_rectangle((110, ry, 1090, ry + 55), radius=8, fill="#1E293B", outline=C_BORDER_DARK, width=1)
-        draw.text((130, ry + 16), rtitle, fill=C_CYAN_LIGHT, font=f_sub)
-        draw.text((450, ry + 16), rdesc, fill=C_TEXT_LIGHT, font=f_body)
-        ry += 65
 
-    img.save(ASSETS_DIR / "diagram_10_multi_agent.png")
-
-
-# -----------------------------------------------------------------------------
-# 11. DIAGRAM 11: I 4 PROFILI COMMERCIALI
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 11 - Quadranti
+# --------------------------------------------------------------------------
 def gen_diagram_11():
-    img = Image.new("RGB", (1200, 820), color=C_LIGHT_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((40, 40, 1160, 780), radius=18, fill=C_WHITE, outline=C_BORDER, width=2)
-    draw_badge(draw, (70, 65), "MERCATO & VALORE", bg=C_PURPLE_BG, text_color=C_PURPLE, font_size=15)
-    draw.text((270, 68), "I Quattro Sbocchi Commerciali di HyperSpace 1.05", fill=C_TEXT_DARK, font=f_head)
-
-    # 4 Quadrants
+    c = frame(11, "MERCATO E VALORE", "I quattro sbocchi di HyperSpace 1.05", VIOLET)
     quads = [
-        (80, 140, "1. ENTERPRISE LOCAL", "Banche, Sanità, Legali, PA", "Agenti intelligenti su dati riservati on-premise; zero fuga di dati all'estero; audit crittografico completo.", "Licenza Annuale + Supporto", C_CYAN),
-        (620, 140, "2. AGENT OPERATIONS", "Software House & Scale-up", "Mission Control bounded, sandbox usa-e-getta, pipeline di risoluzione automatica bug e test di codice.", "Abbonamento per Workspace/Nodo", C_PURPLE),
-        (80, 440, "3. HYPERSPACE UFFICIO", "Studi Professionali & PMI", "AnyDoc conversione istantanea, Unlimited OCR, OnlyOffice bridge, memoria condivisa di studio.", "Pacchetto Chiavi in Mano / Mese", C_EMERALD),
-        (620, 440, "4. HYPERSPACE MULTIMEDIA", "Media House & Creator", "Reel Editor ritmico, Apple Vision person segmentation, Comic Builder e identità virtuali coerenti.", "Licenza Studio + Prod. Video", C_AMBER),
+        (56, 160, "ENTERPRISE LOCAL", "Banche, sanità, legale, PA", "Agenti su dati riservati on-premise: nessuna fuga all'estero e audit completo.", "Licenza annuale + supporto", CYAN),
+        (608, 160, "AGENT OPERATIONS", "Software house e scale-up", "Mission Control bounded, sandbox usa e getta, correzione automatica di bug e test.", "Abbonamento per workspace/nodo", VIOLET),
+        (56, 468, "HYPERSPACE UFFICIO", "Studi professionali e PMI", "AnyDoc, OCR illimitato, bridge OnlyOffice e memoria condivisa di studio.", "Pacchetto chiavi in mano / mese", OK),
+        (608, 468, "HYPERSPACE MULTIMEDIA", "Media house e creator", "Reel Forge ritmico, Apple Vision, Comic Builder e identità virtuali coerenti.", "Licenza studio + produzione video", AMBER),
     ]
+    for i, (x, y, title, target, val, model, col) in enumerate(quads):
+        c.rrect((x, y, x + 536, y + 292), 20, CARD, col, 1.5, glow=col)
+        c.text((x + 30, y + 44), f"0{i + 1}", 40, col, True, anchor="lm")
+        c.text((x + 100, y + 34), title, 17, TEXT, True, anchor="lm", spacing=1.2)
+        c.text((x + 100, y + 58), target, 13.5, col, True, anchor="lm")
+        c.line((x + 30, y + 86), (x + 506, y + 86), LINE, 1, glow=False)
+        c.paragraph((x + 30, y + 108), val, 17, SOFT, 476, 1.45)
+        c.rrect((x + 30, y + 224, x + 506, y + 262), 12, CARD2, col, 1.2)
+        c.text((x + 48, y + 243), "MODELLO", 10.5, MUTED, True, anchor="lm", spacing=1.6)
+        c.text((x + 130, y + 243), model, 14, col, True, anchor="lm")
+    c.save("diagram_11_business_quadrants.png")
 
-    for qx, qy, title, target, val, model, col in quads:
-        draw.rounded_rectangle((qx, qy, qx + 500, qy + 270), radius=16, fill="#F8FAFC", outline=col, width=2)
-        draw.text((qx + 25, qy + 25), title, fill=col, font=f_sub)
-        draw.text((qx + 25, qy + 60), f"Target: {target}", fill=C_TEXT_MUTED, font=f_body)
-        draw.text((qx + 25, qy + 105), val, fill=C_TEXT_DARK, font=f_body)
-        draw.rounded_rectangle((qx + 25, qy + 200, qx + 475, qy + 245), radius=8, fill=C_WHITE, outline=col, width=1)
-        draw.text((qx + 40, qy + 215), f"Modello: {model}", fill=col, font=f_body)
 
-    img.save(ASSETS_DIR / "diagram_11_business_quadrants.png")
-
-
-# -----------------------------------------------------------------------------
-# 12. DIAGRAM 12: VISION & SUMMARY
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 12 - Visione
+# --------------------------------------------------------------------------
 def gen_diagram_12():
-    img = Image.new("RGB", (1200, 480), color=C_DARK_BG)
-    draw = ImageDraw.Draw(img)
-
-    f_head = get_font(22)
-    f_sub = get_font(17)
-    f_body = get_font(14)
-
-    draw.rounded_rectangle((30, 20, 1170, 460), radius=18, fill=C_DARK_CARD, outline=C_CYAN_LIGHT, width=2)
-
+    w, h = 1200, 414
+    c = Canvas(w, h)
+    c.chip((56, 34), "VISIONE", CYAN)
+    c.text((56, 72), "Un sistema operativo per l'AI che lavora davvero", 26, TEXT, True)
     pillars = [
-        ("1. GOVERNATA", "DAG Bounded con limiti matematici;\nniente allucinazioni o loop infiniti", C_CYAN_LIGHT),
-        ("2. SICURA", "Code Sandbox usa-e-getta e cancelli\ndi qualità indipendenti dal modello", C_EMERALD_LIGHT),
-        ("3. COGNITIVA", "Memoria Hermes SQLite FTS5 e sonno\nREM notturno con quarantena ipotesi", C_PURPLE_LIGHT),
-        ("4. DISTRIBUITA", "Mesh privata Tailscale a zero fughe\ne inferenza 100% locale su GPU", C_AMBER_LIGHT),
+        ("01", "GOVERNATA", "DAG bounded con limiti matematici: niente allucinazioni operative né loop infiniti.", CYAN),
+        ("02", "SICURA", "Sandbox usa e getta e cancelli di qualità indipendenti dal modello.", OK),
+        ("03", "COGNITIVA", "Memoria Hermes FTS5 e sogno notturno, con ipotesi in quarantena.", VIOLET),
+        ("04", "DISTRIBUITA", "Mesh privata Tailscale a zero fughe e inferenza 100% locale su GPU.", AMBER),
     ]
-
-    px = 60
-    for ptitle, pdesc, col in pillars:
-        draw.rounded_rectangle((px, 60, px + 250, 410), radius=14, fill=C_DARK_BG, outline=col, width=2)
-        draw.text((px + 20, 95), ptitle, fill=col, font=f_head)
-        draw.text((px + 20, 150), pdesc, fill=C_TEXT_LIGHT, font=f_sub)
-        px += 275
-
-    img.save(ASSETS_DIR / "diagram_12_summary_vision.png")
+    x = 56
+    for num, t, d, col in pillars:
+        c.rrect((x, 124, x + 258, 358), 18, CARD, col, 1.5, glow=col)
+        c.text((x + 24, 166), num, 34, col, True, anchor="lm")
+        c.text((x + 24, 208), t, 15.5, TEXT, True, spacing=2)
+        c.line((x + 24, 228), (x + 70, 228), col, 3)
+        c.paragraph((x + 24, 244), d, 13.5, SOFT, 212)
+        x += 276
+    c.text((600, 388), "L'autonomia si guadagna con verifica e prova di sicurezza · l'umano resta sovrano", 12.5, MUTED, anchor="mm")
+    c.save("diagram_12_summary_vision.png")
 
 
 def generate_all():

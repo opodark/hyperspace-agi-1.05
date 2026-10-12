@@ -30,6 +30,11 @@ Get-ChildItem -Path (Join-Path $repo "web-node/src") -Filter "*.js" | ForEach-Ob
     Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $target "src/$($_.Name)") -Force
 }
 
+$assets = Join-Path $repo "web-node/assets"
+if (Test-Path -LiteralPath $assets) {
+    Copy-Item -LiteralPath $assets -Destination $target -Recurse -Force
+}
+
 foreach ($ep in @("privacy-policy", "privacy", "deletion", "data-deletion", "chat")) {
     $srcHtml = Join-Path $target "$ep.html"
     if (Test-Path -LiteralPath $srcHtml) {
