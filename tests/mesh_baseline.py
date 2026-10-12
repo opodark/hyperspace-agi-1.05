@@ -125,6 +125,8 @@ def raccogli() -> dict:
         "web_contact": _post("/web/contact", {}),
         "web_contacts": _get("/web/contacts"),
         "web_contact_detail": _get("/web/contacts/<contact_id>"),
+        "web_search": _post("/web/search", {}),
+        "web_sandbox_run": _post("/web/sandbox/run", {}),
 
         # l'annuncio: e' la via che un nodo si presenta
         "announce_corpo_vuoto": _post("/mesh/announce", {}),

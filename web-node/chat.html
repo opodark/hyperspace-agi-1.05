@@ -54,7 +54,7 @@
     .logout-btn:hover{text-decoration:underline}
 
     /* Area principale Chat */
-    .chat-view{flex:1;display:flex;flex-direction:column;min-width:0;background:radial-gradient(circle at 50% 0%,#142247 0,transparent 45%),var(--bg);height:100vh}
+    .chat-view{flex:1;display:flex;flex-direction:column;min-width:0;background:radial-gradient(circle at 50% 0%,#142247 0,transparent 45%),var(--bg);height:100vh;position:relative}
     
     .chat-topbar{height:56px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#080e1ecc}
     .topbar-left{display:flex;align-items:center;gap:12px}
@@ -84,13 +84,38 @@
     .msg-body ul,.msg-body ol{margin:6px 0 10px 22px;padding:0}
     .msg-body li{margin-bottom:4px}
     .msg-body code{background:#060a14;padding:2px 6px;border-radius:6px;border:1px solid #20304a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:var(--cyan)}
+    
+    /* Code Box & Sandbox Controls */
     .code-box{margin:12px 0;border:1px solid #27395a;border-radius:10px;background:#050811;overflow:hidden}
     .code-box-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#0b1326;border-bottom:1px solid #1c2b46;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+    .code-box-actions{display:flex;align-items:center;gap:6px}
     .code-box pre{margin:0;padding:12px 14px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5;color:#e2e8f0}
     .code-box pre code{background:transparent;border:none;padding:0;color:inherit}
+    
     .copy-code-btn{background:transparent;border:1px solid #253654;border-radius:6px;color:#cbd5e1;font-size:11px;font-weight:600;padding:3px 9px;cursor:pointer;transition:all .15s}
     .copy-code-btn:hover{background:#182644;border-color:var(--cyan);color:#fff}
     .copy-code-btn.copied{border-color:var(--ok);color:var(--ok)}
+
+    .run-sandbox-btn{background:linear-gradient(115deg,#57e6d922,#9a7cff22);border:1px solid #57e6d977;border-radius:6px;color:#83fff0;font-size:11px;font-weight:700;padding:3px 9px;cursor:pointer;transition:all .15s}
+    .run-sandbox-btn:hover{background:linear-gradient(115deg,#57e6d944,#9a7cff44);border-color:var(--cyan);color:#fff;box-shadow:0 0 10px #57e6d933}
+    .run-sandbox-btn:disabled{opacity:.5;cursor:wait}
+
+    /* Sandbox Terminal */
+    .sandbox-terminal{margin-top:0;border-top:1px solid #1c2b46;background:#03060f;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .sandbox-terminal-head{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#060b18;border-bottom:1px solid #142036;font-size:11px}
+    .sandbox-terminal-title{display:flex;align-items:center;gap:7px;color:#cbd5e1;font-weight:600}
+    .sandbox-dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:#64748b}
+    .sandbox-dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+    .sandbox-dot.err{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+    .sandbox-dot.pulse{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse-glow 1s infinite alternate}
+    @keyframes pulse-glow{from{opacity:.4}to{opacity:1}}
+    
+    .sandbox-status-pill{padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase}
+    .sandbox-status-pill.running{background:#57e6d922;color:var(--cyan);border:1px solid #57e6d955}
+    .sandbox-status-pill.ok{background:#70e6aa22;color:var(--ok);border:1px solid #70e6aa55}
+    .sandbox-status-pill.err{background:#ff829522;color:var(--bad);border:1px solid #ff829555}
+    .sandbox-terminal-body{margin:0;padding:10px 14px;font-size:12px;line-height:1.5;color:#83fff0;max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+    .sandbox-terminal-body.error-output{color:#ff9eaf}
     
     .msg-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:9px;padding-top:7px;border-top:1px solid #16243f}
     .copy-msg-btn{background:none;border:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:2px 6px;font-weight:600}
@@ -110,8 +135,34 @@
     
     /* Composer bottom */
     .chat-bottom{padding:14px 20px 20px;background:linear-gradient(to top,#070b18 80%,transparent);flex-shrink:0}
-    .composer-container{width:min(860px,100%);margin:0 auto;background:#0d162c;border:1px solid #233454;border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px #0007}
+    .composer-container{width:min(860px,100%);margin:0 auto;background:#0d162c;border:1px solid #233454;border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px #0007;position:relative}
     .composer-container:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px #57e6d922, 0 12px 36px #0007}
+    
+    /* AnyDoc & Web Search Toolbar */
+    .composer-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .composer-tool-btn{background:#091224;border:1px solid #233454;border-radius:8px;color:#cbd5e1;font-size:11.5px;font-weight:600;padding:4px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+    .composer-tool-btn:hover{background:#132244;border-color:var(--cyan);color:#fff}
+    .composer-tool-btn.active{background:#57e6d922;border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px #57e6d933}
+
+    .attached-files-tray{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #192742}
+    .file-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:8px;background:#101a33;border:1px solid #233758;font-size:11.5px;color:#e2e8f0;max-width:260px}
+    .file-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file-chip-size{color:var(--muted);font-size:10.5px}
+    .file-chip-del{background:none;border:none;color:#ff8295;font-size:12px;cursor:pointer;padding:0 2px;line-height:1}
+
+    .user-attachment-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+    .user-attachment-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;background:#2d2657;border:1px solid #5d4d96;font-size:11.5px;color:#e2d9ff;font-weight:600}
+
+    /* Web Search Sources Accordion */
+    .web-sources-box{margin-top:10px;border:1px solid #1c2b48;border-radius:9px;background:#081022;overflow:hidden}
+    .web-sources-summary{padding:7px 11px;font-size:11.5px;font-weight:700;color:var(--cyan);cursor:pointer;display:flex;align-items:center;gap:6px;background:#0d172e}
+    .web-sources-list{padding:8px 12px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+    .web-source-item a{color:#83fff0;text-decoration:none;font-weight:600}
+    .web-source-item a:hover{text-decoration:underline}
+    .web-source-snippet{color:var(--muted);font-size:11px;margin-top:2px}
+    
+    .search-progress-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;background:#57e6d915;border:1px solid #57e6d944;color:var(--cyan);font-size:12px;margin-bottom:8px}
+
     .composer-text{width:100%;background:transparent;border:none;color:#fff;font:inherit;font-size:14.5px;resize:none;min-height:54px;max-height:180px;outline:none}
     .composer-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:12px}
     .composer-hint{font-size:11.5px;color:var(--muted)}
@@ -119,6 +170,12 @@
     .send-btn:hover{filter:brightness(1.1)}
     .send-btn:disabled{cursor:not-allowed;opacity:.4;filter:grayscale(.5)}
     
+    /* Drag & Drop Overlay */
+    .drag-overlay{position:fixed;inset:0;background:#070b18ee;border:3px dashed var(--cyan);backdrop-filter:blur(6px);z-index:90;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;pointer-events:none}
+    .drag-overlay.active{display:flex}
+    .drag-overlay h2{margin:0;color:#fff;font-size:24px}
+    .drag-overlay p{margin:0;color:var(--cyan);font-size:14px}
+
     /* Modal Login Token */
     .auth-modal{position:fixed;inset:0;background:#03060fdb;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
     .auth-card{width:min(440px,100%);background:#0d152a;border:1px solid #243557;border-radius:20px;padding:30px;box-shadow:0 30px 100px #000e;text-align:center}
@@ -183,7 +240,7 @@
   </aside>
 
   <!-- Area Principale di Conversazione -->
-  <main class="chat-view">
+  <main class="chat-view" id="chatView">
     <header class="chat-topbar">
       <div class="topbar-left">
         <button id="menuToggle" class="menu-toggle" type="button" aria-label="Apri menu">☰</button>
@@ -192,6 +249,7 @@
         </div>
       </div>
       <div class="topbar-actions">
+        <a href="./assets/presentation/hyperspace-chat-features.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="Scarica la guida di presentazione in PDF">📄 Guida PDF ↗</a>
         <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> Mesh Connessa</span>
         <button id="clearChatBtn" class="top-action-btn" type="button" title="Pulisci messaggi di questa chat">Pulisci</button>
       </div>
@@ -203,16 +261,16 @@
         <div class="empty-state" id="emptyState">
           <div class="empty-icon"></div>
           <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer. Scegli un'idea o scrivi un messaggio.</p>
+          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
           <div class="chips-grid">
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo per automatizzare il backup di file con log dettagliati ed elenchi puntati.">
-              <b>🐍 Script Python</b> Automazione e gestione dati
+            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
+              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
             </div>
-            <div class="chip-card" data-prompt="Spiega l'architettura dei sistemi distribuiti e come funziona il routing di inferenza neurale.">
-              <b>🌐 Architettura Distribuita</b> Routing e mesh computing
+            <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
+              <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
             </div>
-            <div class="chip-card" data-prompt="Crea una funzione di parsing JSON con gestione errori robusta e type hints.">
-              <b>⚙️ Sviluppo & Debug</b> Algoritmi e parsing dati
+            <div class="chip-card" data-prompt="Spiega come analizzare file PDF ed estrarre testo strutturato a zero dipendenze nel browser.">
+              <b>📎 AnyDoc Ingestion</b> Analisi istantanea di codice e documenti
             </div>
             <div class="chip-card" data-prompt="Quali sono i vantaggi di eseguire modelli linguistici abliterated su cluster GPU decentralizzati?">
               <b>🔥 Modelli Abliterated</b> Libertà e privacy del calcolo
@@ -223,15 +281,32 @@
     </div>
 
     <footer class="chat-bottom">
-      <div class="composer-container">
-        <textarea id="promptInput" class="composer-text" placeholder="Invia un messaggio alla mesh… (Shift+Invio per a capo)" rows="1"></textarea>
+      <div class="composer-container" id="composerContainer">
+        <!-- Barra strumenti connettori estesi: AnyDoc e Web Search -->
+        <div class="composer-toolbar">
+          <input type="file" id="fileAttachmentInput" multiple accept=".txt,.md,.markdown,.json,.csv,.tsv,.py,.js,.ts,.jsx,.tsx,.html,.css,.xml,.yaml,.yml,.sh,.bash,.zsh,.sql,.log,.env,.toml,.ini,.conf,.pdf" style="display:none">
+          <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega codice, documenti o PDF (AnyDoc)">📎 Allega File</button>
+          <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Web Search</button>
+        </div>
+
+        <!-- Vassoio chip documenti allegati -->
+        <div id="attachedFilesTray" class="attached-files-tray" style="display:none"></div>
+
+        <textarea id="promptInput" class="composer-text" placeholder="Invia un messaggio alla mesh… (Shift+Invio per a capo, trascina file qui)" rows="1"></textarea>
         <div class="composer-footer">
-          <span class="composer-hint">Max token sbloccato · Memoria attiva in localStorage</span>
+          <span class="composer-hint">Max token sbloccato · AnyDoc, SearXNG & Sandbox Docker attivi</span>
           <button id="sendBtn" class="send-btn" type="button" disabled>Invia ↗</button>
         </div>
       </div>
     </footer>
   </main>
+</div>
+
+<!-- Overlay visivo Drag & Drop -->
+<div id="dragOverlay" class="drag-overlay">
+  <div class="mark" style="width:50px;height:50px"></div>
+  <h2>Trascina i tuoi documenti qui</h2>
+  <p>Supporta codice (Python, JS, TS, HTML, JSON), testo e PDF con estrazione istantanea</p>
 </div>
 
 <!-- Modal di Autenticazione se l'utente non ha la chiave -->
@@ -253,7 +328,10 @@
 <script type="module">
   import { AuthManager } from "./src/auth.js";
   import { ChatClient } from "./src/chat.js";
-  import { renderMarkdown, attachCopyEvents } from "./src/render.js";
+  import { renderMarkdown, attachCopyEvents, attachCodeBlockEvents } from "./src/render.js";
+  import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js";
+  import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js";
+  import { runSandboxCode } from "./src/sandbox.js";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -265,6 +343,10 @@
   // Session Management
   let chatSessions = [];
   let currentSessionId = null;
+
+  // Connector States: AnyDoc & Web Search
+  let attachedFiles = [];
+  let isWebSearchActive = false;
 
   function loadSessions() {
     try {
@@ -357,6 +439,15 @@
     return chatSessions.find(s => s.id === currentSessionId) || null;
   }
 
+  // Esecutore Python Sandbox
+  async function handleRunSandbox(code) {
+    return await runSandboxCode({
+      baseUrls: [gatewayUrl],
+      token: authManager.getKey(),
+      code,
+    });
+  }
+
   function renderActiveMessages() {
     const container = $("chatContainer");
     container.innerHTML = "";
@@ -368,16 +459,16 @@
         <div class="empty-state" id="emptyState">
           <div class="empty-icon"></div>
           <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer. Scegli un'idea o scrivi un messaggio.</p>
+          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
           <div class="chips-grid">
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo per automatizzare il backup di file con log dettagliati ed elenchi puntati.">
-              <b>🐍 Script Python</b> Automazione e gestione dati
+            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
+              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
             </div>
-            <div class="chip-card" data-prompt="Spiega l'architettura dei sistemi distribuiti e come funziona il routing di inferenza neurale.">
-              <b>🌐 Architettura Distribuita</b> Routing e mesh computing
+            <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
+              <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
             </div>
-            <div class="chip-card" data-prompt="Crea una funzione di parsing JSON con gestione errori robusta e type hints.">
-              <b>⚙️ Sviluppo & Debug</b> Algoritmi e parsing dati
+            <div class="chip-card" data-prompt="Spiega come analizzare file PDF ed estrarre testo strutturato a zero dipendenze nel browser.">
+              <b>📎 AnyDoc Ingestion</b> Analisi istantanea di codice e documenti
             </div>
             <div class="chip-card" data-prompt="Quali sono i vantaggi di eseguire modelli linguistici abliterated su cluster GPU decentralizzati?">
               <b>🔥 Modelli Abliterated</b> Libertà e privacy del calcolo
@@ -390,12 +481,12 @@
     }
 
     for (const msg of msgs) {
-      appendBubble(msg.role, msg.content, false);
+      appendBubble(msg.role, msg.content, false, msg.attachments || [], msg.webSources || []);
     }
     scrollBottom();
   }
 
-  function appendBubble(role, content, animate = true) {
+  function appendBubble(role, content, animate = true, attachments = [], webSources = []) {
     $("emptyState")?.remove();
     const box = document.createElement("div");
     box.className = `msg ${role}`;
@@ -403,16 +494,55 @@
     const who = document.createElement("span");
     who.className = "msg-who";
     who.textContent = role === "user" ? "Tu" : "Assistente Mesh";
+    box.appendChild(who);
+
+    // Se il messaggio utente contiene documenti allegati, mostrali come pillole
+    if (role === "user" && attachments && attachments.length > 0) {
+      const pills = document.createElement("div");
+      pills.className = "user-attachment-pills";
+      for (const att of attachments) {
+        const pill = document.createElement("span");
+        pill.className = "user-attachment-pill";
+        const icon = att.name.endsWith(".pdf") ? "📕" : (att.name.endsWith(".py") ? "🐍" : "📄");
+        pill.textContent = `${icon} ${att.name} (${att.formattedSize || ""})`;
+        pills.appendChild(pill);
+      }
+      box.appendChild(pills);
+    }
     
     const body = document.createElement("div");
     body.className = "msg-body";
     if (role === "assistant" && content) {
       body.innerHTML = renderMarkdown(content);
-      attachCopyEvents(body);
+      attachCodeBlockEvents(body, { onRunCode: handleRunSandbox });
     } else {
       body.textContent = content;
     }
-    box.append(who, body);
+    box.appendChild(body);
+
+    // Accordion fonti web se disponibili
+    if (role === "assistant" && webSources && webSources.length > 0) {
+      const sourcesBox = document.createElement("div");
+      sourcesBox.className = "web-sources-box";
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.className = "web-sources-summary";
+      summary.innerHTML = `🌐 Fonti Web Consultate (${webSources.length})`;
+      const list = document.createElement("div");
+      list.className = "web-sources-list";
+      for (const s of webSources) {
+        const item = document.createElement("div");
+        item.className = "web-source-item";
+        item.innerHTML = `
+          <a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.title || s.url} ↗</a>
+          ${s.snippet ? `<div class="web-source-snippet">${s.snippet}</div>` : ""}
+        `;
+        list.appendChild(item);
+      }
+      details.append(summary, list);
+      sourcesBox.appendChild(details);
+      box.appendChild(sourcesBox);
+    }
 
     if (role === "assistant") {
       const footer = document.createElement("div");
@@ -430,7 +560,7 @@
         } catch { copyBtn.textContent = "Errore copia"; }
       });
       footer.append(copyBtn);
-      box.append(footer);
+      box.appendChild(footer);
     }
 
     $("chatContainer").append(box);
@@ -454,6 +584,105 @@
       });
     });
   }
+
+  // ── AnyDoc File Ingestion ───────────────────────────────────────────────
+  async function handleFilesSelected(fileList) {
+    if (!fileList || !fileList.length) return;
+    for (const file of fileList) {
+      if (!isSupportedFile(file)) {
+        alert(`Il file "${file.name}" non è supportato. Tipi ammessi: testo, codice (.py, .js, .json, .csv, ecc.) e .pdf.`);
+        continue;
+      }
+      try {
+        const doc = await extractTextFromFile(file);
+        attachedFiles.push(doc);
+      } catch (err) {
+        alert(`Errore lettura file "${file.name}": ${err.message}`);
+      }
+    }
+    renderAttachedFiles();
+    updateSendButtonState();
+  }
+
+  function renderAttachedFiles() {
+    const tray = $("attachedFilesTray");
+    tray.innerHTML = "";
+    if (!attachedFiles.length) {
+      tray.style.display = "none";
+      return;
+    }
+    tray.style.display = "flex";
+    attachedFiles.forEach((doc, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "file-chip";
+      const icon = doc.name.endsWith(".pdf") ? "📕" : (doc.name.endsWith(".py") ? "🐍" : "📄");
+      chip.innerHTML = `
+        <span>${icon}</span>
+        <span class="file-chip-name" title="${doc.name}">${doc.name}</span>
+        <span class="file-chip-size">(${doc.formattedSize})</span>
+      `;
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "file-chip-del";
+      del.textContent = "✕";
+      del.title = "Rimuovi allegato";
+      del.addEventListener("click", () => {
+        attachedFiles.splice(idx, 1);
+        renderAttachedFiles();
+        updateSendButtonState();
+      });
+      chip.appendChild(del);
+      tray.appendChild(chip);
+    });
+  }
+
+  function updateSendButtonState() {
+    const hasText = Boolean($("promptInput").value.trim());
+    const hasFiles = attachedFiles.length > 0;
+    $("sendBtn").disabled = !hasText && !hasFiles;
+  }
+
+  // Drag & drop handlers
+  const dropTarget = window;
+  let dragCounter = 0;
+  dropTarget.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    dragCounter++;
+    $("dragOverlay").classList.add("active");
+  });
+  dropTarget.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      $("dragOverlay").classList.remove("active");
+    }
+  });
+  dropTarget.addEventListener("dragover", (e) => {
+    e.preventDefault();
+  });
+  dropTarget.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    $("dragOverlay").classList.remove("active");
+    if (e.dataTransfer && e.dataTransfer.files) {
+      handleFilesSelected(e.dataTransfer.files);
+    }
+  });
+
+  $("attachBtn").addEventListener("click", () => {
+    $("fileAttachmentInput").click();
+  });
+  $("fileAttachmentInput").addEventListener("change", (e) => {
+    handleFilesSelected(e.target.files);
+    e.target.value = "";
+  });
+
+  // Web Search Toggle
+  $("webSearchBtn").addEventListener("click", () => {
+    isWebSearchActive = !isWebSearchActive;
+    $("webSearchBtn").classList.toggle("active", isWebSearchActive);
+  });
 
   async function loadModels() {
     try {
@@ -490,8 +719,13 @@
   });
 
   async function handleSend() {
-    const text = $("promptInput").value.trim();
-    if (!text) return;
+    let text = $("promptInput").value.trim();
+    const currentAttachments = [...attachedFiles];
+    if (!text && !currentAttachments.length) return;
+
+    if (!text && currentAttachments.length) {
+      text = "Analizza i documenti allegati ed estrai le informazioni e i punti chiave.";
+    }
 
     if (!currentSessionId) {
       currentSessionId = "sess-" + Date.now();
@@ -510,10 +744,19 @@
     const sess = getCurrentSession();
     const history = sess ? sess.messages : [];
 
+    // Reset input e allegati
     $("promptInput").value = "";
+    attachedFiles = [];
+    renderAttachedFiles();
     $("sendBtn").disabled = true;
-    appendBubble("user", text);
-    history.push({ role: "user", content: text });
+
+    // Disegna bolla utente con badge allegati
+    appendBubble("user", text, true, currentAttachments);
+    history.push({
+      role: "user",
+      content: text,
+      attachments: currentAttachments.map(d => ({ name: d.name, formattedSize: d.formattedSize, lines: d.lines }))
+    });
     if (sess) sess.updatedAt = Date.now();
     saveSessions();
 
@@ -523,18 +766,84 @@
     chatClient.model = $("modelSelect").value;
 
     const target = appendBubble("assistant", "");
+    let webSources = [];
+
     try {
-      const reply = await chatClient.send(history, {
+      // 1. Se Web Search è attivo, interroga SearXNG
+      let searchContext = "";
+      if (isWebSearchActive) {
+        target.innerHTML = '<span class="search-progress-pill">🔍 Ricerca web privata in corso (SearXNG)…</span>';
+        try {
+          const sRes = await searchWeb({
+            baseUrls: [gatewayUrl],
+            token: authManager.getKey(),
+            query: text,
+            maxResults: 5,
+          });
+          if (sRes && sRes.result) {
+            searchContext = formatSearchContext(sRes);
+            webSources = parseSearchSources(sRes.result);
+          }
+        } catch (sErr) {
+          console.warn("Ricerca web non riuscita:", sErr);
+        }
+      }
+
+      // 2. Prepara il prompt arricchito per la mesh
+      let docContext = "";
+      if (currentAttachments.length) {
+        docContext = formatDocumentsContext(currentAttachments);
+      }
+
+      const promptPayload = [...history.map(m => ({ role: m.role, content: m.content }))];
+      if (docContext || searchContext) {
+        const lastIdx = promptPayload.length - 1;
+        promptPayload[lastIdx].content = [docContext, searchContext, text].filter(Boolean).join("\n\n---\n\n");
+      }
+
+      target.innerHTML = '<span class="cursor-blink">▊</span>';
+
+      const reply = await chatClient.send(promptPayload, {
         onDelta: (_p, whole) => {
           target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
-          attachCopyEvents(target);
+          attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
           scrollBottom();
         }
       });
+
       const finalText = reply.text || target.textContent;
       target.innerHTML = renderMarkdown(finalText);
-      attachCopyEvents(target);
-      history.push({ role: "assistant", content: finalText });
+      attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+
+      // Se c'erano fonti web, aggiungi accordion
+      if (webSources && webSources.length > 0) {
+        const sourcesBox = document.createElement("div");
+        sourcesBox.className = "web-sources-box";
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.className = "web-sources-summary";
+        summary.innerHTML = `🌐 Fonti Web Consultate (${webSources.length})`;
+        const list = document.createElement("div");
+        list.className = "web-sources-list";
+        for (const s of webSources) {
+          const item = document.createElement("div");
+          item.className = "web-source-item";
+          item.innerHTML = `
+            <a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.title || s.url} ↗</a>
+            ${s.snippet ? `<div class="web-source-snippet">${s.snippet}</div>` : ""}
+          `;
+          list.appendChild(item);
+        }
+        details.append(summary, list);
+        sourcesBox.appendChild(details);
+        target.parentElement.appendChild(sourcesBox);
+      }
+
+      history.push({
+        role: "assistant",
+        content: finalText,
+        webSources
+      });
       if (sess) sess.updatedAt = Date.now();
       saveSessions();
     } catch(err) {
@@ -557,7 +866,7 @@
   });
 
   $("promptInput").addEventListener("input", () => {
-    $("sendBtn").disabled = !$("promptInput").value.trim();
+    updateSendButtonState();
     $("promptInput").style.height = "auto";
     $("promptInput").style.height = Math.min(180, $("promptInput").scrollHeight) + "px";
   });

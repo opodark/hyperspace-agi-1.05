@@ -84,6 +84,10 @@ ALLOWED_ROUTES = {
     ("OPTIONS", "/web/contact"),
     ("POST", "/web/auth/verify"),
     ("OPTIONS", "/web/auth/verify"),
+    ("POST", "/web/search"),
+    ("OPTIONS", "/web/search"),
+    ("POST", "/web/sandbox/run"),
+    ("OPTIONS", "/web/sandbox/run"),
     # Vista pubblica della topologia: solo conteggi, etichette pubbliche e
     # modelli (gli stessi di /v1/models). Il CP non vi mette endpoint ne' IP.
     ("GET", "/web/topology"),
@@ -119,6 +123,8 @@ _RATE_LIMITS = {
     "/web/result":      (int(os.getenv("GATEWAY_WEB_RESULT_MAX_PER_MINUTE", "30")), 60),
     "/web/contact":     (int(os.getenv("GATEWAY_WEB_CONTACT_MAX_PER_HOUR", "10")), 3600),
     "/web/auth/verify": (int(os.getenv("GATEWAY_WEB_AUTH_MAX_PER_MINUTE", "20")), 60),
+    "/web/search":      (int(os.getenv("GATEWAY_WEB_SEARCH_MAX_PER_MINUTE", "20")), 60),
+    "/web/sandbox/run": (int(os.getenv("GATEWAY_WEB_SANDBOX_MAX_PER_MINUTE", "15")), 60),
     "/web/topology":    (int(os.getenv("GATEWAY_WEB_TOPOLOGY_MAX_PER_MINUTE", "20")), 60),
     "/v1/models":       (int(os.getenv("GATEWAY_MODELS_MAX_PER_MINUTE", "30")), 60),
     "/v1/chat/completions": (int(os.getenv("GATEWAY_CHAT_MAX_PER_MINUTE", "12")), 60),

@@ -37,6 +37,7 @@ sys.path.insert(0, str(ROOT / "control-plane"))
 from cp import config as cp_config  # noqa: E402
 from cp import mesh as cp_mesh  # noqa: E402
 from tests import cp_source  # noqa: E402
+from unittest.mock import patch
 
 PESI = ("vram", "load", "tier", "uptime", "backend", "latency", "tput", "gpu",
         "recent_penalty", "recent_window")
@@ -143,7 +144,8 @@ class GliAliasTests(unittest.TestCase):
         _monta(alias={"vecchio": "sbagliato"})
         prima = cp_mesh._node_aliases
         self.assertEqual(prima, {"vecchio": "sbagliato"})
-        cp_mesh._load_aliases_from_db()
+        with patch.object(cp_mesh.db, "get_alias_map", return_value={}):
+            cp_mesh._load_aliases_from_db()
         dopo = cp_mesh._node_aliases
         self.assertIsNot(dopo, prima, "il dizionario non e' stato ricambiato: "
                         "e il binding importato in main.py resterebbe valido")

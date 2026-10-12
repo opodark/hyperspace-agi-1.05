@@ -28,7 +28,7 @@ class FederationGatewayTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_public_web_node_surface_has_worker_and_chat_routes(self):
-        for path in ("/web/register", "/web/poll", "/web/result"):
+        for path in ("/web/register", "/web/poll", "/web/result", "/web/search", "/web/sandbox/run"):
             self.assertIn(("POST", path), gateway.ALLOWED_ROUTES)
             self.assertIn(("OPTIONS", path), gateway.ALLOWED_ROUTES)
             self.assertIn(path, gateway._RATE_LIMITS)

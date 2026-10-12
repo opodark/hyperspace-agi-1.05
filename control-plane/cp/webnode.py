@@ -468,3 +468,110 @@ def web_auth_verify():
         })
 
     return jsonify({"ok": False, "authenticated": False, "error": "Chiave o token non valido"}), 401
+
+
+@_bp.route('/web/search', methods=['POST', 'OPTIONS'])
+def web_search_endpoint():
+    """Ricerca web privata tramite SearXNG per il client chat del web-node."""
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    data = request.get_json(force=True, silent=True) or {}
+    query = str(data.get("query", "")).strip()
+    if not query:
+        return jsonify({"ok": False, "error": "Query di ricerca mancante"}), 400
+    if len(query) > 500:
+        return jsonify({"ok": False, "error": "Query troppo lunga (massimo 500 caratteri)"}), 400
+
+    try:
+        max_results = min(max(1, int(data.get("max_results", 5))), 10)
+    except (TypeError, ValueError):
+        max_results = 5
+
+    try:
+        from cp.tool import _tool_web_search
+        result_text = _tool_web_search({"query": query, "max_results": max_results})
+        return jsonify({
+            "ok": True,
+            "query": query,
+            "result": result_text,
+        })
+    except Exception as exc:
+        push_log('system', f'web_search_endpoint error: {query[:40]}', str(exc), status='warn')
+        return jsonify({"ok": False, "error": f"Errore ricerca: {exc}"}), 500
+
+
+@_bp.route('/web/sandbox/run', methods=['POST', 'OPTIONS'])
+def web_sandbox_run():
+    """Esegue uno script Python usa-e-getta nel container Docker sandbox isolato."""
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    data = request.get_json(force=True, silent=True) or {}
+    code = str(data.get("code", "")).strip()
+    if not code:
+        return jsonify({"ok": False, "error": "Codice Python mancante"}), 400
+    if len(code) > 65536:
+        return jsonify({"ok": False, "error": "Codice troppo lungo (massimo 64 KB)"}), 400
+
+    try:
+        timeout = min(max(1, int(data.get("timeout", 25))), 60)
+    except (TypeError, ValueError):
+        timeout = 25
+
+    try:
+        from cp.tool import _serve
+        ctx = _serve()
+        sb = getattr(ctx, "code_sandbox", None)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Code Sandbox non disponibile: {exc}"}), 503
+
+    if not sb or not getattr(sb, "enabled", False):
+        return jsonify({"ok": False, "error": "Code Sandbox disabilitato su questo control-plane"}), 503
+
+    try:
+        status = sb.status()
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Impossibile verificare stato sandbox: {exc}"}), 503
+
+    if not status.get("available"):
+        return jsonify({"ok": False, "error": "Runner Docker Sandbox momentaneamente non disponibile"}), 503
+
+    try:
+        t0 = time.time()
+        ws = sb.call("create", {"label": "web-chat-run", "backend": "auto"})
+        ws_id = ws.get("workspace_id")
+        if not ws_id:
+            return jsonify({"ok": False, "error": "Allocazione workspace isolato fallita"}), 500
+
+        try:
+            sb.call("write", {"workspace_id": ws_id, "path": "_run.py", "content": code})
+            run_res = sb.call("run", {
+                "workspace_id": ws_id,
+                "argv": ["python3", "_run.py"],
+                "timeout": timeout,
+            })
+            duration_ms = round((time.time() - t0) * 1000)
+            exit_code = run_res.get("exit_code", 0)
+            output = run_res.get("output", "")
+            stdout = run_res.get("stdout", "")
+            stderr = run_res.get("stderr", "")
+            if not stderr and exit_code != 0 and output:
+                stderr = output
+            return jsonify({
+                "ok": bool(run_res.get("ok")),
+                "stdout": stdout,
+                "stderr": stderr,
+                "output": output,
+                "exit_code": exit_code,
+                "duration_ms": duration_ms,
+                "backend": ws.get("backend", "docker"),
+            })
+        finally:
+            try:
+                sb.call("discard", {"workspace_id": ws_id})
+            except Exception:
+                pass
+    except Exception as exc:
+        push_log('system', 'web_sandbox_run error', str(exc), status='warn')
+        return jsonify({"ok": False, "error": f"Errore esecuzione sandbox: {exc}"}), 500

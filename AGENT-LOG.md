@@ -3637,3 +3637,32 @@ Riorganizzazione dell'esperienza utente su `zerozerocomputer.it` e completamento
 2. **Restyling dei 12 diagrammi:** riscritto `scripts/generate_presentation_diagrams.py` con tema scuro coerente con `progetto.html` (palette ciano/viola/rosa, griglia, glow, rendering 2x, testo con a capo automatico, cornice e numerazione `NN / 12`). Stessi nomi file e stesse proporzioni, quindi il PDF e la pagina non cambiano layout.
 3. **Rigenerati:** `docs/presentation_assets/*.png`, `docs/hyperspace-1.05-presentation.pdf` (interprete con reportlab: `/Library/Frameworks/Python.framework/Versions/3.14/bin/python3`, il `.venv` del repo non lo ha) e copia in `web-node/assets/presentation/`.
 4. Non verificato a occhio il rendering delle pagine del PDF. Nessun commit, nessun push, nessun upload su Aruba.
+
+## 2026-10-12 — Antigravity → Utente / Team (Trilogia Connettori Chat: AnyDoc Ingestion, SearXNG Web Search e Docker Code Sandbox)
+
+Implementate e integrate completamente tutte e tre le funzionalità avanzate nella Web App Chat (`web-node/chat.html`):
+
+1. **AnyDoc Ingestion & Allegati Documenti (`web-node/src/documents.js` & `chat.html`):**
+   - **Parsing client-side a zero dipendenze:** estrazione ed elaborazione di codice (.py, .js, .ts, .json, .csv, ecc.), file di testo e documenti PDF interamente nel browser prima dell'invio.
+   - **Estrattore PDF nativo:** decodifica stream binari FlateDecode zlib tramite Web API nativa `DecompressionStream('deflate')` ed estrazione blocchi operatore `BT ... ET` (`Tj`, `TJ`), con fallback automatico su stringhe visibili.
+   - **UI & UX:** pulsante `📎 Allega File`, input file multiplo, drag-and-drop su tutta la finestra con overlay visivo cyberpunk animato (`#dragOverlay`), vassoio dei chip documenti con rimozione singola (`✕`), e rendering dei badge allegati nei messaggi utente.
+   - **Iniezione prompt:** formattazione automatica in blocco Markdown contestuale per il modello LLM.
+   - **Test:** `web-node/tests/documents.test.mjs` (7 test passati).
+
+2. **Private Web Search SearXNG (`control-plane/cp/webnode.py`, `federation-gateway/main.py`, `src/search.js` & `chat.html`):**
+   - **Endpoint Gateway & CP:** creata rotta protetta `POST /web/search` (con preflight CORS `OPTIONS`) in `cp/webnode.py`, inclusa in `ALLOWED_ROUTES` e rate limiting in `federation-gateway/main.py`. Esegue `_tool_web_search` interrogando il container locale SearXNG (`hyperspace_searxng:8080` / porta esposta 8092) con rilevamento lingua della query e fallback DuckDuckGo.
+   - **Client JS (`src/search.js`):** gestione chiamate con failover multi-endpoint, estrazione delle fonti (titolo, snippet, URL) e arricchimento prompt.
+   - **UI & UX:** pulsante a levetta `🌐 Web Search` nella barra del composer con stato attivo luminoso (glow ciano). Se attivo, prima dell'inferenza la chat esegue la ricerca privata, mostra un feedback visivo e aggiunge alla risposta un accordion collassabile `🌐 Fonti Web Consultate` con link diretti e snippet.
+   - **Test:** `web-node/tests/search.test.mjs` (5 test passati).
+
+3. **Esecuzione Python in Docker Code Sandbox (`control-plane/cp/webnode.py`, `src/render.js`, `src/sandbox.js` & `chat.html`):**
+   - **Endpoint Sandbox:** aggiunta rotta `POST /web/sandbox/run` (con preflight CORS `OPTIONS`) in `cp/webnode.py` e whitelisted nel gateway. Alloca uno workspace usa-e-getta nel container Docker sandbox isolato (`hyperspace_code_sandbox`), scrive lo script Python, esegue il processo in ambiente offline isolato, cattura stdout, stderr, exit code e durata in ms, ed esegue sempre la pulizia (`discard`) dello workspace.
+   - **Render & Terminale Inline (`src/render.js`):** nei blocchi di codice Python generati dall'assistente viene renderizzato il pulsante interattivo `▶ Esegui in Sandbox`. Al tocco dell'utente, genera un terminale cyberpunk (`.sandbox-terminal`) sotto il codice che esegue lo script e visualizza l'output (stdout in verde, stderr in rosso, pillola di stato Exit Code e tempo di esecuzione).
+   - **Test:** `web-node/tests/sandbox.test.mjs` (4 test passati).
+
+4. **Verifiche & Suite di Test:**
+   - Suite completa `web-node`: `npm test && npm run check` superato con successo su tutti i 16 moduli e test (30 + 8 + 5 + 28 + 11 + 3 + 14 + 5 + 7 + 5 + 4 check).
+   - Test Python gateway, rotte web e mesh: `test_federation_gateway.py`, `test_web_node_routes.py`, `test_harness.py` e `test_mesh_registro.py` passati al 100%.
+   - Pacchetto Aruba: aggiornato e rigenerato `dist/web-node-aruba.zip` tramite `scripts/build-web-node-aruba.sh`.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
