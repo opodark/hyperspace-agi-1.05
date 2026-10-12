@@ -42,8 +42,8 @@ window.HYPERSPACE_JOIN = Object.freeze({
 });
 EOF
 
-# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /deletion/)
-for ep in privacy-policy privacy deletion data-deletion; do
+# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /deletion/, /chat/)
+for ep in privacy-policy privacy deletion data-deletion chat; do
   if [[ -f "$TARGET/$ep.html" ]]; then
     mkdir -p "$TARGET/$ep"
     cp "$TARGET/$ep.html" "$TARGET/$ep/index.html"

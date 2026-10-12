@@ -35,7 +35,7 @@ LOG_TYPES = {"connection_test", "inter_node_message", "system", "mesh_event", "m
              # porta il riferimento. Motivo: la vista federata manda `summary`
              # (troncato) e mai `detail` — cosi' il codice non esce verso il peer.
              "code_proposal", "code_review", "code_verdict", "office", "mission",
-             "intimate", "skill"}
+             "intimate", "skill", "web_contact", "web_contact_notify"}
 
 def push_log(type_, summary, detail="", source="control-plane", target="", status="info", trace_id=""):
     entry = {

@@ -120,6 +120,11 @@ def raccogli() -> dict:
         "web_enqueue_nodo_inesistente": _post("/web/tasks",
                                               {"node_id": "inesistente",
                                                "task_type": "sconosciuto"}),
+        "web_topology": _get("/web/topology"),
+        "web_auth_verify": _post("/web/auth/verify", {}),
+        "web_contact": _post("/web/contact", {}),
+        "web_contacts": _get("/web/contacts"),
+        "web_contact_detail": _get("/web/contacts/<contact_id>"),
 
         # l'annuncio: e' la via che un nodo si presenta
         "announce_corpo_vuoto": _post("/mesh/announce", {}),

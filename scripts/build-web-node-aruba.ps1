@@ -30,6 +30,15 @@ Get-ChildItem -Path (Join-Path $repo "web-node/src") -Filter "*.js" | ForEach-Ob
     Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $target "src/$($_.Name)") -Force
 }
 
+foreach ($ep in @("privacy-policy", "privacy", "deletion", "data-deletion", "chat")) {
+    $srcHtml = Join-Path $target "$ep.html"
+    if (Test-Path -LiteralPath $srcHtml) {
+        $epDir = Join-Path $target $ep
+        New-Item -ItemType Directory -Force -Path $epDir | Out-Null
+        Copy-Item -LiteralPath $srcHtml -Destination (Join-Path $epDir "index.html") -Force
+    }
+}
+
 
 
 $escapedUrl = $GatewayUrl.TrimEnd("/").Replace("\", "\\").Replace('"', '\"')

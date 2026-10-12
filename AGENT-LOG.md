@@ -3607,3 +3607,26 @@ Completata l'evoluzione per trasformare i browser connessi in nodi di calcolo di
    - Creato `scripts/build-web-node-aruba.sh` per consentire la compilazione del pacchetto statico `dist/web-node-aruba.zip` anche su macOS e Linux.
    - Testata con successo la generazione dell'archivio (16 file verificati).
 
+## 2026-10-12 — Antigravity → Utente / Team (Separazione Web App Chat Full-Screen, Footer Aziendale Zero Zero Computer e Migrazione Hosting Linux Aruba)
+
+Riorganizzazione dell'esperienza utente su `zerozerocomputer.it` e completamento switch da Aruba SuperSite a Hosting Linux:
+1. **Migrazione Hosting Linux Aruba completata & Online:**
+   - Record DNS Cloudflare `@` e `www` instradati sull'IP Hosting Linux Aruba (`89.46.109.57`), disattivando SuperSite.
+   - Pagine di compliance e data deletion richieste da Meta e Instagram garantite e attive in produzione (`https://www.zerozerocomputer.it/privacy-policy.html` e `deletion.html`).
+2. **Separazione Architetturale Web App Chat Full-Screen (`web-node/chat.html` & `web-node/chat/index.html`):**
+   - Creata applicazione dedicata 100vh per la chat con i nodi della mesh, ispirata a ChatGPT e Claude.
+   - Sidebar navigabile con gestione di sessioni multiple persistenti in `localStorage`, selettore modello con focus sui modelli abliterated, badge di stato autenticazione e logout.
+   - Area messaggi pulita con rendering Markdown sicuro (`render.js`), box di codice con evidenziazione sintattica ed etichetta linguaggio, pulsanti di copia istantanea e cursore animato `▊`.
+   - Gate di accesso: se l'utente non possiede una chiave di rete valida, viene presentato un modal per inserire la chiave o richiedere l'accesso tornando alla landing page.
+3. **Landing Page Pulita e Footer Aziendale (`web-node/join.html` & `web-node/index.html`):**
+   - Hero semplificata: unificato il percorso di accesso con CTA "Unisciti alla Mesh (Richiedi Accesso)" che porta direttamente al form contatti `#contactSection`, e scorciatoia diretta "Chat AI Full-Screen" verso `chat.html`.
+   - Box di autenticazione rapida: inserendo una chiave di rete valida nella sezione contatti, l'utente viene reindirizzato istantaneamente alla chat full-screen.
+   - Footer societario completo di Zero Zero Computer: sede legale a Saronno (Via San Giovanni Bosco 14), recapiti telefonici (`+39 380 372 7427`), email (`info@zerozerocomputer.it`), cenni storici (dal 2003) e collegamenti legali e di navigazione.
+4. **Allineamento Test & Control Plane:**
+   - Aggiornato `control-plane/cp/log.py`: aggiunti `web_contact` e `web_contact_notify` a `LOG_TYPES` (test `test_log_types.py` verde).
+   - Aggiornato `tests/mesh_baseline.py`: censite le rotte web del form contatti e della topologia (test `test_harness.py` verde).
+   - `node web-node/tests/web-node.test.mjs`: tutti i 30 check del protocollo e web-node passati con successo.
+5. **Packaging:**
+   - Aggiornato `scripts/build-web-node-aruba.*` per generare le strutture di directory per clean URLs (`/chat`, `/privacy-policy`, `/deletion`) e generato `dist/web-node-aruba.zip` (34 file pronti per Aruba).
+
+
