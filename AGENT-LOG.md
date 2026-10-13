@@ -3681,5 +3681,40 @@ Creata pipeline di pubblicazione one-click verso l'hosting Linux di Aruba (`zero
    - Verificata pagina live `https://www.zerozerocomputer.it/chat.html` con tutti i nuovi connettori e il link alla guida PDF.
    - Validazione sintassi con `py_compile` e conformità licenza `tests/test_licensing.py` (7/7 passed).
 
+## 2026-10-13 — Antigravity → Utente / Team (Fix SearXNG: Rimozione Blocchi CAPTCHA e Risultati Avvelenati)
 
+Risolto il problema per cui `web_search` restituiva *"Nessun risultato utile... throttling o dietro CAPTCHA"* (es. sulla query `"sopra la panca la capra ..?"`):
+
+1. **Diagnosi sul container `hyperspace_searxng`:**
+   - `duckduckgo`, `startpage` e `brave` rispondevano costantemente con `SearxEngineCaptchaException` o `HTTP 429 Too many requests` verso l'IP residenziale.
+   - `bing` restituiva risposte "avvelenate" anti-scraping cercando solo la prima parola della query (`"Sopra"` → *Sopra Steria*, *Treccani*), che venivano poi giustamente scartate dal filtro di pertinenza `shared/web_search.py`.
+   - `wikipedia` era configurato solo con `display_type: ["infobox"]` (ricerca per titolo esatto e non full-text), mentre `wikidata` andava in `HTTP 403` all'avvio.
+2. **Soluzione in `data/searxng/settings.yml`:**
+   - Abilitati i motori generalisti immuni da CAPTCHA presenti in SearXNG: **`zapmeta`** (peso 2.0), **`abcnyheter`** (peso 1.8), **`yandex`** (peso 1.5), più la ricerca full-text **`wikipedia search`** (`engine: mediawiki`, `search_type: text` su `https://{language}.wikipedia.org/`), **`wikiquote`** e **`wiktionary`**.
+   - Disabilitati esplicitamente i motori in blocco/poisoning (`duckduckgo`, `startpage`, `brave`, `bing`, `wikidata`).
+3. **Verifica Live:**
+   - Riavviato `hyperspace_searxng` e testato `POST /web/search` con `"sopra la panca la capra ..?"`: `unresponsive_engines: []`, 38 risultati pertinenti trovati istantaneamente (*"Sopra la panca la capra campa, sotto la panca la capra crepa"*).
+
+## 2026-10-13 — Antigravity → Utente / Team (Integrazione Metodologia SkillOpt, Evaluator e Bozza Forge P0 PDF)
+
+Formalizzata l'integrazione del pattern **SkillOpt** (Microsoft Research) nel Tool & Skill Forge di HyperSpace AGI come metodologia di ottimizzazione nello spazio del testo (*text-space optimization*) offline, senza introdurre debito né dipendenze a runtime:
+
+1. **Documentazione Architetturale (`docs/skillopt-methodology.md`):**
+   - Definito il ciclo di ottimizzazione offline: Rollout su sandbox con modello target congelato → Reflection sui log d'errore (tool rifiutati, path errati) → Bounded textual edits su `SKILL.md` → Validation Gate deterministico su held-out dataset (rifiuto delle regressioni e contrastive buffer).
+   - Allineamento al contratto Forge: bozze inerti (`draft`), limite di 24.000 byte UTF-8, verifica hash SHA-256 e iniezione controllata (`hyperspace_skills` / `before_context`).
+   - Mappatura sul caso studio P0 (risoluzione dei pattern di fallimento della missione PDF del 2026-10-07).
+
+2. **Strumento Diagnostico & Validation Gate (`scripts/diagnostics/skillopt_evaluator.py`):**
+   - Script stand-alone in Python standard con zero dipendenze esterne.
+   - Verifica conformità metadati (frontmatter YAML), rispetto del budget Forge (<= 24.000 byte), calcolo SHA-256 e controlli di sicurezza statica (zero leak credenziali, zero percorsi host assoluti).
+   - Motore di Validation Gate deterministico per prevenire regressioni, con supporto per confronto A/B `--compare` e verdetto formale (`ACCEPT` vs `REJECT`).
+   - Opzione `--export-forge-draft` per generare payload JSON pronto per l'API `/forge/artifacts`.
+
+3. **Bozza Skill Ottimizzata per Mission Control (`docs/skills/pdf-mission-coder-skill.md`):**
+   - Creata bozza di skill per il ruolo `coder` con `code_sandbox` che risolve tutti i pattern di blocco emersi nei trial precedenti: vincolo rigido a percorsi relativi, budget massimo di letture esplorative, script generatore Python riproducibile (ReportLab) e gate interno di autoverifica dell'artefatto PDF (`GATE_VERIFIED_OK`).
+
+4. **Verifiche & Test:**
+   - Creata suite di test `tests/test_skillopt_evaluator.py` (7/7 test passati al 100%).
+   - Eseguiti i test di licenza `tests/test_licensing.py` (7/7 passati).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
 
