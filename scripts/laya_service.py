@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Runner locale e autonomo per il microservizio Laya in HyperSpace (System 1).
 
-Avvia il server decisionale su loopback (default porta 8098).
+Avvia il server decisionale su loopback (default porta 8097).
 Rileva automaticamente l'accelerazione hardware (MPS su Apple Silicon, CUDA su NVIDIA, o CPU).
 Non richiede modifiche al core di HyperSpace: dialoga via HTTP JSON con shared/laya_client.py.
 
 Uso:
   python scripts/laya_service.py
-  python scripts/laya_service.py --port 8098 --device mps
+  python scripts/laya_service.py --port 8097 --device mps
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default=os.getenv("LAYA_HOST", "127.0.0.1"),
                         help="Host bind per il servizio Laya (default: %(default)s)")
-    parser.add_argument("--port", type=int, default=int(os.getenv("LAYA_PORT", "8098")),
+    parser.add_argument("--port", type=int, default=int(os.getenv("LAYA_PORT", "8097")),
                         help="Porta HTTP del servizio Laya (default: %(default)s)")
     parser.add_argument("--device", default=os.getenv("LAYA_DEVICE", "auto"),
                         choices=["auto", "mps", "cuda", "cpu", "xpu"],

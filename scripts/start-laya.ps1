@@ -9,6 +9,7 @@
 #
 
 param(
+    [int]$Port = 8097,
     [switch]$Check,
     [switch]$Stop,
     [switch]$Restart
@@ -52,7 +53,7 @@ if ($Stop -or $Restart) {
 if ($Check) {
     Head "Verifica Stato Laya Decision Engine"
     try {
-        $res = Invoke-RestMethod -Uri "http://127.0.0.1:8098/health" -TimeoutSec 2 -ErrorAction Stop
+        $res = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 2 -ErrorAction Stop
         Log "Stato HTTP: OK (200)"
         Log "Modelli caricati: $($res.loaded -join ', ')"
         Log "Device computazionale: $($res.device)"
@@ -60,7 +61,7 @@ if ($Check) {
             Log "Processi attivi: PID $($attivi.ProcessId -join ', ')"
         }
     } catch {
-        Warn "Laya non risponde su http://127.0.0.1:8098/health ($($_.Exception.Message))"
+        Warn "Laya non risponde su http://127.0.0.1:$Port/health ($($_.Exception.Message))"
         if ($attivi.Count) {
             Warn "Processo presente (PID $($attivi.ProcessId -join ', ')) ma porta non pronta o bloccata."
         }
@@ -81,19 +82,19 @@ if ($attivi.Count) {
     }
 
     Start-Process -FilePath $python `
-        -ArgumentList @($scriptService, '--host', '127.0.0.1', '--port', '8098') `
+        -ArgumentList @($scriptService, '--host', '127.0.0.1', '--port', "$Port") `
         -WorkingDirectory $Root `
         -WindowStyle Hidden `
         -RedirectStandardOutput $logOut `
         -RedirectStandardError $logErr | Out-Null
 
-    Log "Daemon avviato in background (Log: data\laya.log)"
+    Log "Daemon avviato in background su porta $Port (Log: data\laya.log)"
     Start-Sleep -Seconds 2
 }
 
 # Verifica veloce dopo avvio
 try {
-    $res = Invoke-RestMethod -Uri "http://127.0.0.1:8098/health" -TimeoutSec 3 -ErrorAction Stop
+    $res = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 3 -ErrorAction Stop
     Log "Health check superato: status=$($res.status), device=$($res.device), modelli=$($res.loaded -join ', ')"
 } catch {
     Warn "Inizializzazione in corso o modelli in caricamento (controlla data\laya.log)."

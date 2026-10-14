@@ -44,7 +44,11 @@ $envDati = Read-EnvFile (Join-Path $Root '.env')
 foreach ($chiave in @('CHANNEL_MODEL', 'IMAGE_FREE_GPU', 'OLLAMA_RAW_BASE_URL',
                       'COMFY_URL', 'WEBUI_GATEWAY_PORT')) {
     if ($envDati.ContainsKey($chiave) -and $envDati[$chiave]) {
-        Set-Item -Path ("env:" + $chiave) -Value $envDati[$chiave]
+        $val = $envDati[$chiave]
+        if ($chiave -eq 'OLLAMA_RAW_BASE_URL' -and $val -match 'host\.docker\.internal') {
+            $val = $val -replace 'host\.docker\.internal', '127.0.0.1'
+        }
+        Set-Item -Path ("env:" + $chiave) -Value $val
     }
 }
 if (-not $env:IMAGE_FREE_GPU) {

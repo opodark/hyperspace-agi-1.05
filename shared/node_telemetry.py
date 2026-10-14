@@ -18,8 +18,27 @@ import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
+try:
+    import requests
+except ImportError:
+    class _SimpleResponse:
+        def __init__(self, status_code: int, data: bytes, headers: dict):
+            self.status_code = status_code
+            self._data = data
+            self.headers = headers
+        def json(self):
+            return json.loads(self._data.decode("utf-8"))
 
-import requests
+    class _RequestsShim:
+        @staticmethod
+        def get(url: str, timeout: float = 1.0):
+            import urllib.request
+            req = urllib.request.Request(url, headers={"User-Agent": "HyperSpace-Telemetry"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = resp.read()
+                headers = dict(resp.headers)
+                return _SimpleResponse(resp.status, data, headers)
+    requests = _RequestsShim()  # type: ignore
 
 from shared.power_sense import detect_host_power
 
@@ -332,7 +351,7 @@ def get_services_status(
     }
 
     ollama_ep = ollama_url or os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-    laya_ep = laya_url or os.getenv("LAYA_URL", "http://127.0.0.1:8098").rstrip("/")
+    laya_ep = laya_url or os.getenv("LAYA_URL", "http://127.0.0.1:8097").rstrip("/")
     comfy_ep = comfy_url or os.getenv("COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/")
 
     # Ollama
@@ -367,20 +386,26 @@ def get_services_status(
     except Exception:
         pass
 
-    # Laya Decision Engine
-    try:
-        t0 = time.perf_counter()
-        r = requests.get(f"{laya_ep}/health", timeout=1.0)
-        if r.status_code != 200:
-            r = requests.get(f"{laya_ep}/v1/systemone/health", timeout=1.0)
-        if r.status_code == 200:
-            latency = round((time.perf_counter() - t0) * 1000, 2)
-            res["laya"]["online"] = True
-            res["laya"]["latency_ms"] = latency
-            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-            res["laya"]["engine"] = data.get("model", "laya-decision-v1")
-    except Exception:
-        pass
+    # Laya Decision Engine (try 8097, fallback to 8098 if default)
+    candidate_eps = [laya_ep]
+    if not laya_url and not os.getenv("LAYA_URL") and laya_ep != "http://127.0.0.1:8098":
+        candidate_eps.append("http://127.0.0.1:8098")
+
+    for ep in candidate_eps:
+        try:
+            t0 = time.perf_counter()
+            r = requests.get(f"{ep}/health", timeout=1.0)
+            if r.status_code != 200:
+                r = requests.get(f"{ep}/v1/systemone/health", timeout=1.0)
+            if r.status_code == 200:
+                latency = round((time.perf_counter() - t0) * 1000, 2)
+                res["laya"]["online"] = True
+                res["laya"]["latency_ms"] = latency
+                data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+                res["laya"]["engine"] = data.get("model", "laya-decision-v1")
+                break
+        except Exception:
+            pass
 
     # ComfyUI
     try:
