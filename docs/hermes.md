@@ -283,3 +283,6 @@ conteggio, campionamento query e ripristino Hermes.
 5. Dream non revisionati non compaiono nella memoria attiva.
 6. Memory graph e nodi mostrano viste coerenti derivate da Hermes.
 7. Backup, restore, rollback e migrazione idempotente hanno test automatici.
+   Il sistema di replica decentralizzata e multi-cloud con crittografia Zero-Knowledge
+   è documentato in [hermes-resilience.md](hermes-resilience.md) con tool
+   in `scripts/hermes_resilience.py` e diagnostica in `scripts/diagnostics/hermes_resilience_probe.py`.

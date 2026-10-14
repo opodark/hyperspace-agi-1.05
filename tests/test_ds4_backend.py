@@ -163,13 +163,14 @@ class ObservedRuntimeTests(unittest.TestCase):
         self.log.write_text("\n".join(json.dumps(e) for e in entries) + "\n", encoding="utf-8")
 
     def test_ewma_comes_from_the_interaction_log(self):
+        now_iso = bm._iso_now()
         self._write([
             {"model": "deepseek-v4-flash", "tokens_out": 100, "duration_ms": 2000,
-             "ts": "2026-09-19T10:00:00Z"},
+             "ts": now_iso},
             {"model": "deepseek-v4-flash", "tokens_out": 50, "duration_ms": 1000,
-             "ts": "2026-09-19T10:01:00Z"},
+             "ts": now_iso},
             {"model": "altro-modello", "tokens_out": 10, "duration_ms": 1000,
-             "ts": "2026-09-19T10:01:00Z"},
+             "ts": now_iso},
         ])
         with _StubServer() as stub:
             payload = bm.asyncio.run(bm.DS4MetricsProvider(stub.url).collect())

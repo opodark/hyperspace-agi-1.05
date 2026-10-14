@@ -32,6 +32,7 @@ from cp.config import (MEMORY_BACKEND, MEMORY_FILE_GZ, MEMORY_MAX_ENTRIES,
                        MEMORY_TTL_DAYS, UI_BRIDGE_URL, _hermes_memory)
 from cp.log import push_log
 from shared.hermes_memory import HermesMemoryError
+from shared.hermes_resilience import HermesCryptoError, HermesMultiCloudVault
 from shared.memory_sync import MemorySync, from_env
 
 
@@ -345,6 +346,63 @@ def memory_lifecycle():
         return jsonify(result), (200 if result.get("ok") else 207)
     except (HermesMemoryError, ValueError) as exc:
         return jsonify({"ok": False, "error": str(exc), "backend": "hermes"}), 503
+
+# ── resilienza e vault decentralizzato ────────────────────────────────────────
+
+@_bp.route('/memory/resilience/status')
+def memory_resilience_status():
+    vault = HermesMultiCloudVault.from_env()
+    report = vault.verify_all_remotes()
+    return jsonify(report)
+
+
+@_bp.route('/memory/resilience/snapshots')
+def memory_resilience_snapshots():
+    vault = HermesMultiCloudVault.from_env()
+    return jsonify({"snapshots": vault.list_all_snapshots()})
+
+
+@_bp.route('/memory/resilience/snapshot', methods=['POST'])
+def memory_resilience_create_snapshot():
+    data = request.get_json(force=True, silent=True) or {}
+    tag = str(data.get("tag", "api"))
+    vault = HermesMultiCloudVault.from_env()
+    if not vault.cipher.is_configured():
+        return jsonify({
+            "ok": False,
+            "error": "Passphrase di cifratura non configurata (HERMES_VAULT_PASSPHRASE)",
+        }), 400
+
+    outbox_file = str(memory_sync.outbox.path) if memory_sync.outbox else None
+    bridge_entries = None
+    if not _hermes_memory.unavailable():
+        try:
+            bridge_entries = _hermes_memory.entries(limit=1000)
+        except Exception:
+            pass
+
+    try:
+        res = vault.create_and_push_snapshot(
+            memory_mirror_file=MEMORY_FILE_GZ,
+            memory_outbox_file=outbox_file,
+            hermes_client_entries=bridge_entries,
+            tag=tag,
+        )
+        push_log('memory_sync', f'Memory vault snapshot: {res.get("snapshot_id")}',
+                 detail=f"Destinazioni: {', '.join(res.get('targets_succeeded', []))}", status='success')
+        return jsonify(res), (200 if res.get("ok") else 207)
+    except HermesCryptoError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@_bp.route('/memory/resilience/verify', methods=['POST'])
+def memory_resilience_verify():
+    vault = HermesMultiCloudVault.from_env()
+    report = vault.verify_all_remotes()
+    return jsonify(report)
+
 
 # ── ricostruire la coda quando cambiano i parametri ───────────────────────
 
