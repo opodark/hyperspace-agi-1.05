@@ -17,6 +17,7 @@ import platform
 import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 try:
     import requests
 except ImportError:
