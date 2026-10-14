@@ -54,6 +54,7 @@ from dreaming import DreamJournal
 from shared.crypto_channel import encrypt_envelope, decrypt_envelope
 from shared.node_telemetry import collect_full_node_telemetry
 from shared.mesh_sync import apply_mesh_update
+from shared.power_sense import detect_host_power
 from datetime import datetime, timezone
 
 app = FastAPI()
@@ -782,6 +783,7 @@ def health():
 @app.get("/status")
 def status():
     prune_stale_peers()
+    power_info = detect_host_power()
     return {
         "node_id":        NODE_ID,
         "public_key":     NODE_PUBKEY,
@@ -791,6 +793,9 @@ def status():
         "endpoint":       NODE_ADVERTISED_ENDPOINT,
         "capabilities":   NODE_CAPABILITIES,
         "vram_gb":        VRAM_GB,
+        "power":          power_info,
+        "ac_line":        power_info.get("ac_line", True),
+        "battery_pct":    power_info.get("battery_pct"),
         # Stima se il modello configurato entra nella VRAM dichiarata. Presente
         # solo se c'e' un modello configurato: vedi shared/model_fit.py. Serve
         # all'operatore e alla diagnostica, non al routing.

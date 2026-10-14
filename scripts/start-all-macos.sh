@@ -90,7 +90,7 @@ if running '[i]nfobot_service.py'; then
   log "InfoBot Telegram già attivo"
 else
   if [[ -f "$REPO/.venv/bin/python" && -f "$REPO/scripts/infobot_service.py" ]]; then
-    nohup "$REPO/.venv/bin/python" "$REPO/scripts/infobot_service.py" >data/infobot.log 2>data/infobot.err.log &
+    nohup "$REPO/.venv/bin/python" -u "$REPO/scripts/infobot_service.py" >data/infobot.log 2>data/infobot.err.log &
     log "InfoBot Telegram avviato (log: data/infobot.log)"
   fi
 fi

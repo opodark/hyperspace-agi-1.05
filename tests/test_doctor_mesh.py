@@ -107,11 +107,14 @@ class DoctorMeshTests(unittest.TestCase):
             {"node_id": "node_windows", "endpoint": "http://127.0.0.1:8084", "public_key": "04aa"},
         ]
 
+        from shared.node_telemetry import get_codebase_status
+        current_commit = get_codebase_status(str(ROOT)).get("git_commit", "unknown")
+
         with patch("cp.doctor_mesh.poll_node_telemetry") as mock_poll:
             # Caso 1: stesso commit
             mock_poll.return_value = {
                 "channel": "encrypted_ecdh_aes_gcm",
-                "codebase": {"git_commit": "4c56def9", "git_branch": "main", "git_dirty": False},
+                "codebase": {"git_commit": current_commit, "git_branch": "main", "git_dirty": False},
                 "services": {"ollama": {"online": True}},
             }
             checks, _ = run_mesh_codebase_and_health_checks(active_nodes, self.cp_id, local_repo_hint=str(ROOT))

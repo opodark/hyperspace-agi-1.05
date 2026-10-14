@@ -41,6 +41,7 @@ if str(ROOT) not in sys.path:
 
 import shared.db as db
 import shared.mailer as mailer
+from shared.power_sense import detect_host_power, save_host_power
 
 LOCK_FILE = ROOT / "data" / "infobot.lock"
 
@@ -106,6 +107,7 @@ class InfoBotService:
             return None
         except Exception as exc:
             print(f"[Bot] API {method} exception: {exc}")
+            time.sleep(3.0)
             return None
 
     def send_message(self, text: str, reply_markup: dict | None = None, chat_id: str | None = None) -> dict | None:
@@ -265,9 +267,29 @@ class InfoBotService:
                 "📊 <b>Monitoraggio:</b>\n"
                 "• <code>/contacts</code> — Ultimi messaggi ricevuti dal form\n"
                 "• <code>/keys</code> — Elenco chiavi attive e ultimo utilizzo\n"
+                "• <code>/power</code> — Stato energetico (AC/Batteria) dei nodi mesh\n"
                 "• <code>/status</code> — Stato del bot, DB e servizio SMTP"
             )
             self.send_message(help_text)
+
+        elif cmd == "/power":
+            from scripts.diagnostics.mesh_power_probe import inspect_mesh_power
+            data = inspect_mesh_power()
+            loc = data["local_host"]
+            pwr_sym = "🔌 AC (Rete Elettrica)" if loc["ac_line"] else f"🔋 Batteria ({loc.get('battery_pct', 0):.0f}%)"
+
+            msg_lines = [
+                "⚡️ <b>HyperSpace Mesh — Stato Energetico</b>\n",
+                f"💻 <b>Host Locale (Mac):</b> {pwr_sym}",
+                f"📊 <b>Diagnosi Flotta:</b> {data.get('grid_status', 'unknown')}\n",
+                f"🔌 Nodi a Rete AC: <b>{data['ac_count']}</b> &middot; 🔋 Nodi a Batteria: <b>{data['battery_count']}</b>\n",
+                "<b>Dettaglio Nodi:</b>"
+            ]
+            for n in data.get("nodes", []):
+                sym = "🔌 Rete AC" if n["ac_line"] else f"🔋 Batt: {n.get('battery_pct', 0):.0f}%"
+                msg_lines.append(f"• <b>{html.escape(n['alias'])}</b>: {sym} (<code>{n.get('tier', 'leaf')}</code>)")
+
+            self.send_message("\n".join(msg_lines))
 
         elif cmd == "/status":
             counts = db.count_web_contacts()
@@ -406,7 +428,17 @@ class InfoBotService:
     def run(self):
         print(f"[InfoBot] Avvio polling Telegram per operatore {self.chat_id}...")
         offset = 0
+        last_power_sync = 0.0
         while self.running:
+            # Sincronizzazione periodica stato energetico host per i container Docker (ogni 15s)
+            now = time.time()
+            if now - last_power_sync >= 15.0:
+                try:
+                    save_host_power(detect_host_power(), data_dir=ROOT / "data")
+                except Exception:
+                    pass
+                last_power_sync = now
+
             try:
                 res = self._call("getUpdates", {"offset": offset, "timeout": 20}, timeout=25.0)
                 if not res:

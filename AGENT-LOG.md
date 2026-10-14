@@ -3718,3 +3718,208 @@ Formalizzata l'integrazione del pattern **SkillOpt** (Microsoft Research) nel To
    - Eseguiti i test di licenza `tests/test_licensing.py` (7/7 passati).
    - Nessun commit e nessun push senza conferma esplicita dell'utente.
 
+
+## 2026-10-13 — Antigravity → Utente / Sessione Windows (Riaccensione Nodo ASUS V16, Diagnostica Mesh & Allineamento Handoff)
+
+Rilevata la riaccensione del nodo Windows ASUS V16 (RTX 5060 8 GB, 48 GB RAM) dopo due settimane di inattività:
+
+1. **Stato Rete & Connettività (rilevato da Mac):**
+   - Tailscale registra il peer `laptop-t9h8plht` come attivo (`100.64.31.18`, direct LAN `10.203.243.196`).
+   - Ping ICMP risponde con successo (0% packet loss, ~14.5 ms).
+   - Le porte TCP di servizio (8081 nodo, 8086 registry, 8088 CP Windows, 8095 federation gateway) sono attualmente in timeout su Tailscale, coerente con il boot recente e con la sessione concorrente che sta eseguendo l'upgrade, il merge o il rebuild dei container.
+
+2. **Checklist Essenziale per l'Upgrade & Merge (da [docs/windows-node-handoff.md](docs/windows-node-handoff.md)):**
+   - **Riconciliazione `.env`**: Ricordare che `.env` è in `.gitignore` e non viene toccato da `git pull` o `git merge`. Eseguire `.\scripts\sync_env_windows.ps1 -Apply` sul nodo Windows per propagare le nuove chiavi da `.env.windows`.
+   - **Dichiarazione VRAM e Tier**: In `.env` impostare esplicitamente `VRAM_GB=8` e `NODE_TIER=hub` (la detection dentro il container senza passthrough fallisce e ritorna `0.0`, portando il Control Plane a classificarlo erroneamente come nodo `leaf` privo di GPU).
+   - **Rebuild obbligatorio container**: Lanciare `docker compose -f docker-compose.windows.yml up -d --build` per ricompilare il codice aggiornato nelle immagini Docker (`/app`).
+   - **Regole Firewall Windows**: Verificare le regole inbound per la rete Tailscale sulle porte 8081, 8086, 8088, 8095.
+
+3. **Verifiche:**
+   - Eseguito `scripts/mesh_health.py` e probe di rete (nessun segreto nei log).
+   - Nessun commit e nessun push effettuato (Regola 3 `AGENTS.md`).
+
+## 2026-10-13 — Antigravity → Utente / Team (Collaudo Completato: Nodo Windows ASUS V16, GPU 8GB Hub e Inferenza Cross-Mesh)
+
+Convalidata con successo l'attivazione e il merge del nodo Windows ASUS V16:
+
+1. **Stato del Nodo Windows (`5d96b5888c928c5c`):**
+   - Riconosciuto come `tier: hub`, `vram_gb: 8.0` su `v1.05.0`.
+   - Modello `qwen3.5:4b` caricato e allocato per 5.51 GB in VRAM sulla RTX 5060, con velocità di generazione misurata a **27.06 t/s** (pienamente dentro il target di accettazione di 25-40 t/s per GPU dedicate).
+   - Servizio Ollama sano (`health.up = true`, zero errori).
+
+2. **Mesh & Servizi Raggiungibili (via Tailscale `100.64.31.18`):**
+   - 8081 (nodo): OPEN (latenza 0.02s)
+   - 8085 (CP compat gateway): OPEN (latenza 0.02s)
+   - 8086 (registry Windows): OPEN (latenza 0.02s)
+   - 8088 (CP nativo Windows): OPEN (latenza 0.01s)
+   - 8095 (federation gateway): OPEN (latenza 0.02s)
+   - Eseguito con esito positivo `scripts/mesh_health.py` con verdetto: `DIAGNOSI — MESH FORMATA`.
+
+3. **Collaudo Reale Inferenza Cross-Machine:**
+   - Eseguita richiesta di chat via POST a `http://100.64.31.18:8088/v1/chat/completions` con payload prompt; risposta generata dalla GPU remota e restituita in tempo reale (`"Ciao! Benvenuto."`, status 200).
+   - Control Plane Windows aggiornato a v1.05.0 con endpoint `/models/capabilities` e `/sandbox/status` conformi.
+
+4. **Git & Federazione:**
+   - Rilevata rimozione del branch remoto `origin/winZOZ` a seguito del merge completato.
+   - Nessun commit e nessun push effettuato senza consenso (Regola 3 `AGENTS.md`).
+
+## 2026-10-13 — Antigravity → Utente / Team (Esecuzione Batteria di Test: Mesh, Benchmark Modello Remoto e Suite Completa)
+
+Eseguita la sessione di collaudo estesa richiesta dall'utente:
+
+1. **Batteria Unit Test Mesh & Nodi (`pytest`):**
+   - Eseguiti `test_mesh_registro.py`, `test_federation_gateway.py`, `test_federation_view.py`, `test_node_hardware.py`, `test_node_compat.py`, `test_model_aggregation.py`, `test_model_fit.py`, `test_web_node.py`, `test_web_node_routes.py`:
+   - **122 passati, 45 subtest passati (100% verde)** in 1.92s.
+
+2. **Benchmark Oggettivo Cross-Node (`scripts/model_bench.py` su Windows RTX 5060):**
+   - Eseguite 8 sonde oggettive via Tailscale su `http://100.64.31.18:8088` con modello `qwen3.5:4b` (`think=false`):
+     - `fatto_capitale`: OK (Canberra)
+     - `matematica_orario`: OK (16:00)
+     - `matematica_sconto`: OK (60)
+     - `codice_palindromo`: OK (funzione Python sintatticamente ed logicamente valida)
+     - `json`: OK (parsing JSON corretto)
+     - `allucinazione`: OK ("Non lo so.")
+     - `logica_famiglia`: LOOP (interrotto dal budget di parole senza bloccare il runner)
+     - `conteggio_r`: NO (allineato alle capacità tipiche di un modello 4B privo di reasoning profondo)
+   - Esito complessivo benchmark: **6/8 superate, loop=1, lenti=0**.
+
+3. **Suite Completa del Repository (`pytest tests/ -q`):**
+   - Corretto in `tests/test_ds4_backend.py` l'uso di un timestamp statico vecchio di 24 giorni (`2026-09-19`), che causava underflow floating point IEEE 754 nel calcolo del decadimento esponenziale EWMA (`0.5 ** (age / half_life)` collassava a 0.0). Sostituito con `bm._iso_now()`.
+   - **Esito finale suite completa**: **2356 passati, 17 saltati, 1035 subtest passati (100% VERDE)** in 30.57s.
+   - Conformità di licenza `tests/test_licensing.py`: 7/7 passati.
+   - Nessun commit e nessun push effettuato senza autorizzazione (Regola 3 `AGENTS.md`).
+
+## 2026-10-13 — Antigravity → Utente / Team (Verifica Liveness Nodo Windows ASUS V16)
+
+Verificato lo stato del nodo Windows ASUS V16 a quasi tre ore dall'avvio:
+- Tailscale diretto attivo (`100.64.31.18`).
+- Tutte le porte di servizio (8081, 8085, 8086, 8088, 8095) sono aperte con latenza 10–30 ms.
+- Uptime nodo: ~10.460 s (~2.9 ore).
+- Backend Ollama attivo e sano (`health.up = true`, VRAM liberata regolarmente in idle).
+- Nessuna modifica al codice né commit effettuati.
+
+## 2026-10-14 — Antigravity → Utente / Team (Resilienza Multi-Cloud & Decentralizzazione Memoria Hermes)
+
+Implementato e convalidato il sistema completo di resilienza distribuita e replica cloud decentralizzata per la memoria Hermes di HyperSpace (`hyperspace.hermes.vault.v1`):
+
+1. **Modulo Core & Crittografia Zero-Knowledge (`shared/hermes_resilience.py`):**
+   - Crittografia client-side AES-256-GCM con derivazione chiave PBKDF2-HMAC-SHA256 (100.000 round, salt 16B casuale, nonce 12B monouso). I cloud provider memorizzano esclusivamente pacchetti cifrati e autenticati.
+   - Formato envelope compatto `HSMV` (`hyperspace.hermes.vault.v1`) con header JSON AAD autenticato e rilevamento automatico manomissioni (`InvalidTag`).
+   - Bundle compresso `tar.gz` con snapshot atomico di `MEMORY.md`, `USER.md`, `state.db` (backup SQLite sicuro), `skills/`, mirror locale `memory.json.gz` e `memory-outbox.jsonl`.
+   - Adattatori storage pluggable:
+     - S3-compatible (Cloudflare R2 con 10 GB free e 0 egress, Backblaze B2, AWS S3, MinIO) con firma SigV4 autonoma in puro Python (zero dipendenze esterne).
+     - WebDAV (Nextcloud, ownCloud, pCloud, Koofr).
+     - GitHub Gist privato (versionamento git gratuito e distribuito).
+     - IPFS / Pinata (Web3 content-addressable storage P2P).
+     - Filesystem locale / mount point rclone (Google Drive, OneDrive, Dropbox, NAS).
+   - Orchestratore `HermesMultiCloudVault`: fan-out multi-cloud sincrono (regola backup 3-2-1), download trasparente con fallback in caso di failure del primary, disaster recovery atomico e pruning automatico per retention (default: 7).
+
+2. **CLI di Gestione & Strumenti Operativi (`scripts/hermes_resilience.py`):**
+   - Comandi `--status`, `--snapshot`, `--list`, `--verify`, `--restore` e `--prune`.
+   - Supporto flag `--json` e rilevamento automatico dei path di memoria su Mac, Linux e Windows.
+
+3. **Diagnostica HyperSpace & Skill Forge (Regola 6 `AGENTS.md`):**
+   - Sonda read-only `scripts/diagnostics/hermes_resilience_probe.py` per verifica non-mutante di chiavi, salute locale e connettività provider (zero segreti stampati).
+   - Bozza skill Forge inerte in `docs/skills/hermes-resilience-skill.md` con punteggio **100/100** su `skillopt_evaluator.py`.
+
+4. **Integrazione Control Plane (`control-plane/cp/memoria.py`):**
+   - Pubblicate le rotte `/memory/resilience/status`, `/memory/resilience/snapshots`, `/memory/resilience/snapshot` (POST) e `/memory/resilience/verify` (POST).
+
+5. **Documentazione & Verifiche:**
+   - Guida architetturale completa in `docs/hermes-resilience.md`, referenziata in `docs/hermes.md`.
+   - Test suite dedicata `tests/test_hermes_resilience.py` (19/19 test passati, 100% verde).
+   - Batteria memoria e licensing completa (102/102 test passati).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente (Regola 3 `AGENTS.md`).
+
+## 2026-10-14 — Antigravity → Utente / Team (Verifica Completa Flusso Richiesta ed Emissione Chiavi Mesh per Cips)
+
+Verificato e collaudato l'intero flusso di richiesta, emissione, notifica, recapito email e autenticazione chat per il rilascio chiavi mesh:
+
+1. **Sottomissione Richiesta Contatto (`POST /web/contact`):**
+   - Eseguita richiesta di prova per Cips (`tecnicirollout@gmail.com`).
+   - Control Plane valida parametri, inserisce il record `cnt-e350217bbba2` in `web_contacts` (`status: unread`).
+   - Invio asincrono notifica Telegram operatore su `@hyperspace_infobot` con inline keyboard `[ 🔑 Emetti e Invia Token a Cips Test ]` completato con esito `status: success`.
+
+2. **Diagnostica e Fix InfoBot Polling (`scripts/infobot_service.py`):**
+   - Il processo infobot pregresso era rimasto bloccato in un loop di `NameResolutionError` per avvio prima del DNS/Wi-Fi all'avvio Mac.
+   - Riavviato il servizio, aggiunto `-u` (unbuffered logging) in `scripts/start-all-macos.sh` e introdotto backoff di 3s in `_call` in caso di anomalie di rete. Polling Telegram attivo e verde.
+
+3. **Emissione ed Invio Chiave (`scripts/diagnostics/manage_keys.py` & SMTP):**
+   - Eseguito rilascio chiave mesh: `hs-mesh-cips-ce881d2d` salvata nel DB del Control Plane (`web_auth_keys`, `role: member`, `status: active`).
+   - Spedizione email di notifica via SMTP SSL (`smtps.aruba.it:465`) a `tecnicirollout@gmail.com` riuscita al 100% con template cyberpunk.
+   - Aggiornato stato contatto a `replied`.
+
+4. **Collaudo Autenticazione & Chat Multi-Endpoint:**
+   - Verificata chiave `hs-mesh-cips-ce881d2d` su `POST /web/auth/verify`:
+     - Control Plane locale (`:8085`): HTTP 200 `authenticated: true`, `role: member`, `label: Cips`.
+     - Federation Gateway (`:8095`): HTTP 200 `authenticated: true`.
+     - Tunnel pubblico Cloudflare/Caddy (`https://mesh.zerozerocomputer.it/web/auth/verify`): HTTP 200.
+     - Timestamp `last_used` aggiornato con successo in SQLite.
+   - Test reale chat streaming `/v1/chat/completions` con `Authorization: Bearer hs-mesh-cips-ce881d2d` sul gateway: risposta generata correttamente dal modello `qwen3:4b` (`"Ciao Cips, test superato!"`).
+
+5. **Verifiche:**
+   - `pytest tests/test_start_all_macos.py tests/test_web_node.py tests/test_web_node_routes.py tests/test_federation_gateway.py tests/test_mailer.py tests/test_licensing.py -q`: tutti verdi.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente (Regola 3 `AGENTS.md`).
+
+
+## 2026-10-14 — Antigravity → Utente / Team (Pull & Allineamento Canale Cifrato E2EE Mesh Telemetry)
+
+Allineato il repository locale Mac con il commit dell'ASUS V16 ed attivato il canale cifrato E2EE end-to-end sulla mesh:
+
+1. **Sincronizzazione Git (`git pull`):**
+   - Eseguito fetch e fast-forward merge con `origin/main` (`b78af9a6`). Ricevuto il commit `17eb246e` ("feat(mesh,doctor): canale cifrato E2EE per telemetria salute/codebase e distribuzione patch P2P") e il fix `b78af9a6`.
+   - Moduli introdotti/aggiornati: `shared/crypto_channel.py`, `shared/node_telemetry.py`, `control-plane/cp/doctor_mesh.py`, `shared/mesh_sync.py`, `scripts/mesh_distribute.py`, `control-plane/desktop.html` e suite di test.
+
+2. **Rebuild Container & Attivazione Locale:**
+   - Eseguito `docker compose up -d --build node-1 control-plane` sul Mac.
+   - Il worker locale (`hyperspace_node_1`, porta 8081) espone ora `/doctor/telemetry` con crittografia autenticata:
+     - Scambio chiavi effimere **ECDH secp256k1** con Perfect Forward Secrecy.
+     - Cifratura simmetrica autenticata **AES-256-GCM** (HKDF-SHA256, info `hyperspace-doctor-channel-v1`).
+     - Firma crittografica **ECDSA SHA-256** legata alla chiave persistente del nodo.
+     - Protezione anti-replay tramite timestamp e nonce casuale a 12 byte.
+
+3. **Verifica Mesh Doctor Bidirezionale:**
+   - **Control Plane ASUS V16 (`100.64.31.18:8085/doctor`):**
+     - Check `mesh_encrypted_channel`: **`status: ok`** (*"Canale E2EE attivo e verificato su tutti i 2 nodi remoti (ECDH secp256k1 + AES-256-GCM con Forward Secrecy)"*).
+     - Riceve e decifra con successo la telemetria del Mac (`d7bc05baed5b...`, arch aarch64, 8 CPU, RAM 3.82 GB, 9 modelli Ollama).
+   - **Control Plane Locale Mac (`localhost:8085/doctor`):**
+     - Check `mesh_encrypted_channel`: **`status: ok`**.
+     - Riceve e decifra con successo la telemetria dell'ASUS V16 (`5d96b5888c92...`, 16 CPU, 8 GB VRAM RTX 5060, 8 modelli Ollama).
+
+4. **Suite Test:**
+   - `pytest tests/test_crypto_channel.py tests/test_doctor_mesh.py tests/test_mesh_sync.py tests/test_node_telemetry.py`: 17/17 test passati al 100% verde.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente (Regola 3 `AGENTS.md`).
+
+## 2026-10-14 — Antigravity (Mac): Gestione Energetica & Power-Aware Routing
+
+Completata l'implementazione dell'architettura di **Gestione Energetica e Resilienza da Blackout** per l'intera flotta di laptop (MacBook Pro, ASUS V16, HP Omen 16):
+
+1. **Rilevamento Energetico Host Multi-Piattaforma (`shared/power_sense.py`):**
+   - Supporto nativo macOS (`pmset -g batt`), Linux (`/sys/class/power_supply/*`), Windows (`GetSystemPowerStatus` via ctypes) e WSL2 (`powershell.exe -NoProfile Get-CimInstance Win32_Battery`).
+   - Meccanismo di fallback e sync per container Docker via `data/host_power.json` con controllo di freschezza (< 60s).
+   - `scripts/infobot_service.py` sincronizza `data/host_power.json` ogni 15s in background e supporta il comando Telegram `/power` per interrogare lo stato energetico della mesh da chat.
+
+2. **Telemetria e Propagazione Mesh (`shared/node_telemetry.py` & `node/main.py`):**
+   - Inclusione dei campi `power`, `ac_line` e `battery_pct` nel dizionario hardware.
+   - Esposizione in `/status` e `/doctor/telemetry` con cifratura E2EE.
+
+3. **Routing Consapevole dell'Energia (`control-plane/routing.py`):**
+   - `extract_signal` estrae `ac_line` e `battery_pct`.
+   - `rank_signals`:
+     - Se almeno un nodo è alimentato da rete elettrica (`ac_line == True`), i nodi a batteria subiscono un declassamento proporzionale (punteggio `power_s` ridotto tra 0.05 e 0.50), convogliando l'inferenza pesante (GPU/batch) verso le macchine collegate alla presa.
+     - In caso di blackout generale (tutti a batteria), il bilanciamento premia la percentuale di carica residua.
+     - Soglia critica di sicurezza (< 15% batteria): `power_s = 0.02` e `degraded = True`, proteggendo il nodo da carichi pesanti e spegnimenti improvvisi.
+
+4. **Mesh Doctor & UI Dashboard:**
+   - Nuovo check `mesh_power_grid` in `control-plane/cp/doctor_mesh.py` che monitora l'alimentazione della mesh e notifica all'operatore se la rete è mista o in blackout totale.
+   - Aggiunti badge di alimentazione (`🔌 AC`, `🔋 Batt %`) e stato dettagliato nelle card di telemetria in `control-plane/desktop.html`.
+
+5. **Diagnostica e Test:**
+   - Creata utility CLI riutilizzabile: `scripts/diagnostics/mesh_power_probe.py`.
+   - Suite di test dedicata: `tests/test_power_routing.py` (5 test).
+   - Esecuzione test: 22/22 passati in `.venv`.
+   - Nessun commit/push effettuato (in attesa di conferma utente, Regola 3 `AGENTS.md`).
+
+
+
+

@@ -99,6 +99,14 @@ def extract_signal(node: dict, metrics: dict, model: str = "") -> dict:
         except Exception:
             age = None
 
+    power = node.get("power") or (metrics or {}).get("power") or {}
+    ac_line = node.get("ac_line")
+    if ac_line is None:
+        ac_line = power.get("ac_line", True)
+    battery_pct = node.get("battery_pct")
+    if battery_pct is None:
+        battery_pct = power.get("battery_pct")
+
     return {
         "node_id":       node.get("node_id", ""),
         "vram_gb":       float(node.get("vram_gb", 0) or 0),
@@ -118,6 +126,9 @@ def extract_signal(node: dict, metrics: dict, model: str = "") -> dict:
         "health_up":     health_up,
         "schema_mismatch": bool((metrics or {}).get("schema_mismatch", False)),
         "metrics_age_s": age,
+        "ac_line":       bool(ac_line),
+        "battery_pct":   float(battery_pct) if battery_pct is not None else None,
+        "is_battery":    bool(power.get("is_battery", battery_pct is not None)),
     }
 
 
@@ -129,6 +140,9 @@ def rank_signals(sigs: list, weights: dict, metrics_interval_s: float = 20.0):
     tps_lo, tps_hi, _ = _minmax([s["tps"] for s in sigs])
     vram_lo, vram_hi, _ = _minmax([s["vram_gb"] for s in sigs])
 
+    # Gestione Energetica: rileva se almeno un nodo candidato è alimentato da rete elettrica stabile (AC)
+    any_ac = any(s.get("ac_line", True) is True for s in sigs)
+
     for s in sigs:
         s["lat_s"] = _norm_low(s["lat"], lat_lo, lat_hi)
         s["tps_s"] = _norm_high(s["tps"], tps_lo, tps_hi)
@@ -137,6 +151,27 @@ def rank_signals(sigs: list, weights: dict, metrics_interval_s: float = 20.0):
         s["tier_s"] = {"root": 3, "hub": 2, "leaf": 1}.get(s["tier"], 1) / 3.0
         s["uptime_s"] = min(s["uptime_s"], 604800) / 604800.0
         s["backend_s"] = _backend_type_score(s["backend_type"])
+
+        # Segnale Energetico (power_s):
+        # - Rete fissa (AC): 1.0 (massima idoneità per carichi pesanti)
+        # - Batteria con nodi AC presenti: penalizzazione progressiva (0.05..0.50) per convogliare su AC
+        # - Blackout totale (tutti a batteria): carico proporzionale alla carica residua (0.10..1.00)
+        ac = s.get("ac_line", True)
+        pct = s.get("battery_pct")
+        eff_pct = pct if pct is not None else 50.0
+
+        if ac:
+            s["power_s"] = 1.0
+        else:
+            if any_ac:
+                s["power_s"] = _clamp((eff_pct / 100.0) * 0.50, lo=0.05, hi=0.50)
+            else:
+                s["power_s"] = _clamp((eff_pct / 100.0) * 0.90 + 0.10, lo=0.10, hi=1.0)
+
+            # Batteria critica (< 15%): depenalizzazione drastica per prevenire shutdown
+            if eff_pct < 15.0:
+                s["power_s"] = 0.02
+                s["degraded"] = True
 
         # saturazione -> load_s
         if s["saturation"] is not None:
@@ -201,13 +236,15 @@ def _structural_score(s: dict, weights: dict) -> tuple:
          "load": float(weights.get("load", 0.25)),
          "tier": float(weights.get("tier", 0.10)),
          "uptime": float(weights.get("uptime", 0.10)),
-         "backend": float(weights.get("backend", weights.get("engine", 0.15)))}
+         "backend": float(weights.get("backend", weights.get("engine", 0.15))),
+         "power": float(weights.get("power", 0.30))}
     wsum = sum(w.values()) or 1.0
     terms = [("vram_s", w["vram"] / wsum * s["vram_s"]),
              ("load_s", w["load"] / wsum * s["load_s"]),
              ("tier_s", w["tier"] / wsum * s["tier_s"]),
              ("uptime_s", w["uptime"] / wsum * s["uptime_s"]),
-             ("backend_s", w["backend"] / wsum * s["backend_s"])]
+             ("backend_s", w["backend"] / wsum * s["backend_s"]),
+             ("power_s", w["power"] / wsum * s.get("power_s", 1.0))]
     score = sum(v for _, v in terms)
     return score, terms
 
@@ -244,4 +281,7 @@ def compute_score(sig: dict, weights: dict, recent_ts: float = None, now: float 
     breakdown["recent_s"] = round(-recent_penalty, 4)
     breakdown["health_s"] = round(sig["health_s"], 3)
     breakdown["q"] = round(q, 3)
+    breakdown["ac_line"] = sig.get("ac_line", True)
+    if sig.get("battery_pct") is not None:
+        breakdown["battery_pct"] = sig["battery_pct"]
     return score, breakdown

@@ -21,6 +21,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from shared.power_sense import detect_host_power
+
 
 # ── 1. STATO DEL CODEBASE (GIT & GRAPHIFY) ────────────────────────────────────
 
@@ -305,6 +307,12 @@ def get_system_hardware() -> Dict[str, Any]:
                 hw["gpu_name"] = "Configured (VRAM_GB)"
         except Exception:
             pass
+
+    # Rilevamento stato energetico (AC vs Batteria)
+    power_info = detect_host_power()
+    hw["power"] = power_info
+    hw["ac_line"] = power_info.get("ac_line", True)
+    hw["battery_pct"] = power_info.get("battery_pct")
 
     return hw
 
