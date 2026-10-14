@@ -22,6 +22,7 @@ param(
     [switch]$Telegram,
     [switch]$Comfy,
     [switch]$Gateway,
+    [switch]$Laya,
     [switch]$Check,
     [switch]$Stop
 )
@@ -36,11 +37,12 @@ function Warn($m) { Write-Host "[warn]     $m" -ForegroundColor Yellow }
 function Fail($m) { Write-Host "[error]    $m" -ForegroundColor Red }
 function Head($m) { Write-Host ""; Write-Host "== $m ==" -ForegroundColor Cyan }
 
-if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Stop) {
+if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Stop) {
     # Nessuna scelta = tutte: è quello che serve in uso normale.
     $Telegram = $true
     $Comfy = $true
     $Gateway = $true
+    $Laya = $true
 }
 
 function Get-Processi([string]$Frammento) {
@@ -68,14 +70,15 @@ if (-not (Test-Path $python)) { $python = 'py' }
 $telegramAttivi = Get-Processi 'telegram_bot.py'
 $comfyAttivi = Get-Processi 'comfy_bridge.py'
 $gatewayAttivi = Get-Processi 'webui_gateway.py'
+$layaAttivi = Get-Processi 'laya_service.py'
 
 if ($Stop) {
     Head "Stop"
-    foreach ($processo in @($telegramAttivi + $comfyAttivi + $gatewayAttivi)) {
+    foreach ($processo in @($telegramAttivi + $comfyAttivi + $gatewayAttivi + $layaAttivi)) {
         Stop-Process -Id $processo.ProcessId -Force -ErrorAction SilentlyContinue
         Log "fermato PID $($processo.ProcessId)"
     }
-    if (-not $telegramAttivi -and -not $comfyAttivi -and -not $gatewayAttivi) { Log "niente da fermare" }
+    if (-not $telegramAttivi -and -not $comfyAttivi -and -not $gatewayAttivi -and -not $layaAttivi) { Log "niente da fermare" }
     exit 0
 }
 
@@ -86,6 +89,8 @@ if ($comfyAttivi.Count) { Log "ponte ComfyUI: attivo (PID $($comfyAttivi.Process
 else { Warn "ponte ComfyUI: spento (le immagini restano in coda)" }
 if ($gatewayAttivi.Count) { Log "gateway immagini WebUI: attivo (PID $($gatewayAttivi.ProcessId -join ', '))" }
 else { Warn "gateway immagini WebUI: spento (dalla WebUI l'immagine non si genera)" }
+if ($layaAttivi.Count) { Log "decision engine Laya: attivo (PID $($layaAttivi.ProcessId -join ', '))" }
+else { Warn "decision engine Laya: spento (porta 8098 non attiva)" }
 
 if ($Check) {
     # Il verdetto vero arriva dai tre `-Check`: qui si aggiunge solo cosa manca
@@ -105,6 +110,8 @@ if ($Check) {
     # Il gateway ha lo stesso bisogno al contrario: le chiavi che decide lui
     # (CHANNEL_MODEL, IMAGE_FREE_GPU) stanno in .env, non nell'ambiente.
     & powershell -NoProfile -ExecutionPolicy Bypass -File $gatewayImmagini -Check
+    # Laya decision engine
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'scripts\start-laya.ps1') -Check
     exit 0
 }
 
@@ -119,8 +126,11 @@ if ($Gateway -and -not $gatewayAttivi.Count) {
     Avvia 'gateway immagini WebUI' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                                      $gatewayImmagini) 'webui-gateway.log'
 }
+if ($Laya -and -not $layaAttivi.Count) {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'scripts\start-laya.ps1')
+}
 if (($Telegram -and $telegramAttivi.Count) -or ($Comfy -and $comfyAttivi.Count) -or
-    ($Gateway -and $gatewayAttivi.Count)) {
+    ($Gateway -and $gatewayAttivi.Count) -or ($Laya -and $layaAttivi.Count)) {
     Log "i processi già attivi sono stati lasciati come sono (niente doppioni)"
 }
 Head "Fatto"

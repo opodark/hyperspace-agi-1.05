@@ -2895,6 +2895,7 @@ def hb_status():
 # invece in mesh-doctor.sh, che gira sull'host e può anche applicare i fix
 # con conferma — questo endpoint non scrive né riavvia mai nulla.
 _INTERNAL_HOSTNAME_RE = re.compile(r'^[a-zA-Z][\w-]*:\d+$')
+_last_mesh_telemetry: list = []
 
 def _doctor_check(id_, name, status, detail, fix_hint=""):
     return {"id": id_, "name": name, "status": status, "detail": detail, "fix_hint": fix_hint}
@@ -3007,6 +3008,28 @@ def _run_doctor_checks() -> list:
     else:
         checks.append(_doctor_check("memory_sync", "Sync memoria inter-nodo", "ok",
                                      f"last_memory_sync={last_sync or 'n/d (meno di 2 nodi attivi)'}"))
+
+    # ── Canale Cifrato E2EE & Stato Codebase / Salute Nodi ─────────────────────
+    global _last_mesh_telemetry
+    try:
+        from cp.doctor_mesh import run_mesh_codebase_and_health_checks
+        repo_hint = "/repo" if os.path.exists("/repo") else None
+        mesh_checks, mesh_telem = run_mesh_codebase_and_health_checks(
+            active_nodes=active_nodes,
+            cp_identity=_cp_identity,
+            local_repo_hint=repo_hint,
+        )
+        _last_mesh_telemetry = mesh_telem
+        for mc in mesh_checks:
+            checks.append(_doctor_check(
+                mc["id"], mc["name"], mc["status"], mc["detail"], mc.get("fix_hint", "")
+            ))
+    except Exception as e:
+        checks.append(_doctor_check(
+            "mesh_telemetry_collector", "Diagnostica Canale Cifrato Mesh", "warn",
+            f"Errore durante l'interrogazione telemetrica dei nodi: {e}",
+            "Verifica la connettività di rete e l'integrità delle chiavi ECDSA secp256k1."
+        ))
 
     return checks
 
@@ -3223,7 +3246,12 @@ def doctor():
             worst = "fail"; break
         if c["status"] == "warn" and worst == "ok":
             worst = "warn"
-    return jsonify({"status": worst, "checks": checks, "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
+    return jsonify({
+        "status": worst,
+        "checks": checks,
+        "mesh_telemetry": _last_mesh_telemetry,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    })
 
 
 # ── SUPERFICI (catalogo per la scheda "Servizi") ─────────────────────────────

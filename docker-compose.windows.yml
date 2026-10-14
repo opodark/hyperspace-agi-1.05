@@ -178,6 +178,7 @@ services:
       - ${HS_MEMORY_DIR}:/app/memory
       - ${HS_LOG_DIR}:/app/logs
       - sandbox_exchange:/sandbox-exchange
+      - .:/repo:ro
     # Nessuna porta pubblicata qui: hyperspace-gateway fa da front door
     # (vedi sotto e docs/tailscale-mesh-setup.md — motivo: binding diretto
     # su 3+ IP host in parallelo su piu' container manda in errore il
@@ -354,6 +355,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./data/node-1:/app/data
+      - .:/repo:ro
     # Nessuna porta pubblicata qui: vedi hyperspace-gateway.
 
     # ── GPU (RTX 3060): al momento NON abilitata qui ────────────────────────

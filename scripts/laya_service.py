@@ -48,7 +48,7 @@ def main() -> int:
         return 1
 
     try:
-        from laya.server import create_app
+        from laya.serve import create_app
         import uvicorn
     except ImportError:
         # Fallback a script server diretto se presente

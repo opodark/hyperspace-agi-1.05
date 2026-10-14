@@ -13,7 +13,8 @@ param(
     [switch]$Once,
     [switch]$Check,
     [string]$Url = "",
-    [string]$Comfy = ""
+    [string]$Comfy = "",
+    [string]$Model = ""
 )
 
 $ErrorActionPreference = 'Continue'
@@ -61,9 +62,13 @@ if (-not $Url) { $Url = 'http://127.0.0.1:8085' }
 $python = Join-Path $Root '.venv\Scripts\python.exe'
 if (-not (Test-Path $python)) { $python = 'py' }
 $ponte = Join-Path $Root 'integrations\comfyui\comfy_bridge.py'
+if (-not $Model) {
+    $Model = if ($env:BRIDGE_MODEL) { $env:BRIDGE_MODEL } else { 'qwen-image-2.1' }
+}
 
 $argomenti = @($ponte, '--url', $Url, '--token', $token)
 if ($Comfy) { $argomenti += @('--comfy', $Comfy) }
+if ($Model) { $argomenti += @('--model', $Model) }
 if ($Once) { $argomenti += '--once' }
 if ($Check) { $argomenti += '--check' }
 

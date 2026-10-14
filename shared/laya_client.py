@@ -87,21 +87,26 @@ def predict(
         payload["head_max_len"] = int(head_max_len)
 
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base_url}/predict",
-        data=data,
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-            if resp.status == 200:
-                body = resp.read().decode("utf-8")
-                return json.loads(body)
-    except Exception as exc:
-        logger.debug("Laya predict unreachable or failed (%s): %s", base_url, exc)
-        return None
+    for endpoint in ("/v1/systemone", "/predict"):
+        req = urllib.request.Request(
+            f"{base_url}{endpoint}",
+            data=data,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                if resp.status == 200:
+                    body = resp.read().decode("utf-8")
+                    return json.loads(body)
+        except urllib.error.HTTPError as http_err:
+            if http_err.code == 404 and endpoint == "/v1/systemone":
+                continue
+            logger.debug("Laya predict HTTP error (%s%s): %s", base_url, endpoint, http_err)
+            return None
+        except Exception as exc:
+            logger.debug("Laya predict unreachable or failed (%s): %s", base_url, exc)
+            return None
     return None
 
 
@@ -113,7 +118,7 @@ def predict_batch(
     url: Optional[str] = None,
     timeout: Optional[float] = None,
 ) -> Optional[List[Dict[str, Any]]]:
-    """Invia un batch eterogeneo a Laya (/predict/batch) condividendo le forward pass."""
+    """Invia un batch eterogeneo a Laya (/v1/systemone/batch o /predict/batch)."""
     if not LAYA_ENABLED or not requests_batch:
         return None
 
@@ -128,21 +133,26 @@ def predict_batch(
         payload["batch_size"] = batch_size
 
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base_url}/predict/batch",
-        data=data,
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-            if resp.status == 200:
-                body = resp.read().decode("utf-8")
-                return json.loads(body)
-    except Exception as exc:
-        logger.debug("Laya predict_batch failed: %s", exc)
-        return None
+    for endpoint in ("/v1/systemone/batch", "/predict/batch"):
+        req = urllib.request.Request(
+            f"{base_url}{endpoint}",
+            data=data,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                if resp.status == 200:
+                    body = resp.read().decode("utf-8")
+                    return json.loads(body)
+        except urllib.error.HTTPError as http_err:
+            if http_err.code == 404 and endpoint == "/v1/systemone/batch":
+                continue
+            logger.debug("Laya predict_batch HTTP error (%s%s): %s", base_url, endpoint, http_err)
+            return None
+        except Exception as exc:
+            logger.debug("Laya predict_batch failed: %s", exc)
+            return None
     return None
 
 

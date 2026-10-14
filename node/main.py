@@ -51,7 +51,10 @@ from shared.node_compat import PROTOCOL_VERSION
 from backend_metrics import collect_metrics, capability_profile, vram_source
 from qos_monitor import QoSMonitor
 from dreaming import DreamJournal
-from shared import ollama_native
+from shared.crypto_channel import encrypt_envelope, decrypt_envelope
+from shared.node_telemetry import collect_full_node_telemetry
+from shared.mesh_sync import apply_mesh_update
+from datetime import datetime, timezone
 
 app = FastAPI()
 
@@ -832,6 +835,146 @@ async def node_metrics():
         "active_by_model": dict(_load_limiter.active_by_model),
     }
     return payload
+
+
+def _gather_local_telemetry():
+    return collect_full_node_telemetry(
+        node_id=NODE_ID,
+        public_key_hex=NODE_PUBKEY,
+        tier=NODE_PROFILE["tier"],
+        runtime_info={
+            "uptime_s": int(time.time() - _boot_time),
+            "active_requests": _load_limiter.active_requests,
+            "queued_requests": _load_limiter.queued_requests,
+            "capacity": round(_load_limiter.capacity, 2),
+            "saturation": _qos_monitor.saturation,
+            "degraded": _qos_monitor.degraded,
+            "degradation_pct": _qos_monitor.degradation_pct,
+            "active_by_model": dict(_load_limiter.active_by_model),
+            "engine": INFERENCE_BACKEND,
+            "backend_type": BACKEND_TYPE,
+        },
+    )
+
+
+@app.get("/doctor/telemetry")
+async def doctor_telemetry_get(requester_pubkey: str = ""):
+    """Restituisce telemetria diagnostica dettagliata su salute e codebase locale.
+
+    Se requester_pubkey (hex secp256k1) e' fornito, cifra la telemetria in un envelope
+    end-to-end con ECDH effimero + AES-256-GCM sigillato con la firma ECDSA del nodo.
+    Altrimenti restituisce il payload firmato con sign_message.
+    """
+    telemetry = _gather_local_telemetry()
+    if requester_pubkey:
+        try:
+            envelope = encrypt_envelope(
+                payload=telemetry,
+                recipient_pubkey_hex=requester_pubkey,
+                sender_private_key=_private_key,
+                sender_node_id=NODE_ID,
+                sender_pubkey_hex=NODE_PUBKEY,
+            )
+            return {"encrypted": True, "envelope": envelope}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Errore nella cifratura dell'envelope: {e}")
+    return sign_message(telemetry, _private_key)
+
+
+@app.post("/doctor/telemetry")
+async def doctor_telemetry_post(request: Request):
+    """Endpoint POST per query cifrata da parte del control-plane o peer fidati."""
+    data = {}
+    try:
+        data = await request.json()
+    except Exception:
+        pass
+
+    requester_pubkey = data.get("requester_pubkey", "").strip()
+    telemetry = _gather_local_telemetry()
+    if requester_pubkey:
+        try:
+            envelope = encrypt_envelope(
+                payload=telemetry,
+                recipient_pubkey_hex=requester_pubkey,
+                sender_private_key=_private_key,
+                sender_node_id=NODE_ID,
+                sender_pubkey_hex=NODE_PUBKEY,
+            )
+            return {"encrypted": True, "envelope": envelope}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Errore nella cifratura dell'envelope: {e}")
+    return sign_message(telemetry, _private_key)
+
+
+@app.post("/mesh/sync/patch")
+async def mesh_sync_patch_post(request: Request):
+    """Riceve, verifica ed applica in modo atomico una patch di codice o artefatto Graphify.
+
+    Tutte le transazioni viaggiano protette dal canale crittografico E2EE.
+    Dopo l'applicazione, esegue un controllo Mesh Doctor locale e restituisce l'ACK.
+    """
+    data = {}
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Payload JSON non valido")
+
+    sender_pubkey = None
+    is_encrypted = False
+
+    if data.get("encrypted") and "envelope" in data:
+        try:
+            envelope = data["envelope"]
+            sender_pubkey = envelope.get("sender_pubkey")
+            update_payload = decrypt_envelope(
+                envelope=envelope,
+                recipient_private_key=_private_key,
+                max_age_s=180,
+            )
+            is_encrypted = True
+        except Exception as e:
+            raise HTTPException(status_code=403, detail=f"Decifratura o firma fallita: {e}")
+    else:
+        # Fallback non-cifrato (solo se firmato con ECDSA)
+        if not verify_message(data):
+            raise HTTPException(status_code=401, detail="Firma del messaggio mancante o non valida")
+        update_payload = data
+        sender_pubkey = data.get("pubkey")
+
+    # Applica l'aggiornamento (priorità su /repo se montato, altrimenti directory corrente)
+    repo_hint = os.getenv("REPO_DIR", "/repo" if os.path.exists("/repo") else ".")
+    apply_res = apply_mesh_update(update_payload, repo_dir=repo_hint)
+
+    # Raccoglie la telemetria post-aggiornamento (Mesh Doctor interno)
+    post_telemetry = _gather_local_telemetry()
+
+    ack_payload = {
+        "status": "applied" if apply_res.get("success") else "failed",
+        "node_id": NODE_ID,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+        "applied_files": apply_res.get("applied_files", []),
+        "errors": apply_res.get("errors", []),
+        "rollback_applied": apply_res.get("rollback_applied", False),
+        "codebase": apply_res.get("codebase", {}),
+        "telemetry": post_telemetry,
+    }
+
+    if is_encrypted and sender_pubkey:
+        try:
+            ack_envelope = encrypt_envelope(
+                payload=ack_payload,
+                recipient_pubkey_hex=sender_pubkey,
+                sender_private_key=_private_key,
+                sender_node_id=NODE_ID,
+                sender_pubkey_hex=NODE_PUBKEY,
+            )
+            return {"encrypted": True, "envelope": ack_envelope}
+        except Exception:
+            pass
+
+    return sign_message(ack_payload, _private_key)
+
 
 @app.get("/peers")
 def get_peers():

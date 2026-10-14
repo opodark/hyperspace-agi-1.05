@@ -646,6 +646,7 @@ services:
       - "8081:8084"
     volumes:
       - ./data/node-1:/app/data
+      - .:/repo:ro
     environment:
       NODE_HOSTNAME: ${NODE_HOSTNAME:-node-1}
       NODE_PORT: "8084"

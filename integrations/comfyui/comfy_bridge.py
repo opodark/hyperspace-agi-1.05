@@ -68,8 +68,11 @@ COMFY_DEFAULT = "http://127.0.0.1:8188"
 PORTA_GATEWAY_WEBUI = 8189
 # La cartella dell'app desktop: si usa solo per dare un percorso leggibile al
 # file prodotto, non serve a generare.
-OUTPUT_DESKTOP = (Path(os.environ.get("LOCALAPPDATA", "")) / "Comfy-Desktop" /
-                  "ComfyUI-Installs" / "ComfyUI" / "ComfyUI" / "output")
+OUTPUT_SHARED = (Path(os.environ.get("LOCALAPPDATA", "")) / "Comfy-Desktop" /
+                 "ComfyUI-Shared" / "output")
+OUTPUT_INSTALLS = (Path(os.environ.get("LOCALAPPDATA", "")) / "Comfy-Desktop" /
+                   "ComfyUI-Installs" / "ComfyUI" / "ComfyUI" / "output")
+OUTPUT_DESKTOP = OUTPUT_SHARED if OUTPUT_SHARED.is_dir() else OUTPUT_INSTALLS
 
 
 def _output_default() -> str:

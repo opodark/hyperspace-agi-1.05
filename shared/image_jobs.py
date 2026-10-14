@@ -23,6 +23,7 @@ import uuid
 import warnings
 
 STATI = ("pending", "running", "done", "failed")
+JOB_INTERATTIVI = frozenset({"ritratto", "webui", "chat", "operatore", "comic", "comic-editor", "manuale", "interattivo"})
 
 # Tetti espliciti, come per i canali: i job sono pochi e piccoli (un prompt e
 # quattro numeri), anche quando la coda e' salvata sul volume persistente.
@@ -443,9 +444,11 @@ class ImmagineQueue:
         """
         with self._lock:
             self._pota_locked()
-            if self.paused or self.auto_paused:
+            if self.paused:
                 return None
             candidati = [j for j in self._job.values() if j["stato"] == "pending"]
+            if self.auto_paused:
+                candidati = [j for j in candidati if j.get("richiedente") in JOB_INTERATTIVI]
             capaci = famiglie_capaci(capace_di)
             if capaci:
                 candidati = [j for j in candidati
