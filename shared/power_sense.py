@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-DEFAULT_FRESHNESS_S = 60.0
+DEFAULT_FRESHNESS_S = 300.0
 
 
 def _parse_mac_pmset() -> Optional[Dict[str, Any]]:
@@ -174,6 +174,7 @@ def _read_host_power_file(data_dir: Optional[Path] = None, max_age_s: float = DE
         candidates.append(Path(data_dir) / "host_power.json")
     candidates.extend([
         Path("data/host_power.json"),
+        Path("data/runtime/data/host_power.json"),
         Path("/repo/data/host_power.json"),
         Path("/app/data/host_power.json"),
         Path("./host_power.json"),
@@ -212,6 +213,19 @@ def save_host_power(status: Dict[str, Any], data_dir: Optional[Path] = None) -> 
     with open(temp_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
     temp_file.replace(out_file)
+
+    # Scrivi anche nella directory runtime montata in Docker (/app/data)
+    runtime_data = Path("data/runtime/data")
+    if runtime_data.exists() and runtime_data.is_dir() and target_dir != runtime_data:
+        try:
+            r_out = runtime_data / "host_power.json"
+            r_temp = runtime_data / f"host_power.{os.getpid()}.tmp"
+            with open(r_temp, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            r_temp.replace(r_out)
+        except Exception:
+            pass
+
     return out_file
 
 

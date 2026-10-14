@@ -57,7 +57,7 @@ if (-not $env:IMAGE_FREE_GPU) {
 }
 
 $python = Join-Path $Root '.venv\Scripts\python.exe'
-if (-not (Test-Path $python)) { $python = 'py' }
+if (-not (Test-Path $python)) { $python = 'python' }
 $gateway = Join-Path $Root 'integrations\comfyui\webui_gateway.py'
 
 $argomenti = @($gateway)

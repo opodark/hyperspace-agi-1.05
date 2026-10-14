@@ -64,3 +64,15 @@ def prossima_finestra(now: datetime, start: int, end: int) -> datetime | None:
     if apertura <= now:
         apertura += timedelta(days=1)
     return apertura
+
+
+def check_dream_power_guard(power_info: dict | None = None) -> tuple[bool, str]:
+    """Valuta la policy energetica prima di avviare il ciclo di sogno.
+
+    Ritorna (consentito: bool, motivo: str).
+    I sogni notturni consumano GPU/CPU intensiva e devono essere rinviati se a batteria.
+    """
+    from shared.power_policy import should_defer_dream_cycle
+    defer, reason = should_defer_dream_cycle(power_info)
+    return (not defer, reason)
+

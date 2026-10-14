@@ -327,8 +327,17 @@ def get_system_hardware() -> Dict[str, Any]:
         except Exception:
             pass
 
-    # Rilevamento stato energetico (AC vs Batteria)
+    # Rilevamento stato energetico (AC vs Batteria) e classificazione policy
     power_info = detect_host_power()
+    try:
+        from shared.power_policy import get_power_profile
+        power_eval = get_power_profile(power_info)
+        power_info["profile"] = power_eval["profile"]
+        power_info["capacity_multiplier"] = power_eval["capacity_multiplier"]
+        power_info["degraded"] = power_eval["degraded"]
+        hw["power_profile"] = power_eval["profile"]
+    except Exception:
+        pass
     hw["power"] = power_info
     hw["ac_line"] = power_info.get("ac_line", True)
     hw["battery_pct"] = power_info.get("battery_pct")

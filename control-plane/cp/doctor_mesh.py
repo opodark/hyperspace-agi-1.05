@@ -338,51 +338,32 @@ def run_mesh_codebase_and_health_checks(
         "fix_hint": "Avvia Laya con '.\\scripts\\start-laya.ps1' se desideri il triage sub-50ms attivo." if not laya_online else "",
     })
 
-    # ── CHECK 6: Gestione Energetica & Resilienza Blackout ─────────────────────
-    ac_nodes = []
-    batt_nodes = []
-    for t in telemetries:
-        hw = t.get("hardware", {})
-        pwr = hw.get("power", {})
-        is_ac = pwr.get("ac_line", hw.get("ac_line", True))
-        pct = pwr.get("battery_pct", hw.get("battery_pct"))
-        label = t.get("alias") or (t.get("node_id", "?")[:8] + (" [Local]" if t.get("is_local") else ""))
-        if is_ac:
-            ac_nodes.append(f"{label} (🔌 Rete AC)")
-        else:
-            batt_desc = f"{pct:.0f}%" if pct is not None else "sconosciuta"
-            batt_nodes.append(f"{label} (🔋 {batt_desc})")
+    # ── CHECK 6: Gestione Energetica & Resilienza Blackout (Power Policy v1.05) ──
+    try:
+        from shared.power_policy import assess_cluster_energy_status
+        energy_eval = assess_cluster_energy_status(telemetries)
 
-    if not batt_nodes:
+        fix_hint = ""
+        if energy_eval["critical_count"] > 0:
+            fix_hint = f"Attenzione: {', '.join(energy_eval['critical_nodes'])} sotto soglia critica (<20%). Collega subito all'alimentatore."
+        elif energy_eval["regime"] == "blackout_cooperative":
+            fix_hint = "Collega almeno un nodo alla rete elettrica AC per riabilitare task pesanti e cicli di sogno."
+
+        checks.append({
+            "id": "mesh_power_grid",
+            "name": "Alimentazione & Resilienza Energetica",
+            "status": energy_eval["status"],
+            "detail": energy_eval["summary"],
+            "fix_hint": fix_hint,
+            "regime": energy_eval["regime"],
+        })
+    except Exception as e:
         checks.append({
             "id": "mesh_power_grid",
             "name": "Alimentazione & Resilienza Energetica",
             "status": "ok",
-            "detail": "Tutti i nodi sono alimentati da rete elettrica stabile (AC).",
+            "detail": f"Rilevamento energetico fallback ({e})",
             "fix_hint": "",
-        })
-    elif ac_nodes:
-        checks.append({
-            "id": "mesh_power_grid",
-            "name": "Alimentazione & Resilienza Energetica",
-            "status": "ok",
-            "detail": (
-                f"Rete mista: {len(ac_nodes)} nodo/i a rete AC ({'; '.join(ac_nodes)}), "
-                f"{len(batt_nodes)} a batteria ({'; '.join(batt_nodes)}). "
-                "Carico deviato automaticamente verso la presa elettrica."
-            ),
-            "fix_hint": "",
-        })
-    else:
-        checks.append({
-            "id": "mesh_power_grid",
-            "name": "Alimentazione & Resilienza Energetica",
-            "status": "warn",
-            "detail": (
-                f"ALLERTA BLACKOUT: Tutti i nodi ({len(batt_nodes)}) operano a batteria ({'; '.join(batt_nodes)}). "
-                "Carico ripartito proporzionalmente per autonomia residua."
-            ),
-            "fix_hint": "Collega almeno uno dei nodi portatili alla rete elettrica fissa per evitare lo spegnimento della flotta.",
         })
 
     return checks, telemetries

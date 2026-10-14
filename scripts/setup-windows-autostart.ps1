@@ -132,6 +132,17 @@ function Get-AutostartStatus {
         InEsecuzione = if ($graphifyPortOpen) { "Attivo" } else { "Spento" }
     }
 
+    # 9. Power Monitor Daemon
+    $powerRunning = [bool](Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -match "power_monitor.py" })
+    $results += [PSCustomObject]@{
+        Servizio     = "Host Power Monitor"
+        Metodo       = "via start-surfaces"
+        Configurato  = "Incluso"
+        Porta        = "N/A (data/host_power.json)"
+        InEsecuzione = if ($powerRunning) { "Attivo" } else { "Spento" }
+    }
+
     return $results
 }
 

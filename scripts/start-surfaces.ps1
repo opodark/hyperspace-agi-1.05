@@ -24,6 +24,7 @@ param(
     [switch]$Gateway,
     [switch]$Laya,
     [switch]$Graphify,
+    [switch]$Power,
     [switch]$Check,
     [switch]$Stop
 )
@@ -38,13 +39,14 @@ function Warn($m) { Write-Host "[warn]     $m" -ForegroundColor Yellow }
 function Fail($m) { Write-Host "[error]    $m" -ForegroundColor Red }
 function Head($m) { Write-Host ""; Write-Host "== $m ==" -ForegroundColor Cyan }
 
-if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Stop) {
+if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Power -and -not $Stop) {
     # Nessuna scelta = tutte le superfici abilitate per default
     $Telegram = $true
     $Comfy = $true
     $Gateway = $true
     $Laya = $true
     $Graphify = $true
+    $Power = $true
 }
 
 function Get-Processi([string]$Frammento) {
@@ -68,6 +70,7 @@ $driverTelegram = Join-Path $Root 'scripts\start-telegram.ps1'
 $ponteComfy = Join-Path $Root 'integrations\comfyui\comfy_bridge.py'
 $gatewayImmagini = Join-Path $Root 'integrations\comfyui\start-gateway.ps1'
 $scriptGraphify = Join-Path $Root 'scripts\graphify_surface.py'
+$scriptPower = Join-Path $Root 'scripts\power_monitor.py'
 $python = Join-Path $Root '.venv\Scripts\python.exe'
 if (-not (Test-Path $python)) { $python = 'python' }
 
@@ -76,10 +79,11 @@ $comfyAttivi = Get-Processi 'comfy_bridge.py'
 $gatewayAttivi = Get-Processi 'webui_gateway.py'
 $layaAttivi = Get-Processi 'laya_service.py'
 $graphifyAttivi = Get-Processi 'graphify_surface.py'
+$powerAttivi = Get-Processi 'power_monitor.py'
 
 if ($Stop) {
     Head "Stop Superfici Esterne"
-    $tutti = @($telegramAttivi; $comfyAttivi; $gatewayAttivi; $layaAttivi; $graphifyAttivi) |
+    $tutti = @($telegramAttivi; $comfyAttivi; $gatewayAttivi; $layaAttivi; $graphifyAttivi; $powerAttivi) |
              Where-Object { $_ -and $_.ProcessId }
     foreach ($processo in $tutti) {
         Stop-Process -Id $processo.ProcessId -Force -ErrorAction SilentlyContinue
@@ -90,6 +94,22 @@ if ($Stop) {
 }
 
 Head "Stato Superfici Host HyperSpace"
+if ($powerAttivi.Count) {
+    Log "monitor energetico host: attivo (PID $($powerAttivi.ProcessId -join ', '))"
+} else {
+    Warn "monitor energetico host: spento"
+}
+
+# Rilevamento istantaneo alimentazione host
+try {
+    $hostPowerFile = Join-Path $Root 'data\host_power.json'
+    if (Test-Path $hostPowerFile) {
+        $pwr = Get-Content $hostPowerFile -Raw | ConvertFrom-Json
+        $pwrDesc = if ($pwr.ac_line) { "Presa AC fissa (100%)" } else { "Batteria ($($pwr.battery_pct)%, $(if ($pwr.charging){'in carica'}else{'in scarica'}))" }
+        Log "stato alimentazione host: $pwrDesc"
+    }
+} catch {}
+
 if ($layaAttivi.Count) { Log "decision engine Laya: attivo (PID $($layaAttivi.ProcessId -join ', '), porta 8097)" }
 else { Warn "decision engine Laya: spento (porta 8097 non attiva)" }
 
@@ -133,6 +153,8 @@ if ($Check) {
         if ($_.Exception.Response -and $_.Exception.Response.StatusCode) { $statoCp = [int]$_.Exception.Response.StatusCode }
     }
     if ($statoCp -eq 200) { Log "control-plane: ok (HTTP 200)" } else { Warn "control-plane: HTTP $statoCp (avvialo con .\scripts\start.ps1)" }
+    # Aggiorna istantaneamente lo stato energetico
+    try { & $python $scriptPower --once | Out-Null } catch {}
     Head "Dettagli Check Superfici"
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'scripts\start-laya.ps1') -Check
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'integrations\comfyui\start-bridge.ps1') -Check
@@ -175,6 +197,19 @@ if ($Telegram -and -not $telegramAttivi.Count) {
     } else {
         Log "driver Telegram: saltato (data\telegram-bot.env assente)"
     }
+}
+if ($Power -and -not $powerAttivi.Count) {
+    $dirData = Join-Path $Root "data"
+    if (-not (Test-Path $dirData)) { New-Item -ItemType Directory -Path $dirData -Force | Out-Null }
+    $logPower = Join-Path $dirData 'power-monitor.log'
+    $logPowerErr = Join-Path $dirData 'power-monitor.err.log'
+    Start-Process -FilePath $python `
+        -ArgumentList @($scriptPower) `
+        -WorkingDirectory $Root `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $logPower `
+        -RedirectStandardError $logPowerErr | Out-Null
+    Log "monitor energetico avviato (log: data\power-monitor.log)"
 }
 
 Head "Completato"
