@@ -61,7 +61,7 @@ def create_git_patch_payload(
             # Metadata commit target
             p_meta = subprocess.run(
                 [git_bin, "-C", str(root), "log", "-1", target_commit, "--format=%H|%an|%cI|%s"],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
             )
             if p_meta.returncode == 0 and "|" in p_meta.stdout:
                 parts = p_meta.stdout.strip().split("|", 3)
@@ -76,7 +76,7 @@ def create_git_patch_payload(
             # Git format-patch / diff tra base e target
             p_diff = subprocess.run(
                 [git_bin, "-C", str(root), "diff", f"{base_commit}..{target_commit}"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
             )
             if p_diff.returncode == 0 and p_diff.stdout.strip():
                 diff_bytes = p_diff.stdout.encode("utf-8")
@@ -183,7 +183,7 @@ def apply_mesh_update(
             if git_bin and (root / ".git").exists():
                 p_apply = subprocess.run(
                     [git_bin, "-C", str(root), "apply", "--whitespace=nowarn", "-"],
-                    input=diff_text, capture_output=True, text=True, timeout=10,
+                    input=diff_text, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
                 )
                 if p_apply.returncode != 0:
                     result["errors"].append(f"Git apply fallito: {p_apply.stderr.strip()}")
