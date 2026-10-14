@@ -679,9 +679,9 @@ services:
     image: convaiinnovations/laya:latest
     container_name: hyperspace_laya
     ports:
-      - "${LAYA_PORT:-8098}:8098"
+      - "${LAYA_PORT:-8097}:8097"
     environment:
-      LAYA_PORT: "${LAYA_PORT:-8098}"
+      LAYA_PORT: "${LAYA_PORT:-8097}"
       LAYA_HOST: "0.0.0.0"
       LAYA_MODELS: "${LAYA_MODELS:-multilingual,english}"
       PYTHONUNBUFFERED: "1"

@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger("hyperspace.laya")
 
-LAYA_DEFAULT_URL = "http://127.0.0.1:8098"
+LAYA_DEFAULT_URL = "http://127.0.0.1:8097"
 LAYA_URL = os.getenv("LAYA_URL", LAYA_DEFAULT_URL).rstrip("/")
 LAYA_ENABLED = os.getenv("LAYA_ENABLED", "true").lower() in ("true", "1", "yes", "on")
 LAYA_TIMEOUT_S = float(os.getenv("LAYA_TIMEOUT_S", "2.0"))
