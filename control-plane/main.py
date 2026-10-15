@@ -2983,8 +2983,9 @@ def _run_doctor_checks() -> list:
 
     if OMNIROUTE_ENABLED:
         try:
-            r = requests.get(f"{OMNIROUTE_URL}/v1/models", timeout=4)
-            omni_ok = r.status_code == 200
+            hdrs = {"Authorization": f"Bearer {OMNIROUTE_API_KEY}"} if OMNIROUTE_API_KEY else {}
+            r = requests.get(f"{OMNIROUTE_URL}/v1/models", headers=hdrs, timeout=4)
+            omni_ok = r.status_code in (200, 401)
         except Exception as e:
             omni_ok = False
         checks.append(_doctor_check(

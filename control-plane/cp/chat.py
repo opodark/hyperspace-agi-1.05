@@ -201,16 +201,23 @@ def _chunk_finale(result_json, model: str, task_id: str) -> dict:
 
 def _stream_direct(urls, stream_data, model):
     """Streaming diretto con fallback: prova gli URL in ordine; su errore di
-    rete passa al successivo. Una risposta HTTP (anche di errore) viene
-    restituita com'è (niente fallback: l'endpoint ha risposto)."""
+    rete o modello non trovato (404/400) passa al successivo se ve ne sono altri."""
     last_error = None
-    for base in (urls if isinstance(urls, (list, tuple)) else [urls]):
+    last_resp = None
+    candidate_bases = urls if isinstance(urls, (list, tuple)) else [urls]
+    for i, base in enumerate(candidate_bases):
         try:
-            return requests.post(f"{base}/v1/chat/completions", json=stream_data,
+            resp = requests.post(f"{base}/v1/chat/completions", json=stream_data,
                                  stream=True, timeout=_inference_timeout(model))
+            if resp.status_code in (400, 404) and i < len(candidate_bases) - 1:
+                last_resp = resp
+                continue
+            return resp
         except requests.RequestException as e:
             last_error = e
             continue
+    if last_resp is not None:
+        return last_resp
     if last_error is not None:
         raise last_error
     raise ValueError("nessun endpoint di inferenza diretto disponibile")

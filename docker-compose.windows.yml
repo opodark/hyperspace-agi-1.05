@@ -105,6 +105,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL}
       # schema attuale letto da control-plane/main.py
       OLLAMA_URL: ${OLLAMA_RAW_BASE_URL}
+      DIRECT_INFERENCE_URLS: "${DIRECT_INFERENCE_URLS:-}"
       OLLAMA_MODEL: ${HS_MODEL_GENERAL}
       INFERENCE_BACKEND: ollama
       REGISTRY_URL: http://hyperspace-registry:${REGISTRY_PORT:-8086}
