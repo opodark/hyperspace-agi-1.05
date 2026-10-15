@@ -673,6 +673,59 @@ def get_routing_weights():
         "max_candidates": ROUTING_MAX_CANDIDATES,
     })
 
+# ── P2P MESH UPDATE & SYNC MONITOR ────────────────────────────────────────────
+@_bp.route('/mesh/sync/status')
+def mesh_sync_status():
+    """Restituisce lo stato consolidato della sincronizzazione P2P e dei canali cifrati E2EE."""
+    from cp.doctor_mesh import run_mesh_codebase_and_health_checks
+    from shared.identity import generate_or_load_identity
+
+    try:
+        cp_identity = generate_or_load_identity()
+    except Exception:
+        cp_identity = {"node_id": "control_plane", "public_key": ""}
+
+    active = _node_list()
+    checks, telemetries = run_mesh_codebase_and_health_checks(active, cp_identity)
+
+    peers_status = []
+    for t in telemetries:
+        cb = t.get("codebase", {})
+        hw = t.get("hardware", {})
+        pwr = hw.get("power", {})
+        is_ac = hw.get("ac_line") if hw.get("ac_line") is not None else pwr.get("ac_line", True)
+        batt_pct = hw.get("battery_pct") if hw.get("battery_pct") is not None else pwr.get("battery_pct")
+
+        pk = t.get("public_key") or ""
+        fp = (pk[:16] + "...") if len(pk) >= 16 else ((t.get("node_id") or "")[:16] + "...")
+
+        peers_status.append({
+            "node_id": t.get("node_id"),
+            "alias": t.get("alias") or ("Local/CP" if t.get("is_local") else (t.get("node_id") or "")[:8]),
+            "endpoint": t.get("endpoint"),
+            "is_local": t.get("is_local", False),
+            "tier": t.get("tier", "leaf"),
+            "fingerprint": fp,
+            "channel": t.get("channel", "unknown"),
+            "channel_verified": t.get("channel_verified", False),
+            "git_commit": cb.get("git_commit", "unknown"),
+            "git_branch": cb.get("git_branch", "main"),
+            "git_dirty": cb.get("git_dirty", False),
+            "dirty_count": cb.get("dirty_files_count", 0),
+            "power_ac": is_ac,
+            "battery_pct": batt_pct,
+            "vram_gb": hw.get("vram_total_gb", 0),
+            "ram_free_gb": hw.get("ram_free_gb", 0),
+        })
+
+    return jsonify({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "protocol": "ecdh-secp256k1-aes256gcm",
+        "peers_count": len(peers_status),
+        "peers": peers_status,
+        "checks": checks,
+    })
+
 # ── i candidati, in ordine di punteggio ─────────────────────────────────
 
 def _rank_candidate_nodes(active_nodes: list, pinned_node_id: str = None, max_candidates: int = None, model: str = "") -> list:

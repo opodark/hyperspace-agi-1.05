@@ -3718,8 +3718,6 @@ Formalizzata l'integrazione del pattern **SkillOpt** (Microsoft Research) nel To
    - Eseguiti i test di licenza `tests/test_licensing.py` (7/7 passati).
    - Nessun commit e nessun push senza conferma esplicita dell'utente.
 
-<<<<<<< Updated upstream
-
 ## 2026-10-13 — Antigravity → Utente / Sessione Windows (Riaccensione Nodo ASUS V16, Diagnostica Mesh & Allineamento Handoff)
 
 Rilevata la riaccensione del nodo Windows ASUS V16 (RTX 5060 8 GB, 48 GB RAM) dopo due settimane di inattività:
@@ -4051,5 +4049,27 @@ Eseguito `git pull origin main` per allineare il nodo HP Omen all'ultimo commit 
    - **Host Surfaces & Power Monitor:** registrati `HyperSpace Surfaces.lnk` e chiave `HKCU Run` via `scripts/setup-windows-autostart.ps1`. Rilevamento energetico host attivo in `data/host_power.json` (`ac_line: true, 100%`).
    - Verificata salute complessiva su `http://127.0.0.1:8085/health` (HTTP 200, 3 nodi attivi) e Doctor checks (`mesh_encrypted_channel: ok`, `mesh_power_grid: ok`, `endpoint_reachability: ok`).
    - Nessun commit e nessun push senza conferma esplicita dell'utente (Regola 3 `AGENTS.md`).
+
+## 2026-10-15 — Antigravity (Mac): Benchmark GPU HP Omen, Endpoint /mesh/sync/status e Valutazione MoE
+
+Completata la sessione autonoma di benchmark, sviluppo e analisi architetturale:
+
+1. **Benchmark Multi-Modello GPU su HP Omen 16 (NVIDIA RTX 8 GB VRAM):**
+   - **`qwen3-8b-abliterated:latest` (8B)**: **27.62 s** (67.20 tok/s) — il più veloce per reasoning e backend logic.
+   - **`granite3.3:8b` (8B)**: **20.86 s** (28.62 tok/s) — eccellente efficienza e compattezza.
+   - **`qwen3.5:4b` (4B)**: **36.95 s** (~45 tok/s) — massima qualità e completezza per codice frontend HTML/CSS/JS.
+   - **`qwen3.5-abliterated:9b` (9B)**: **74.06 s** (4.65 tok/s) — soglia critica di inizio memory spilling.
+   - **`gemma-4-abliterated:12b` (12B)**: **Timeout >120 s** — i 7.54 GB di pesi statici saturano gli 8 GB di VRAM, costringendo Windows/WSL2 al paging su RAM di sistema via PCIe (~1.5 tok/s).
+
+2. **Implementazione Endpoint Monitor Canale P2P (`/mesh/sync/status`):**
+   - Aggiunta in `control-plane/cp/mesh.py` la rotta `@_bp.route('/mesh/sync/status')`.
+   - Restituisce lo stato consolidato dei peer: fingerprint crittografico ECDSA, canale E2EE, commit git, branch, dirty state e stato alimentazione (AC/Batteria).
+   - Test di unità dedicato: `tests/test_mesh_sync_monitor.py` (100% verde).
+
+3. **Valutazione Architetturale Modelli MoE (`docs/moe-evaluation.md`):**
+   - Documentata l'analisi tecnica di adozione dei modelli **Mixture of Experts (MoE)** per i nodi da 8 GB di VRAM.
+   - I modelli MoE (es. `DeepSeek-Coder-V2-Lite` da 16B totali con 2.4B attivi o `Qwen2.5-Coder-MoE` da 14B totali con 2.7B attivi) consentono di superare il limite dei modelli densi mantenendo il throughput > 35 tok/s e un'alta qualità di codifica.
+   - Proposta matrice di assegnazione ruoli nella mesh e prossimi passi operativi.
+
 
 
