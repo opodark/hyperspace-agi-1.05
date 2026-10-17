@@ -28,6 +28,7 @@
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 import asyncio
+import hashlib
 import httpx
 import json
 import os
@@ -948,21 +949,34 @@ async def mesh_sync_patch_post(request: Request):
         update_payload = data
         sender_pubkey = data.get("pubkey")
 
-    # Applica l'aggiornamento (priorità su /repo se montato, altrimenti directory corrente)
+    # Il repository nel container è montato in SOLA LETTURA (:ro) per la telemetria:
+    # il nodo riceve e VERIFICA la patch ma NON la applica — la deposita in una
+    # cartella scrivibile. L'applicazione atomica la fa un watcher sull'host
+    # (scripts/mesh_patch_watcher.py), l'unico processo autorizzato a scrivere
+    # sul codice. Così un nodo compromesso non può iniettare codice nel repo.
     repo_hint = os.getenv("REPO_DIR", "/repo" if os.path.exists("/repo") else ".")
-    apply_res = apply_mesh_update(update_payload, repo_dir=repo_hint)
+    patches_dir = os.path.join(os.getenv("DATA_DIR", "/app/data"), "mesh-patches")
+    os.makedirs(patches_dir, exist_ok=True)
+    patch_id = hashlib.sha256(
+        json.dumps(update_payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:16]
+    with open(os.path.join(patches_dir, f"{patch_id}.json"), "w", encoding="utf-8") as f:
+        json.dump({
+            "patch_id": patch_id,
+            "received_at": datetime.now(timezone.utc).isoformat(),
+            "sender_pubkey": sender_pubkey,
+            "update": update_payload,
+        }, f, ensure_ascii=False)
 
-    # Raccoglie la telemetria post-aggiornamento (Mesh Doctor interno)
+    # Telemetria post-ricezione (sola lettura, Mesh Doctor interno)
     post_telemetry = _gather_local_telemetry()
 
     ack_payload = {
-        "status": "applied" if apply_res.get("success") else "failed",
+        "status": "queued",
         "node_id": NODE_ID,
-        "applied_at": datetime.now(timezone.utc).isoformat(),
-        "applied_files": apply_res.get("applied_files", []),
-        "errors": apply_res.get("errors", []),
-        "rollback_applied": apply_res.get("rollback_applied", False),
-        "codebase": apply_res.get("codebase", {}),
+        "patch_id": patch_id,
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "codebase": post_telemetry.get("codebase", {}),
         "telemetry": post_telemetry,
     }
 

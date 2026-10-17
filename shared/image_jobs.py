@@ -24,6 +24,14 @@ import warnings
 
 STATI = ("pending", "running", "done", "failed")
 JOB_INTERATTIVI = frozenset({"ritratto", "webui", "chat", "operatore", "comic", "comic-editor", "manuale", "interattivo"})
+# I canali "davanti all'utente": un job chiesto da una persona (Telegram, Instagram,
+# WebUI, ...) parte anche quando la coda e' in pausa automatica (finestra
+# notturna/idle). "feed" resta il canale del lavoro autonomo della persona (sogni,
+# sketch, post) e quello si sospende. Il `richiedente` dei canali utente e' l'handle
+# grezzo (es. username Telegram), che non sta in JOB_INTERATTIVI: e' il canale a
+# distinguere la richiesta umana dal lavoro di fondo.
+CANALI_INTERATTIVI = frozenset({"telegram", "instagram", "web", "webui", "irc",
+                                "cam4", "comfy", "pm", "chat"})
 
 # Tetti espliciti, come per i canali: i job sono pochi e piccoli (un prompt e
 # quattro numeri), anche quando la coda e' salvata sul volume persistente.
@@ -448,7 +456,9 @@ class ImmagineQueue:
                 return None
             candidati = [j for j in self._job.values() if j["stato"] == "pending"]
             if self.auto_paused:
-                candidati = [j for j in candidati if j.get("richiedente") in JOB_INTERATTIVI]
+                candidati = [j for j in candidati
+                             if j.get("richiedente") in JOB_INTERATTIVI
+                             or str(j.get("canale", "")).strip().lower() in CANALI_INTERATTIVI]
             capaci = famiglie_capaci(capace_di)
             if capaci:
                 candidati = [j for j in candidati
@@ -580,6 +590,47 @@ class ImmagineQueue:
             self.auto_paused = bool(paused)
             self._save_locked()
             return self.paused or self.auto_paused
+
+    def rifamiglia_fallback(self, adesso: float | None = None,
+                            dopo_s: float = 900.0) -> int:
+        """I job di checkpoint (sd15/sdxl-turbo) fermi in `pending` da troppo
+        passano alla famiglia di fallback (`qwen-image-2.1`, il modello di Aurora
+        su win11): e' il caso in cui il ponte ComfyUI del Mac non li sta prendendo
+        (macchina spenta o ComfyUI giu'), cosi' vengono generati comunque invece di
+        restare in coda per sempre. Ritorna quanti job sono stati rifamigliati.
+        """
+        adesso = self.clock() if adesso is None else adesso
+        with self._lock:
+            self._pota_locked()
+            # Se un checkpoint e' in `running` il ponte locale sta lavorando: una
+            # coda lunga non e' un ponte giu', e rifamigliare adesso sposterebbe i
+            # job mentre il Mac li sta ancora generando.
+            if any(j["stato"] == "running"
+                   and j.get("famiglia", FAMIGLIA_DEFAULT) in FAMIGLIE_CHECKPOINT
+                   for j in self._job.values()):
+                return 0
+            cambiati = 0
+            for job in self._job.values():
+                if job["stato"] != "pending":
+                    continue
+                if job.get("famiglia", FAMIGLIA_DEFAULT) not in FAMIGLIE_CHECKPOINT:
+                    continue
+                if adesso - float(job.get("creato_ts") or 0) < dopo_s:
+                    continue
+                # qwen-image non usa il checkpoint di Anna ne' il suo riferimento:
+                # il volto cambia (quello di Aurora), che e' il fallback dichiarato.
+                job["famiglia"] = FAMIGLIA_DEFAULT
+                job["modello"] = ""
+                job["larghezza"] = MISURA_SD15
+                job["altezza"] = MISURA_SD15
+                job["passi"] = 25
+                job["fix"] = 0
+                job["reference_image"] = ""
+                job["creato_ts"] = adesso
+                cambiati += 1
+            if cambiati:
+                self._save_locked()
+            return cambiati
 
     def da_consegnare(self, canale: str) -> list:
         """Le immagini PRONTE da consegnare a questo canale, non ancora consegnate.

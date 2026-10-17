@@ -872,6 +872,35 @@ def _sync_background_image_pause(now=None) -> bool:
     return allowed
 
 
+def _image_fallback_enabled() -> bool:
+    return os.getenv("IMAGE_FALLBACK_ENABLED", "true").strip().lower() not in ("0", "false", "no")
+
+
+def _image_fallback_after_s() -> float:
+    """Quanto un job checkpoint può restare pending prima del fallback a qwen-image."""
+    return max(60.0, float(os.getenv("IMAGE_FALLBACK_AFTER_S", "900")))
+
+
+def _image_fallback_check_s() -> float:
+    return max(15.0, float(os.getenv("IMAGE_FALLBACK_CHECK_S", "60")))
+
+
+def _image_fallback_loop() -> None:
+    """Se il ponte ComfyUI del Mac non genera, rifamiglia i job di checkpoint
+    (sd15/sdxl-turbo) verso qwen-image (win11) dopo la soglia: l'immagine esce
+    comunque, con lo stile/volto di Aurora invece di Anna (fallback dichiarato)."""
+    while True:
+        try:
+            if _image_fallback_enabled():
+                cambiati = image_queue.rifamiglia_fallback(dopo_s=_image_fallback_after_s())
+                if cambiati:
+                    push_log('channel', f'Fallback immagine: {cambiati} job rifamigliati a qwen-image',
+                             status='warn')
+        except Exception as error:
+            push_log('channel', 'Fallback immagine: errore', str(error)[:160], status='warn')
+        time.sleep(_image_fallback_check_s())
+
+
 @app.before_request
 def _protect_configuration():
     if request.method != "OPTIONS" and request.path in {
@@ -4969,6 +4998,7 @@ if __name__ == '__main__':
     threading.Thread(target=dream_loop, daemon=True).start()
     threading.Thread(target=poem_loop, daemon=True).start()
     threading.Thread(target=intimate_loop, daemon=True).start()
+    threading.Thread(target=_image_fallback_loop, daemon=True).start()
     _instagram_avvia()
     # Il modello PROMPT_IMAGE_MODEL per le richieste d'immagine che la regex non
     # capisce. Si configura all'avvio del server, non all'import: così i test che
@@ -4992,4 +5022,5 @@ else:
     threading.Thread(target=dream_loop, daemon=True).start()
     threading.Thread(target=poem_loop, daemon=True).start()
     threading.Thread(target=intimate_loop, daemon=True).start()
+    threading.Thread(target=_image_fallback_loop, daemon=True).start()
     _instagram_avvia()

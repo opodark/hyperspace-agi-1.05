@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from shared.image_jobs import (DEFAULT_CLAIM_TTL_S, DEFAULT_JOB_TTL_S,  # noqa: E402
-                               FAMIGLIA_SD15, FAMIGLIE, FAMIGLIE_CHECKPOINT,
+                               FAMIGLIA_DEFAULT, FAMIGLIA_SD15, FAMIGLIA_SDXL,
+                               FAMIGLIE, FAMIGLIE_CHECKPOINT,
                                FIX_UPSCALER, LIMITE_LATO, MODELLO_SD15,
                                RICETTE_CHECKPOINT, ImmagineQueue,
                                famiglie_capaci, immagini_da_history, nuovo_job,
@@ -127,6 +128,58 @@ class CodaTests(unittest.TestCase):
         self.coda.set_auto_paused(False)
         self.assertTrue(self.coda.stato()["paused"])
         self.assertTrue(self.coda.stato()["manual_paused"])
+
+    def test_la_pausa_automatica_non_blocca_i_job_dei_canali_utente(self):
+        """Un job chiesto da Telegram/Instagram parte anche a coda auto-pausata:
+        la pausa riguarda il lavoro autonomo (feed), non la richiesta di una
+        persona. Il `richiedente` dei canali utente e' l'handle grezzo, che non
+        sta in JOB_INTERATTIVI: e' il canale a fare la differenza.
+        """
+        self._job("un sogno")  # canale vuoto: resta sospeso come il feed
+        richiesto = self.coda.accoda(nuovo_job(
+            "un ritratto", richiedente="utente-telegram", canale="telegram",
+            adesso=self.orologio()))
+        self.coda.set_auto_paused(True)
+        preso = self.coda.prossimo()
+        self.assertIsNotNone(preso)
+        self.assertEqual(preso["id"], richiesto["id"])
+        self.assertEqual(preso["canale"], "telegram")
+
+    def test_fallback_rifamiglia_i_job_di_checkpoint_stallati(self):
+        """Un job sd15/sdxl-turbo fermo in pending oltre la soglia passa a
+        qwen-image (fallback), quando nessun checkpoint è in esecuzione."""
+        coda = ImmagineQueue(clock=self.orologio, ttl_s=3600.0, claim_ttl_s=3600.0)
+        coda.accoda(nuovo_job(
+            "un ritratto", richiedente="utente", canale="telegram",
+            famiglia=FAMIGLIA_SD15, modello="chickmixflat_v10.ckpt",
+            larghezza=512, altezza=768, passi=48,
+            reference_image="anna-volto-canonico.jpg",
+            adesso=self.orologio()))
+        self.orologio.avanza(901)
+        self.assertEqual(coda.rifamiglia_fallback(dopo_s=900.0), 1)
+        preso = coda.prossimo()
+        self.assertEqual(preso["famiglia"], FAMIGLIA_DEFAULT)
+        self.assertEqual(preso["reference_image"], "")
+        self.assertEqual(preso["larghezza"], 768)
+
+    def test_fallback_non_tocca_i_job_recenti(self):
+        """Sotto la soglia il fallback non rifamiglia niente."""
+        coda = ImmagineQueue(clock=self.orologio, ttl_s=3600.0, claim_ttl_s=3600.0)
+        job = coda.accoda(nuovo_job(
+            "fresco", famiglia=FAMIGLIA_SD15, adesso=self.orologio()))
+        self.orologio.avanza(60)
+        self.assertEqual(coda.rifamiglia_fallback(dopo_s=900.0), 0)
+        self.assertEqual(coda.job(job["id"])["famiglia"], FAMIGLIA_SD15)
+
+    def test_fallback_non_rifamiglia_con_un_checkpoint_in_esecuzione(self):
+        """Con un checkpoint in running il ponte locale sta lavorando: la coda
+        lunga non è un ponte giù, quindi il fallback non scatta."""
+        coda = ImmagineQueue(clock=self.orologio, ttl_s=3600.0, claim_ttl_s=3600.0)
+        coda.accoda(nuovo_job("a", famiglia=FAMIGLIA_SDXL, adesso=self.orologio()))
+        coda.accoda(nuovo_job("b", famiglia=FAMIGLIA_SD15, adesso=self.orologio()))
+        coda.prossimo()  # claim del più vecchio -> running
+        self.orologio.avanza(901)
+        self.assertEqual(coda.rifamiglia_fallback(dopo_s=900.0), 0)
 
     def test_pausa_automatica_persistita_si_ripristina_separata(self):
         with tempfile.TemporaryDirectory() as tmp:
