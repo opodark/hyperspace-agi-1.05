@@ -262,6 +262,24 @@ main{padding:18px 20px;display:grid}
 .inactive-nodes{margin-top:18px}.inactive-nodes summary{cursor:pointer;color:var(--text-muted);padding:12px 0}.inactive-nodes .node-card,.inactive-nodes .mx-node-card{opacity:.5}.inactive-nodes .node-card:hover,.inactive-nodes .mx-node-card:hover{opacity:1}.diag-node-fields{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.diag-node-fields .fg{flex:1;min-width:180px}
 .forge-layout{display:grid;grid-template-columns:minmax(300px,1fr) minmax(360px,1.35fr);gap:14px}.forge-editor{min-height:340px;font-family:var(--font-mono);font-size:.75rem;line-height:1.55}.forge-list{display:flex;flex-direction:column;gap:8px;max-height:610px;overflow:auto}.forge-item{padding:11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)}.forge-item-head{display:flex;gap:8px;align-items:center;justify-content:space-between}.forge-meta{font-size:.75rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:5px}.forge-badge{font-size:.75rem;text-transform:uppercase;padding:2px 6px;border:1px solid var(--border);border-radius:99px}.forge-badge.approved{color:var(--success);border-color:var(--success)}.forge-badge.review{color:var(--warning);border-color:var(--warning)}.forge-validation{white-space:pre-wrap;font-family:var(--font-mono);font-size:.75rem;margin-top:7px;color:var(--text-muted)}@media(max-width:900px){.forge-layout{grid-template-columns:1fr}}
 .sandbox-toolbar{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}.sandbox-toolbar .fg{min-width:180px;flex:1}.sandbox-workspace-id{font-family:var(--font-mono);font-size:.75rem;color:var(--text-muted);overflow-wrap:anywhere}.sandbox-layout{display:grid;grid-template-columns:minmax(220px,.55fr) minmax(420px,1.45fr);gap:14px}.sandbox-files{display:flex;flex-direction:column;gap:3px;max-height:560px;overflow:auto;margin-top:10px}.sandbox-file{border:0;background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;text-align:left;padding:6px 8px;border-radius:var(--radius);cursor:pointer;overflow-wrap:anywhere}.sandbox-file:hover,.sandbox-file.active{background:var(--surface3);color:var(--text)}.sandbox-editor{width:100%;min-height:380px;resize:vertical;font-family:var(--font-mono);font-size:.78rem;line-height:1.55;tab-size:4}.sandbox-checks{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:var(--text-muted)}.sandbox-checks label{display:flex;gap:5px;align-items:center;cursor:pointer}.sandbox-output{white-space:pre-wrap;overflow:auto;max-height:440px;min-height:130px;font-family:var(--font-mono);font-size:.75rem;line-height:1.5}.sandbox-result-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.sandbox-finding{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--border);background:transparent;color:var(--text);padding:7px 3px;font-family:var(--font-mono);font-size:.75rem;cursor:pointer}.sandbox-finding:hover{color:var(--primary)}@media(max-width:900px){.sandbox-layout{grid-template-columns:1fr}.sandbox-editor{min-height:300px}}
+.noob-banner{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--radius-lg);padding:12px 15px;margin-bottom:14px;font-size:.82rem;line-height:1.5;color:var(--text)}
+.noob-banner-title{font-weight:700;font-size:.88rem;color:var(--primary);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.noob-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:8px}
+.noob-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;font-size:.77rem;color:var(--text-muted);transition:border-color var(--tr),background var(--tr)}
+.noob-step b{display:block;color:var(--text);font-size:.8rem;margin-bottom:3px}
+.noob-step.active{border-color:var(--primary);background:var(--primary-bg);color:var(--text)}
+.noob-step.done{border-color:var(--success);background:var(--success-bg);color:var(--text)}
+.preset-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
+.preset-label{font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-right:2px}
+.preset-chip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:4px 11px;font-size:.76rem;color:var(--text);cursor:pointer;transition:all var(--tr);font-family:var(--font-body);min-height:28px}
+.preset-chip:hover{border-color:var(--primary);background:var(--primary-bg);color:var(--primary)}
+.token-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:14px}
+.token-badge{font-size:.74rem;font-family:var(--font-mono);padding:3px 9px;border-radius:99px;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.token-badge.ok{background:var(--success-bg);color:var(--success)}
+.token-badge.warn{background:var(--warning-bg);color:var(--warning)}
+.card-full{grid-column:1/-1}
+.sandbox-human-box{padding:10px 12px;border-radius:var(--radius);background:var(--surface2);border-left:3px solid var(--info);font-size:.82rem;margin-bottom:8px;color:var(--text);line-height:1.45}
+.bundle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin:8px 0 12px}
 /* Readable controls and navigation on laptop screens and at browser zoom. */
 body{line-height:1.5}
 header{height:auto;min-height:58px;flex-wrap:wrap;padding:10px 20px;gap:10px 16px}
@@ -576,61 +594,107 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
      storia sola, con il flusso del DAG in fondo. Vedi docs/hermes.md e la
      sezione Mission Control di docs/tiktok-editor.md. -->
 <div id="panel-autogen" class="panel">
-  <div class="sec-title">&#10024; Autogenerazione</div>
-  <p class="hint">Il ciclo che si scrive da solo, dall'ipotesi al codice: un <b>sogno</b> lascia una nota &#8594; la <b>revisione</b> la promuove in memoria &#8594; il <b>development dream</b> notturno propone un patch in una sandbox isolata &#8594; la <b>Mission Control</b> trasforma un obiettivo in un DAG di task che pianifica, esegue, verifica e ripianifica. Nessuna rotta applica da sola il codice: l'ultima parola resta a un operatore.</p>
+  <div class="sec-title">&#10024; Autogenerazione &amp; Mission Control</div>
+  <div class="noob-banner">
+    <div class="noob-banner-title">&#129517; Guida Rapida (A prova di niubbo) — Come far lavorare gli agenti in autonomia</div>
+    <div>Qui gli agenti scrivono codice, documenti o siti web lavorando dentro una <b>sandbox sicura</b> (nulla modifica il tuo repository reale senza il tuo permesso).</div>
+    <div class="noob-steps">
+      <div class="noob-step active"><b>1. Inserisci il Token Operatore</b>Incolla una sola volta il tuo <code>DREAM_REVIEW_TOKEN</code> nel campo token: sblocca automaticamente sia Mission Control che tutte le Review per questa sessione.</div>
+      <div class="noob-step"><b>2. Scegli una Ricetta a 1-Clic</b>Nella card <b>&#127919; Mission Control</b> clicca uno dei bottoni <i>Ricette Pronte</i> (oppure scrivi il tuo obiettivo) e premi <b>&#128640; Pianifica e avvia</b>.</div>
+      <div class="noob-step"><b>3. Osserva il Grafo e Approva</b>I pallini del grafo si colorano mentre i nodi (Planner &#8594; Worker/Coder &#8594; Verifier) lavorano. A fine missione, clicca <b>Approva</b> o ispeziona il diff.</div>
+    </div>
+  </div>
   <div class="diag-grid">
-    <div class="card"><div class="card-title">&#128173; Simulate Dream</div><p class="hint">Inserisce un evento di prova nei log. I sogni automatici vengono generati dal worker quando &egrave; libero.</p>
-      <div class="diag-node-fields"><label class="fg">Nodo<select id="drNode" class="inp" aria-label="Nodo del sogno"></select></label><input id="drText" class="inp" placeholder="Dream text..." style="flex:1"/></div>
-      <button class="btn btn-dream btn-sm" id="sendDreamButton" onclick="sendDream()">Simula evento Dream</button><div class="diag-out" id="dDream"></div><button class="btn btn-ghost btn-sm" onclick="checkDreamWorker()">Stato sogni automatici del nodo</button><div class="diag-out" id="dDreamWorker"></div>
+    <div class="card card-full"><div class="card-title">&#127919; Mission Control — Obiettivi Autonomi Multi-Agente (Consigliato)</div>
+      <p class="hint">Dai un obiettivo: il <b>Planner</b> lo spezza in passi (DAG), i <b>Worker/Coder</b> lavorano nella sandbox isolata e il <b>Verifier</b> controlla i risultati (inclusi file PDF e test). Nessuna rotta applica mai da sola le modifiche al repo reale.</p>
+      <div class="token-bar">
+        <label class="fg" style="flex:1;min-width:220px">&#128273; Token operatore (unico per tutta la scheda)<input id="missionToken" class="inp" type="password" autocomplete="off" placeholder="Incolla qui DREAM_REVIEW_TOKEN..." oninput="syncAutogenToken(this.value)"/></label>
+        <span id="autogenTokenBadge" class="token-badge warn">&#128274; Token non inserito</span>
+        <span class="hint" style="max-width:340px">Tutte le rotte <code>/missions*</code> e <code>/wayfinder*</code> richiedono questo token. Viene sincronizzato automaticamente con le altre card qui sotto.</span>
+      </div>
+      <div class="preset-bar">
+        <span class="preset-label">&#9889; Ricette pronte (1 clic):</span>
+        <button type="button" class="preset-chip" onclick="missionApplyPreset('pdf')">&#128196; Crea Briefing PDF del Repo</button>
+        <button type="button" class="preset-chip" onclick="missionApplyPreset('sandbox-check')">&#129514; Verifica &amp; Fix Codice in Sandbox</button>
+        <button type="button" class="preset-chip" onclick="missionApplyPreset('website')">&#127760; Crea Sito Vetrina Statico</button>
+        <button type="button" class="preset-chip" onclick="missionApplyPreset('security')">&#128270; Audit Sicurezza &amp; Qualit&agrave;</button>
+      </div>
+      <div class="diag-node-fields">
+        <label class="fg" style="max-width:200px">Filtro Stato<select id="missionStatusFilter" class="inp" onchange="loadMissions()"><option value="">Tutti</option><option value="planned">Pianificate</option><option value="running">In corso</option><option value="done">Concluse</option><option value="failed">Fallite</option><option value="cancelled">Annullate</option></select></label>
+        <label class="fg" style="flex:2">Cosa devono realizzare gli agenti? (Obiettivo)<input id="missionObjective" class="inp" maxlength="2000" placeholder="Es. Leggi docs/mission-control.md e genera un PDF riassuntivo in artifacts/docs-briefing.pdf"/></label>
+      </div>
+      <div class="diag-node-fields"><label class="fg">Criteri di successo (uno per riga — il Verifier controller&agrave; che siano tutti rispettati)<textarea id="missionCriteria" class="inp" rows="2" placeholder="Il file esiste nella sandbox ed e' leggibile&#10;I controlli statici passano senza errori"></textarea></label></div>
+      <div class="row" style="gap:8px;margin-bottom:6px">
+        <button class="btn btn-primary btn-sm" onclick="createMission(true)" title="Crea il piano e avvia subito il ciclo autonomo degli agenti">&#128640; Pianifica e avvia in autonomia</button>
+        <button class="btn btn-dream btn-sm" onclick="createMission(false)" title="Crea solo il piano DAG senza avviare ancora i task">&#128203; Solo Pianifica (bozza)</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadMissions()" title="Ricarica l'elenco delle missioni e aggiorna il grafo">&#8634; Aggiorna</button>
+      </div>
+      <div class="diag-out" id="missionEngine">Stato non caricato. Inserisci il token operatore qui sopra e premi Aggiorna.</div>
+      <div id="missionInbox" class="dream-inbox"><div class="hint">Carica le missioni.</div></div>
+      <div class="mission-flow">
+        <div class="mission-flow-head"><span>&#128640; Flusso del DAG in tempo reale</span><span id="missionFlowLabel" class="hint">nessuna missione</span><button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="missionFlowReLayout()">Riposiziona grafo</button></div>
+        <div id="cyMission" class="mission-canvas"></div>
+        <div class="mission-legend"><span><i class="mission-dot" style="background:#272b33"></i>in attesa</span><span><i class="mission-dot" style="background:#4f98a3"></i>pronto</span><span><i class="mission-dot" style="background:#e8af34"></i>in corso (pulsa)</span><span><i class="mission-dot" style="background:#6daa45"></i>fatto</span><span><i class="mission-dot" style="background:#dd6974"></i>fallito</span><span><i class="mission-dot" style="background:#596170"></i>saltato</span></div>
+        <div id="missionDetail" class="diag-out mission-detail">Clicca un pallino (task) nel grafo qui sopra per leggere cosa ha fatto l'agente.</div>
+      </div>
     </div>
-    <div class="card"><div class="card-title">&#128269; Dream Review Inbox</div><p class="hint">Le ipotesi non entrano nella memoria finch&eacute; un operatore non le promuove con una motivazione.</p>
-      <div class="diag-node-fields"><label class="fg">Nodo<select id="dreamReviewNode" class="inp" aria-label="Nodo da revisionare"></select></label><label class="fg">Stato<select id="dreamReviewStatus" class="inp"><option value="hypothesis">Da revisionare</option><option value="deferred">Rimandati</option><option value="promoted">Promossi</option><option value="rejected">Rifiutati</option><option value="revoked">Revocati</option><option value="">Tutti</option></select></label><label class="fg">Revisore<input id="dreamReviewer" class="inp" value="operator" maxlength="120"/></label><label class="fg">Token revisione<input id="dreamReviewToken" class="inp" type="password" autocomplete="off" placeholder="DREAM_REVIEW_TOKEN"/></label></div>
-      <button class="btn btn-dream btn-sm" id="loadDreamInboxButton" onclick="loadDreamInbox()">Carica inbox</button>
-      <div id="dreamInbox" class="dream-inbox"><div class="hint">Seleziona un nodo e carica le ipotesi.</div></div>
-    </div>
-    <div class="card"><div class="card-title">&#128736; Nightly Development Dream</div><p class="hint">Proposte di codice create di notte in una sandbox isolata. La revisione registra la decisione, ma non applica mai il codice.</p>
-      <div class="diag-node-fields"><label class="fg">Stato<select id="developmentDreamStatusFilter" class="inp"><option value="candidate">Da revisionare</option><option value="deferred">Rimandati</option><option value="approved">Approvati</option><option value="rejected">Rifiutati</option><option value="failed">Falliti</option><option value="">Tutti</option></select></label><label class="fg">Obiettivo prova<input id="developmentDreamObjective" class="inp" maxlength="1000" placeholder="Piccolo miglioramento a basso rischio"/></label></div>
-      <button class="btn btn-dream btn-sm" onclick="loadDevelopmentDreams()">Aggiorna</button>
-      <button class="btn btn-ghost btn-sm" onclick="runDevelopmentDream()">Avvia prova isolata</button>
+    <div class="card"><div class="card-title">&#128736; Nightly Development Dream (Manutenzione Isolata)</div><p class="hint">Piccole migliorie o pulizie del codice provate in automatico in una sandbox usa-e-getta. Tu approvi o rifiuti il diff finale.</p>
+      <div class="preset-bar">
+        <span class="preset-label">Idee rapide:</span>
+        <button type="button" class="preset-chip" onclick="devDreamApplyPreset('lint')">&#129529; Pulizia Ruff/Lint</button>
+        <button type="button" class="preset-chip" onclick="devDreamApplyPreset('security')">&#128274; Controllo Bandit</button>
+        <button type="button" class="preset-chip" onclick="devDreamApplyPreset('docs')">&#128221; Migliora Docstring</button>
+      </div>
+      <div class="diag-node-fields"><label class="fg">Stato<select id="developmentDreamStatusFilter" class="inp" onchange="loadDevelopmentDreams()"><option value="candidate">Da revisionare</option><option value="deferred">Rimandati</option><option value="approved">Approvati</option><option value="rejected">Rifiutati</option><option value="failed">Falliti</option><option value="">Tutti</option></select></label><label class="fg">Obiettivo prova<input id="developmentDreamObjective" class="inp" maxlength="1000" placeholder="Piccolo miglioramento a basso rischio"/></label></div>
+      <div class="row" style="gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="runDevelopmentDream()">&#9654; Avvia prova isolata</button>
+        <button class="btn btn-dream btn-sm" onclick="loadDevelopmentDreams()">&#8634; Aggiorna lista</button>
+      </div>
       <div class="diag-out" id="developmentDreamEngine">Stato non caricato.</div>
       <div id="developmentDreamInbox" class="dream-inbox"><div class="hint">Carica le proposte di sviluppo.</div></div>
     </div>
-    <div class="card" id="wayfinderCard"><div class="card-title">Wayfinder — decisioni prima del codice</div>
-      <p class="hint">Conserva le scelte tra sessioni. Usa il token revisione di Mission Control. Quando tutte le domande sono risolte, consegna la mappa al DAG.</p>
-      <button class="btn btn-ghost btn-sm" onclick="wfLoad()">Carica mappe</button>
-      <button class="btn btn-ghost btn-sm" onclick="wfNew()">Nuova mappa</button>
-      <label class="fg">Mappa<select class="inp" id="wfMap" onchange="wfSelect()"><option value="">Nuova mappa</option></select></label>
-      <label class="fg">Destinazione<textarea class="inp" id="wfDestination" maxlength="2000" placeholder="Che risultato vogliamo ottenere?"></textarea></label>
-      <label class="fg">Note<textarea class="inp" id="wfNotes" maxlength="4000"></textarea></label>
-      <label class="fg">Da chiarire (una voce per riga)<textarea class="inp" id="wfFog"></textarea></label>
-      <label class="fg">Fuori ambito (una voce per riga)<textarea class="inp" id="wfScope"></textarea></label>
-      <button class="btn btn-ghost btn-sm" onclick="wfSave()">Salva mappa</button>
-      <div id="wfTickets" class="dream-inbox"></div>
-      <details><summary>Aggiungi una domanda</summary>
-        <label class="fg">Titolo<input class="inp" id="wfTitle" maxlength="200"/></label>
-        <label class="fg">Domanda<textarea class="inp" id="wfQuestion" maxlength="4000"></textarea></label>
-        <label class="fg">Tipo<select class="inp" id="wfKind"><option value="grilling">Decisione con l’utente</option><option value="research">Ricerca autonoma</option><option value="prototype">Prototipo da discutere</option><option value="task">Attività preliminare autonoma</option></select></label>
-        <label class="fg">Prerequisiti<select class="inp" id="wfDeps" multiple aria-label="Domande prerequisite"></select></label>
-        <button class="btn btn-ghost btn-sm" onclick="wfAdd()">Aggiungi e salva</button>
-      </details>
-      <button class="btn btn-dream btn-sm" id="wfHandoff" onclick="wfHandoff()" disabled>Consegna a Mission Control</button>
-      <div id="wfOutput" class="diag-out" role="status">Nessuna mappa caricata.</div>
+    <div class="card"><div class="card-title">&#128269; Dream Review Inbox (Memoria Nodi)</div><p class="hint">Quando i nodi sono liberi fanno &ldquo;sogni&rdquo; (ipotesi/riflessioni). Qui decidi quali promuovere nella memoria permanente (Hermes).</p>
+      <div class="diag-node-fields"><label class="fg">Nodo<select id="dreamReviewNode" class="inp" aria-label="Nodo da revisionare"></select></label><label class="fg">Stato<select id="dreamReviewStatus" class="inp"><option value="hypothesis">Da revisionare</option><option value="deferred">Rimandati</option><option value="promoted">Promossi</option><option value="rejected">Rifiutati</option><option value="revoked">Revocati</option><option value="">Tutti</option></select></label><label class="fg">Revisore<input id="dreamReviewer" class="inp" value="operator" maxlength="120"/></label><label class="fg">Token revisione<input id="dreamReviewToken" class="inp" type="password" autocomplete="off" placeholder="DREAM_REVIEW_TOKEN" oninput="syncAutogenToken(this.value)"/></label></div>
+      <button class="btn btn-dream btn-sm" id="loadDreamInboxButton" onclick="loadDreamInbox()">&#128229; Carica inbox del nodo</button>
+      <div id="dreamInbox" class="dream-inbox"><div class="hint">Seleziona un nodo e carica le ipotesi.</div></div>
     </div>
-    <div class="card"><div class="card-title">&#127919; Mission Control</div><p class="hint">Un obiettivo entra, un DAG di task esce: pianifica, esegue, verifica, ripianifica. Il codice resta in sandbox e in attesa di revisione &mdash; nessuna rotta applica mai un artifact.</p>
-      <div class="diag-node-fields"><label class="fg">Stato<select id="missionStatusFilter" class="inp"><option value="">Tutti</option><option value="planned">Pianificate</option><option value="running">In corso</option><option value="done">Concluse</option><option value="failed">Fallite</option><option value="cancelled">Annullate</option></select></label><label class="fg">Obiettivo<input id="missionObjective" class="inp" maxlength="2000" placeholder="Es. costruisci la pagina di Anna con la galleria"/></label></div>
-      <div class="diag-node-fields"><label class="fg">Token operatore<input id="missionToken" class="inp" type="password" autocomplete="off" placeholder="DREAM_REVIEW_TOKEN"/></label><span class="hint" style="align-self:flex-end">Tutte le rotte <code>/missions*</code> vogliono questo token: senza, la card non legge nulla.</span></div>
-      <div class="diag-node-fields"><label class="fg">Criteri, uno per riga<textarea id="missionCriteria" class="inp" rows="2" placeholder="i test passano"></textarea></label></div>
-      <button class="btn btn-dream btn-sm" onclick="loadMissions()">Aggiorna</button>
-      <button class="btn btn-dream btn-sm" onclick="createMission(false)">Pianifica</button>
-      <button class="btn btn-ghost btn-sm" onclick="createMission(true)">Pianifica e avvia</button>
-      <div class="diag-out" id="missionEngine">Stato non caricato.</div>
-      <div id="missionInbox" class="dream-inbox"><div class="hint">Carica le missioni.</div></div>
-      <div class="mission-flow">
-        <div class="mission-flow-head"><span>&#128640; Flusso del DAG</span><span id="missionFlowLabel" class="hint">nessuna missione</span><button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="missionFlowReLayout()">Riposiziona</button></div>
-        <div id="cyMission" class="mission-canvas"></div>
-        <div class="mission-legend"><span><i class="mission-dot" style="background:#272b33"></i>in attesa</span><span><i class="mission-dot" style="background:#4f98a3"></i>pronto</span><span><i class="mission-dot" style="background:#e8af34"></i>in corso (pulsa)</span><span><i class="mission-dot" style="background:#6daa45"></i>fatto</span><span><i class="mission-dot" style="background:#dd6974"></i>fallito</span><span><i class="mission-dot" style="background:#596170"></i>saltato</span></div>
-        <div id="missionDetail" class="diag-out mission-detail">Clicca un task nel grafo per i dettagli.</div>
+    <div class="card"><div class="card-title">&#128173; Simulate Dream (Test Rapido Sogni)</div><p class="hint">Vuoi verificare se il ciclo dei sogni di un nodo funziona? Invia qui un pensiero di prova o controlla il worker automatico.</p>
+      <div class="diag-node-fields"><label class="fg">Nodo<select id="drNode" class="inp" aria-label="Nodo del sogno"></select></label><input id="drText" class="inp" placeholder="Testo del sogno di prova..." style="flex:1"/></div>
+      <div class="row" style="gap:6px">
+        <button class="btn btn-dream btn-sm" id="sendDreamButton" onclick="sendDream()">Simula evento Dream</button>
+        <button class="btn btn-ghost btn-sm" onclick="checkDreamWorker()">Stato sogni automatici del nodo</button>
       </div>
+      <div class="diag-out" id="dDream"></div><div class="diag-out" id="dDreamWorker"></div>
+    </div>
+    <div class="card card-full" id="wayfinderCard"><div class="card-title">&#129517; Wayfinder — Chiarisci i dubbi prima di lanciare una Missione complessa</div>
+      <p class="hint">Non sei sicuro di tutti i dettagli di un progetto? Annota qui la <b>Destinazione</b> e i punti oscuri: quando avrai risposto alle domande aperte, il bottone in fondo invier&agrave; tutto a <b>Mission Control</b>.</p>
+      <div class="row" style="gap:6px;margin-bottom:8px">
+        <button class="btn btn-ghost btn-sm" onclick="wfLoad()">&#128194; Carica mappe salvate</button>
+        <button class="btn btn-ghost btn-sm" onclick="wfNew()">&#10133; Nuova mappa vuota</button>
+        <button class="btn btn-ghost btn-sm" onclick="wfFillExample()">&#128161; Compila con esempio guidato</button>
+      </div>
+      <div class="setup-grid">
+        <label class="fg">Mappa attiva<select class="inp" id="wfMap" onchange="wfSelect()"><option value="">Nuova mappa</option></select></label>
+        <label class="fg">Destinazione (Cosa vogliamo ottenere?)<textarea class="inp" id="wfDestination" rows="2" maxlength="2000" placeholder="Che risultato vogliamo ottenere?"></textarea></label>
+        <label class="fg">Note di contesto e vincoli<textarea class="inp" id="wfNotes" rows="2" maxlength="4000" placeholder="Vincoli tecnici, file coinvolti, preferenze..."></textarea></label>
+        <label class="fg">Da chiarire (una voce per riga — finch&eacute; non &egrave; vuoto blocca la consegna)<textarea class="inp" id="wfFog" rows="2" placeholder="Lascia vuoto quando tutti i dubbi sono stati trasformati in domande risolte"></textarea></label>
+      </div>
+      <label class="fg" style="margin-top:8px">Fuori ambito (cosa NON devono fare gli agenti, una voce per riga)<textarea class="inp" id="wfScope" rows="2" placeholder="Es. Non modificare i file .env&#10;Non toccare il database di produzione"></textarea></label>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <button class="btn btn-primary btn-sm" onclick="wfSave()">&#128190; Salva mappa</button>
+        <button class="btn btn-dream btn-sm" id="wfHandoff" onclick="wfHandoff()" disabled>&#128640; Consegna a Mission Control</button>
+      </div>
+      <div id="wfTickets" class="dream-inbox"></div>
+      <details style="margin-top:8px"><summary style="cursor:pointer;font-size:.8rem;color:var(--primary)">&#10133; Aggiungi una domanda / decisione da prendere</summary>
+        <div class="setup-grid" style="margin-top:8px">
+          <label class="fg">Titolo breve<input class="inp" id="wfTitle" maxlength="200" placeholder="Es. Formato del report"/></label>
+          <label class="fg">Tipo di attivit&agrave;<select class="inp" id="wfKind"><option value="grilling">Decisione con l’utente</option><option value="research">Ricerca autonoma</option><option value="prototype">Prototipo da discutere</option><option value="task">Attività preliminare autonoma</option></select></label>
+        </div>
+        <label class="fg" style="margin-top:6px">Domanda dettagliata<textarea class="inp" id="wfQuestion" rows="2" maxlength="4000" placeholder="Quale scelta dobbiamo confermare prima di scrivere codice?"></textarea></label>
+        <label class="fg" style="margin-top:6px">Prerequisiti<select class="inp" id="wfDeps" multiple aria-label="Domande prerequisite"></select></label>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="wfAdd()">Aggiungi e salva</button>
+      </details>
+      <div id="wfOutput" class="diag-out" role="status">Nessuna mappa caricata.</div>
     </div>
   </div>
 </div>
@@ -735,34 +799,55 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
 
 <!-- TOOL & SKILL FORGE -->
 <div id="panel-forge" class="panel">
-  <div class="sec-title">Tool &amp; Skill Forge</div>
-  <p class="hint">Area di authoring controllata: il codice generato resta una <b>bozza inerte</b> finché non lo approvi. Flusso: scrivi/genera → valida → review → <b>approved</b> (serve il token) o <b>disabled</b>. Non viene mai eseguito o installato automaticamente.</p>
+  <div class="sec-title">&#128736; Tool &amp; Skill Forge</div>
+  <div class="noob-banner">
+    <div class="noob-banner-title">&#129517; Guida Rapida Forge (A prova di niubbo) — Come creare o importare capacita' per gli agenti</div>
+    <div>Qui crei nuove <b>Skill</b> (guide in Markdown per gli agenti) o <b>Tool</b> (funzioni Python). Tutto nasce come <b>bozza inerte (`draft`)</b>: non può fare alcun danno finch&eacute; non lo approvi tu.</div>
+    <div class="noob-steps">
+      <div class="noob-step active"><b>Passo 1: Scegli un Modello o Importa</b>Clicca uno dei <i>Modelli Pronti</i> qui a sinistra (o importa un pacchetto gi&agrave; fatto a destra), oppure descrivi cosa vuoi e clicca <b>&#10024; Genera draft</b>.</div>
+      <div class="noob-step"><b>Passo 2: Verifica il bollino VALIDO</b>Il sistema controlla automaticamente sintassi e sicurezza. Nel Registry a destra vedrai comparire <b>VALIDO</b> (oppure il motivo da correggere).</div>
+      <div class="noob-step"><b>Passo 3: Inserisci Token e Approva</b>Incolla il tuo <code>FORGE_ADMIN_TOKEN</code> nel box a destra e clicca il bottone verde <b>Approva</b> sull'artefatto per renderlo attivo.</div>
+    </div>
+  </div>
   <div class="forge-layout">
     <div class="card">
-      <div class="card-title">Nuovo artefatto</div>
+      <div class="card-title">&#9997;&#65039; 1. Crea o Modifica Artefatto</div>
+      <div class="preset-bar">
+        <span class="preset-label">&#9889; Modelli pronti (1 clic):</span>
+        <button type="button" class="preset-chip" onclick="forgeApplyPreset('skill')">&#128196; Esempio Skill Markdown</button>
+        <button type="button" class="preset-chip" onclick="forgeApplyPreset('tool')">&#128013; Esempio Tool Python</button>
+        <button type="button" class="preset-chip" onclick="forgeApplyPreset('ai-log')">&#129302; Idea per AI: Analisi Log</button>
+        <button type="button" class="preset-chip" onclick="forgeApplyPreset('ai-release')">&#129302; Idea per AI: Checklist Release</button>
+      </div>
       <div class="setup-grid">
-        <label class="fg">Nome<input id="forgeName" class="inp" placeholder="es. GitHub issue triage"/></label>
-        <label class="fg" title="Il tipo determina la validazione statica applicata">Tipo<select id="forgeType" class="inp" title="skill = istruzioni Markdown riutilizzabili · tool = classe Python (Tools) per Open WebUI · patch = diff unificato dal sandbox"><option value="skill">Skill Markdown</option><option value="tool">Tool Python</option><option value="patch">Patch sandbox</option></select></label>
+        <label class="fg">Nome artefatto<input id="forgeName" class="inp" placeholder="es. GitHub issue triage"/></label>
+        <label class="fg" title="Il tipo determina la validazione statica applicata">Tipo di artefatto<select id="forgeType" class="inp" title="skill = istruzioni Markdown riutilizzabili · tool = classe Python (Tools) per Open WebUI · patch = diff unificato dal sandbox"><option value="skill">Skill Markdown</option><option value="tool">Tool Python</option><option value="patch">Patch sandbox</option></select></label>
       </div>
-      <label class="fg">Descrizione<textarea id="forgeDescription" class="inp" rows="4" placeholder="Cosa deve fare, input, output e vincoli"></textarea></label>
-      <label class="fg">Sorgente<textarea id="forgeSource" class="inp forge-editor" placeholder="Genera con il modello oppure scrivi qui..."></textarea></label>
-      <div class="row" style="gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="forgeGenerate()" title="Genera il sorgente con il modello coder (Ollama) e lo salva come draft inerte">&#10024; Genera draft</button>
-        <button class="btn btn-ghost" onclick="forgeSave()" title="Salva o aggiorna il draft: incrementa la versione e resetta l'approvazione">Salva manualmente</button>
-        <button class="btn btn-ghost" onclick="forgeNew()" title="Pulisci il form per un nuovo artefatto">Nuovo</button>
-        <button class="btn btn-success" onclick="forgeOpenIde()" title="Apri code-server (solo localhost): i sorgenti stanno in /home/coder/forge">Apri IDE</button>
+      <label class="fg" style="margin-top:8px">Descrizione (cosa deve fare — usata anche dall'AI se premi &ldquo;Genera draft&rdquo;)<textarea id="forgeDescription" class="inp" rows="3" placeholder="Spiega con parole semplici cosa deve fare, quali input riceve e cosa deve restituire..."></textarea></label>
+      <label class="fg" style="margin-top:8px">Codice / Testo Sorgente (modificabile liberamente)<textarea id="forgeSource" class="inp forge-editor" placeholder="Clicca un Modello Pronto qui sopra, premi '✨ Genera draft' per farlo scrivere all'AI, oppure incolla il tuo codice qui..."></textarea></label>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-primary" onclick="forgeGenerate()" title="Genera il sorgente con il modello coder (Ollama) e lo salva come draft inerte">&#10024; Genera draft con l'AI</button>
+        <button class="btn btn-ghost" onclick="forgeSave()" title="Salva o aggiorna il draft: incrementa la versione e resetta l'approvazione">&#128190; Salva manualmente</button>
+        <button class="btn btn-ghost" onclick="forgeNew()" title="Pulisci il form per un nuovo artefatto">&#129529; Pulisci / Nuovo</button>
+        <button class="btn btn-success" onclick="forgeOpenIde()" title="Apri code-server (solo localhost): i sorgenti stanno in /home/coder/forge">&#128187; Apri IDE (code-server)</button>
       </div>
-      <div class="diag-out" id="forgeOutput" style="margin-top:10px"></div>
+      <div class="diag-out" id="forgeOutput" style="margin-top:10px">Pronto. Scegli un Modello Pronto qui sopra oppure compila Nome + Descrizione e premi &ldquo;&#10024; Genera draft con l'AI&rdquo;.</div>
     </div>
     <div class="card">
-      <div class="row" style="justify-content:space-between"><div class="card-title">Registry locale</div><button class="btn btn-ghost btn-sm" onclick="forgeLoad()" title="Ricarica l'elenco degli artefatti">&#8634; Refresh</button></div>
-      <p class="hint" style="margin-top:6px">Stati artefatto: <b>draft</b> (bozza) → <b>review</b> (in revisione) → <b>approved</b> (approvata, usabile con <code>hyperspace_skills</code>) oppure <b>disabled</b>. Una modifica al sorgente resetta l'approvazione.</p>
-      <label class="fg" title="FORGE_ADMIN_TOKEN: serve solo per approvare/disabilitare e per importare ECC">Token approvazione<input id="forgeToken" type="password" class="inp" autocomplete="off" placeholder="FORGE_ADMIN_TOKEN"/></label>
-      <button class="btn btn-ghost btn-sm" onclick="forgeImportEcc()" title="Importa i workflow ECC (security-review, verification-loop) dal bundle locale pinnato, come draft">Importa skill ECC come draft</button>
-      <button class="btn btn-ghost btn-sm" onclick="forgeImportAnydoc()" title="Importa la skill anydoc (documenti Office in Markdown) dal bundle locale pinnato, come draft">Importa skill anydoc come draft</button>
-      <button class="btn btn-ghost btn-sm" onclick="forgeImportWayfinder()">Importa Wayfinder e skill di supporto come draft</button>
-      <button class="btn btn-ghost btn-sm" onclick="forgeImportFirecrawlSkills()" title="Importa le skill testuali Firecrawl (search, scrape, indici di ricerca) dal bundle locale pinnato, come draft inerti">Importa skill Firecrawl come draft</button>
-      <button class="btn btn-ghost btn-sm" onclick="forgeImportAgencyAgents()" title="Importa tre profili Agency Agents adattati a HyperSpace come draft inerti">Importa profili Agency Agents come draft</button>
+      <div class="row" style="justify-content:space-between"><div class="card-title">&#128218; 2. Registry Locale &amp; Approvazione</div><button class="btn btn-ghost btn-sm" onclick="forgeLoad()" title="Ricarica l'elenco degli artefatti">&#8634; Refresh</button></div>
+      <p class="hint" style="margin-top:6px">Ciclo di vita: <b>draft</b> (bozza inerte) &#8594; <b>review</b> (in revisione) &#8594; <b>approved</b> (attiva e usabile dagli agenti con <code>hyperspace_skills</code>) oppure <b>disabled</b>.</p>
+      <div class="token-bar" style="margin-top:8px;margin-bottom:10px">
+        <label class="fg" style="flex:1;min-width:180px" title="FORGE_ADMIN_TOKEN: serve solo per approvare/disabilitare e per importare i pacchetti">&#128273; Token approvazione<input id="forgeToken" type="password" class="inp" autocomplete="off" placeholder="Incolla FORGE_ADMIN_TOKEN..." oninput="forgeSaveToken(this.value)"/></label>
+        <span id="forgeTokenBadge" class="token-badge warn">&#128274; Solo bozze</span>
+      </div>
+      <div class="label" style="margin-top:4px">&#128230; Pacchetti ufficiali pronti da importare (1 clic — entrano come bozze sicure):</div>
+      <div class="bundle-grid">
+        <button class="btn btn-ghost btn-sm" onclick="forgeImportEcc()" title="Importa i workflow ECC (security-review, verification-loop) dal bundle locale pinnato, come draft">&#128737; Importa skill ECC come draft</button>
+        <button class="btn btn-ghost btn-sm" onclick="forgeImportAnydoc()" title="Importa la skill anydoc (documenti Office in Markdown) dal bundle locale pinnato, come draft">&#128196; Importa skill anydoc come draft</button>
+        <button class="btn btn-ghost btn-sm" onclick="forgeImportWayfinder()" title="Importa Wayfinder e le skill decisionali come draft">&#129517; Importa Wayfinder e skill di supporto come draft</button>
+        <button class="btn btn-ghost btn-sm" onclick="forgeImportFirecrawlSkills()" title="Importa le skill testuali Firecrawl (search, scrape, indici di ricerca) dal bundle locale pinnato, come draft inerti">&#128293; Importa skill Firecrawl come draft</button>
+        <button class="btn btn-ghost btn-sm" onclick="forgeImportAgencyAgents()" title="Importa tre profili Agency Agents adattati a HyperSpace come draft inerti">&#129302; Importa profili Agency Agents come draft</button>
+      </div>
       <div id="forgeList" class="forge-list"><div class="hint">Caricamento...</div></div>
     </div>
   </div>
@@ -770,13 +855,22 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
 
 <!-- DEV SANDBOX -->
 <div id="panel-sandbox" class="panel">
-  <div class="sec-title">Dev Sandbox</div>
-  <p class="hint">Banco di lavoro isolato e offline su una copia usa-e-getta del repository. Scrivi, verifica (ruff/bandit/pytest/unittest/profile) e poi <b>Salva diff nel Forge</b> per revisionarlo. Nulla viene applicato al repo reale.</p>
+  <div class="sec-title">&#129514; Dev Sandbox</div>
+  <div class="noob-banner">
+    <div class="noob-banner-title">&#129517; Guida Rapida Sandbox (A prova di niubbo) — Sperimenta sul codice senza paura di rompere nulla</div>
+    <div>La Sandbox crea una <b>copia usa-e-getta</b> del repository dentro un container isolato. Qualsiasi modifica o comando resta chiuso qui dentro; quando sei soddisfatto, salvi il diff nel Forge.</div>
+    <div class="noob-steps">
+      <div class="noob-step active" id="sbStep1"><b>Passo 1: Crea Workspace</b>Premi il bottone blu <b>&#10133; Crea workspace</b> qui sotto per preparare la copia isolata del codice.</div>
+      <div class="noob-step" id="sbStep2"><b>Passo 2: Apri e Modifica File</b>Clicca un file nella colonna di sinistra, modificalo nell'editor centrale e premi <b>&#128190; Salva</b>.</div>
+      <div class="noob-step" id="sbStep3"><b>Passo 3: Controllo Rapido</b>Premi <b>&#9889; Controllo Rapido (Ruff + Bandit)</b> per verificare subito sintassi e sicurezza.</div>
+      <div class="noob-step" id="sbStep4"><b>Passo 4: Salva nel Forge</b>Quando il risultato &egrave; verde, clicca <b>&#128230; Salva diff nel Forge</b> per conservare la tua patch.</div>
+    </div>
+  </div>
   <div class="card">
     <div class="sandbox-toolbar">
-      <label class="fg" title="Nome descrittivo per il workspace usa-e-getta">Etichetta workspace<input id="sandboxLabel" class="inp" value="dashboard-session" maxlength="120"/></label>
-      <button class="btn btn-primary" onclick="sandboxCreate()" title="Crea una copia pulita del repository (backend sbx o docker) e restituisce un workspace_id">Crea workspace</button>
-      <button class="btn btn-danger" id="sandboxDiscardButton" onclick="sandboxDiscard()" disabled title="Elimina definitivamente il workspace attivo">Elimina</button>
+      <label class="fg" title="Nome descrittivo per il workspace usa-e-getta">1. Nome del tuo spazio di prova (Etichetta)<input id="sandboxLabel" class="inp" value="dashboard-session" maxlength="120"/></label>
+      <button class="btn btn-primary" onclick="sandboxCreate()" title="Crea una copia pulita del repository (backend sbx o docker) e restituisce un workspace_id">&#10133; Crea workspace</button>
+      <button class="btn btn-danger" id="sandboxDiscardButton" onclick="sandboxDiscard()" disabled title="Elimina definitivamente il workspace attivo">&#128465; Elimina</button>
       <button class="btn btn-ghost" onclick="sandboxLoad()" title="Ricarica lo stato del sandbox e del workspace">&#8634; Stato</button>
     </div>
     <div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -786,35 +880,50 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
   </div>
   <div class="sandbox-layout">
     <div class="card">
-      <div class="card-title">File</div>
+      <div class="card-title">&#128193; 2. Esplora File del Workspace</div>
+      <div class="preset-bar" style="margin-top:4px;margin-bottom:6px">
+        <span class="preset-label">Filtri rapidi:</span>
+        <button type="button" class="preset-chip" onclick="sandboxSetPattern('*.py')">&#128013; Python</button>
+        <button type="button" class="preset-chip" onclick="sandboxSetPattern('control-plane/*.py')">&#127915; Control Plane</button>
+        <button type="button" class="preset-chip" onclick="sandboxSetPattern('tests/*.py')">&#129514; Test</button>
+        <button type="button" class="preset-chip" onclick="sandboxSetPattern('docs/*.md')">&#128218; Docs</button>
+        <button type="button" class="preset-chip" onclick="sandboxSetPattern('*')">&#128194; Tutti</button>
+      </div>
       <div class="row" style="gap:6px">
         <input id="sandboxPattern" class="inp inp-mono" value="*.py" aria-label="Pattern file" title="Glob per filtrare i file del workspace (es. *.py, src/*)"/>
         <button class="btn btn-ghost btn-sm" onclick="sandboxRefreshFiles()" title="Rielenca i file del workspace">&#8634;</button>
       </div>
-      <div id="sandboxFiles" class="sandbox-files"><div class="hint">Crea un workspace per esplorare i file.</div></div>
+      <div id="sandboxFiles" class="sandbox-files"><div class="hint">Premi &ldquo;&#10133; Crea workspace&rdquo; qui sopra per vedere ed esplorare tutti i file.</div></div>
     </div>
     <div>
       <div class="card">
+        <div class="card-title">&#9999;&#65039; Editor File Isolato</div>
         <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <label class="fg" style="flex:1">Percorso file<input id="sandboxPath" class="inp inp-mono" placeholder="es. scripts/model_bench.py"/></label>
-          <button class="btn btn-ghost" onclick="sandboxOpenPath()" title="Apri il file indicato nel percorso">Apri</button>
-          <button class="btn btn-primary" onclick="sandboxSave()" title="Scrivi il contenuto dell'editor nel file del workspace">Salva</button>
+          <label class="fg" style="flex:1">Percorso file selezionato<input id="sandboxPath" class="inp inp-mono" placeholder="Clicca un file a sinistra oppure scrivi es. scripts/model_bench.py"/></label>
+          <button class="btn btn-ghost" onclick="sandboxOpenPath()" title="Apri il file indicato nel percorso">&#128194; Apri</button>
+          <button class="btn btn-primary" onclick="sandboxSave()" title="Scrivi il contenuto dell'editor nel file del workspace">&#128190; Salva nel workspace</button>
         </div>
-        <textarea id="sandboxEditor" class="inp sandbox-editor" spellcheck="false" aria-label="Editor del file sandbox" placeholder="Seleziona un file oppure indica un nuovo percorso..."></textarea>
+        <textarea id="sandboxEditor" class="inp sandbox-editor" spellcheck="false" aria-label="Editor del file sandbox" placeholder="1. Crea un workspace in alto&#10;2. Clicca un file nella lista a sinistra per leggerlo o modificarlo qui&#10;3. Premi 'Salva nel workspace' quando hai finito..."></textarea>
       </div>
       <div class="card">
-        <div class="card-title">Ispezione e verifica</div>
+        <div class="card-title">&#128269; 3. Ispezione, Test e Salvataggio nel Forge</div>
+        <div class="preset-bar" style="margin-top:2px;margin-bottom:10px">
+          <span class="preset-label">&#9889; Azioni consigliate:</span>
+          <button type="button" class="btn btn-primary btn-sm" onclick="sandboxQuickVerify()" title="Imposta Ruff + Bandit e avvia subito la verifica rapida">&#9889; Controllo Rapido Consigliato (Ruff + Bandit)</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="sandboxDiff()" title="Mostra in chiaro quali righe hai cambiato rispetto all'originale">&#128220; Vedi cosa ho modificato (Diff)</button>
+          <button type="button" class="btn btn-warn btn-sm" onclick="sandboxSaveDiffToForge()" title="Invia le modifiche come bozza .diff nel Forge">&#128230; 4. Salva diff nel Forge</button>
+        </div>
         <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <label class="fg" style="flex:1;min-width:220px">Percorso da verificare<input id="sandboxCheckPath" class="inp inp-mono" value="."/></label>
-          <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('ruff')" title="Lint + formattazione (Ruff) sul percorso indicato">Ruff</button>
-          <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('bandit')" title="Analisi di sicurezza statica (Bandit)">Bandit</button>
+          <label class="fg" style="flex:1;min-width:220px">Cartella o file da controllare (<code>.</code> = tutto il workspace)<input id="sandboxCheckPath" class="inp inp-mono" value="."/></label>
+          <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('ruff')" title="Lint + formattazione (Ruff) sul percorso indicato">Ruff (Stile/Errori)</button>
+          <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('bandit')" title="Analisi di sicurezza statica (Bandit)">Bandit (Sicurezza)</button>
           <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('pytest')" title="Esegue la suite pytest">pytest</button>
           <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('unittest')" title="Esegue i test unittest">unittest</button>
           <button class="btn btn-ghost btn-sm" onclick="sandboxCheck('profile')" title="Profilatura cProfile del file indicato">Profile file</button>
         </div>
         <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px">
           <div class="sandbox-checks">
-            <b>Verify:</b>
+            <b>Verify combinato:</b>
             <label><input id="sandboxVerifyRuff" type="checkbox" checked/> Ruff</label>
             <label><input id="sandboxVerifyBandit" type="checkbox" checked/> Bandit</label>
             <label><input id="sandboxVerifyPytest" type="checkbox"/> pytest</label>
@@ -828,7 +937,8 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
         </div>
       </div>
       <div class="card">
-        <div class="sandbox-result-head"><div class="card-title" style="margin:0">Risultato</div><span id="sandboxResultSummary" class="hint"></span></div>
+        <div class="sandbox-result-head"><div class="card-title" style="margin:0">&#128202; Risultato spiegazione &amp; log</div><span id="sandboxResultSummary" class="hint"></span></div>
+        <div id="sandboxHumanSummary" class="sandbox-human-box">Nessuna operazione ancora eseguita. Inizia cliccando <b>&#10133; Crea workspace</b> in alto!</div>
         <div id="sandboxFindings"></div>
         <pre id="sandboxOutput" class="diag-out sandbox-output">Nessuna operazione eseguita.</pre>
       </div>
@@ -1037,7 +1147,7 @@ function showPanel(name,btn){
   if(name==='metrics')refreshMetrics();
   if(name==='forge')forgeLoad();
   if(name==='sandbox')sandboxLoad();
-  if(name==='autogen'){refreshNodes();if(missionToken())loadMissions();}
+  if(name==='autogen'){initAutogenToken();refreshNodes();loadDevelopmentDreams();if(missionToken())loadMissions();}
   if(name==='setup'){loadCfg();loadEnv();loadConnectors();}
   if(name==='social'){loadSocial();loadSocialMissionLogs();}
   if(name==='network'){
@@ -1221,6 +1331,18 @@ window.sandboxWorkspaceId=null;
 window.sandboxCurrentPath=null;
 window.sandboxLastDiff=null;
 
+function sandboxUpdateWizard(activeStep){
+  [1,2,3,4].forEach(function(step){
+    var el=document.getElementById('sbStep'+step);
+    if(!el||!el.classList)return;
+    el.classList.toggle('active',step===activeStep);
+    el.classList.toggle('done',step<activeStep);
+  });
+}
+function sandboxSetHuman(text){
+  var el=document.getElementById('sandboxHumanSummary');
+  if(el)el.textContent=text||'';
+}
 function sandboxRequireWorkspace(){
   if(!window.sandboxWorkspaceId)throw new Error('Crea prima un workspace sandbox.');
   return window.sandboxWorkspaceId;
@@ -1238,6 +1360,7 @@ async function sandboxRequest(args){
 }
 function sandboxSetBusy(message){
   document.getElementById('sandboxResultSummary').textContent=message||'';
+  if(message)sandboxSetHuman('⏳ '+message);
 }
 function sandboxCollectFindings(result){
   var checks=Array.isArray(result.checks)?result.checks:[result],findings=[];
@@ -1259,10 +1382,36 @@ function sandboxRenderResult(result,title){
     return '<button class="sandbox-finding" onclick="sandboxOpenFinding('+forgeEsc(target)+','+Number(item.line||1)+')">'
       +forgeEsc((item.path||'?')+':'+(item.line||'?')+' · '+(item.rule||'finding')+' · '+(item.message||''))+'</button>';
   }).join('');
+  if(title==='Workspace creato'){
+    sandboxUpdateWizard(2);
+    sandboxSetHuman('✅ Workspace isolato creato! Passo 2: clicca su un file nella colonna a sinistra per aprirlo nell\'editor.');
+  }else if(title==='Workspace eliminato'){
+    sandboxUpdateWizard(1);
+    sandboxSetHuman('🗑️ Workspace eliminato. Premi "+ Crea workspace" in alto quando vuoi iniziare una nuova sessione.');
+  }else if(title==='File salvato'){
+    sandboxUpdateWizard(3);
+    sandboxSetHuman('💾 Modifica salvata nel workspace! Passo 3: premi "⚡ Controllo Rapido Consigliato (Ruff + Bandit)" per verificare il codice.');
+  }else if(typeof result.passed==='boolean'){
+    if(result.passed){
+      sandboxUpdateWizard(4);
+      sandboxSetHuman('✅ Tutti i controlli sono passati senza errori! Passo 4: premi "📦 4. Salva diff nel Forge" per salvare la tua patch.');
+    }else{
+      sandboxUpdateWizard(3);
+      sandboxSetHuman('⚠️ Controllo non superato ('+(findings.length||'alcuni')+' problemi trovati). Clicca sulle righe qui sotto per andare direttamente al punto da correggere.');
+    }
+  }else if(title==='Diff'){
+    if(Array.isArray(result.changed_files)&&result.changed_files.length){
+      sandboxSetHuman('📝 File modificati rispetto all\'originale ('+result.changed_files.length+'): '+result.changed_files.join(', '));
+    }else{
+      sandboxSetHuman('ℹ️ Non ci sono ancora file modificati in questo workspace.');
+    }
+  }
 }
 function sandboxRenderError(error){
+  var msg=error.message||String(error);
   document.getElementById('sandboxResultSummary').textContent='Errore';
-  document.getElementById('sandboxOutput').textContent=error.message||String(error);
+  document.getElementById('sandboxOutput').textContent=msg;
+  sandboxSetHuman('❌ Errore: '+msg);
 }
 async function sandboxLoad(){
   var status=document.getElementById('sandboxStatus');
@@ -1305,6 +1454,10 @@ async function sandboxDiscard(){
     sandboxRenderResult(result,'Workspace eliminato');
   }catch(error){sandboxRenderError(error);}
 }
+async function sandboxSetPattern(pat){
+  document.getElementById('sandboxPattern').value=pat;
+  if(window.sandboxWorkspaceId)await sandboxRefreshFiles();
+}
 async function sandboxRefreshFiles(){
   try{
     var result=await sandboxRequest({action:'list',workspace_id:sandboxRequireWorkspace(),pattern:document.getElementById('sandboxPattern').value.trim()||'*',limit:500});
@@ -1326,6 +1479,8 @@ async function sandboxOpenFile(path){
     document.getElementById('sandboxPath').value=result.path;
     document.getElementById('sandboxEditor').value=result.content;
     document.getElementById('sandboxResultSummary').textContent='Aperto '+result.path;
+    sandboxUpdateWizard(2);
+    sandboxSetHuman('📂 File "'+result.path+'" aperto nell\'editor. Modificalo e poi clicca "💾 Salva nel workspace".');
     await sandboxRefreshFiles();
   }catch(error){sandboxRenderError(error);}
 }
@@ -1361,6 +1516,13 @@ function sandboxVerifyPlan(){
   });
   return checks;
 }
+async function sandboxQuickVerify(){
+  document.getElementById('sandboxVerifyRuff').checked=true;
+  document.getElementById('sandboxVerifyBandit').checked=true;
+  document.getElementById('sandboxVerifyPytest').checked=false;
+  document.getElementById('sandboxVerifyUnittest').checked=false;
+  await sandboxVerify();
+}
 async function sandboxVerify(){
   try{
     var checks=sandboxVerifyPlan();if(!checks.length)throw new Error('Seleziona almeno un controllo.');
@@ -1384,17 +1546,65 @@ async function sandboxSaveDiffToForge(){
     var payload={name:'Sandbox patch '+stamp,type:'patch',description:'Diff prodotto dal workspace '+sandboxRequireWorkspace(),source:diff.diff,generator:'dev-sandbox-ui'};
     var item=await forgeRequest('/forge/artifacts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     document.getElementById('sandboxResultSummary').textContent='Draft Forge '+item.id+' creato · '+(item.validation.valid?'valido':'non valido');
+    sandboxSetHuman('🎉 Patch salvata nel Forge come bozza ('+item.id+')! Vai nella scheda "🛠 Forge" per rivederla e approvarla.');
   }catch(error){sandboxRenderError(error);}
 }
 
 // ── TOOL & SKILL FORGE ────────────────────────────────────────────────────
 function forgeEsc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function forgeSaveToken(val){
+  var clean=String(val||'').trim();
+  try{if(clean)sessionStorage.setItem('hyperspaceForgeToken',clean);else sessionStorage.removeItem('hyperspaceForgeToken');}catch(e){}
+  var badge=document.getElementById('forgeTokenBadge');
+  if(badge){
+    badge.className='token-badge '+(clean?'ok':'warn');
+    badge.textContent=clean?'🔓 Token attivo in sessione':'🔒 Solo bozze (inserisci token per approvare)';
+  }
+}
+function forgeInitToken(){
+  try{
+    var saved=sessionStorage.getItem('hyperspaceForgeToken')||'';
+    var inp=document.getElementById('forgeToken');
+    if(inp&&saved&&!inp.value)inp.value=saved;
+    forgeSaveToken((inp&&inp.value)||saved);
+  }catch(e){}
+}
+function forgeApplyPreset(kind){
+  window.forgeEditingId=null;
+  var nameEl=document.getElementById('forgeName'),typeEl=document.getElementById('forgeType'),descEl=document.getElementById('forgeDescription'),srcEl=document.getElementById('forgeSource'),outEl=document.getElementById('forgeOutput');
+  if(kind==='skill'){
+    nameEl.value='Checklist Verifica Codice';
+    typeEl.value='skill';
+    descEl.value='Guida passo-passo per verificare modifiche Python nella sandbox prima della review.';
+    srcEl.value='# Checklist Verifica Codice\n\n## Quando usare questa skill\nUsa questa procedura ogni volta che un agente modifica file Python nel repository.\n\n## Passi operativi\n1. Crea o riusa il workspace nella `code_sandbox`.\n2. Esegui il controllo statico con `ruff` e `bandit`.\n3. Esegui i test unitari pertinenti al modulo toccato.\n4. Genera il `diff` finale e riporta i file modificati.\n';
+    outEl.textContent='Modello Skill Markdown caricato! Premi "💾 Salva manualmente" per registrarlo subito come bozza.';
+  }else if(kind==='tool'){
+    nameEl.value='Calcolatore Budget Token';
+    typeEl.value='tool';
+    descEl.value='Tool Python per stimare i token residui di un task agente.';
+    srcEl.value='class Tools:\n    def __init__(self):\n        pass\n\n    def stima_token(self, testo: str, limite: int = 1200) -> dict:\n        """Stima il numero di token approssimativo di una stringa rispetto al limite."""\n        parole = len((testo or "").split())\n        token_stimati = int(parole * 1.35)\n        return {\n            "parole": parole,\n            "token_stimati": token_stimati,\n            "entro_limite": token_stimati <= int(limite),\n        }\n';
+    outEl.textContent='Modello Tool Python caricato! Premi "💾 Salva manualmente" per registrarlo e validarlo.';
+  }else if(kind==='ai-log'){
+    nameEl.value='Triage Errori nei Log';
+    typeEl.value='skill';
+    descEl.value='Crea una skill Markdown che insegni all\'agente come diagnosticare gli errori 500 o timeout dei nodi leggendo i log del Control Plane e proponendo rimedi sicuri.';
+    srcEl.value='';
+    outEl.textContent='Idea pronta! Ora premi il bottone blu "✨ Genera draft con l\'AI" per far scrivere il sorgente al modello.';
+  }else if(kind==='ai-release'){
+    nameEl.value='Checklist Pre-Release Sicura';
+    typeEl.value='skill';
+    descEl.value='Crea una skill Markdown con i controlli obbligatori prima di un rilascio: test verdi, assenza di segreti nei file, verifica licenze e controllo diff.';
+    srcEl.value='';
+    outEl.textContent='Idea pronta! Ora premi il bottone blu "✨ Genera draft con l\'AI" per far scrivere il sorgente al modello.';
+  }
+}
 async function forgeRequest(url,options){
   var response=await fetch(url,options||{}),data=await response.json();
   if(!response.ok)throw new Error(data.error||('HTTP '+response.status));
   return data;
 }
 async function forgeLoad(){
+  forgeInitToken();
   var host=document.getElementById('forgeList');host.innerHTML='<div class="hint">Caricamento...</div>';
   try{
     var data=await forgeRequest('/forge/artifacts'),items=data.artifacts||[];
@@ -2731,13 +2941,67 @@ async function wfHandoff(){
 
 function missionToken(){
   var own=document.getElementById('missionToken'),shared=document.getElementById('dreamReviewToken');
-  return ((own&&own.value)||(shared&&shared.value)||'').trim();
+  var val=((own&&own.value)||(shared&&shared.value)||'').trim();
+  if(!val){try{val=(sessionStorage.getItem('hyperspaceDreamReviewToken')||'').trim();}catch(e){}}
+  return val;
 }
 function missionHeaders(json){
   var token=missionToken(),headers={};
   if(token)headers['Authorization']='Bearer '+token;
   if(json)headers['Content-Type']='application/json';
   return headers;
+}
+function syncAutogenToken(val){
+  var clean=String(val||'').trim();
+  var mEl=document.getElementById('missionToken'),dEl=document.getElementById('dreamReviewToken');
+  if(mEl&&mEl.value!==val)mEl.value=val;
+  if(dEl&&dEl.value!==val)dEl.value=val;
+  try{if(clean)sessionStorage.setItem('hyperspaceDreamReviewToken',clean);else sessionStorage.removeItem('hyperspaceDreamReviewToken');}catch(e){}
+  var badge=document.getElementById('autogenTokenBadge');
+  if(badge){
+    badge.className='token-badge '+(clean?'ok':'warn');
+    badge.textContent=clean?'🔓 Token operatore attivo':'🔒 Token non inserito';
+  }
+}
+function initAutogenToken(){
+  try{
+    var saved=sessionStorage.getItem('hyperspaceDreamReviewToken')||'';
+    var mEl=document.getElementById('missionToken'),dEl=document.getElementById('dreamReviewToken');
+    var current=(mEl&&mEl.value)||(dEl&&dEl.value)||saved;
+    syncAutogenToken(current);
+  }catch(e){}
+}
+function missionApplyPreset(kind){
+  var objEl=document.getElementById('missionObjective'),critEl=document.getElementById('missionCriteria'),engEl=document.getElementById('missionEngine');
+  if(!objEl||!critEl)return;
+  if(kind==='pdf'){
+    objEl.value='Leggi docs/mission-control.md e docs/hermes.md nella sandbox e genera un PDF riassuntivo di almeno 2 pagine in artifacts/docs-briefing.pdf';
+    critEl.value='Il file artifacts/docs-briefing.pdf esiste nel workspace sandbox\nIl PDF ha almeno 2 pagine e testo leggibile estratto dalle fonti';
+  }else if(kind==='sandbox-check'){
+    objEl.value='Crea un workspace nella code_sandbox, esegui i controlli statici ruff e bandit su shared/tool_runtime.py e produci un report sintetico in artifacts/check-report.md';
+    critEl.value='Il controllo statico viene eseguito nella sandbox\nIl file artifacts/check-report.md riassume l\'esito dei check';
+  }else if(kind==='website'){
+    objEl.value='Crea un sito vetrina statico responsive con create_website intitolato "HyperSpace Autonomous Mesh" che presenta i 3 nodi (Mac M5, Asus V16, HP Omen)';
+    critEl.value='Il progetto website viene creato tramite il tool create_website\nLa pagina principale include la descrizione dei 3 nodi e uno stile curato';
+  }else if(kind==='security'){
+    objEl.value='Esegui un audit di sicurezza e qualità nella code_sandbox su control-plane/cp/mission.py usando bandit e ruff, e documenta i risultati in artifacts/security-audit.md';
+    critEl.value='I tool bandit e ruff vengono eseguiti nel workspace sandbox\nIl report artifacts/security-audit.md elenca le evidenze raccolte';
+  }
+  if(engEl)engEl.textContent='Ricetta caricata! Ora premi "🚀 Pianifica e avvia in autonomia" (assicurati di aver inserito il Token operatore).';
+}
+function devDreamApplyPreset(kind){
+  var el=document.getElementById('developmentDreamObjective');
+  if(!el)return;
+  if(kind==='lint')el.value='Esegui ruff su shared/ nella sandbox e correggi eventuali warning di formattazione o import inutilizzati a rischio zero.';
+  else if(kind==='security')el.value='Esegui bandit su control-plane/cp/ nella sandbox e documenta o risolvi eventuali segnalazioni a basso rischio.';
+  else if(kind==='docs')el.value='Verifica e migliora la chiarezza delle docstring nei moduli in shared/ senza alterare il comportamento runtime.';
+}
+function wfFillExample(){
+  document.getElementById('wfDestination').value='Creare una dashboard di reportistica PDF settimanale per lo stato dei 3 nodi della mesh';
+  document.getElementById('wfNotes').value='Usare esclusivamente code_sandbox e il generatore PDF già installato nel runner.';
+  document.getElementById('wfFog').value='';
+  document.getElementById('wfScope').value='Non modificare i file .env\nNon inviare dati verso servizi cloud esterni';
+  wfMessage('Esempio compilato! Premi "💾 Salva mappa" per registrarlo.');
 }
 // Un colore per stato: il grafo si accende da solo quando il loop avanza.
 var MISSION_FLOW_COLORS={pending:'#272b33',ready:'#4f98a3',running:'#e8af34',done:'#6daa45',failed:'#dd6974',skipped:'#596170'};

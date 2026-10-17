@@ -4743,6 +4743,31 @@ Nessun commit/push.
    fix presenti nell'immagine (`/app/cp/*.py`). Suite completa col `.venv` del
    repo: **2425 passed, 17 skipped, 0 failed**.
 
+## 2026-10-17 — Cline → utente (modello unico gemma4 12B su Mac)
+
+Su richiesta dell'utente ho fissato `huihui_ai/gemma-4-abliterated:12b` come
+unico LLM su questo Mac, per liberare i nodi Windows (dedicati a ComfyUI).
+
+- `.env`: `OLLAMA_MODEL`, `CHANNEL_MODEL`, `VITALITY_BIG_MODEL`,
+  `MISSION_MODEL`, `MISSION_PLANNER_MODEL` → `huihui_ai/gemma-4-abliterated:12b`.
+  `MISSION_INFERENCE_URL` vuoto (missioni via Ollama del Mac, non piu'
+  llama-server bonsai `:8080`); `REASONING_MODELS` e `TOOL_CAPABLE_MODELS`
+  vuoti — gemma4 e' gia' tool-capable dai pattern di default di
+  `cp/model_caps.py` e ha 128k di contesto (nessun suffisso `-g8k`).
+- Restano: `ANNA_REVIEW_MODEL=qwen3-vl:4b-instruct` (vision, gemma4 non legge
+  immagini), `INSTAGRAM_REPLY_MODEL`/`PROMPT_IMAGE_MODEL` (gia' gemma4) e i
+  modelli ComfyUI (Windows).
+- Deploy: `docker compose up -d --no-deps --force-recreate control-plane`
+  (solo env, nessun rebuild). Boot pulito. Verifiche: `default_model` = gemma4
+  in `/models/capabilities` (tool_capable=true), una chat di prova e' servita
+  dal Mac (percorso nativo `chatcmpl-native`), e `_mission_inference_base()`
+  cade su `http://host.docker.internal:11434` (Ollama del Mac) con
+  `MISSION_INFERENCE_URL` vuoto.
+- Nota per il follow-up: il nodo Windows serve ANCORA gemma4/qwen3 nel suo
+  Ollama; il Mac non li invoca piu', quindi si scaricano da soli da inattivi.
+  Per liberare del tutto la RAM/VRAM Windows si possono rimuovere lì con
+  `ollama rm` (azione lato Windows).
+
 
 ## 2026-10-17 — Antigravity (Mac): Risoluzione vulnerabilità wallet, rotte gateway live, anti-farming e rimozione fallback esterno immagini
 
@@ -4773,3 +4798,38 @@ Nessun commit/push.
 
 7. **Deploy Live:**
    - Nuova build e deploy completato via FTP su Aruba (`https://www.zerozerocomputer.it/`).
+
+## 2026-10-17 — Antigravity (Mac M5) → tutti gli agenti sulla Git Mesh (Asus V16, HP Omen, Cline, Codex): Compattazione contesto VRAM nel runtime agenti, digest deterministico verifier e UI guidata ("a prova di niubbo") per Forge, Dev Sandbox e Autogenerazione
+
+> **📡 AVVISO GIT MESH PER I NODI ASUS V16 E HP OMEN:**
+> Eseguite `git pull origin main` sui vostri nodi e ricreate/riavviate il container `control-plane` (`docker compose up -d --build control-plane` o `docker compose -f docker-compose.windows.yml up -d --build control-plane`) per attivare:
+> 1. La **compattazione sliding-window degli output tool** (`shared/tool_runtime.py`) che evita l'overflow di contesto/VRAM (8 GB su Asus V16 / 8 GB su HP Omen / 16 GB su Mac M5) durante i loop multi-step di `coder` e `researcher`.
+> 2. Il **digest deterministico esteso** per il Verifier di Mission Control (`control-plane/cp/mission.py`).
+> 3. La **nuova Dashboard "a prova di niubbo"** (`control-plane/dashboard.html`) per Forge, Dev Sandbox e Autogenerazione.
+
+1. **Compattazione Sliding-Window Output Tool per Nodi 8GB/16GB (`shared/tool_runtime.py`, `tests/test_agent_runtime_regressions.py`):**
+   - Aggiunto `Invocation.compact_messages(messages, keep_recent=4, max_old_chars=1200)` invocato in `Invocation.model_payload(data)`.
+   - Quando un task `coder` o `researcher` accumula più di 4 chiamate tool consecutive, gli output `role == "tool"` più vecchi che superano `1200` caratteri vengono compattati preservando testa e coda, evitando di saturare la finestra di contesto/VRAM su nodi con 8–16 GB (Mac M5 / Asus V16 / HP Omen) mentre gli ultimi 4 risultati tool restano integrali.
+   - Aggiunto test di regressione `test_older_tool_outputs_are_compacted_while_recent_stay_full`.
+
+2. **Evidenze Check Deterministici e Siti nel Digest del Verifier (`control-plane/cp/mission.py`, `tests/test_agent_runtime_regressions.py`):**
+   - Esteso `_mission_task_digest(mission)` per riportare al verifier di missione, oltre ai `changed_files` della sandbox, anche i progetti statici creati (`websites: ...`) e il conteggio dei check deterministici superati (`checks: N passed`).
+   - Aggiunto test `test_mission_task_digest_reports_checks_and_websites`.
+
+3. **Redesign Guidato ("A prova di niubbo") della Dashboard (`control-plane/dashboard.html`):**
+   - **Autogenerazione & Mission Control (`#panel-autogen`)**:
+     - Aggiunto banner guidato in 3 passi e barra unificata per `DREAM_REVIEW_TOKEN` (`syncAutogenToken` / `initAutogenToken`), che sincronizza `#missionToken` e `#dreamReviewToken`, salva il token in `sessionStorage` per la sessione e mostra il badge di stato (`🔓 Token operatore attivo` / `🔒 Token non inserito`).
+     - Portate a larghezza piena (`.card-full`) le card **Mission Control** e **Wayfinder** per dare respiro al form e al grafo DAG Cytoscape.
+     - Aggiunti 4 bottoni **Ricette Pronte a 1-Clic** per Mission Control (*Briefing PDF del Repo*, *Verifica & Fix Codice in Sandbox*, *Crea Sito Vetrina Statico*, *Audit Sicurezza & Qualità*), 3 chip rapidi per **Nightly Development Dream** e un compilatore d'esempio guidato (`wfFillExample()`) per **Wayfinder**.
+   - **Tool & Skill Forge (`#panel-forge`)**:
+     - Aggiunto banner visuale in 3 passi, persistenza di `FORGE_ADMIN_TOKEN` in `sessionStorage` con badge stato (`#forgeTokenBadge`), griglia ordinata per i 5 pacchetti di importazione a 1-clic e 4 **Modelli Pronti a 1-Clic** (`forgeApplyPreset`: *Esempio Skill Markdown*, *Esempio Tool Python*, *Idea per AI: Analisi Log*, *Idea per AI: Checklist Release*).
+   - **Dev Sandbox (`#panel-sandbox`)**:
+     - Aggiunta barra visuale interattiva in 4 passi (`#sbStep1`..`#sbStep4`) che si illumina automaticamente man mano che l'utente crea il workspace, apre/salva un file, esegue i controlli e salva la patch nel Forge.
+     - Aggiunti chip di filtro rapido dei file (`*.py`, `control-plane/*.py`, `tests/*.py`, `docs/*.md`, `*`), il bottone **⚡ Controllo Rapido Consigliato (Ruff + Bandit)** (`sandboxQuickVerify()`) e il box `#sandboxHumanSummary` che spiega in italiano semplice l'esito di ogni operazione sopra al log JSON tecnico.
+
+4. **Verifiche (`pytest` + `node`) & Push su Git Mesh:**
+   - Tutti i 7 test Node della dashboard (`dashboard.test.cjs`, `dashboard_sandbox.test.cjs`, `dashboard_wayfinder.test.cjs`, `dashboard_approval_dialog.test.cjs`, `dashboard_dev.test.cjs`, `dashboard_services.test.cjs`, `dashboard_web_node.test.cjs`): **PASS**.
+   - Suite Python (`test_mission_routes.py`, `test_forge.py`, `test_dream_routes.py`, `test_wayfinder.py`, `test_code_sandbox.py`, `test_tool_passthrough.py`, `test_agent_runtime_regressions.py`): **172 passed, 20 subtests passed**.
+   - Commit e push su `origin/main` su conferma esplicita dell'utente + notifica inviata sulla mesh.
+
+

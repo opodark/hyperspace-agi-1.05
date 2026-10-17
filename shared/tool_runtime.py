@@ -34,9 +34,45 @@ class Invocation:
         if self.deadline is not None and time.time() >= self.deadline:
             raise ExecutionStopped("execution deadline exceeded")
 
+    @staticmethod
+    def compact_messages(messages, keep_recent=4, max_old_chars=1200):
+        """Compatta gli output tool piu' vecchi per non saturare la finestra di contesto/VRAM."""
+        if not isinstance(messages, list):
+            return messages
+        tool_indices = [
+            idx for idx, msg in enumerate(messages)
+            if isinstance(msg, dict) and msg.get("role") == "tool"
+        ]
+        if len(tool_indices) <= keep_recent:
+            return messages
+        older_set = set(tool_indices[:-keep_recent] if keep_recent > 0 else tool_indices)
+        head_chars = max(200, int(max_old_chars * 0.5))
+        tail_chars = max(120, int(max_old_chars * 0.25))
+        compacted = []
+        changed = False
+        for idx, msg in enumerate(messages):
+            if idx in older_set and isinstance(msg, dict):
+                content = msg.get("content")
+                if isinstance(content, str) and len(content) > max_old_chars:
+                    omitted = len(content) - (head_chars + tail_chars)
+                    if omitted > 80:
+                        new_msg = dict(msg)
+                        new_msg["content"] = (
+                            f"{content[:head_chars]}\n"
+                            f"...[output compattato: {omitted} caratteri omessi per preservare contesto VRAM]...\n"
+                            f"{content[-tail_chars:]}"
+                        )
+                        compacted.append(new_msg)
+                        changed = True
+                        continue
+            compacted.append(msg)
+        return compacted if changed else messages
+
     def model_payload(self, data):
         self.checkpoint()
         payload = dict(data)
+        if isinstance(payload.get("messages"), list):
+            payload["messages"] = self.compact_messages(payload["messages"])
         if self.max_tokens is not None:
             remaining = self.max_tokens - self.reserved_tokens
             if remaining <= 0:

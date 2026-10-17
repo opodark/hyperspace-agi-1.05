@@ -680,6 +680,55 @@ class MissionContractTests(unittest.TestCase):
         self.assertEqual(set(by_id), {"docker:reused", "docker:new"})
         self.assertEqual(by_id["docker:reused"]["changed_files"], ["out.pdf"])
 
+    def test_older_tool_outputs_are_compacted_while_recent_stay_full(self):
+        """Compatta gli output tool piu' vecchi oltre la finestra keep_recent per preservare la VRAM."""
+        ctx = Invocation(role="coder", max_tokens=500)
+        long_old = "HEAD_MARKER_" + ("x" * 2000) + "_TAIL_MARKER"
+        long_recent = "RECENT_MARKER_" + ("y" * 2000)
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "usr"},
+            {"role": "tool", "content": long_old},
+            {"role": "tool", "content": "short_old"},
+            {"role": "tool", "content": long_recent},
+            {"role": "tool", "content": long_recent},
+            {"role": "tool", "content": long_recent},
+            {"role": "tool", "content": long_recent},
+        ]
+        payload = ctx.model_payload({"messages": messages})
+        compacted_msgs = payload["messages"]
+        self.assertIn("HEAD_MARKER_", compacted_msgs[2]["content"])
+        self.assertIn("_TAIL_MARKER", compacted_msgs[2]["content"])
+        self.assertIn("output compattato", compacted_msgs[2]["content"])
+        self.assertLess(len(compacted_msgs[2]["content"]), len(long_old))
+        self.assertEqual(compacted_msgs[3]["content"], "short_old")
+        # Recent 4 tool outputs remain untouched
+        for idx in (4, 5, 6, 7):
+            self.assertEqual(compacted_msgs[idx]["content"], long_recent)
+
+    def test_mission_task_digest_reports_checks_and_websites(self):
+        ns = extracted({"_mission_task_digest"}, {})
+        mission = {
+            "tasks": [
+                {
+                    "task_id": "t1",
+                    "status": "done",
+                    "title": "Run checks and build site",
+                    "artifacts": [
+                        {"workspace_id": "w1", "changed_files": ["app.py"]},
+                        {"kind": "website-project", "project_id": "demo-site"},
+                    ],
+                    "tool_evidence": [
+                        {"tool": "code_sandbox", "ok": True, "completed": True, "passed": True},
+                    ],
+                }
+            ]
+        }
+        digest = ns["_mission_task_digest"](mission)
+        self.assertIn("artifacts: app.py", digest)
+        self.assertIn("websites: demo-site", digest)
+        self.assertIn("checks: 1 passed", digest)
+
 
 if __name__ == "__main__":
     unittest.main()

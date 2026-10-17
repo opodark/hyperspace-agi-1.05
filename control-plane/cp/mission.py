@@ -699,15 +699,26 @@ def _mission_worker(task, mission):
 
 
 def _mission_task_digest(mission):
-    """Il tabellone dei task per il verifier di missione, CON gli artifact."""
+    """Il tabellone dei task per il verifier di missione, CON gli artifact e i check."""
     lines = []
     for task in mission.get("tasks", []):
         lines.append(f"- {task.get('key') or task.get('task_id')} "
                      f"[{task.get('status')}] {task.get('title')}")
         changed = sorted({path for art in (task.get("artifacts") or [])
+                          if isinstance(art, dict)
                           for path in (art.get("changed_files") or [])})
+        websites = sorted({str(art.get("project_id")) for art in (task.get("artifacts") or [])
+                           if isinstance(art, dict) and art.get("project_id")})
         if changed:
             lines.append(f"    artifacts: {', '.join(changed)}")
+        if websites:
+            lines.append(f"    websites: {', '.join(websites)}")
+        checks_passed = sum(
+            1 for ev in (task.get("tool_evidence") or [])
+            if isinstance(ev, dict) and ev.get("completed") is True and ev.get("passed") is True
+        )
+        if checks_passed:
+            lines.append(f"    checks: {checks_passed} passed")
     return "\n".join(lines) or "(no tasks yet)"
 
 
