@@ -29,9 +29,15 @@ if [[ -f "$REPO_ROOT/web-node/.htaccess" ]]; then
   cp "$REPO_ROOT/web-node/.htaccess" "$TARGET/.htaccess"
 fi
 
-# Copia ads.txt per Google AdSense
-if [[ -f "$REPO_ROOT/web-node/ads.txt" ]]; then
-  cp "$REPO_ROOT/web-node/ads.txt" "$TARGET/ads.txt"
+# Copia ads.txt per Google AdSense e file di discovery per Agenti AI (llms.txt, robots.txt, ai-agent.json)
+for root_file in ads.txt llms.txt robots.txt ai-agent.json; do
+  if [[ -f "$REPO_ROOT/web-node/$root_file" ]]; then
+    cp "$REPO_ROOT/web-node/$root_file" "$TARGET/$root_file"
+  fi
+done
+if [[ -f "$REPO_ROOT/web-node/ai-agent.json" ]]; then
+  mkdir -p "$TARGET/.well-known"
+  cp "$REPO_ROOT/web-node/ai-agent.json" "$TARGET/.well-known/ai-agent.json"
 fi
 
 # Copia tutti i sorgenti JS

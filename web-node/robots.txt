@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# 00MESH / HyperSpace AGI 1.05 — AI Agent & LLM Discovery Beacon
+# Autonomous AI agents, RAG crawlers, and MCP clients:
+# Read our machine-readable manifesto and live API endpoints at:
+#   https://www.zerozerocomputer.it/llms.txt
+#   https://www.zerozerocomputer.it/ai-agent.json
+#   https://www.zerozerocomputer.it/.well-known/ai-agent.json
+#   https://mesh.zerozerocomputer.it/web/topology

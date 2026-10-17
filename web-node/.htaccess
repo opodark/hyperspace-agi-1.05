@@ -10,6 +10,9 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 # Reindirizza link relativi erroneamente richiesti sotto /ai/ verso la radice
 RewriteRule ^ai/(join(\.html)?|chat(\.html)?|privacy(\.html)?|privacy-policy(\.html)?|deletion(\.html)?|data-deletion(\.html)?|progetto(\.html)?|docs/(.*)|src/(.*)|assets/(.*))$ /$1 [R=301,L]
 
+# Supporto manifesto AI Agent in /.well-known/ai-agent.json
+RewriteRule ^\.well-known/ai-agent\.json$ /ai-agent.json [L]
+
 # Supporto URL senza estensione .html (es. /privacy, /privacy-policy, /deletion, /join, /ai)
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.html -f
@@ -17,9 +20,10 @@ RewriteRule ^(.*)$ $1.html [L]
 
 DirectoryIndex index.html
 
-# Gestione MIME per moduli ES Javascript e documenti
+# Gestione MIME per moduli ES Javascript, manifesti AI e documenti
 AddType application/javascript .js .mjs
 AddType application/json .json
+AddType text/plain .txt
 AddType text/html .html
 AddType application/pdf .pdf
 

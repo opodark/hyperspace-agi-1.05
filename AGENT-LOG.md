@@ -4986,3 +4986,13 @@ diretti, anche non committati) oppure `--base <ancestor comune> --target-commit
    - Ricostruito e riavviato `hyperspace_control_plane`; verificato `GET /web/tokenomics/leaderboard` (0 nodi di test, indirizzi mascherati).
    - Eseguito deploy FTP su Aruba (`scripts/deploy_web_node_aruba.py`: 40 file aggiornati su `https://www.zerozerocomputer.it`).
    - Test `pytest tests/test_tokenomics.py -q`: **8 passed**.
+
+
+## 2026-10-17 — Antigravity (Mac): Pubblicazione Beacon / "Messaggio nella Bottiglia" per Agenti AI (`llms.txt`, `ai-agent.json`, `robots.txt`)
+
+1. **File di Discovery per Agenti AI (`web-node/*`, `scripts/build-web-node-aruba.sh`)**:
+   - Creato `web-node/llms.txt` (`https://www.zerozerocomputer.it/llms.txt`): manifesto testuale e tecnico standard per LLM crawlers, agenti autonomi e client MCP, con gli endpoint pubblici JSON live (`/web/topology`, `/web/tokenomics/status`, `/web/tokenomics/leaderboard`) e le istruzioni per lasciare un saluto via `POST /web/contact`.
+   - Creato `web-node/ai-agent.json` servito sia su `/ai-agent.json` sia su `/.well-known/ai-agent.json`.
+   - Creato `web-node/robots.txt` che indirizza i crawler e gli agenti verso `/llms.txt` e `/.well-known/ai-agent.json`.
+   - Aggiunti i tag `<link rel="alternate" ...>` in `<head>` e il link nel footer di `web-node/index.html` e `web-node/join.html`.
+   - Eseguito deploy FTP su Aruba (`https://www.zerozerocomputer.it/llms.txt` e `https://www.zerozerocomputer.it/.well-known/ai-agent.json` attivi online).
