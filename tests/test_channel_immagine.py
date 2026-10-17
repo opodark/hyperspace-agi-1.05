@@ -41,7 +41,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "control-plane" / "main.py"
 sys.path.insert(0, str(ROOT))
 
-from shared.image_jobs import (FAMIGLIA_SDXL, ImmagineQueue, nuovo_job,
+from shared.image_jobs import (FAMIGLIA_DEFAULT, FAMIGLIA_SDXL, ImmagineQueue, nuovo_job,
                                posa_supportata, richiesta_immagine,
                                scegli_pose_preset, workflow)  # noqa: E402
 from shared.sketch import SKETCH_LATO, SKETCH_PASSI, negativo_sketch  # noqa: E402
@@ -128,6 +128,7 @@ def _load(operator=(), vip=(), cerchia=(), coda=None, vetrina=None, dev_webui=Fa
         "os": SimpleNamespace(getenv=lambda key, default="":
                               "true" if key == "WEBUI_DEV_CREATOR" and dev_webui else default),
         "richiesta_immagine": richiesta_immagine,
+        "FAMIGLIA_DEFAULT": FAMIGLIA_DEFAULT,
         "FAMIGLIA_SDXL": FAMIGLIA_SDXL,
         "SKETCH_LATO": SKETCH_LATO,
         "SKETCH_PASSI": SKETCH_PASSI,
@@ -202,9 +203,13 @@ class ComandoTests(unittest.TestCase):
         job = scope["_contesto"].image_queue.job[0]
         grafo = workflow(job)
         # SDXL-Turbo: il positivo e' un CLIPTextEncode (nodo 452, campo "text"),
-        # il negativo un nodo separato (453). Il Qwen usava 452 con "prompt".
-        self.assertEqual(grafo["452"]["inputs"]["text"], idea)
-        self.assertEqual(grafo["453"]["inputs"]["text"], job["negativo"])
+        # il negativo un nodo separato (453). Il Qwen usa 452 con "prompt" e "negative_prompt".
+        testo_positivo = grafo["452"]["inputs"].get("text") or grafo["452"]["inputs"].get("prompt")
+        self.assertEqual(testo_positivo, idea)
+        if "453" in grafo and "inputs" in grafo["453"] and "text" in grafo["453"]["inputs"]:
+            self.assertEqual(grafo["453"]["inputs"]["text"], job["negativo"])
+        else:
+            self.assertEqual(grafo["452"]["inputs"].get("negative_prompt", ""), job["negativo"])
 
     def test_le_spazi_bianchi_si_normalizzano_e_il_resto_resta(self):
         scope = _load()
@@ -392,7 +397,9 @@ class RichiestaAParoleCanaleTests(unittest.TestCase):
         scope["_channel_immagine"](_contesto("fammi un disegno di un faro"),
                                    channel="telegram", destinazione="1")
         job = scope["_contesto"].image_queue.job[0]
-        self.assertEqual(workflow(job)["452"]["inputs"]["text"],
+        grafo = workflow(job)
+        testo_positivo = grafo["452"]["inputs"].get("text") or grafo["452"]["inputs"].get("prompt")
+        self.assertEqual(testo_positivo,
                          prompt_sketch("di un faro"))
         self.assertIn(job["modello_effettivo"], scope["_log"][0][1]["detail"])
 

@@ -4833,3 +4833,29 @@ unico LLM su questo Mac, per liberare i nodi Windows (dedicati a ComfyUI).
    - Commit e push su `origin/main` su conferma esplicita dell'utente + notifica inviata sulla mesh.
 
 
+
+## 2026-10-17 — Antigravity (Mac): Inserimento snippet verificato Google AdSense e allineamento ads.txt
+
+1. **Tag di verifica Google AdSense (`ca-pub-4726342205200791`)**:
+   - Inserito lo script di verifica AdSense ufficiale fornito dall'utente in `<head>` su tutte le pagine del portale pubblico:
+     - `web-node/index.html` (e aggiornato `data-ad-client` del banner responsive)
+     - `web-node/join.html` (e aggiornato `data-ad-client` del banner responsive)
+     - `web-node/ai.html`
+     - `web-node/chat.html`
+     - `web-node/progetto.html`
+     - `web-node/privacy.html`
+     - `web-node/privacy-policy.html`
+
+2. **Aggiornamento `web-node/ads.txt`**:
+   - Aggiornato `web-node/ads.txt` inserendo la riga `google.com, pub-4726342205200791, DIRECT, f08c47fec0942fa0`.
+
+3. **Deploy Live su Aruba Hosting Linux**:
+   - Eseguito `scripts/deploy_web_node_aruba.py`: build automatica del bundle statico e upload via FTP su `www.zerozerocomputer.it`.
+   - Verificato online via HTTP:
+     - `https://www.zerozerocomputer.it/ads.txt` (restituisce il nuovo publisher ID)
+     - `https://www.zerozerocomputer.it/` (tag verificato presente nel DOM)
+     - `https://www.zerozerocomputer.it/ai.html` e `join.html` (tag verificato presente)
+
+4. **Allineamento Test (`tests/test_channel_immagine.py`)**:
+   - Aggiunto `FAMIGLIA_DEFAULT` agli import e allo scope del mock di canale, supportando la transizione a Qwen-Image 2.1 (nodo 452 con `prompt`/`negative_prompt` oltre a `text`).
+   - Suite `tests/test_channel_immagine.py`: 59 passed, 56 subtests passed.
