@@ -301,13 +301,14 @@ class VerificaVetrinaTests(unittest.TestCase):
         self.assertEqual(vetrina["famiglia"], FAMIGLIA_SD15)
         self.assertEqual(vetrina["modello"], MODELLO_SD15["ckpt"])
 
-    def test_aurora_non_cambia_modello(self):
-        """Aurora non dichiara nessuna famiglia: il suo ritratto segue la coda come
-        prima. La scelta fatta per Anna non deve spostare il volto di sua sorella.
+    def test_aurora_dichiara_la_sua_famiglia(self):
+        """Aurora dichiara la sua famiglia (qwen-image-2.1): il suo ritratto usa
+        quella, non la scelta fatta per Anna (sd15). Le due sorelle non si
+        spostano il volto a vicenda.
         """
         vetrina = vetrina_dal_documento(PERSONA)
-        self.assertEqual(vetrina["famiglia"], "")
-        self.assertEqual(vetrina["modello"], "")
+        self.assertEqual(vetrina["famiglia"], "qwen-image-2.1")
+        self.assertEqual(vetrina["modello"], "qwen-image-2.1-UC-Q5_K_M.gguf")
 
     def test_una_famiglia_inventata_si_ferma_prima_di_generare(self):
         """`nuovo_job` fa cadere una famiglia sconosciuta sul default: il job

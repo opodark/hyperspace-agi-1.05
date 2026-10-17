@@ -835,7 +835,7 @@ def _job_ritratto_instagram(sender_id: str, idea: str, richiedente: str,
     modello. Accodare e tacere darebbe un'immagine castigata senza che nessuno sappia
     perché; prometterla e non accodarla sarebbe peggio.
     """
-    documento = {"vetrina": (getattr(persona.profilo(), "sezioni", {}) or {}).get("vetrina", {})}
+    documento = {"vetrina": (getattr(persona.persona(), "sezioni", {}) or {}).get("vetrina", {})}
     vetrina = vetrina_dal_documento(documento)
     esplicito = livello in ("creatore", "musa")
     variante = {**vetrina, "scena": idea}
@@ -985,7 +985,7 @@ def _instagram_publish_voce(voce_id: str, percorso: str) -> bool:
     """Convert and publish one completed _contesto.diario entry (sogno o poesia) exactly once."""
     if os.getenv("INSTAGRAM_DREAM_PUBLISH_ENABLED", "false").strip().lower() != "true":
         return False
-    with _contesto.instagram_dream_publish_lock:
+    with _contesto.dream_publish_lock:
         page = _contesto.diario.get(voce_id)
         if (not page or page.get("tipo") not in ("sogno", "poesia")
                 or page.get("instagram_status") not in ("pending", "failed")):

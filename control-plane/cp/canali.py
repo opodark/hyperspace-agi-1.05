@@ -726,7 +726,7 @@ def _channel_immagine(context, *, channel: str, destinazione: str = "",
                 "o erotismo esplicito. Quel livello è riservato alle MUSA.")
     try:
         if richiesta_di_anna:
-            sezioni = getattr(persona.profilo(), "sezioni", {}) or {}
+            sezioni = getattr(persona.persona(), "sezioni", {}) or {}
             vetrina = vetrina_dal_documento({"vetrina": sezioni.get("vetrina", {})})
             # La richiesta **è** la scena di questa generazione: il livello si legge lì,
             # mentre per chiunque altro la vetrina resta quella dichiarata e il negativo

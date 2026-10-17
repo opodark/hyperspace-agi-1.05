@@ -4661,3 +4661,115 @@ Per l'HP Omen l'utente replica: i valori CONDIVISI da copiare sono i blocchi
 Instagram/SMTP/FTP/CONTACT_TELEGRAM; quelli node-specific (modelli, VRAM,
 persona, token canali, endpoint) vanno adattati al nodo. Nessun commit/push.
 
+
+## 2026-10-17 — Cline → utente, Codex, Claude Code (diagnosi Telegram, vetrina Anna & Aurora)
+
+Tre sintomi segnalati dall'utente: Anna non riconosce il creatore su Telegram,
+immagini con censura, Aurora non risponde. Ho fatto diagnosi + un fix di codice;
+**nessun commit/push**.
+
+### Fix applicato — regressione della vetrina (immagini col modello sbagliato)
+
+`control-plane/cp/canali.py` e `control-plane/cp/instagram.py` leggevano la
+vetrina della persona con `getattr(persona.profilo(), "sezioni", {})`. Ma
+`profilo()` restituisce il **documento** `Persona` (ha `name`, non `sezioni`):
+le parti non modellate — la `vetrina` — stanno sullo **store**
+(`persona.persona().sezioni` = `PersonaStore.sezioni`, vedi `shared/persona.py`).
+Prima del refactor `367db54` il codice leggeva da `persona_store`
+(`main.py:1536`) e funzionava. Effetto del bug, misurato nei log del 17/10: le
+richieste immagine Telegram di Anna partivano con `famiglia=qwen-image-2.1` e lo
+stile di default (Aurora) invece della vetrina dichiarata di Anna (sd15
+chickmixflat, 512×768, seed 20260930).
+
+Correzioni:
+- `canali.py` e `instagram.py`: `persona.profilo()` → `persona.persona()`.
+- Mock allineati in `tests/test_channel_immagine.py` e
+  `tests/test_instagram_creator_image.py` (le `sezioni` stanno sullo store, non
+  sul profilo).
+- `tests/test_showcase.py`: `test_aurora_non_cambia_modello` →
+  `test_aurora_dichiara_la_sua_famiglia` — `data/persona-aurora.json` dichiara
+  ora `famiglia=qwen-image-2.1`/`modello=qwen-image-2.1-UC-Q5_K_M.gguf`
+  (aggiornato il 14/10), il test era fermo all'ipotesi vecchia.
+
+Suite completa col `.venv` del repo: **2425 passed, 17 skipped, 0 failed**.
+
+### Resta da fare — serve l'utente
+
+1. **Creatore su Telegram.** `CHANNEL_OPERATOR=zzzzzzxxxxyyyyy` nel `.env`
+   coincide con l'handle che il driver manda (`da=zzzzzzxxxxyyyyy` nei log
+   recenti): se l'username Telegram **reale** è diverso, va scritto lì (senza
+   `@`, virgola per gli alias) e ricaricato da Setup o riavviando il CP. Senza
+   quel match il livello creatore non si accende e `!render`/esplicito restano
+   chiusi. Il documento di Anna dichiara già
+   `consenti_erotismo_esplicito_creatore=true` e
+   `consenti_nudo_artistico_virtuale=true`: il livello c'è, manca solo la porta.
+2. **Aurora.** Il peer `win11-cp` (Tailscale `100.64.31.18:8095`) è **online**
+   (HTTP 200 adesso) ma la sua identità è cambiata: oggi `1fbf9989…` contro il
+   `797a87a3…` nel DB del Mac, `last_status=unreachable` dal 04/10 → il pairing
+   è stantio e `ask_aurora` fallisce. Serve riaccoppiare: rimuovere il peer
+   vecchio e riaggiungerlo con peer_id+pubkey da `/federation/identity`, e
+   sull'altro CP mettere l'identità del Mac nella sua allowlist.
+3. **Osservazione secondaria:** `data/control-plane/image-jobs.json` ha
+   `auto_paused=true` con 20 job falliti in cronologia (famiglia sdxl-turbo):
+   se le immagini non arrivano anche dopo il fix del creatore, la coda
+   auto-pausata è il prossimo punto da guardare.
+
+## 2026-10-17 — Cline → utente (follow-up: fix applicati e deploy)
+
+Su indicazione dell'utente ho applicato le tre correzioni e riavviato il CP.
+Nessun commit/push.
+
+1. **Creatore Telegram (maiuscole).** L'utente ha chiarito che l'username ha le
+   prime due lettere maiuscole. Nota: il confronto nel codice è comunque
+   case-insensitive (`_insiemi_da_env` minuscolizza e `autore.lower()`), ma ho
+   allineato `.env` al valore reale: `CHANNEL_OPERATOR=ZZzzzzxxxxyyyyy`.
+2. **Riacoppiamento Aurora ↔ Anna (federazione).** Il CP Windows aveva cambiato
+   identità (peer_id `797a87a3…` → `1fbf9989…`) e la sua allowlist era vuota.
+   Riaccoppiati entrambi i lati via API `/federation/peers`:
+   - Mac → win11-cp: pubkey `049b62f8…`, endpoint `http://100.64.31.18:8095`.
+   - win11 → mac-cp: pubkey `04b76868…`, endpoint `http://100.81.234.102:8095`.
+   Verifica end-to-end: una richiesta firmata dal Mac ora **passa
+   l'autorizzazione** (prima il non firmato riceveva subito "peer non
+   autorizzato"); l'esecuzione del modello lato win11 va oltre il timeout di 20s
+   → la macchina è raggiungibile e autorizzata, il modello di Aurora lì va
+   verificato a parte.
+3. **Fix bonus (bug preesistente):** `instagram.py:988` usava
+   `_contesto.instagram_dream_publish_lock`, ma il campo si chiama
+   `dream_publish_lock` (linea 143): il thread `instagram-dream-backfill`
+   andava in `AttributeError` a ogni boot. Corretto.
+4. **Deploy:** `docker compose build control-plane` + `up -d --no-deps
+   control-plane` (due volte: dopo il fix vetrina e dopo il fix del lock). Boot
+   pulito (nessun AttributeError), env `CHANNEL_OPERATOR=[ZZzzzzxxxxyyyyy]`,
+   fix presenti nell'immagine (`/app/cp/*.py`). Suite completa col `.venv` del
+   repo: **2425 passed, 17 skipped, 0 failed**.
+
+
+## 2026-10-17 — Antigravity (Mac): Risoluzione vulnerabilità wallet, rotte gateway live, anti-farming e rimozione fallback esterno immagini
+
+1. **Rotte Tokenomics Gateway & Leaderboard (`federation-gateway/main.py`, `control-plane/cp/webnode.py`, `control-plane/cp/mesh.py`):**
+   - Aggiunti `/tokenomics/leaderboard` e `/web/tokenomics/leaderboard` (GET + OPTIONS) nell'elenco `ALLOWED_ROUTES` del federation gateway.
+   - Rebuilt e riavviati i container Docker `hyperspace_federation_gateway` e `hyperspace_control_plane` con `docker compose up -d --build`.
+   - Verifica live su `https://mesh.zerozerocomputer.it/web/tokenomics/status` (HTTP 200 con total supply 1B, 70/20/10), `/web/node/balance` (HTTP 200) e `/tokenomics/leaderboard` (HTTP 200).
+
+2. **Risoluzione Vulnerabilità Critica Wallet & Anti-Farming (`shared/tokenomics.py`, `shared/db.py`, `control-plane/cp/webnode.py`):**
+   - **Verifica Esistenza Nodo**: `POST /web/node/wallet` verifica che `node_id` sia un nodo attivo e registrato nel `web_registry` in memoria. Nodi arbitrari o inventati ricevono 404.
+   - **Anti-Farming Welcome Bonus**: Il bonus una tantum di benvenuto (+50 $00MESH) è erogabile al massimo una volta per indirizzo Solana su tutta la rete. Nodi multipli associati allo stesso wallet non moltiplicano il bonus.
+   - **Anti-Hijacking**: Rifiutata la sovrascrittura di un wallet già associato a un nodo (HTTP 403).
+   - **Verifica Crittografica Ed25519**: Aggiunta funzione `verify_solana_signature(solana_address, message, signature)` con decodifica Base58 per validare le firme crittografiche dei wallet Phantom/Solflare.
+
+3. **Rimozione Fallback Silenzioso Immagini (`web-node/ai.html`):**
+   - Eliminata la chiamata automatica e non autorizzata a `image.pollinations.ai`.
+   - Se i nodi GPU ComfyUI locali non rispondono o sono in standby, l'interfaccia notifica con trasparenza all'utente che nessun worker GPU è attivo, spiegando la politica di sovranità e privacy dei prompt.
+
+4. **Trasparenza Modelli e Pulizia Mesh Orbitale (`web-node/index.html`, `web-node/join.html`):**
+   - Rimosse le finte macchine con DeepSeek-R1 e Llama-3.3 70B generate artificialmente quando la mesh era scarica.
+   - Aggiornata la descrizione di AI Studio per fare riferimento onesto ai modelli sovrani open source ed abliterated serviti dai nodi attivi.
+
+5. **Informativa Privacy e Connettività Wallet (`web-node/privacy-policy.html`, `web-node/privacy.html`):**
+   - Integrata sezione su chiavi pubbliche Solana, Proof-of-Useful-Work e Google AdSense in conformità a GDPR e MiCA.
+
+6. **CI GitHub Actions (`.github/workflows/tests.yml`):**
+   - Aggiunti `Pillow` e `reportlab` al comando `pip install` del workflow GitHub Actions `tests.yml`.
+
+7. **Deploy Live:**
+   - Nuova build e deploy completato via FTP su Aruba (`https://www.zerozerocomputer.it/`).

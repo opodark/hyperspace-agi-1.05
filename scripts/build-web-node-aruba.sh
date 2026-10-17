@@ -29,6 +29,11 @@ if [[ -f "$REPO_ROOT/web-node/.htaccess" ]]; then
   cp "$REPO_ROOT/web-node/.htaccess" "$TARGET/.htaccess"
 fi
 
+# Copia ads.txt per Google AdSense
+if [[ -f "$REPO_ROOT/web-node/ads.txt" ]]; then
+  cp "$REPO_ROOT/web-node/ads.txt" "$TARGET/ads.txt"
+fi
+
 # Copia tutti i sorgenti JS
 cp "$REPO_ROOT/web-node/src/"*.js "$TARGET/src/"
 

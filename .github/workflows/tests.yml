@@ -30,7 +30,7 @@ jobs:
         # li importa a livello di modulo: senza, quelle classi saltano (prima
         # facevano fallire l'intera run pytest, che su un errore di raccolta
         # abortisce invece di continuare).
-        run: pip install flask flask-cors requests cryptography httpx pytest uvicorn websockets fastapi bandit==1.8.6 ruff==0.14.10
+        run: pip install flask flask-cors requests cryptography httpx pytest uvicorn websockets fastapi bandit==1.8.6 ruff==0.14.10 Pillow reportlab
       - name: Suite Python
         # pytest, non unittest: raccoglie sia le classi unittest.TestCase sia le
         # funzioni in stile pytest. Con `unittest discover` restavano invisibili

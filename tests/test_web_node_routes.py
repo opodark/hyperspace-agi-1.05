@@ -144,6 +144,7 @@ class WebRouteGuardTests(unittest.TestCase):
         self.assertIn("@_bp.route('/web/node/wallet'", source)
         self.assertIn("@_bp.route('/web/node/balance'", source)
         self.assertIn("@_bp.route('/web/tokenomics/status'", source)
+        self.assertIn("@_bp.route('/web/tokenomics/leaderboard'", source)
 
 
 if __name__ == "__main__":

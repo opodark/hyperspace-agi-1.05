@@ -139,22 +139,80 @@ def reward_node_uptime(node_id: str, seconds: int = 3600) -> dict:
     return {"ok": True, "reward": amount, "tx": tx}
 
 
-def link_node_solana_wallet(node_id: str, solana_address: str) -> dict:
-    """Collega l'indirizzo wallet Solana (es. Phantom) al node_id per il futuro claim pump.fun."""
+def b58decode(s: str) -> bytes:
+    """Decodifica una stringa Base58 in bytes."""
+    num = 0
+    for char in s:
+        idx = BASE58_ALPHABET.find(char)
+        if idx == -1:
+            raise ValueError(f"Carattere Base58 non valido: {char}")
+        num = num * 58 + idx
+    combined = num.to_bytes((num.bit_length() + 7) // 8, "big") if num > 0 else b""
+    pad = 0
+    for char in s:
+        if char == "1":
+            pad += 1
+        else:
+            break
+    return b"\x00" * pad + combined
+
+
+def verify_solana_signature(solana_address: str, message: str | bytes, signature_b58: str) -> bool:
+    """Verifica crittograficamente la firma Ed25519 generata da un wallet Solana (Phantom/Solflare)."""
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        pub_bytes = b58decode(solana_address)
+        sig_bytes = b58decode(signature_b58)
+        if len(pub_bytes) != 32 or len(sig_bytes) != 64:
+            return False
+        pub_key = Ed25519PublicKey.from_public_bytes(pub_bytes)
+        msg_bytes = message.encode("utf-8") if isinstance(message, str) else message
+        pub_key.verify(sig_bytes, msg_bytes)
+        return True
+    except Exception:
+        return False
+
+
+def link_node_solana_wallet(node_id: str, solana_address: str, signature: str = "", timestamp: str = "") -> dict:
+    """Collega l'indirizzo wallet Solana (es. Phantom) al node_id per il futuro claim pump.fun.
+
+    Protezioni attive:
+    - Verifica formato crittografico Base58 dell'indirizzo Solana.
+    - Se fornita firma Ed25519, convalida crittografica dell'indirizzo proprietario.
+    - Anti-hijacking: rifiuta la sovrascrittura di un wallet già configurato su un nodo diverso.
+    - Anti-farming: il welcome bonus (+50 $00MESH) è erogabile una sola volta per indirizzo Solana su tutta la rete.
+    """
     nid = (node_id or "").strip()
     addr = (solana_address or "").strip()
+    sig = (signature or "").strip()
+    ts = (timestamp or "").strip()
 
     if not nid:
         return {"ok": False, "error": "node_id mancante"}
     if not validate_solana_address(addr):
         return {"ok": False, "error": "Indirizzo Solana non valido (richiesto formato Base58 32-44 caratteri)"}
 
-    # Assicura che il wallet del nodo esista nel DB
-    db.upsert_token_wallet(nid)
-    # Se il nodo è nuovo (mai ricompensato), accredita il join bonus una tantum
+    # Se viene fornita una firma crittografica, verificala rigorosamente
+    if sig:
+        expected_msg = f"00MESH-auth:{nid}:{ts}"
+        if not verify_solana_signature(addr, expected_msg, sig):
+            return {"ok": False, "error": "Firma crittografica non valida per l'indirizzo Solana fornito"}
+
+    # Protezione anti-hijacking: se il nodo ha già un wallet associato diverso, rifiuta
     current_wallet = db.get_token_wallet(nid)
+    if current_wallet and current_wallet.get("solana_address"):
+        if current_wallet["solana_address"] != addr:
+            return {"ok": False, "error": "Wallet già associato a questo nodo con un indirizzo diverso"}
+
+    db.upsert_token_wallet(nid)
+
+    # Protezione anti-farming: un indirizzo Solana può ricevere il bonus di benvenuto una sola volta
+    # su tutta la rete, indipendentemente da quanti nodi tenta di registrare.
+    wallets_for_addr = db.get_wallets_by_solana_address(addr)
+    addr_already_has_reward = any(w.get("total_earned", 0) > 0 for w in wallets_for_addr if w.get("node_id") != nid)
+
     join_reward = None
-    if not current_wallet or current_wallet.get("total_earned", 0) <= 0:
+    if (not current_wallet or current_wallet.get("total_earned", 0) <= 0) and not addr_already_has_reward:
         join_reward = reward_node_join(nid, tier="web")
 
     success = db.set_node_solana_address(nid, addr)
@@ -165,6 +223,7 @@ def link_node_solana_wallet(node_id: str, solana_address: str) -> dict:
         "solana_address": addr,
         "wallet": wallet,
         "join_reward": join_reward,
+        "bonus_granted": join_reward is not None and join_reward.get("ok", False)
     }
 
 

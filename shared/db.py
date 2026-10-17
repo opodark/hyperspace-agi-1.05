@@ -619,6 +619,15 @@ def set_node_solana_address(node_id: str, solana_address: str) -> bool:
         return cur.rowcount > 0
 
 
+def get_wallets_by_solana_address(solana_address: str) -> list[dict]:
+    addr = (solana_address or "").strip()
+    if not addr:
+        return []
+    with _conn() as con:
+        rows = con.execute("SELECT * FROM token_wallets WHERE solana_address = ?", (addr,)).fetchall()
+        return [dict(r) for r in rows]
+
+
 def list_token_wallets(limit: int = 50, offset: int = 0) -> list[dict]:
     sql = "SELECT * FROM token_wallets ORDER BY balance DESC, tasks_completed DESC LIMIT ? OFFSET ?"
     with _conn() as con:
