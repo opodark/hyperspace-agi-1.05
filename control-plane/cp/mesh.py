@@ -726,6 +726,59 @@ def mesh_sync_status():
         "checks": checks,
     })
 
+
+# ── TOKENOMICS & REWARDS ROUTES ──────────────────────────────────────────
+
+@_bp.route('/tokenomics/status')
+def tokenomics_status():
+    """Panoramica tokenomics e mining mesh per la dashboard."""
+    from shared import tokenomics
+    return jsonify({"ok": True, **tokenomics.get_tokenomics_overview()})
+
+
+@_bp.route('/tokenomics/leaderboard')
+def tokenomics_leaderboard():
+    """Classifica nodi per token accumulati."""
+    from shared import tokenomics
+    try:
+        limit = max(1, min(100, int(request.args.get("limit", 20))))
+    except (TypeError, ValueError):
+        limit = 20
+    return jsonify({"ok": True, "leaderboard": tokenomics.get_tokenomics_leaderboard(limit=limit)})
+
+
+@_bp.route('/tokenomics/node/<node_id>')
+def tokenomics_node(node_id):
+    """Dettaglio bilancio e wallet di un singolo nodo."""
+    wallet = db.get_token_wallet(node_id)
+    if not wallet:
+        return jsonify({"ok": False, "error": "Nodo non trovato nei wallet"}), 404
+    txs = db.list_token_transactions(node_id=node_id, limit=50)
+    return jsonify({"ok": True, "wallet": wallet, "transactions": txs})
+
+
+@_bp.route('/tokenomics/node/<node_id>/wallet', methods=['POST'])
+def tokenomics_set_wallet(node_id):
+    """Collega o aggiorna l'indirizzo Solana (es. Phantom) per un nodo."""
+    from shared import tokenomics
+    data = request.get_json(force=True, silent=True) or {}
+    address = str(data.get("solana_address") or "").strip()
+    res = tokenomics.link_node_solana_wallet(node_id, address)
+    if not res.get("ok"):
+        return jsonify({"ok": False, "error": res.get("error", "Errore collegamento wallet")}), 400
+    return jsonify(res), 200
+
+
+@_bp.route('/tokenomics/snapshot')
+def tokenomics_snapshot():
+    """Genera lo snapshot di airdrop/allocazione per pump.fun / Solana."""
+    from shared import tokenomics
+    try:
+        pool = float(request.args.get("pool", tokenomics.TOTAL_COMMUNITY_POOL))
+    except (TypeError, ValueError):
+        pool = tokenomics.TOTAL_COMMUNITY_POOL
+    return jsonify(tokenomics.export_pumpfun_snapshot(pool_allocation=pool))
+
 # ── i candidati, in ordine di punteggio ─────────────────────────────────
 
 def _rank_candidate_nodes(active_nodes: list, pinned_node_id: str = None, max_candidates: int = None, model: str = "") -> list:
@@ -740,6 +793,13 @@ def _rank_candidate_nodes(active_nodes: list, pinned_node_id: str = None, max_ca
     if model:
         ids = _node_ids_with_model(model)
         candidates = [n for n in active_nodes if n.get("node_id") in ids]
+        # Modelli densi >= 11B (es. gemma-4:12b): deprecati su nodi con VRAM <= 8.5 GB
+        # Riservati a Mac / nodi con VRAM > 12 GB per evitare memory spilling PCIe e timeout.
+        if any(g in model.lower() for g in ("gemma-4", "gemma4:12b")):
+            candidates = [
+                n for n in candidates
+                if float(n.get("vram_gb") or 0) > 8.5 or n.get("tier") == "leaf" or "mac" in (n.get("alias") or "").lower()
+            ]
     executable = [n for n in candidates if _best_endpoint(n)]
     if not executable:
         return []

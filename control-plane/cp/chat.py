@@ -516,6 +516,11 @@ def _finalize_task(task, task_id, node_id, model, prompt, result_json):
     task["result"]       = result_json
     task["completed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     db.update_task(task_id, "done", result=json.dumps(result_json))
+    try:
+        from shared import tokenomics
+        tokenomics.reward_task_completion(node_id, task_id, model=model)
+    except Exception:
+        pass
     ts_now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     _memory_append({"ts": ts_now, "type": "webui_prompt", "content": prompt,
                     "model": model, "task_id": task_id, "node_id": node_id, "source": "webui",

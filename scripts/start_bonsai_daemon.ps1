@@ -16,7 +16,7 @@ Start-Sleep -Seconds 1
 
 $argsList = @(
     "-m", $modelPath,
-    "--host", "127.0.0.1",
+    "--host", "0.0.0.0",
     "--port", "8082",
     "-ngl", "99",
     "--ctx-size", "8192",

@@ -12,8 +12,9 @@ DIST_ROOT="$REPO_ROOT/dist"
 mkdir -p "$TARGET/src"
 mkdir -p "$DIST_ROOT"
 
-# Copia index.html (join.html)
-cp "$REPO_ROOT/web-node/join.html" "$TARGET/index.html"
+# Copia index.html e join.html
+cp "$REPO_ROOT/web-node/index.html" "$TARGET/index.html"
+cp "$REPO_ROOT/web-node/join.html" "$TARGET/join.html"
 
 # Copia pagine ausiliarie (policy, deletion, debug, ecc.)
 for page in "$REPO_ROOT/web-node/"*.html; do
@@ -37,6 +38,10 @@ if [[ -d "$REPO_ROOT/web-node/assets" ]]; then
   cp -R "$REPO_ROOT/web-node/assets/." "$TARGET/assets/"
 fi
 
+# Copia PDF pubblici (tokenomics, presentazione) per il download
+mkdir -p "$TARGET/docs"
+cp "$REPO_ROOT/docs/"*.pdf "$TARGET/docs/" 2>/dev/null || true
+
 # Genera join-config.js
 ESCAPED_URL="${GATEWAY_URL%/}"
 cat <<EOF > "$TARGET/join-config.js"
@@ -48,8 +53,8 @@ window.HYPERSPACE_JOIN = Object.freeze({
 });
 EOF
 
-# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /deletion/, /chat/)
-for ep in privacy-policy privacy deletion data-deletion chat; do
+# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /deletion/, /chat/, /ai/, /join/)
+for ep in privacy-policy privacy deletion data-deletion chat ai join; do
   if [[ -f "$TARGET/$ep.html" ]]; then
     mkdir -p "$TARGET/$ep"
     cp "$TARGET/$ep.html" "$TARGET/$ep/index.html"

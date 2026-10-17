@@ -4031,6 +4031,10 @@ def desktop():
 def dashboard_alias():
     return send_from_directory(BASE_DIR, 'dashboard.html')
 
+@app.route('/p2p-monitor')
+def p2p_monitor_page():
+    return send_from_directory(BASE_DIR, 'p2p_monitor.html')
+
 @app.route('/activity')
 def activity_page():
     """Activity monitor; controls use a separate authenticated endpoint."""
@@ -4817,7 +4821,7 @@ monta_immagini(app, image_queue=image_queue, image_memory_gate=image_memory_gate
 # il modulo, perche' e' l'ultimo pezzo di stato dei web node e non dipende dal
 # boot: non c'e' niente da iniettare, e non ha una seconda copia da mantenere
 #(all'incirca 'errore silenzioso' numero tre della prima estrazione).
-monta_webnode(app)
+monta_webnode(app, image_queue=image_queue)
 
 # ── MONTAGGIO DELLA FEDERAZIONE ───────────────────────────────────────────────
 # Quattro iniezioni, nessuno spostamento. Il router (`_select_best_node`,

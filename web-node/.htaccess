@@ -7,12 +7,25 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Supporto URL senza estensione .html (es. /privacy, /privacy-policy, /deletion)
+# Reindirizza link relativi erroneamente richiesti sotto /ai/ verso la radice
+RewriteRule ^ai/(join(\.html)?|chat(\.html)?|privacy(\.html)?|privacy-policy(\.html)?|deletion(\.html)?|data-deletion(\.html)?|progetto(\.html)?|docs/(.*)|src/(.*)|assets/(.*))$ /$1 [R=301,L]
+
+# Supporto URL senza estensione .html (es. /privacy, /privacy-policy, /deletion, /join, /ai)
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.html -f
 RewriteRule ^(.*)$ $1.html [L]
 
-# Gestione MIME per moduli ES Javascript
+DirectoryIndex index.html
+
+# Gestione MIME per moduli ES Javascript e documenti
 AddType application/javascript .js .mjs
 AddType application/json .json
 AddType text/html .html
+AddType application/pdf .pdf
+
+# Bypassa la HiSpeed Cache di Aruba e previene cache stale su browser e CDN
+<IfModule mod_headers.c>
+  Header always set Cache-Control "no-cache, no-store, must-revalidate, private"
+  Header always set Pragma "no-cache"
+  Header always set Expires "0"
+</IfModule>

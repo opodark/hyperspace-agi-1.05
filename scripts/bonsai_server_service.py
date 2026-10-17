@@ -18,7 +18,7 @@ LOG_DIR = r"C:\HyperSpace\logs"
 LOG_FILE = os.path.join(LOG_DIR, "bonsai-server.log")
 PID_FILE = os.path.join(LOG_DIR, "bonsai-server.pid")
 PORT = 8082
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 
 def check_health(timeout=2):
     try:

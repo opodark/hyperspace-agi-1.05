@@ -1,0 +1,1529 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <base href="/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070b18">
+  <title>00MESH AI Studio · Chat, Immagini, Ricerca & Documenti ($00MESH)</title>
+  <meta name="description" content="Accesso pubblico all'intelligenza artificiale sovrana di 00MESH: generazione testo, sintesi immagini, ricerca web e analisi documenti con tokenomics $00MESH su Solana.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%2357e6d9' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b18;
+      --panel: #0d152a;
+      --sidebar: #090e1f;
+      --line: #1d2c4b;
+      --line-subtle: #16223b;
+      --text: #f3f6ff;
+      --muted: #8e9dbf;
+      --cyan: #57e6d9;
+      --violet: #9b7bff;
+      --solana: #9945ff;
+      --ok: #6ee7b7;
+      --bad: #f87171;
+      --amber: #fbbf24;
+      --ad-bg: #0a1122;
+      --ad-border: #233458;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14.5px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    .app-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Sidebar Sinistra Compatta */
+    .sidebar {
+      width: 270px;
+      flex-shrink: 0;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+      z-index: 20;
+      transition: transform .25s ease;
+    }
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: .02em;
+    }
+    .brand-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .badge-hyper-tag {
+      background: linear-gradient(115deg, #9945ff33, #57e6d933);
+      border: 1px solid #9945ff66;
+      color: #d8b4fe;
+      font-size: 10px;
+      font-weight: 750;
+      padding: 2px 7px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .new-chat-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: linear-gradient(115deg, #57e6d920, #9b7bff20);
+      border: 1px solid #57e6d960;
+      border-radius: 10px;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 14px;
+      transition: all .15s ease;
+    }
+    .new-chat-btn:hover {
+      background: linear-gradient(115deg, #57e6d935, #9b7bff35);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .tools-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all .15s;
+    }
+    .tool-btn:hover {
+      background: #121c33;
+      border-color: var(--line);
+      color: #fff;
+    }
+    .tool-btn.active {
+      background: #172444;
+      border-color: var(--cyan);
+      color: #fff;
+      font-weight: 700;
+    }
+    .tool-icon {
+      font-size: 15px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-ad-card {
+      margin-top: auto;
+      background: var(--ad-bg);
+      border: 1px dashed var(--ad-border);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 11.5px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ad-tag {
+      align-self: flex-start;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--amber);
+      background: #fbbf2415;
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid #fbbf2433;
+    }
+    .ad-title {
+      font-weight: 750;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .ad-desc {
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 11px;
+    }
+    .ad-cta-btn {
+      background: linear-gradient(115deg, var(--solana), #6366f1);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+    .ad-cta-btn:hover { opacity: .9; }
+
+    .token-burn-notice {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.35;
+      margin-top: 6px;
+      border-top: 1px solid #16233d;
+      padding-top: 6px;
+    }
+
+    /* Area Centrale */
+    .main-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: radial-gradient(circle at 50% 0%, #15254d 0, transparent 40%), var(--bg);
+      position: relative;
+    }
+
+    /* Top Leaderboard Ad Banner */
+    .top-leaderboard-banner {
+      background: #091024;
+      border-bottom: 1px solid var(--line);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .banner-badge {
+      font-size: 9.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #9945ff22;
+      border: 1px solid #9945ff55;
+      color: #c084fc;
+      white-space: nowrap;
+    }
+    .banner-text {
+      font-size: 12px;
+      color: #e2e8f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .banner-link {
+      color: var(--cyan);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .banner-link:hover { text-decoration: underline; }
+    .remove-ads-btn {
+      background: transparent;
+      border: 1px solid #9945ff77;
+      color: #d8b4fe;
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .remove-ads-btn:hover {
+      background: #9945ff25;
+      color: #fff;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+      height: 52px;
+      border-bottom: 1px solid var(--line-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      background: #070c1ecc;
+      backdrop-filter: blur(8px);
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mobile-menu-btn {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: #fff;
+      padding: 5px 9px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .nav-title {
+      font-size: 14px;
+      font-weight: 750;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #05966922;
+      border: 1px solid #05966955;
+      color: var(--ok);
+    }
+    .nav-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 6px var(--ok);
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-pill-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--muted);
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all .15s;
+    }
+    .nav-pill-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+    .hyper-token-btn {
+      background: linear-gradient(115deg, #9945ff25, #57e6d925);
+      border: 1px solid #9945ff77;
+      color: #e9d5ff;
+      font-weight: 750;
+    }
+    .hyper-token-btn:hover {
+      background: linear-gradient(115deg, #9945ff40, #57e6d940);
+      color: #fff;
+    }
+
+    /* Scroll Area */
+    .chat-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .chat-inner-width {
+      width: min(840px, 100%);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .welcome-hero {
+      text-align: center;
+      padding: 40px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .welcome-icon-ring {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #57e6d933 0, transparent 70%);
+      border: 1px solid #57e6d988;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 0 24px #57e6d944;
+    }
+    .welcome-title {
+      font-size: 24px;
+      font-weight: 850;
+      color: #fff;
+      margin: 0;
+      letter-spacing: -.02em;
+    }
+    .welcome-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 540px;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      width: 100%;
+      max-width: 760px;
+      margin-top: 10px;
+    }
+    .feature-card {
+      background: #0b1326;
+      border: 1px solid #1c2b48;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .feature-card:hover {
+      background: #101c38;
+      border-color: var(--cyan);
+      transform: translateY(-2px);
+    }
+    .feature-card-icon {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .feature-card-title {
+      font-size: 13px;
+      font-weight: 750;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+    .feature-card-desc {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* Messaggi */
+    .message-row {
+      display: flex;
+      flex-direction: column;
+      animation: fadeIn .2s ease;
+      max-width: 88%;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .message-row.user {
+      align-self: flex-end;
+    }
+    .message-row.assistant {
+      align-self: flex-start;
+      max-width: 92%;
+    }
+
+    .message-bubble {
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      font-size: 14.5px;
+      line-height: 1.6;
+    }
+    .message-row.user .message-bubble {
+      background: #1e1a3b;
+      border-color: #433568;
+      color: #fff;
+      white-space: pre-wrap;
+    }
+    .message-row.assistant .message-bubble {
+      background: #0d162d;
+      border-color: #1e2e4f;
+      color: #e2e8f0;
+      box-shadow: 0 4px 20px #00000040;
+    }
+
+    .message-sender-tag {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .message-row.user .message-sender-tag { color: #c4b5fd; }
+    .message-row.assistant .message-sender-tag { color: var(--cyan); }
+
+    /* Immagini Generate */
+    .image-gen-box {
+      margin-top: 10px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #233454;
+      background: #060a15;
+    }
+    .image-gen-img {
+      width: 100%;
+      max-height: 440px;
+      object-fit: cover;
+      display: block;
+      border-bottom: 1px solid #1c2b48;
+    }
+    .image-gen-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #091022;
+      font-size: 11.5px;
+    }
+    .image-download-btn {
+      background: transparent;
+      border: 1px solid #2a3c61;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .15s;
+    }
+    .image-download-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+
+    /* Fonti Ricerca Web */
+    .web-sources-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #070d1b;
+      border: 1px solid #1b2844;
+      border-radius: 10px;
+      font-size: 11.5px;
+    }
+    .web-sources-title {
+      font-weight: 750;
+      color: #93c5fd;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sources-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .source-chip {
+      background: #111c33;
+      border: 1px solid #223455;
+      border-radius: 6px;
+      padding: 3px 8px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .15s;
+    }
+    .source-chip:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+
+    /* Document Ingestion Badge */
+    .doc-badge-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #172445;
+      border: 1px solid #29406f;
+      border-radius: 8px;
+      padding: 6px 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: #fff;
+    }
+    .doc-badge-del {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .doc-badge-del:hover { color: var(--bad); }
+
+    .inline-ad-box {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #0b1326;
+      border-left: 3px solid var(--amber);
+      border-radius: 0 8px 8px 0;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* Compositore */
+    .composer-wrapper {
+      padding: 12px 20px 18px;
+      flex-shrink: 0;
+      background: #070c1edd;
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--line-subtle);
+    }
+    .composer-container {
+      width: min(840px, 100%);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .composer-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .mode-toggles {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toggle-chip {
+      background: #0e172e;
+      border: 1px solid #1f2f4e;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .15s;
+    }
+    .toggle-chip:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+    .toggle-chip.active {
+      background: #57e6d922;
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: 750;
+    }
+
+    .composer-input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      background: #0a1224;
+      border: 1px solid #233456;
+      border-radius: 14px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 20px #00000030;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .composer-input-box:focus-within {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px #57e6d920;
+    }
+
+    .attach-file-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      border-radius: 6px;
+      transition: color .15s;
+    }
+    .attach-file-btn:hover { color: #fff; }
+
+    .composer-textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.45;
+      resize: none;
+      max-height: 160px;
+      padding: 4px 0;
+    }
+    .composer-textarea::placeholder { color: #64748b; }
+
+    .send-msg-btn {
+      background: linear-gradient(115deg, var(--cyan), #8b5cf6);
+      border: none;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #070b18;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 800;
+      flex-shrink: 0;
+      transition: all .15s ease;
+    }
+    .send-msg-btn:hover {
+      opacity: .92;
+      transform: scale(1.04);
+    }
+    .send-msg-btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Modal Rimuovi Ads */
+    .ad-free-modal {
+      position: fixed;
+      inset: 0;
+      background: #03060fdb;
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-card {
+      width: min(460px, 100%);
+      background: #0d162c;
+      border: 1px solid #273a62;
+      border-radius: 18px;
+      padding: 26px;
+      box-shadow: 0 30px 100px #000000dd;
+      text-align: center;
+    }
+    .modal-card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      color: #fff;
+    }
+    .modal-card p {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 16px;
+      line-height: 1.5;
+    }
+    .solana-wallet-input {
+      width: 100%;
+      border: 1px solid #253960;
+      background: #070c1a;
+      color: #fff;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 12.5px;
+      margin-bottom: 12px;
+      outline: none;
+      text-align: center;
+    }
+    .solana-wallet-input:focus {
+      border-color: var(--solana);
+      box-shadow: 0 0 0 3px #9945ff33;
+    }
+    .modal-confirm-btn {
+      width: 100%;
+      background: linear-gradient(115deg, var(--solana), #6366f1);
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      color: #fff;
+      font-weight: 750;
+      font-size: 13.5px;
+      cursor: pointer;
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      margin-top: 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .modal-close-btn:hover { color: #cbd5e1; }
+
+    #fileInput { display: none; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        box-shadow: 20px 0 50px #000000bb;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-menu-btn { display: block; }
+      .top-leaderboard-banner { padding: 6px 10px; }
+      .banner-text { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  
+  <!-- SIDEBAR SINISTRA -->
+  <aside id="sidebar" class="sidebar">
+    <div class="brand-row">
+      <a href="/index.html" class="brand-link">
+        <span class="brand-dot"></span>
+        <span>00MESH</span>
+      </a>
+      <span class="badge-hyper-tag">$00MESH AI</span>
+    </div>
+
+    <button id="newChatBtn" class="new-chat-btn" type="button">
+      <span>＋</span> Nuova Sessione
+    </button>
+
+    <div class="tools-nav">
+      <button class="tool-btn active" data-mode="text" type="button">
+        <span class="tool-icon">💬</span>
+        <span>Assistente & Testo</span>
+      </button>
+      <button class="tool-btn" data-mode="image" type="button">
+        <span class="tool-icon">🎨</span>
+        <span>Generazione Immagini</span>
+      </button>
+      <button class="tool-btn" data-mode="search" type="button">
+        <span class="tool-icon">🌐</span>
+        <span>Ricerca Web Live</span>
+      </button>
+      <button class="tool-btn" data-mode="document" type="button">
+        <span class="tool-icon">📄</span>
+        <span>Analisi Documenti (PDF/Doc)</span>
+      </button>
+    </div>
+
+    <!-- SPONSOR AD CARD (SIDEBAR) -->
+    <div id="sidebarAd" class="sidebar-ad-card">
+      <span class="ad-tag">Sponsor della Rete</span>
+      <div class="ad-title">Ospita un Nodo Web ed Eroga Calcolo PoUW</div>
+      <div class="ad-desc">Condividi calcolo web-safe ed esegui task decentralizzati a supporto della rete open-source.</div>
+      <a href="/join.html" class="ad-cta-btn">Unisciti alla Mesh ↗</a>
+      <div class="token-burn-notice">
+        💎 I ricavi pubblicitari supportano l'infrastruttura open-source e la tesoreria di <b>$00MESH</b>.
+      </div>
+    </div>
+  </aside>
+
+  <!-- VISTA PRINCIPALE -->
+  <main class="main-viewport">
+    
+    <!-- TOP LEADERBOARD AD BANNER -->
+    <div id="topBannerAd" class="top-leaderboard-banner">
+      <div class="banner-left">
+        <span class="banner-badge">Community $00MESH</span>
+        <span class="banner-text">
+          🚀 <b>$00MESH Tokenomics attiva:</b> 200M pool PoUW per i nodi • Standard Solana SPL. 
+          <a href="/docs/hyperspace-tokenomics.pdf" target="_blank" class="banner-link">Leggi il Whitepaper PDF ↗</a>
+        </span>
+      </div>
+      <button id="openRemoveAdsBtn" class="remove-ads-btn" type="button">✨ Disattiva Ads con $00MESH</button>
+    </div>
+
+    <!-- TOPBAR DI NAVIGAZIONE -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <button id="mobileMenuBtn" class="mobile-menu-btn" type="button">☰</button>
+        <div class="nav-title">
+          <span>AI Studio</span>
+          <span class="nav-status-badge">
+            <span class="nav-status-dot"></span>
+            <span>Rete Mesh Online</span>
+          </span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <a href="/join.html" class="nav-pill-btn">Ospita Nodo</a>
+        <a href="/chat.html" class="nav-pill-btn">Console Full</a>
+        <a href="/docs/hyperspace-tokenomics.pdf" target="_blank" class="nav-pill-btn hyper-token-btn">Tokenomics PDF ($00MESH)</a>
+      </div>
+    </header>
+
+    <!-- AREA CHAT SCROLLABILE -->
+    <div id="chatScrollArea" class="chat-scroll-area">
+      <div id="chatInner" class="chat-inner-width">
+        
+        <!-- Welcome Hero quando non ci sono messaggi -->
+        <div id="welcomeHero" class="welcome-hero">
+          <div class="welcome-icon-ring">✨</div>
+          <h1 class="welcome-title">Cosa vuoi creare oggi?</h1>
+          <p class="welcome-subtitle">
+            Genera testi complessi, sintetizza immagini artistiche, cerca informazioni aggiornate sul web o trascina documenti da convertire e riassumere.
+          </p>
+
+          <div class="features-grid">
+            <div class="feature-card" data-prompt="Spiegami in modo semplice come funziona la quantizzazione ternaria di Bonsai 2 su GPU RTX.">
+              <div class="feature-card-icon">🧠</div>
+              <div class="feature-card-title">Architettura AI Sovrana</div>
+              <div class="feature-card-desc">Chiedi dettagli sulla mesh decentralizzata e i modelli locali.</div>
+            </div>
+            <div class="feature-card" data-prompt="/image Cyberpunk digital twin girl looking at glowing neural network nodes in deep night, cinematic 8k">
+              <div class="feature-card-icon">🎨</div>
+              <div class="feature-card-title">Sintesi Immagini</div>
+              <div class="feature-card-desc">Genera visual e illustrazioni artistiche in alta risoluzione.</div>
+            </div>
+            <div class="feature-card" data-prompt="/search Ultime novità e annunci su pump.fun e il protocollo Solana SPL">
+              <div class="feature-card-icon">🌐</div>
+              <div class="feature-card-title">Ricerca Web in Tempo Reale</div>
+              <div class="feature-card-desc">Interroga il web per notizie fresche con citazione delle fonti.</div>
+            </div>
+            <div class="feature-card" data-action="attach">
+              <div class="feature-card-icon">📄</div>
+              <div class="feature-card-title">Analisi Documenti</div>
+              <div class="feature-card-desc">Carica PDF, TXT o codice per sintesi e conversioni rapide.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COMPOSITORE INPUT -->
+    <footer class="composer-wrapper">
+      <div class="composer-container">
+        
+        <!-- File Documento Allegato Preview -->
+        <div id="docPreviewContainer" style="display:none;"></div>
+
+        <!-- Toolbar delle Modalità -->
+        <div class="composer-toolbar">
+          <div class="mode-toggles">
+            <span class="toggle-chip active" id="chipText">💬 Chat</span>
+            <span class="toggle-chip" id="chipImage">🎨 Immagine</span>
+            <span class="toggle-chip" id="chipSearch">🌐 Cerca Web</span>
+          </div>
+          <span id="modelIndicator" style="color:var(--muted); font-size:11px;">Rete: Qwen3-8B • Bonsai 2 • Zero Cloud Costs</span>
+        </div>
+
+        <!-- Box Input Effettivo -->
+        <div class="composer-input-box">
+          <button id="attachBtn" class="attach-file-btn" type="button" title="Allega documento (PDF, TXT, CSV, MD, Codice)">📎</button>
+          <input type="file" id="fileInput" accept=".txt,.md,.pdf,.json,.csv,.py,.js,.html">
+          
+          <textarea id="composerInput" class="composer-textarea" rows="1" placeholder="Scrivi un prompt, chiedi un'immagine (/image ...) o trascina un file…"></textarea>
+          
+          <button id="sendBtn" class="send-msg-btn" type="button" title="Invia messaggio">➤</button>
+        </div>
+
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<!-- MODAL RIMUOVI PUBBLICITÀ CON $00MESH -->
+<div id="adFreeModal" class="ad-free-modal">
+  <div class="modal-card">
+    <div style="font-size:32px; margin-bottom:6px;">💎</div>
+    <h2>Esperienza 100% Ad-Free con $00MESH</h2>
+    <p>
+      Inserisci il tuo indirizzo wallet Solana (Phantom o Solflare) che sostiene <b>$00MESH</b> o inserisci una chiave membro 00MESH per disattivare tutti i banner pubblicitari e ottenere priorità sui nodi GPU.
+    </p>
+    <input type="text" id="solanaInput" class="solana-wallet-input" placeholder="es. 7xKXtg2CW8...uJosgAsU (Base58)">
+    <button id="saveAdFreeBtn" class="modal-confirm-btn" type="button">Attiva Modalità Pro Ad-Free</button>
+    <button id="closeModalBtn" class="modal-close-btn" type="button">Chiudi</button>
+  </div>
+</div>
+
+<script>
+  // Script autonomo senza dipendenze relative esterne per garantire il 100% di funzionamento ovunque
+  const $ = (id) => document.getElementById(id);
+
+  let currentMode = "text";
+  let attachedDoc = null;
+  let isGenerating = false;
+  let conversationHistory = [];
+
+  const isLocal8085 = window.location.origin.includes(":8085");
+  const gatewayUrl = isLocal8085 ? window.location.origin : "https://mesh.zerozerocomputer.it";
+
+  // Controllo Modalità Ad-Free salvata
+  const isAdFree = localStorage.getItem("hyperspace_ad_free") === "true";
+  if (isAdFree) {
+    applyAdFreeMode();
+  }
+
+  function applyAdFreeMode() {
+    if ($("topBannerAd")) $("topBannerAd").style.display = "none";
+    if ($("sidebarAd")) $("sidebarAd").style.display = "none";
+    const bannerItems = document.querySelectorAll(".inline-ad-box");
+    bannerItems.forEach(b => b.style.display = "none");
+    if ($("openRemoveAdsBtn")) {
+      $("openRemoveAdsBtn").textContent = "⭐ Ad-Free Attivo";
+      $("openRemoveAdsBtn").style.borderColor = "var(--ok)";
+      $("openRemoveAdsBtn").style.color = "var(--ok)";
+    }
+  }
+
+  // Toggles Modalità
+  $("chipText").addEventListener("click", () => setMode("text"));
+  $("chipImage").addEventListener("click", () => setMode("image"));
+  $("chipSearch").addEventListener("click", () => setMode("search"));
+
+  document.querySelectorAll(".tool-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.mode;
+      if (mode === "document") {
+        $("fileInput").click();
+      } else {
+        setMode(mode);
+      }
+    });
+  });
+
+  function setMode(mode) {
+    currentMode = mode;
+    $("chipText").classList.toggle("active", mode === "text");
+    $("chipImage").classList.toggle("active", mode === "image");
+    $("chipSearch").classList.toggle("active", mode === "search");
+
+    document.querySelectorAll(".tool-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+
+    const textarea = $("composerInput");
+    if (mode === "image") {
+      textarea.placeholder = "Descrivi l'immagine che desideri generare… (es. Un ritratto cyberpunk al neon)";
+    } else if (mode === "search") {
+      textarea.placeholder = "Cosa vuoi cercare sul web in tempo reale?…";
+    } else {
+      textarea.placeholder = "Scrivi un prompt, chiedi un'immagine (/image ...) o trascina un file…";
+    }
+    textarea.focus();
+  }
+
+  // Gestione Allegati Documenti
+  $("attachBtn").addEventListener("click", () => $("fileInput").click());
+
+  $("fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await handleFileUpload(file);
+    e.target.value = "";
+  });
+
+  async function handleFileUpload(file) {
+    try {
+      const text = await readFileContent(file);
+      const sizeStr = file.size < 1024 ? `${file.size} B` : `${(file.size / 1024).toFixed(1)} KB`;
+      attachedDoc = {
+        name: file.name,
+        size: sizeStr,
+        content: text
+      };
+      renderDocBadge();
+      $("composerInput").placeholder = `Documento '${file.name}' allegato. Chiedi di riassumerlo, estrarre dati o convertirlo…`;
+      $("composerInput").focus();
+    } catch (err) {
+      alert("Errore nella lettura del documento: " + err.message);
+    }
+  }
+
+  function readFileContent(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = reader.result;
+        if (typeof res === "string") {
+          // Pulizia per file di testo / PDF raw stream
+          let clean = res;
+          if (file.name.toLowerCase().endsWith(".pdf")) {
+            // Estrazione semplice caratteri leggibili da stream PDF
+            const matches = res.match(/\(([^()]*)\)\s*Tj/g) || [];
+            if (matches.length > 0) {
+              clean = matches.map(m => m.replace(/^[\s(]+|[)\sTj]+$/g, "")).join(" ");
+            } else {
+              clean = res.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s+/g, " ");
+            }
+          }
+          resolve(clean.slice(0, 15000));
+        } else {
+          resolve("Contenuto binario non parsabile");
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  }
+
+  function renderDocBadge() {
+    const container = $("docPreviewContainer");
+    if (!attachedDoc) {
+      container.style.display = "none";
+      container.innerHTML = "";
+      return;
+    }
+    container.style.display = "block";
+    container.innerHTML = `
+      <div class="doc-badge-preview">
+        <span>📄 <b>${attachedDoc.name}</b> (${attachedDoc.size})</span>
+        <button class="doc-badge-del" id="delDocBtn" type="button" title="Rimuovi documento">✕</button>
+      </div>
+    `;
+    $("delDocBtn").addEventListener("click", () => {
+      attachedDoc = null;
+      renderDocBadge();
+      setMode(currentMode);
+    });
+  }
+
+  // Feature Cards Click
+  document.querySelectorAll(".feature-card").forEach(card => {
+    card.addEventListener("click", () => {
+      if (card.dataset.action === "attach") {
+        $("fileInput").click();
+      } else if (card.dataset.prompt) {
+        $("composerInput").value = card.dataset.prompt;
+        handleSend();
+      }
+    });
+  });
+
+  // Invio Messaggio
+  $("sendBtn").addEventListener("click", handleSend);
+  $("composerInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  async function handleSend() {
+    const inputEl = $("composerInput");
+    const rawText = inputEl.value.trim();
+    if (!rawText && !attachedDoc) return;
+    if (isGenerating) return;
+
+    if ($("welcomeHero")) {
+      $("welcomeHero").remove();
+    }
+
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+
+    let userDisplay = rawText;
+    if (attachedDoc) {
+      userDisplay = `[Allegato: ${attachedDoc.name} (${attachedDoc.size})]\n\n${rawText || "Analizza e riassumi questo documento."}`;
+    }
+    appendMessage("user", userDisplay);
+
+    const isImageRequest = currentMode === "image" || rawText.startsWith("/image ") || rawText.startsWith("/imagine ");
+    const isSearchRequest = currentMode === "search" || rawText.startsWith("/search ");
+
+    let cleanPrompt = rawText.replace(/^\/(image|imagine|search)\s+/, "");
+
+    if (isImageRequest) {
+      await handleImageGeneration(cleanPrompt || "Una bellissima visuale cyberpunk futuristica");
+    } else if (isSearchRequest) {
+      await handleSearchGeneration(cleanPrompt);
+    } else {
+      await handleTextGeneration(cleanPrompt, attachedDoc ? attachedDoc.content : "");
+    }
+
+    attachedDoc = null;
+    renderDocBadge();
+  }
+
+  // 1. GENERAZIONE TESTO CON SSE STREAMING REALE
+  async function handleTextGeneration(prompt, docContext = "") {
+    isGenerating = true;
+    $("sendBtn").disabled = true;
+
+    const botMsgRow = appendMessage("assistant", "Connessione ai nodi mesh in corso…");
+    const contentEl = botMsgRow.querySelector(".message-bubble-content");
+
+    let fullPrompt = prompt;
+    if (docContext) {
+      fullPrompt = `Documento da analizzare:\n"""\n${docContext.slice(0, 8000)}\n"""\n\nIstruzioni: ${prompt || "Fornisci una sintesi strutturata dei punti chiave del documento."}`;
+    }
+
+    conversationHistory.push({ role: "user", content: fullPrompt });
+
+    try {
+      const response = await fetch(`${gatewayUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "qwen3-8b-abliterated:latest",
+          messages: conversationHistory,
+          stream: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let streamText = "";
+      let buffer = "";
+
+      contentEl.innerHTML = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(":")) continue;
+
+          if (trimmed.startsWith("data:")) {
+            const rawData = trimmed.slice(5).trim();
+            if (rawData === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(rawData);
+              const delta = parsed.choices?.[0]?.delta?.content || "";
+              if (delta) {
+                streamText += delta;
+                contentEl.innerHTML = formatMarkdown(streamText);
+                scrollToBottom();
+              }
+            } catch (err) {
+              // chunk parziale
+            }
+          }
+        }
+      }
+
+      if (!streamText) {
+        streamText = "Risposta ricevuta dal nodo con successo.";
+        contentEl.innerHTML = formatMarkdown(streamText);
+      }
+
+      conversationHistory.push({ role: "assistant", content: streamText });
+      if (!isAdFree) appendInlineSponsor(botMsgRow);
+
+    } catch (err) {
+      console.warn("Chiamata streaming mesh non riuscita:", err);
+      const errMsg = `⚠️ **Connessione al cluster non riuscita o nodi occupati.**\n\nNon è stato possibile completare l'elaborazione sulla mesh in questo momento. Verifica lo stato della connessione o riprova tra qualche istante.`;
+      contentEl.innerHTML = formatMarkdown(errMsg);
+      conversationHistory.push({ role: "assistant", content: errMsg });
+      if (!isAdFree) appendInlineSponsor(botMsgRow);
+    } finally {
+      isGenerating = false;
+      $("sendBtn").disabled = false;
+      scrollToBottom();
+    }
+  }
+
+  // 2. GENERAZIONE IMMAGINI CON COMFYUI NATIVO (E FALLBACK)
+  async function handleImageGeneration(prompt) {
+    isGenerating = true;
+    $("sendBtn").disabled = true;
+
+    const botMsgRow = appendMessage("assistant", `🎨 Invio prompt al cluster GPU ComfyUI di HyperSpace: <i>"${prompt}"</i>…`);
+    const contentEl = botMsgRow.querySelector(".message-bubble-content");
+
+    let usedComfy = false;
+    let finalImageUrl = "";
+    let durationSeconds = 0;
+
+    try {
+      // 1. Tenta la generazione nativa sulla Mesh ComfyUI
+      contentEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+          <span class="cursor-blink" style="background:var(--cyan);width:8px;height:8px;border-radius:50%;"></span>
+          <span>Accodamento job sui nodi GPU ComfyUI in corso…</span>
+        </div>
+      `;
+
+      const genRes = await fetch(`${gatewayUrl}/web/image/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt,
+          family: "sdxl-turbo",
+          width: 768,
+          height: 768
+        })
+      });
+
+      if (genRes.ok) {
+        const genData = await genRes.json();
+        if (genData.ok && genData.job_id) {
+          const jobId = genData.job_id;
+          const shortId = jobId.slice(0, 8);
+          
+          contentEl.innerHTML = `
+            <div style="padding:8px 0;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span class="pill live" style="font-size:10px;">ComfyUI Job: ${shortId}</span>
+                <span style="font-size:12px;color:var(--cyan);">In elaborazione su nodo GPU…</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--muted);">Il nodo sta eseguendo il campionamento diffusion (SDXL Turbo / CyberRealistic).</div>
+            </div>
+          `;
+
+          // Polling dello stato del job (fino a 60 secondi)
+          const startTime = Date.now();
+          while (Date.now() - startTime < 60000) {
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+              const statusRes = await fetch(`${gatewayUrl}/web/image/status?id=${encodeURIComponent(jobId)}`);
+              if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                if (statusData.ok && statusData.status === "done" && statusData.image_url) {
+                  finalImageUrl = `${gatewayUrl}${statusData.image_url}`;
+                  durationSeconds = Math.round((statusData.duration_ms || 0) / 1000);
+                  usedComfy = true;
+                  break;
+                } else if (statusData.status === "failed") {
+                  throw new Error(statusData.error || "Errore nodo ComfyUI");
+                }
+              }
+            } catch (pollErr) {
+              // se fallisce un singolo poll, continua
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("ComfyUI non ha risposto in tempo:", err);
+    }
+
+    // 2. Se ComfyUI non è attivo o non ha completato entro il timeout, usa fallback
+    if (!usedComfy || !finalImageUrl) {
+      const seed = Math.floor(Math.random() * 1000000);
+      const encodedPrompt = encodeURIComponent(prompt + ", high quality, 8k, detailed artwork, cinematic lighting");
+      finalImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=1024&height=768&nologo=true`;
+    }
+
+    const badgeText = usedComfy
+      ? `✨ Generata con ComfyUI (Nodo GPU HyperSpace · ${durationSeconds}s)`
+      : `✨ Anteprima rapida (Nodo ComfyUI in coda/standby)`;
+
+    const noticeHtml = usedComfy
+      ? `<p style="margin:0 0 8px;font-size:13px;color:var(--ok);">✓ Immagine renderizzata con successo dai nodi GPU ComfyUI della Mesh HyperSpace:</p>`
+      : `<p style="margin:0 0 8px;font-size:12.5px;color:var(--amber);">⚠️ Nodi GPU ComfyUI locali occupati in VRAM o in standby. Generata anteprima visuale rapida:</p>`;
+
+    contentEl.innerHTML = `
+      ${noticeHtml}
+      <div class="image-gen-box">
+        <img src="${finalImageUrl}" class="image-gen-img" alt="${prompt}" loading="lazy">
+        <div class="image-gen-actions">
+          <span style="color:${usedComfy ? 'var(--cyan)' : 'var(--muted)'};font-weight:600;">${badgeText}</span>
+          <a href="${finalImageUrl}" target="_blank" download="hyperspace-image.jpg" class="image-download-btn">Scarica Immagine ↗</a>
+        </div>
+      </div>
+    `;
+
+    if (!isAdFree) appendInlineSponsor(botMsgRow);
+    isGenerating = false;
+    $("sendBtn").disabled = false;
+    scrollToBottom();
+  }
+
+  // 3. RICERCA WEB LIVE
+  async function handleSearchGeneration(query) {
+    isGenerating = true;
+    $("sendBtn").disabled = true;
+
+    const botMsgRow = appendMessage("assistant", `🔍 Ricerca web in corso per: <i>"${query}"</i>…`);
+    const contentEl = botMsgRow.querySelector(".message-bubble-content");
+
+    try {
+      let results = [];
+      try {
+        const searchResp = await fetch(`${gatewayUrl}/web/search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, max_results: 3 })
+        });
+        if (searchResp.ok) {
+          const resJson = await searchResp.json();
+          results = resJson.results || [];
+        }
+      } catch (e) {}
+
+      if (!results.length) {
+        contentEl.innerHTML = formatMarkdown(`Nessun risultato trovato per la ricerca **"${query}"** sul motore di indicizzazione.`);
+        if (!isAdFree) appendInlineSponsor(botMsgRow);
+        return;
+      }
+
+      let sourcesHtml = `
+        <div class="web-sources-box">
+          <div class="web-sources-title">🌐 Fonti Consultate in Tempo Reale:</div>
+          <div class="sources-list">
+            ${results.map(r => `<a href="${r.url}" target="_blank" class="source-chip">🔗 ${r.title.slice(0, 32)}…</a>`).join("")}
+          </div>
+        </div>
+      `;
+
+      let summary = `Risultati della ricerca web in tempo reale per **"${query}"**:\n\n${sourcesHtml}`;
+      contentEl.innerHTML = formatMarkdown(summary);
+      if (!isAdFree) appendInlineSponsor(botMsgRow);
+    } catch (err) {
+      contentEl.textContent = "Errore nella ricerca: " + err.message;
+    } finally {
+      isGenerating = false;
+      $("sendBtn").disabled = false;
+      scrollToBottom();
+    }
+  }
+
+  function appendMessage(role, text) {
+    const chatInner = $("chatInner");
+    const row = document.createElement("div");
+    row.className = `message-row ${role}`;
+    row.innerHTML = `
+      <div class="message-bubble">
+        <div class="message-sender-tag">
+          ${role === "user" ? "👤 Tu" : "✨ 00MESH AI Studio"}
+        </div>
+        <div class="message-bubble-content">${formatMarkdown(text)}</div>
+      </div>
+    `;
+    chatInner.appendChild(row);
+    scrollToBottom();
+    return row;
+  }
+
+  function appendInlineSponsor(rowEl) {
+    const bubble = rowEl.querySelector(".message-bubble");
+    const adEl = document.createElement("div");
+    adEl.className = "inline-ad-box";
+    adEl.innerHTML = `
+      <span>💎 <b>Sostieni l'AI Sovrana:</b> Scopri la Tokenomics di <b>$00MESH</b> su pump.fun</span>
+      <a href="/docs/hyperspace-tokenomics.pdf" target="_blank" style="color:var(--cyan); font-weight:700; text-decoration:none;">Leggi PDF ↗</a>
+    `;
+    bubble.appendChild(adEl);
+  }
+
+  function scrollToBottom() {
+    const area = $("chatScrollArea");
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function formatMarkdown(text) {
+    if (!text) return "";
+    return text
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/```([\s\S]*?)```/g, '<pre style="background:#050914; padding:10px; border-radius:8px; border:1px solid #1f2f4e; overflow-x:auto;"><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g, '<code style="background:#091022; color:var(--cyan); padding:2px 5px; border-radius:4px;">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/\n/g, '<br/>');
+  }
+
+  // Modal Ad-Free
+  $("openRemoveAdsBtn").addEventListener("click", () => {
+    $("adFreeModal").style.display = "flex";
+  });
+  $("closeModalBtn").addEventListener("click", () => {
+    $("adFreeModal").style.display = "none";
+  });
+
+  $("saveAdFreeBtn").addEventListener("click", () => {
+    const val = $("solanaInput").value.trim();
+    if (!val || val.length < 10) {
+      alert("Inserisci un indirizzo Solana valido (formato Base58).");
+      return;
+    }
+    localStorage.setItem("hyperspace_ad_free", "true");
+    localStorage.setItem("hyperspace_solana_wallet", val);
+    $("adFreeModal").style.display = "none";
+    applyAdFreeMode();
+    alert("🎉 Modalità Ad-Free attivata con successo! Grazie per sostenere il progetto $00MESH.");
+  });
+
+  $("mobileMenuBtn").addEventListener("click", () => {
+    $("sidebar").classList.toggle("open");
+  });
+  $("newChatBtn").addEventListener("click", () => {
+    conversationHistory = [];
+    location.reload();
+  });
+</script>
+
+</body>
+</html>

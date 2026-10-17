@@ -27,6 +27,9 @@ WEB_ROUTES = {
     "web_topology": "/web/topology",
     "web_search_endpoint": "/web/search",
     "web_sandbox_run": "/web/sandbox/run",
+    "web_image_generate": "/web/image/generate",
+    "web_image_status": "/web/image/status",
+    "web_image_file": "/web/image/file",
 }
 
 
@@ -134,6 +137,13 @@ class WebRouteGuardTests(unittest.TestCase):
         # `cp_source = ...` qui dentro lo ombreggerebbe (UnboundLocalError).
         testo_cp = cp_source.SORGENTE()
         self.assertNotIn("WEB_SAFE_TASK_TYPES = {", testo_cp)
+
+
+    def test_web_node_tokenomics_routes(self):
+        source = cp_source.SORGENTE()
+        self.assertIn("@_bp.route('/web/node/wallet'", source)
+        self.assertIn("@_bp.route('/web/node/balance'", source)
+        self.assertIn("@_bp.route('/web/tokenomics/status'", source)
 
 
 if __name__ == "__main__":
