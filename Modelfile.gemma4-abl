@@ -1,0 +1,7 @@
+# gemma4-abliterated:12b — gemma-4-abliterated con contesto ridotto a 16k.
+# Il contesto di default del GGUF è 131072: su una scheda da 8 GB fa traboccare
+# il modello in CPU (9,4 GB, ~48% CPU), rende lente le risposte e rallenta lo
+# scarico/ricarico del modello prima delle immagini (ComfyUI va in CUDA error).
+# 16k bastano alla voce del canale e lasciano la VRAM al diffusion.
+FROM huihui_ai/gemma-4-abliterated:12b
+PARAMETER num_ctx 16384

@@ -40,8 +40,9 @@ from cp.memoria import _load_memory, _memory_append
 from shared import ollama_native
 from shared.channel import (COMANDI_DRIVER, KNOWN_CHANNELS, ChannelGuard,
                             ChannelPolicy, ChannelRuntime, ReplyPacing)
-from shared.image_jobs import (FAMIGLIA_SDXL, nuovo_job, posa_supportata,
-                               richiesta_immagine, scegli_pose_preset)
+from shared.image_jobs import (FAMIGLIA_DEFAULT, FAMIGLIA_SDXL, nuovo_job,
+                               posa_supportata, richiesta_immagine,
+                               scegli_pose_preset)
 from shared.image_translation import traduci_scena_immagine
 from shared.instagram_intimacy import compagna_context, musa_context
 from cp import persona
@@ -816,7 +817,9 @@ def _channel_immagine(context, *, channel: str, destinazione: str = "",
                 reference_strength=(min(vetrina["riferimento_forza"], 0.6)
                                     if richiesta_nudo else vetrina["riferimento_forza"])))
         else:
-            # RealVisXL sul Mac: la famiglia conserva il nome storico sdxl-turbo.
+            # Sketch generico sulla famiglia locale del nodo (win11 = Qwen-Image 2.1):
+            # prima era FAMIGLIA_SDXL (il Mac), e sul nodo Windows il ponte non la
+            # serviva, quindi il job restava in coda per sempre.
             prompt_generico = (traduci_scena_immagine(idea)
                                if modo_comando == "render" else idea)
             accodato = _contesto.image_queue.accoda(nuovo_job(
@@ -824,7 +827,7 @@ def _channel_immagine(context, *, channel: str, destinazione: str = "",
                 negativo=negativo_sketch(),
                 larghezza=SKETCH_LATO, altezza=SKETCH_LATO, passi=SKETCH_PASSI,
                 richiedente=autore, canale=channel,
-                famiglia=FAMIGLIA_SDXL,
+                famiglia=FAMIGLIA_DEFAULT,
                 destinazione=destinazione))
     except ValueError as error:
         return f"Immagine non accodata: {error}."
