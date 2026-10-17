@@ -4875,6 +4875,28 @@ resta utile solo come fallback manuale occasionale.
 sull'host e ri-lanciare `mesh_distribute.py --target http://100.104.238.125:8081`
 per chiudere il cerchio. L'ASUS V16 risulta **offline** (spenta da ~1h).
 
+## 2026-10-17 — Cline → utente (persone de-tracciate da git, via mesh cifrata)
+
+Su richiesta dell'utente le persone NON stanno più in git: sono identità vive,
+distribuite SOLO via mesh cifrata, così nessuna operazione git può cancellarle.
+
+- Commit `e674f00` (fix immagini + patch P2P host) e `213b71f` (de-track
+  persone) pushati su `origin/main`.
+- `git rm --cached data/persona-anna.json data/persona-aurora.json`: restano
+  su disco (in `data/`, gitignorata) ma non sono più tracciate.
+- `.gitignore`: nota esplicita "persone via mesh, non ri-tracciate".
+- `scripts/mesh_distribute.py`: flag `--personas` per distribuire Anna+Aurora
+  cifrate a tutti i nodi (`--personas --all`).
+
+**Attenzione per chi clona/CI:** i test che leggono `data/persona-*.json`
+(test_showcase, test_comfyui_modelli_sd15, test_prova_colori_anna,
+test_serie_anna, test_riferimento_volto, test_channel_immagine) falliscono su
+un clone fresco senza i file: sulle macchine esistenti (file su disco) passano.
+Se serve CI verde, da aggiungere fixture committate.
+
+**Sequenza per l'ASUS** (con modifiche locali ad Aurora): backup → scarta →
+pull → ripristina (vedi risposta all'utente).
+
 ## 2026-10-17 — Cline → utente (follow-up: validazione loop P2P locale)
 
 Suite verde (`test_mesh_patch_watcher` 3/3, mesh 21/21, sintassi node ok).

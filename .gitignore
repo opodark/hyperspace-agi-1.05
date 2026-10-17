@@ -24,6 +24,10 @@ redteam_bot.env
 # Node identity — mai committare chiavi private
 data/
 **/data/
+# Le persone (persona-anna.json, persona-aurora.json) NON stanno in git: sono
+# identità vive, distribuite SOLO via mesh cifrata (scripts/mesh_distribute.py
+# --personas --all) così nessuna operazione git (merge, force-push, checkout)
+# può cancellarle. Stanno in data/ (già gitignorata) e non vanno ri-tracciate.
 *.pem
 node_identity.json
 peers.json

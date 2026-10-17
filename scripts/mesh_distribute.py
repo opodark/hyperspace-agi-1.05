@@ -66,6 +66,7 @@ def main() -> int:
     parser.add_argument("--base", default="HEAD~1", help="Commit di riferimento base per la diff (default: %(default)s)")
     parser.add_argument("--target-commit", default="HEAD", help="Commit target da distribuire (default: %(default)s)")
     parser.add_argument("--files", type=str, help="Elenco separato da virgola di file specifici da includere direttamente")
+    parser.add_argument("--personas", action="store_true", help="Distribuisce le persone (persona-anna.json, persona-aurora.json) a tutti i nodi")
     parser.add_argument("--sync-graphify", action="store_true", help="Invia il Knowledge Graph (graph.json e .graphify_analysis.json)")
     parser.add_argument("--cp-url", default=os.getenv("CONTROL_PLANE_URL", "http://127.0.0.1:8085"), help="URL Control Plane locale")
     args = parser.parse_args()
@@ -87,6 +88,14 @@ def main() -> int:
             _log("ERROR", "Nessun artefatto Graphify trovato in graphify-out/", "red")
             return 1
         _log("PACK", f"Pronto bundle Graphify ({file_count} file compressi)", "green")
+    elif args.personas:
+        _log("PACK", "Distribuzione delle persone (Anna + Aurora) via canale cifrato...", "cyan")
+        payload = create_git_patch_payload(
+            base_commit=args.base, target_commit=args.target_commit,
+            repo_dir=str(ROOT),
+            include_files=["data/persona-anna.json", "data/persona-aurora.json"])
+        n_persone = len(payload.get("direct_files", {}))
+        _log("PACK", f"Persone incluse: {n_persone}", "green")
     else:
         files_list = [f.strip() for f in args.files.split(",")] if args.files else None
         _log("PACK", f"Generazione diff git tra {args.base} e {args.target_commit}...", "cyan")
