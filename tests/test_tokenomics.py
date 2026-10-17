@@ -101,3 +101,29 @@ def test_pumpfun_snapshot_allocation():
     if snapshot["allocations"]:
         tot_pct = sum(a["share_percentage"] for a in snapshot["allocations"])
         assert 99.0 <= tot_pct <= 101.0
+
+
+def test_solana_wallet_anti_farming_and_hijacking():
+    import secrets
+    b58_chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+    uid = "".join(secrets.choice(b58_chars) for _ in range(8))
+    test_node_a = f"test-node-farm-{uid}-a"
+    test_node_b = f"test-node-farm-{uid}-b"
+    sol_addr = "9xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRu"[:34] + uid
+
+    # Primo nodo riceve il welcome bonus
+    res_a = tokenomics.link_node_solana_wallet(test_node_a, sol_addr)
+    assert res_a["ok"] is True
+    assert res_a["bonus_granted"] is True
+
+    # Secondo nodo con STESSO indirizzo Solana non riceve un secondo bonus
+    res_b = tokenomics.link_node_solana_wallet(test_node_b, sol_addr)
+    assert res_b["ok"] is True
+    assert res_b["bonus_granted"] is False
+    assert res_b["join_reward"] is None
+
+    # Anti-hijacking: tentativo di sovrascrivere l'indirizzo del nodo A con un altro indirizzo viene respinto
+    other_addr = "8xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsW"
+    hijack_res = tokenomics.link_node_solana_wallet(test_node_a, other_addr)
+    assert hijack_res["ok"] is False
+    assert "già associato" in hijack_res["error"]

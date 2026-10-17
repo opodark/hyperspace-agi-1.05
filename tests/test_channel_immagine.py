@@ -96,11 +96,12 @@ def _load(operator=(), vip=(), cerchia=(), coda=None, vetrina=None, dev_webui=Fa
         # il finto deve accettarli, altrimenti la chiamata muore e il test
         # continuerebbe a passare provando un'altra funzione.
         system_block=lambda *_a, **_kw: "Sono Anna",
-        persona=SimpleNamespace(
-            name="Anna",
-            # `sezioni` sta sul PROFILO, non sull'archivio: e' una parte del
-            # documento d'identita', e non un attributo di chi lo contiene.
-            sezioni={"vetrina": {**VETRINA_ANNA, **(vetrina or {})}}))
+        # `sezioni` sta sull'ARCHIVIO (lo store), non sul profilo: il profilo e'
+        # il documento `Persona` (nome, tono, valori...), mentre le parti che
+        # `Persona` non modella — la `vetrina` — restano sullo store, come in
+        # `shared/persona.py` (PersonaStore.sezioni).
+        sezioni={"vetrina": {**VETRINA_ANNA, **(vetrina or {})}},
+        persona=SimpleNamespace(name="Anna"))
     queue = coda if coda is not None else CodaFinta()
     scope = {
         "CHANNEL_OPERATOR": set(operator),

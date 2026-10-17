@@ -101,6 +101,10 @@ ALLOWED_ROUTES = {
     ("OPTIONS", "/web/node/balance"),
     ("GET", "/web/tokenomics/status"),
     ("OPTIONS", "/web/tokenomics/status"),
+    ("GET", "/tokenomics/leaderboard"),
+    ("OPTIONS", "/tokenomics/leaderboard"),
+    ("GET", "/web/tokenomics/leaderboard"),
+    ("OPTIONS", "/web/tokenomics/leaderboard"),
     # Vista pubblica della topologia: solo conteggi, etichette pubbliche e
     # modelli (gli stessi di /v1/models). Il CP non vi mette endpoint ne' IP.
     ("GET", "/web/topology"),

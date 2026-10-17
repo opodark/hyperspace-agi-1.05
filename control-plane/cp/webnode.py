@@ -761,8 +761,18 @@ def web_node_wallet():
     if not solana_address:
         return jsonify({"ok": False, "error": "Parametro solana_address mancante"}), 400
 
+    active_node = web_registry._nodes.get(node_id)
+    if not active_node:
+        return jsonify({
+            "ok": False,
+            "error": "Nodo non trovato o non ancora registrato. Completa la registrazione prima di collegare il wallet."
+        }), 404
+
+    signature = str(data.get("signature", "")).strip()
+    timestamp = str(data.get("timestamp", "")).strip()
+
     from shared import tokenomics
-    res = tokenomics.link_node_solana_wallet(node_id, solana_address)
+    res = tokenomics.link_node_solana_wallet(node_id, solana_address, signature=signature, timestamp=timestamp)
     if not res.get("ok"):
         return jsonify({"ok": False, "error": res.get("error", "Errore collegamento wallet")}), 400
 
@@ -823,4 +833,20 @@ def web_tokenomics_status():
         "community_pool": tokenomics.TOTAL_COMMUNITY_POOL,
         "ecosystem_pool": tokenomics.TOTAL_ECOSYSTEM_POOL,
         **overview
+    }), 200
+
+
+@_bp.route('/web/tokenomics/leaderboard', methods=['GET', 'OPTIONS'])
+def web_tokenomics_leaderboard():
+    """Restituisce la classifica pubblica dei nodi worker per ricompense PoUW."""
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    from shared import tokenomics
+    limit = int(request.args.get("limit", 20))
+    leaderboard = tokenomics.get_tokenomics_leaderboard(limit=limit)
+    return jsonify({
+        "ok": True,
+        "token_symbol": tokenomics.TOKEN_SYMBOL,
+        "leaderboard": leaderboard
     }), 200

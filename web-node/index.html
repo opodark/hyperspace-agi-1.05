@@ -7,6 +7,8 @@
   <meta name="description" content="00MESH 1.05: Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun. Condividi calcolo ed esegui modelli AI sovrani senza censure.">
   <title>00MESH 1.05 · Rete Neurale Decentralizzata & Tokenomics $00MESH</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%2357e6d9' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8680057388824673" crossorigin="anonymous"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -963,7 +965,7 @@
       <span class="pill live" style="margin-bottom:12px;">Disponibile Gratis</span>
       <h3 style="font-size:26px; margin:10px 0 12px; color:#fff;">Tutti gli strumenti AI in un'unica interfaccia sovrana.</h3>
       <p style="color:var(--muted); font-size:14px; line-height:1.6; margin:0 0 18px;">
-        AI Studio mette a disposizione la potenza dei modelli Abliterated (DeepSeek R1, Llama 3.3 70B, Qwen 2.5) con strumenti moderni di produttività senza censure e senza abbonamenti invasivi.
+        AI Studio mette a disposizione la potenza dei modelli sovrani open source ed abliterated serviti direttamente dai nodi della rete decentralizzata 00MESH, senza censure e senza abbonamenti centralizzati.
       </p>
 
       <div class="showcase-features">
@@ -1126,6 +1128,20 @@
       </div>
     </form>
   </section>
+
+  <!-- Spazio Pubblicitario Google AdSense -->
+  <div style="margin: 40px auto 16px; max-width: 1080px; text-align: center; padding: 16px 20px; background: rgba(13,20,40,0.5); border: 1px dashed rgba(87,230,217,0.25); border-radius: 14px;">
+    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 8px;">Annuncio Sponsorizzato · Sostieni l'infrastruttura 00MESH</div>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-8680057388824673"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
 </main>
 
 <!-- Footer Aziendale Completo Zero Zero Computer -->
@@ -1587,11 +1603,7 @@
     ctx.stroke();
 
     // 3. Nodi Reali
-    const realMachines = catalog.machines.length > 0 ? catalog.machines : [
-      { label: "rig-gpu-01", tier: "worker", models: ["llama-3.3-70b-abliterated", "qwen-2.5-32b"], model_count: 2, load: 0.28, vram_gb: 24, last_seen_s: 2 },
-      { label: "edge-inference-02", tier: "leaf", models: ["smollm2-1.7b", "hermes-3-8b"], model_count: 2, load: 0.12, vram_gb: 16, last_seen_s: 4 },
-      { label: "server-cluster-03", tier: "worker", models: ["deepseek-r1-distill", "mistral-nemo"], model_count: 2, load: 0.55, vram_gb: 48, last_seen_s: 1 },
-    ];
+    const realMachines = catalog.machines || [];
 
     const nodeCount = realMachines.length;
     const tilt = 0.44;
