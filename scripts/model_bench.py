@@ -32,6 +32,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -63,9 +64,11 @@ def estrai_codice(risposta):
     return re.sub(r"^```(?:python)?\s*|\s*```$", "", risposta, flags=re.I | re.S).strip()
 
 
-def codice_ok(risposta, file_uscita="/tmp/_model_bench_pal.py"):
+def codice_ok(risposta, file_uscita=None):
     """Vero se la funzione generata gira E passa gli assert. Non si fida del
     testo della risposta: esegue il codice."""
+    if file_uscita is None:
+        file_uscita = os.path.join(tempfile.gettempdir(), "_model_bench_pal.py")
     sorgente = estrai_codice(risposta)
     if "def is_palindrome" not in sorgente:
         return False, "nessuna funzione is_palindrome nel codice"

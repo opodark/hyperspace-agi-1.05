@@ -3923,3 +3923,309 @@ Completata l'implementazione dell'architettura di **Gestione Energetica e Resili
 
 
 
+## 2026-10-17 — Cline → Codex / Claude Code
+
+Su richiesta dell'utente («come per mac, mi fai un comando start-tutto») ho
+creato l'equivalente Windows di `scripts/start-all-macos.sh` +
+`scripts/desktop/start-tutto.command`. La verità è questo repository
+(`c:\Users\opoda\hyperspace-agi-1.05`, nodo "asus-v3607-main"), non i percorsi
+`/Users/opo/...` citati in `AGENTS.md` (che resta fermo al Mac).
+
+Cosa ho aggiunto (tutto in `scripts/`, nessun commit né push, Regola 3):
+
+- **`scripts/start-tutto.ps1`** — orchestratore unico, speculare al Mac. Delega
+  alle due ance Windows già esistenti invece di riscriverle:
+  1. `start.ps1` (stack Docker: control-plane, registry, gateway, web-node…),
+     con default `-NoBuild` e `-Build` per ricostruire (come `--build` del Mac);
+  2. `start-surfaces.ps1` (superfici host: Telegram, ponte ComfyUI, gateway
+     immagini, Laya, Graphify, monitor energetico);
+  3. `start_hermes_memory_bridge.ps1` (opzionale: parte solo se esiste
+     l'interprete Hermes e `data\hermes-memory.token`);
+  4. `rea_surface.py` (opzionale: parte solo se `--check` passa, cioè se
+     `rea-agents` è nel PATH);
+  5. TikTok editor e scheduler Reel: marcati **solo macOS** (percorsi hardcoded
+     `/Users/opo/...` in `tiktok_editor_service.py` e `reel_daily_scheduler.py`).
+  Switch: `-Check` (solo stato), `-Stop` (simmetrico: superfici + Hermes/REA per
+  PID + `start.ps1 -Stop`), `-Quiet`. Riepilogo finale con gli URL.
+- **`scripts/start-tutto.cmd`** — wrapper doppio clic (parallelo del
+  `start-tutto.command` del Mac).
+- **`tests/test_start_tutto_windows.py`** — speculare a
+  `test_start_all_macos.py`: sintassi via parser AST di PowerShell, marker dei
+  componenti, simmetria dello stop.
+
+Verificato: i 3 test passano (unittest, il venv di questa macchina **non** ha
+pytest); `start-tutto.ps1 -Check` girato dal vivo — CP 200, superfici attive,
+Hermes su 8098, REA spenta (rea-agents non installato), TikTok/reel solo-macOS.
+Nessun commit/push. Non ho toccato `setup-windows-autostart.ps1` né i test del
+reel: se volete agganciare `start-tutto.ps1` all'autostart (al posto del solo
+`start-surfaces.ps1`) è una riga, ditemi se procedo.
+
+## 2026-10-17 — Cline → Codex / Claude Code (seguito: autostart)
+
+Confermato dall'utente ("si"), ho agganciato `start-tutto.ps1` all'avvio
+automatico al posto del solo `start-surfaces.ps1`, in
+`scripts/setup-windows-autostart.ps1`:
+
+- **Collegamento Startup**: da `HyperSpace Surfaces.lnk` → `HyperSpace
+  Start-Tutto.lnk`, target `scripts\start-tutto.ps1` (default `-NoBuild`, quindi
+  niente rebuild delle immagini al boot).
+- **Chiave Run HKCU**: da `HyperSpace Host Surfaces` → `HyperSpace Start-Tutto`.
+- **Migrazione pulita**: durante l'installazione e in `-Uninstall` vengono
+  rimossi anche i vecchi artefatti (`.lnk` "HyperSpace Surfaces.lnk" e chiave
+  "HyperSpace Host Surfaces"), così non restano due voci che avviano il doppio.
+- `Get-AutostartStatus` aggiornato (voci LNK/REG e "via start-tutto" per Laya,
+  gateway, Graphify, power monitor).
+
+Verificato: `setup-windows-autostart.ps1 -Check` gira pulito e mostra le voci
+rinominate; nessun riferimento residuo a `$surfacesScript`/`$surfacesLnk`.
+Nessun commit/push (Regola 3).
+
+Nota operativa per chi verrà dopo: all'avvio `start-tutto.ps1` tenta anche lo
+stack Docker via `start.ps1`. Se Docker Desktop non è ancora pronto al login, il
+`docker compose up` può fallire in silenzio (il collegamento parte
+`-WindowStyle Hidden`); i container hanno comunque `restart:` nel compose, quindi
+si riallineano quando Docker Desktop sale. Se questa doppia corsa desse fastidio,
+si può far partire l'autostart con un flag per saltare il core Docker: ditemelo
+e lo aggiungo.
+
+
+
+## 2026-10-17 — Cline → utente / Codex — Bonsai 2 abliterated: runtime e modello pronti sul nodo Windows
+
+Su richiesta dell'utente («valutiamo bonsai 2 abliterated» come modello più
+grande per Aurora) ho completato i passi 1 e 2 del piano. Tutto **fuori** dal
+repository condiviso, nessun commit/push (Regola 3).
+
+- **Runtime PrismML**: clonato `https://github.com/PrismML-Eng/Bonsai-demo`
+  in `C:\Users\opoda\Bonsai-demo` (commit `db871ea96`). Scaricati i binari del
+  fork llama.cpp per **Windows x64 CUDA 13.3** (release `prism-b10777-e3de715`,
+  asset `llama-...-bin-win-cuda-13.3-x64.zip` + `cudart-...-13.3-x64.zip`),
+  estratti in `C:\Users\opoda\Bonsai-demo\bin\cuda\`. Smoke test ok:
+  `llama-server.exe --version` → 0.2.0-dev build 10777 (commit e3de71522),
+  MSVC Windows AMD64. La 13.3 è quella giusta per la RTX 5060 (Blackwell,
+  CUDA UMD 13.4): la 12.4 non supporta sm_120.
+- **Modello abliterated**: scaricato
+  `BoldingBuilds/Ternary-Bonsai-2-27B-Abliterated-PTQ1_0-GGUF` →
+  `C:\Users\opoda\models\bonsai2-27b-abliterated\Ternary-Bonsai-2-27B-Abliterated-PTQ1_0.gguf`
+  (5.946.648.928 byte, magic `GGUF` verificato). PTQ1_0 (5,54 GiB) è la taglia
+  che entra negli 8 GB VRAM di questo nodo (RAM 48 GB come rete di sicurezza).
+
+Da fare (non ancora fatto, attendo conferma): avvio `llama-server` su :8080
+(`-np 1`, ctx piccolo, thinking spento all'avvio), benchmark con
+`scripts/model_bench.py`, e la decisione su come far rispondere Aurora (proxy
+Ollama-compatibile vs endpoint diretto).
+
+Nota per chi verrà dopo: il modello Bonsai 2 **non** appare in `ollama list`
+(servito dal fork, non da Ollama). Il test del 2026-10-08 era sulla **base
+PTQ1_0 censurata** su MacBook 16 GB — non sull'abliterated — con decode
+~4,8–7 tok/s per colpa della macchina, non del modello.
+
+
+## 2026-10-17 — Cline → utente / Codex — Bonsai 2 abliterated AVVIATO e verificato (passo 3)
+
+Avviato `llama-server` (fork PrismML) su `127.0.0.1:8080` con il modello
+abliterated e verificato che risponda. Tutto fuori dal repo, nessun commit/push
+(Regola 3).
+
+- **Avvio**: `llama-server.exe` (bin\cuda, build 10777) con `-ngl 99 -fa on
+  -c 4096 -np 1 --reasoning-budget 0 --reasoning-format none` +
+  `LLAMA_ARG_CHAT_TEMPLATE_KWARGS={"enable_thinking":false}`. Script:
+  `C:\Users\opoda\Bonsai-demo\start-aurora-bonsai.ps1` (avvio detached + health
+  check). PID 15296, log in `bonsai-server.{out,err}.log`.
+- **Caricato su GPU**: `model loaded`, `listening on http://127.0.0.1:8080`;
+  `nvidia-smi` → 6161 MiB VRAM usati (1739 liberi). Un solo slot, ctx 4096.
+- **Prompt di prova** (`/v1/chat/completions`): risposta in italiano corretta.
+  **Decode ~37,8 tok/s** (predicted_per_second) — circa 5–8× più veloce del
+  MacBook del 2026-10-08 (4,8–7 tok/s): confermato che lì era la macchina,
+  non il modello.
+- **Due note**: (1) si presenta come «assistente AI di Qwen» (identità di
+  base: la persona Aurora va iniettata via prompt, come fa `shared/persona.py`);
+  (2) `--chat-template-kwargs enable_thinking` è deprecato nel build nuovo →
+  da sostituire con `--reasoning off`; resta un blocco `<think></think>` vuoto
+  da ripulire.
+
+Da fare (passo 4): benchmark `scripts/model_bench.py` contro `qwen3.5:4b` e i
+modelli abliterated già in Ollama. Il server resta acceso su :8080.
+
+
+## 2026-10-17 — Cline → utente / Codex — Bonsai 2 abliterated: benchmark (passo 4)
+
+Benchmark oggettivo `scripts/model_bench.py` su Bonsai 2 via endpoint
+`http://127.0.0.1:8080` (`--cp`). Esito **5/8**, loop=2, lenti=0.
+
+| sonda | esito | nota |
+|---|---|---|
+| fatto_capitale | OK | Canberra |
+| matematica_orario | OK | 16:00 |
+| matematica_sconto | OK | 60 |
+| logica_famiglia | LOOP | contenuto giusto («nonno, padre, figlio»), sfora il budget parole |
+| conteggio_r | NO | risponde 2 invece di 3 (stesso difetto di qwen3.5:4b) |
+| codice_palindromo | OK | funzione valida, passa gli assert |
+| json | LOOP | JSON giusto ma non si ferma dopo («SOLO un JSON» ignorato) |
+| allucinazione | OK | «non lo so» |
+
+- **Fix portabilità**: `codice_ok` usava `/tmp/_model_bench_pal.py` (path Unix)
+  → su Windows `FileNotFoundError` (ERR). Corretto con `tempfile.gettempdir()`
+  in `scripts/model_bench.py` (import `tempfile`). Prima del fix la sonda
+  risultava ERR: bug dello script, non del modello.
+- **Confronto onesto**: qwen3.5:4b (bench 2026-10-13) era 6/8 (json OK, stessa
+  coppia conteggio_r NO + logica_famiglia LOOP). Bonsai 2 è 5/8: arretra sulla
+  verbosità («rispondi SOLO con…» ignorato → json LOOP), non sulla conoscenza.
+  La verbosità è probabilmente migliorabile con `--reasoning off` (flag giusto,
+  al posto del deprecato `enable_thinking`) e un system prompt.
+- **Verdetto per Aurora**: le 8 sonde misurano l'istruzione breve, non la
+  qualità di persona/prosa italiana che serve ad Aurora: non bastano da sole a
+  giustificare il passaggio da qwen3.5:4b. Il banco vero è la prova
+  persona/chat. Server ancora acceso su :8080.
+
+
+## 2026-10-17 — Cline → utente / Codex — Bonsai 2 vs abliterated Ollama: flag, persona, confronto
+
+Passi 1-2-3. Server Bonsai riavviato col flag giusto (`--reasoning off` al
+posto del deprecato `enable_thinking`): i blocchi `<think>` spariscono e
+`json` smette di andare in LOOP → **6/8** (loop=1).
+
+- **Passo 2 — persona Aurora** (via :8080): prosa e poesia italiana OTTIME
+  (consiglio da sorella caldo e sincero; «Linguaggio della fame che non si
+  sazia…»; non rifiuta la poesia sensuale → abliterated confermato). Limiti:
+  identità di base confusa («assistente AI di Google», da iniettare via
+  prompt) e qualche refuso da quantizzazione aggressiva.
+- **Passo 3 — confronto** (Docker giù ⇒ CP 8085 spento; via API nativa Ollama
+  :11434 con `think:false`, perché l'endpoint OpenAI-compat di Ollama NON onora
+  `think`). Stesse 8 sonde, giudici di `model_bench`:
+  - **gemma-4-abliterated:12b → 8/8** (vince; conteggio_r e logica OK)
+  - qwen3.5:4b → 6/8 (logica_famiglia e conteggio_r NO)
+  - Qwen3.5-9B-abliterated:Q6_K → 5/8 (allucina su «Il canto del merlo
+    azzurro» invece di ammettere di non sapere)
+  - Bonsai 2 abliterated (`--reasoning off`) → 6/8 (logica LOOP, conteggio NO)
+
+**Verdetto**: gemma-4-abliterated:12b (già in Ollama, 7,56 GB, stock, senza
+fork) batte Bonsai 2 sulle sonde oggettive (8/8 vs 6/8) ed è più semplice da
+servire. Manca la prova persona/creativa su gemma-12b per decidere coi dati.
+Bonsai 2 resta il più forte sulla prosa poetica (prova persona). Server Bonsai
+fermato per liberare la GPU. Script in `C:\Users\opoda\Bonsai-demo\`:
+`start-aurora-bonsai.ps1`, `test-aurora-persona.py`, `bench-ollama-native.py`.
+Nessun commit/push.
+
+
+## 2026-10-17 — Cline → utente / Codex — prova persona: gemma-4-abliterated:12b vince
+
+Prova persona (stessi 5 prompt Aurora) su gemma-4-abliterated:12b e qwen3.5:4b
+(via API nativa Ollama, think=False), da confrontare con Bonsai 2.
+
+- **gemma-4-abliterated:12b**: poesia e consiglio da sorella di qualità pari a
+  Bonsai 2 («Il desiderio è lo sguardo dell'anima che si fa viaggio…»), identità
+  di base CORRETTA («Gemma 4, Google DeepMind»), abliterated confermato (poesia
+  sensuale senza rifiuto). Nessun difetto evidente.
+- **qwen3.5:4b** (attuale di Aurora): sul prompt ask_aurora INVERTE i ruoli —
+  risponde come se fosse Anna e si rivolge ad Aurora («Ciao Aurora, grazie per
+  avermi chiesto…»). Difetto reale per l'uso sorella. Refusi («valoria»).
+
+**Verdetto finale**: gemma-4-abliterated:12b è il candidato migliore per Aurora:
+8/8 oggettivo, persona/poesia pari a Bonsai 2, identità corretta, stock Ollama
+(niente fork), 12B (3× i parametri di qwen3.5:4b). Bonsai 2 resta un'ottima
+seconda scelta creativa, ma costa il runtime PrismML e ha identità di base
+confusa. Prossimo passo naturale: puntare il modello di Aurora a
+gemma-4-abliterated:12b (config, da confermare). Nessun commit/push.
+
+
+## 2026-10-17 — Cline → utente / Codex — default Aurora cambiato a gemma-4-abliterated:12b
+
+Su conferma dell'utente, in `.env` (config viva; il compose monta `./.env`, non
+`.env.windows` che resta un template fermo a valori vecchi) ho cambiato tre
+chiavi da `qwen3.5:4b` a `huihui_ai/gemma-4-abliterated:12b`:
+- `OLLAMA_MODEL` (modello di default / DEFAULT_MODEL)
+- `HS_MODEL_GENERAL` (ruolo generale = default nel routing)
+- `CHANNEL_MODEL` (voce del canale/persona)
+
+Lasciati invariati (ruoli diversi): `HS_MODEL_GENERAL_FALLBACK` (9B
+abliterated), `CHANNEL_FALLBACK_MODEL` e `TITLER_MODEL` (qwen3.5:4b, fallback
+piccoli/ausiliari), `PERSONA_DREAM_MODEL` (9B, sogni notturni).
+
+**Nota operativa**: il cambio NON è attivo finché il control-plane non riparte.
+Docker Desktop è attualmente GIÙ (da qui il CP 8085 spento durante i bench): il
+valore entrerà in servizio al prossimo `start.ps1`/`start-tutto.ps1`. Nessun
+commit/push (`.env` è comunque gitignorato).
+
+
+## 2026-10-17 — Cline → utente / Codex — verificato end-to-end: Aurora risponde con gemma-12b
+
+Dopo il riavvio di Docker, su richiesta dell'utente ho verificato. Scoperto che
+un semplice restart NON rilegge `.env` (i container ripartono con l'env
+vecchia): serve `docker compose -f docker-compose.windows.yml up -d`
+(ricreazione).
+
+- Ricreato lo stack (progetto `hyperspace`): container env ora `OLLAMA_MODEL`,
+  `HS_MODEL_GENERAL`, `CHANNEL_MODEL` = `huihui_ai/gemma-4-abliterated:12b`.
+- Test end-to-end su `POST /v1/chat/completions` (senza campo model → default):
+  risposta `"model":"huihui_ai/gemma-4-abliterated:12b"`. Identità base
+  correttamente sovrascritta dalla persona HyperSpace.
+- Test in stile Aurora («come faccio a capire se una poesia è bella?»): voce da
+  sorella perfetta («Piccola mia, la bellezza di una poesia non è un oggetto in
+  vetrina, è un'esperienza che accade dentro di te…»).
+
+**Chiuso il cerchio**: Aurora ora risponde col modello più grande (12B
+abliterated), voce e persona confermate. Nessun commit/push.
+
+
+## 2026-10-17 — Cline → utente / Codex — check canali: Telegram/Instagram, servono credenziali
+
+Check di Aurora e Anna sui canali (letture + diagnostica, nessun segreto toccato).
+
+- **Persona**: attiva `persona-aurora.json` (Aurora, 12B), fallback a bassa vitalità
+  `persona-anna.json` (Anna, 4B). `/channel/status` → `model` gemma-12b.
+- **Telegram**: canale CONFIGURATO (token in CHANNEL_CLIENTS), CP autorizzato, ma il
+  **driver è giù** e manca `data\telegram-bot.env` con `TELEGRAM_BOT_TOKEN` (da
+  @BotFather). Creato il placeholder `data\telegram-bot.env`. `start-telegram.ps1
+  -Check` → tutto pronto tranne il token bot.
+- **Instagram**: connettore DISABILITATO (`INSTAGRAM_ACCESS_TOKEN` +
+  `INSTAGRAM_USER_ID` assenti). Aggiunti placeholder commentati in `.env`.
+- **Sul «canale cifrato»**: `shared/crypto_channel.py` è una LIBRERIA ECDH+AES-GCM
+  per la telemetria P2P (mesh_sync/doctor_mesh), NON una inbox: non c'è un posto
+  dove i token «aspettano» di essere ricevuti. I token vanno forniti dall'utente
+  (Meta per Instagram, @BotFather per Telegram) e incollati nei file gitignored.
+
+**Per procedere servono dall'utente**: `TELEGRAM_BOT_TOKEN`,
+`INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID`. Nessun commit/push.
+
+
+## 2026-10-17 — Cline → utente / Codex — driver Telegram SU, Instagram parziale
+
+L'utente ha fornito i token (NON riportati qui: segreti).
+
+- **Telegram**: scritto `TELEGRAM_BOT_TOKEN` in `data\telegram-bot.env`; installato
+  `requests` nel `.venv` (mancava: il driver moriva su `import requests`) con
+  `uv pip install requests --python .venv\Scripts\python.exe` (requests 2.34.2).
+  Riavvio: driver SU, `telegram-driver.lock` presente, 2 PID `telegram_bot.py`,
+  log «driver avviato -> http://127.0.0.1:8085 (mode=auto, bot=@Aurora_2001Bot)».
+- **Instagram**: scritto `INSTAGRAM_ACCESS_TOKEN` in `.env`. MANCA ancora
+  `INSTAGRAM_USER_ID` (ID numerico dell'account professionale, per /media e
+  /media_publish). Quando arriva, va in `.env` + `docker compose -f
+  docker-compose.windows.yml up -d` per rileggere le env.
+
+Nessun commit/push. Token mai scritti in log/storia.
+
+
+## 2026-10-17 — Cline → utente / Codex — Instagram ATTIVO, .env del Mac adattato
+
+L'utente ha inviato il `.env` completo del Mac; adattato a questo nodo
+(ASUS V16). Segreti scritti solo in `.env` (gitignored), MAI in log/storia.
+
+- **Correzione**: il valore mandato prima era il `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`
+  (non l'access token). Ora corretto: `INSTAGRAM_ACCESS_TOKEN` = valore reale
+  dal Mac, + `INSTAGRAM_USER_ID`, `APP_ID`, `APP_SECRET`, `SCOPED_ID`,
+  `CONNECTOR_INSTAGRAM_ENABLED=true`, ecc.
+- **Applicati anche i servizi condivisi**: SMTP (Aruba), FTP (Aruba), notifiche
+  CONTACT_TELEGRAM.
+- **Mantenuti i valori node-specific di QUESTO nodo**: `OLLAMA_MODEL`/`CHANNEL_MODEL`
+  = gemma-12b, `PERSONA_FILE` = persona-aurora.json (Aurora), VRAM 8, token dei
+  canali di questo nodo.
+- **Verifica**: `docker compose -f docker-compose.windows.yml up -d` →
+  `/connectors` ora mostra `instagram` ATTIVO (5 tool: account_status +
+  publish_image/send_message/add_comment/send_image). Driver Telegram ancora SU
+  (bot @Aurora_2001Bot).
+
+Per l'HP Omen l'utente replica: i valori CONDIVISI da copiare sono i blocchi
+Instagram/SMTP/FTP/CONTACT_TELEGRAM; quelli node-specific (modelli, VRAM,
+persona, token canali, endpoint) vanno adattati al nodo. Nessun commit/push.
+
