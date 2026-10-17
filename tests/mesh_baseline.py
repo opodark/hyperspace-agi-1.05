@@ -127,6 +127,12 @@ def raccogli() -> dict:
         "web_contact_detail": _get("/web/contacts/<contact_id>"),
         "web_search": _post("/web/search", {}),
         "web_sandbox_run": _post("/web/sandbox/run", {}),
+        "web_node_wallet": _post("/web/node/wallet", {}),
+        "web_node_balance": _get("/web/node/balance"),
+        "web_tokenomics_status": _get("/web/tokenomics/status"),
+        "web_image_generate": _post("/web/image/generate", {}),
+        "web_image_status": _get("/web/image/status"),
+        "web_image_file": _get("/web/image/file"),
 
         # l'annuncio: e' la via che un nodo si presenta
         "announce_corpo_vuoto": _post("/mesh/announce", {}),

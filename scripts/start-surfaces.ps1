@@ -25,6 +25,7 @@ param(
     [switch]$Laya,
     [switch]$Graphify,
     [switch]$Power,
+    [switch]$Bonsai,
     [switch]$Check,
     [switch]$Stop
 )
@@ -39,7 +40,7 @@ function Warn($m) { Write-Host "[warn]     $m" -ForegroundColor Yellow }
 function Fail($m) { Write-Host "[error]    $m" -ForegroundColor Red }
 function Head($m) { Write-Host ""; Write-Host "== $m ==" -ForegroundColor Cyan }
 
-if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Power -and -not $Stop) {
+if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Power -and -not $Bonsai -and -not $Stop) {
     # Nessuna scelta = tutte le superfici abilitate per default
     $Telegram = $true
     $Comfy = $true
@@ -47,6 +48,7 @@ if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not
     $Laya = $true
     $Graphify = $true
     $Power = $true
+    $Bonsai = $true
 }
 
 function Get-Processi([string]$Frammento) {
@@ -80,6 +82,7 @@ $gatewayAttivi = Get-Processi 'webui_gateway.py'
 $layaAttivi = Get-Processi 'laya_service.py'
 $graphifyAttivi = Get-Processi 'graphify_surface.py'
 $powerAttivi = Get-Processi 'power_monitor.py'
+$bonsaiAttivi = @(Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue)
 
 if ($Stop) {
     Head "Stop Superfici Esterne"
@@ -89,7 +92,11 @@ if ($Stop) {
         Stop-Process -Id $processo.ProcessId -Force -ErrorAction SilentlyContinue
         Log "fermato PID $($processo.ProcessId)"
     }
-    if (-not $tutti.Count) { Log "nessuna superficie attiva da fermare" }
+    foreach ($b in $bonsaiAttivi) {
+        Stop-Process -Id $b.Id -Force -ErrorAction SilentlyContinue
+        Log "fermato PID $($b.Id) (Bonsai 2)"
+    }
+    if (-not $tutti.Count -and -not $bonsaiAttivi.Count) { Log "nessuna superficie attiva da fermare" }
     exit 0
 }
 
@@ -144,6 +151,9 @@ else { Warn "ComfyUI Desktop host: spento su porta 8188" }
 $hermesConn = Get-NetTCPConnection -LocalPort 8098 -State Listen -ErrorAction SilentlyContinue
 if ($hermesConn) { Log "Hermes Memory Bridge: attivo (PID $($hermesConn.OwningProcess -join ', '), porta 8098)" }
 else { Warn "Hermes Memory Bridge: porta 8098 non in ascolto" }
+
+if ($bonsaiAttivi.Count) { Log "Bonsai 2 server (llama-server): attivo (PID $($bonsaiAttivi.Id -join ', '), porta 8082)" }
+else { Warn "Bonsai 2 server (llama-server): spento su porta 8082" }
 
 if ($Check) {
     $statoCp = 0
@@ -210,6 +220,12 @@ if ($Power -and -not $powerAttivi.Count) {
         -RedirectStandardOutput $logPower `
         -RedirectStandardError $logPowerErr | Out-Null
     Log "monitor energetico avviato (log: data\power-monitor.log)"
+}
+if ($Bonsai -and -not $bonsaiAttivi.Count) {
+    $scriptBonsai = Join-Path $Root 'scripts\start_bonsai_daemon.ps1'
+    if (Test-Path $scriptBonsai) {
+        Avvia 'Bonsai 2 server' $scriptBonsai 'bonsai-surface.log'
+    }
 }
 
 Head "Completato"

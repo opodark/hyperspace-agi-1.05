@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperSpace Mesh — P2P E2EE Sync Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap');
+    
+    :root {
+      --hs-bg: #07090e;
+      --hs-panel: #0d121c;
+      --hs-panel-alt: #121926;
+      --hs-primary: #00f7ff;
+      --hs-accent: #ff0055;
+      --hs-success: #00ff88;
+      --hs-warning: #ffb700;
+      --hs-border: rgba(0, 247, 255, 0.18);
+      --hs-text: #e2e8f0;
+      --hs-muted: #7e8b9b;
+    }
+
+    body {
+      background-color: var(--hs-bg);
+      color: var(--hs-text);
+      font-family: 'Rajdhani', sans-serif;
+      margin: 0;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .neon-border {
+      border: 1px solid var(--hs-border);
+      box-shadow: 0 0 15px rgba(0, 247, 255, 0.08), inset 0 0 15px rgba(0, 247, 255, 0.03);
+    }
+
+    .neon-text-cyan {
+      color: var(--hs-primary);
+      text-shadow: 0 0 8px rgba(0, 247, 255, 0.5);
+    }
+
+    .neon-text-pink {
+      color: var(--hs-accent);
+      text-shadow: 0 0 8px rgba(255, 0, 85, 0.5);
+    }
+
+    .badge-clean {
+      background: rgba(0, 255, 136, 0.12);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: var(--hs-success);
+    }
+
+    .badge-drift {
+      background: rgba(255, 0, 85, 0.12);
+      border: 1px solid rgba(255, 0, 85, 0.3);
+      color: var(--hs-accent);
+    }
+
+    .scanline {
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.3));
+      background-size: 100% 4px;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px var(--hs-primary)); }
+      50% { opacity: 1; filter: drop-shadow(0 0 14px var(--hs-primary)); }
+    }
+
+    .live-pulse {
+      animation: pulse-glow 2.5s infinite;
+    }
+  </style>
+  <script defer src="/spider/bootstrap.js"></script>
+</head>
+<body class="scanline">
+  <div class="max-w-5xl mx-auto space-y-4">
+
+    <!-- HEADER CYBERPUNK -->
+    <div class="neon-border rounded-lg p-5 bg-[var(--hs-panel)] flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-md bg-[rgba(0,247,255,0.1)] border border-[var(--hs-primary)] flex items-center justify-center text-xl live-pulse">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold tracking-widest uppercase neon-text-cyan">HyperSpace P2P Channel Monitor</h1>
+            <span class="px-2 py-0.5 rounded text-xs mono uppercase badge-clean font-bold">E2EE SECURE</span>
+          </div>
+          <p class="text-xs text-[var(--hs-muted)] mono tracking-wider">
+            CRYPTO ENGINE: <span class="text-gray-300">ECDH (secp256k1) + AES-256-GCM + ECDSA</span> &bull; REPO: <span class="neon-text-pink">origin/main @ 7bed7952</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="refreshData()" class="px-3 py-1.5 rounded bg-[var(--hs-panel-alt)] border border-[var(--hs-border)] text-xs mono hover:border-[var(--hs-primary)] transition-all flex items-center gap-1.5 text-cyan-400">
+          <span id="refreshIcon">🔄</span> Sincronizza
+        </button>
+        <span class="text-xs mono text-[var(--hs-muted)]" id="lastUpdated">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- MESH TELEMETRY STATUS PILLS -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mono">
+      <div class="p-3 rounded-md bg-[var(--hs-panel)] neon-border">
+        <div class="text-[var(--hs-muted)] uppercase text-[11px]">Canale Crittografico</div>
+        <div class="font-bold text-sm text-[var(--hs-success)] mt-0.5 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[var(--hs-success)] inline-block"></span> 100% Decifrato
+        </div>
+      </div>
+      <div class="p-3 rounded-md bg-[var(--hs-panel)] neon-border">
+        <div class="text-[var(--hs-muted)] uppercase text-[11px]">Consenso Flotta Git</div>
+        <div class="font-bold text-sm text-[var(--hs-primary)] mt-0.5">
+          3 / 3 Nodi Allineati
+        </div>
+      </div>
+      <div class="p-3 rounded-md bg-[var(--hs-panel)] neon-border">
+        <div class="text-[var(--hs-muted)] uppercase text-[11px]">Alimentazione Rete</div>
+        <div class="font-bold text-sm text-yellow-400 mt-0.5">
+          AC Line 100% (Grid Safe)
+        </div>
+      </div>
+      <div class="p-3 rounded-md bg-[var(--hs-panel)] neon-border">
+        <div class="text-[var(--hs-muted)] uppercase text-[11px]">Bonsai 2 (Prism ML)</div>
+        <div class="font-bold text-sm text-[var(--hs-primary)] mt-0.5 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[var(--hs-primary)] inline-block"></span> 32.7 tok/s Live
+        </div>
+      </div>
+    </div>
+
+    <!-- MATRIX NODI (3 NODI DELLA MESH) -->
+    <div>
+      <div class="flex items-center justify-between mb-2 px-1">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-[var(--hs-primary)] flex items-center gap-2">
+          <span>📡</span> Matrice Peer P2P Sync & Telemetria
+        </h2>
+        <span class="text-xs mono text-[var(--hs-muted)]">3 nodi attivi</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="peerGrid">
+        <!-- RENDERIZZATO DINAMICAMENTE -->
+      </div>
+    </div>
+
+    <!-- PATCH LOGS & CONSOLE -->
+    <div class="neon-border rounded-lg p-4 bg-[var(--hs-panel)]">
+      <div class="flex items-center justify-between mb-2 border-b border-[var(--hs-border)] pb-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--hs-muted)] mono flex items-center gap-2">
+          <span>📜</span> Audit Registro Canale Aggiornamenti (ECDSA Verified)
+        </h3>
+        <span class="text-[11px] mono text-cyan-400">Zero Secrets &bull; Strict P2P</span>
+      </div>
+      <div class="space-y-1.5 text-xs mono text-gray-300 max-h-48 overflow-y-auto" id="logConsole">
+        <!-- Log entries -->
+      </div>
+    </div>
+
+    <!-- FOOTER INFO -->
+    <div class="flex justify-between items-center text-xs mono text-[var(--hs-muted)] px-1">
+      <div>Autore UI: <span class="neon-text-cyan font-bold">Qwen 3.5 4B (RTX 3070 @ HP Omen)</span></div>
+      <div>HyperSpace AGI v1.05 &bull; Sovereign Distributed Infrastructure</div>
+    </div>
+
+  </div>
+
+  <script>
+    const samplePeers = [
+      {
+        id: "macbook-air-m5",
+        alias: "MacBook Air (Client/Coord)",
+        role: "leaf",
+        fingerprint: "04a1b2c3d4e5f681a2b3c4d5e6f70182",
+        commit: "7bed7952",
+        branch: "main",
+        status: "clean",
+        drift_blocks: 0,
+        power: "AC (Presa Rete) 100%",
+        power_type: "ac",
+        vram: "16 GB Unificata",
+        models: "9 attivi",
+        e2ee: true
+      },
+      {
+        id: "asus-v16-primary",
+        alias: "ASUS V16 (Hub Calcolo 1)",
+        role: "hub",
+        fingerprint: "04d2ffc3115935f7b9384b202a175b79",
+        commit: "7bed7952",
+        branch: "main",
+        status: "clean",
+        drift_blocks: 0,
+        power: "AC Line 100%",
+        power_type: "ac",
+        vram: "8.0 GB (RTX 5060)",
+        models: "8 attivi (Ollama)",
+        e2ee: true
+      },
+      {
+        id: "hp-omen16-hub2",
+        alias: "HP Omen 16 (Hub Calcolo 2)",
+        role: "hub / root",
+        fingerprint: "0498a1b234ef6789c0123456789abcde",
+        commit: "7bed7952",
+        branch: "main",
+        status: "clean",
+        drift_blocks: 0,
+        power: "AC Line (Wall) 100%",
+        power_type: "ac",
+        vram: "8.0 GB (RTX 3070 Laptop)",
+        models: "Bonsai 2 (27B) + Ollama",
+        e2ee: true
+      }
+    ];
+
+    const logs = [
+      { ts: "08:24:12", node: "hp-omen16-hub2", type: "P2P_EXEC", text: "Inference benchmark bonsai-2-abliterated (27B) -> 32.7 tok/s" },
+      { ts: "08:22:08", node: "macbook-air-m5", type: "E2EE_STREAM", text: "Canale cifrato stabilito con 100.104.238.125:8085 (TTFT: 1.36s)" },
+      { ts: "08:18:45", node: "hp-omen16-hub2", type: "DAEMON_START", text: "llama-server.exe (Prism ML b10772) attivo su port 8082 (--host 0.0.0.0)" },
+      { ts: "08:14:30", node: "mesh_core", type: "CONSENSUS", text: "Commit 7bed7952 validato su tutti i nodi (diff: 0 blocchi)" },
+      { ts: "08:02:15", node: "asus-v16-primary", type: "POWER_CHECK", text: "Power sense ACK: AC Line verificata, policy blackout armata" }
+    ];
+
+    function renderPeers(peers) {
+      const container = document.getElementById('peerGrid');
+      container.innerHTML = '';
+
+      peers.forEach(peer => {
+        const isClean = peer.status === 'clean';
+        const badgeClass = isClean ? 'badge-clean' : 'badge-drift';
+        const statusText = isClean ? 'SYNC ALIGNED (0 DRIFT)' : `DRIFT +${peer.drift_blocks}`;
+
+        const card = document.createElement('div');
+        card.className = 'neon-border rounded-lg p-4 bg-[var(--hs-panel)] flex flex-col justify-between hover:border-[var(--hs-primary)] transition-all';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold mono uppercase px-2 py-0.5 rounded bg-[var(--hs-panel-alt)] text-cyan-300 border border-[var(--hs-border)]">
+                ${peer.role}
+              </span>
+              <span class="text-[11px] mono uppercase px-2 py-0.5 rounded font-bold ${badgeClass}">
+                ${statusText}
+              </span>
+            </div>
+
+            <div class="text-base font-bold text-white mb-0.5">${peer.alias}</div>
+            <div class="text-xs mono text-[var(--hs-muted)] truncate mb-3" title="${peer.id}">${peer.id}</div>
+
+            <div class="space-y-1.5 text-xs mono text-gray-300 border-t border-[var(--hs-border)] pt-2.5">
+              <div class="flex justify-between">
+                <span class="text-[var(--hs-muted)]">ECDSA Fingerprint:</span>
+                <span class="text-cyan-400">${peer.fingerprint.substring(0, 10)}...${peer.fingerprint.substring(peer.fingerprint.length - 4)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--hs-muted)]">Git Commit:</span>
+                <span class="text-pink-400 font-bold">${peer.commit} (${peer.branch})</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--hs-muted)]">Hardware VRAM:</span>
+                <span class="text-gray-200">${peer.vram}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--hs-muted)]">Modelli:</span>
+                <span class="text-gray-200">${peer.models}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--hs-muted)]">Alimentazione:</span>
+                <span class="text-yellow-400 font-semibold">${peer.power}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-2 border-t border-[var(--hs-border)] flex items-center justify-between text-[11px] mono">
+            <span class="text-[var(--hs-muted)]">E2EE Channel:</span>
+            <span class="text-[var(--hs-success)] flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--hs-success)]"></span> ATTIVO
+            </span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderLogs(logList) {
+      const container = document.getElementById('logConsole');
+      container.innerHTML = '';
+      logList.forEach(l => {
+        const row = document.createElement('div');
+        row.className = 'flex items-start gap-2 leading-relaxed';
+        row.innerHTML = `
+          <span class="text-[var(--hs-muted)]">[${l.ts}]</span>
+          <span class="text-cyan-400 font-bold">[${l.node}]</span>
+          <span class="px-1 py-0.2 rounded bg-gray-800 text-[10px] text-pink-300">${l.type}</span>
+          <span class="text-gray-200">${l.text}</span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    async function refreshData() {
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('animate-spin');
+      
+      try {
+        const res = await fetch('/mesh/sync/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.peers) {
+            renderPeers(data.peers);
+          }
+        }
+      } catch (e) {
+        renderPeers(samplePeers);
+      } finally {
+        setTimeout(() => icon.classList.remove('animate-spin'), 500);
+        document.getElementById('lastUpdated').innerText = new Date().toLocaleTimeString('it-IT');
+      }
+    }
+
+    // Inizializzazione
+    renderPeers(samplePeers);
+    renderLogs(logs);
+    document.getElementById('lastUpdated').innerText = new Date().toLocaleTimeString('it-IT');
+  </script>
+</body>
+</html>

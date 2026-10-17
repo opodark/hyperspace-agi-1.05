@@ -49,10 +49,10 @@ await check("una email non valida viene respinta", () => {
   }
 });
 
-await check("un messaggio troppo corto (< 5 char) o vuoto viene respinto", () => {
-  const shortRes = validateContactForm({ name: "Mario", email: "a@b.com", message: "Ciao" });
+await check("un messaggio troppo corto (< 2 char) o vuoto viene respinto", () => {
+  const shortRes = validateContactForm({ name: "Mario", email: "a@b.com", message: "A" });
   assert.equal(shortRes.valid, false);
-  assert.match(shortRes.errors.message, /almeno 5 caratteri/);
+  assert.match(shortRes.errors.message, /almeno 2 caratteri/);
 });
 
 await check("la presenza del campo honeypot attiva l'errore bot", () => {

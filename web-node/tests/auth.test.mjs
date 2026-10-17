@@ -136,4 +136,23 @@ await check("AuthManager gestisce login, stato e notifiche", async () => {
   assert.ok(stateChanges.length >= 3);
 });
 
+await check("AuthManager.saveKey salva la chiave nello storage e aggiorna la proprietà key", () => {
+  const store = {};
+  const mockStorage = {
+    getItem: (k) => store[k] ?? null,
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; },
+  };
+  let notified = 0;
+  const auth = new AuthManager({ storage: mockStorage, onStateChange: () => { notified += 1; } });
+  assert.equal(auth.getKey(), "");
+  const returned = auth.saveKey("hs-mesh-pippo-12345");
+  assert.equal(returned, "hs-mesh-pippo-12345");
+  assert.equal(auth.getKey(), "hs-mesh-pippo-12345");
+  assert.equal(getStoredAuthKey(mockStorage), "hs-mesh-pippo-12345");
+
+  auth.notify();
+  assert.equal(notified, 1);
+});
+
 console.log(`\nPASS auth: ${passed} check su credenziali e verifica`);

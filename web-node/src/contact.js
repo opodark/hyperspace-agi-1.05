@@ -50,8 +50,8 @@ export function validateContactForm({
 
   if (!trimmedMessage) {
     errors.message = "Il messaggio è obbligatorio";
-  } else if (trimmedMessage.length < 5) {
-    errors.message = "Il messaggio deve contenere almeno 5 caratteri";
+  } else if (trimmedMessage.length < 2) {
+    errors.message = "Il messaggio deve contenere almeno 2 caratteri";
   } else if (trimmedMessage.length > 4000) {
     errors.message = "Il messaggio non può superare i 4000 caratteri";
   }
@@ -102,6 +102,7 @@ export async function sendContactMessage({
     message: String(message || "").trim(),
     subject: String(subject || "").trim(),
     honeypot: String(honeypot || "").trim(),
+    hs_guard_trap: String(honeypot || "").trim(),
   };
 
   const fetchFn = fetchImpl.bind(globalThis);

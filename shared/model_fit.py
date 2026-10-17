@@ -156,6 +156,12 @@ def assess(name: str, vram_gb, *, context_tokens: int = 8192,
             fits=False, verdict="VRAM assente o non dichiarata",
             note="Con vram_gb=0 il controllo non puo' decidere: il nodo non ha "
                  "dichiarato la sua capacita'. Vedi docs/windows-node-handoff.md, sezione 2.")
+    elif totale >= 11.0 and not attivi and bits >= 4.0 and disponibile <= 8.5:
+        verdetto.update(
+            fits=False,
+            verdict="non entra: i pesi vanno in split su CPU (modelli densi >= 11B deprecati su nodi <= 8 GB VRAM)",
+            note=f"Modello denso da {totale:g}B: i pesi reali (~7.5+ GB) e il KV cache causano memory spilling via PCIe (~1.5 tok/s). Riservare a nodi con VRAM >= 12 GB o memoria unificata Apple.",
+        )
     elif tot <= disponibile:
         verdetto.update(fits=True, verdict="entra interamente in VRAM",
                         note=f"margine {disponibile - tot:.1f} GB sul totale stimato")

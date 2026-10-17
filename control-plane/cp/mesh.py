@@ -673,6 +673,112 @@ def get_routing_weights():
         "max_candidates": ROUTING_MAX_CANDIDATES,
     })
 
+# ── P2P MESH UPDATE & SYNC MONITOR ────────────────────────────────────────────
+@_bp.route('/mesh/sync/status')
+def mesh_sync_status():
+    """Restituisce lo stato consolidato della sincronizzazione P2P e dei canali cifrati E2EE."""
+    from cp.doctor_mesh import run_mesh_codebase_and_health_checks
+    from shared.identity import generate_or_load_identity
+
+    try:
+        cp_identity = generate_or_load_identity()
+    except Exception:
+        cp_identity = {"node_id": "control_plane", "public_key": ""}
+
+    active = _node_list()
+    checks, telemetries = run_mesh_codebase_and_health_checks(active, cp_identity)
+
+    peers_status = []
+    for t in telemetries:
+        cb = t.get("codebase", {})
+        hw = t.get("hardware", {})
+        pwr = hw.get("power", {})
+        is_ac = hw.get("ac_line") if hw.get("ac_line") is not None else pwr.get("ac_line", True)
+        batt_pct = hw.get("battery_pct") if hw.get("battery_pct") is not None else pwr.get("battery_pct")
+
+        pk = t.get("public_key") or ""
+        fp = (pk[:16] + "...") if len(pk) >= 16 else ((t.get("node_id") or "")[:16] + "...")
+
+        peers_status.append({
+            "node_id": t.get("node_id"),
+            "alias": t.get("alias") or ("Local/CP" if t.get("is_local") else (t.get("node_id") or "")[:8]),
+            "endpoint": t.get("endpoint"),
+            "is_local": t.get("is_local", False),
+            "tier": t.get("tier", "leaf"),
+            "fingerprint": fp,
+            "channel": t.get("channel", "unknown"),
+            "channel_verified": t.get("channel_verified", False),
+            "git_commit": cb.get("git_commit", "unknown"),
+            "git_branch": cb.get("git_branch", "main"),
+            "git_dirty": cb.get("git_dirty", False),
+            "dirty_count": cb.get("dirty_files_count", 0),
+            "power_ac": is_ac,
+            "battery_pct": batt_pct,
+            "vram_gb": hw.get("vram_total_gb", 0),
+            "ram_free_gb": hw.get("ram_free_gb", 0),
+        })
+
+    return jsonify({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "protocol": "ecdh-secp256k1-aes256gcm",
+        "peers_count": len(peers_status),
+        "peers": peers_status,
+        "checks": checks,
+    })
+
+
+# ── TOKENOMICS & REWARDS ROUTES ──────────────────────────────────────────
+
+@_bp.route('/tokenomics/status')
+def tokenomics_status():
+    """Panoramica tokenomics e mining mesh per la dashboard."""
+    from shared import tokenomics
+    return jsonify({"ok": True, **tokenomics.get_tokenomics_overview()})
+
+
+@_bp.route('/tokenomics/leaderboard')
+def tokenomics_leaderboard():
+    """Classifica nodi per token accumulati."""
+    from shared import tokenomics
+    try:
+        limit = max(1, min(100, int(request.args.get("limit", 20))))
+    except (TypeError, ValueError):
+        limit = 20
+    return jsonify({"ok": True, "leaderboard": tokenomics.get_tokenomics_leaderboard(limit=limit)})
+
+
+@_bp.route('/tokenomics/node/<node_id>')
+def tokenomics_node(node_id):
+    """Dettaglio bilancio e wallet di un singolo nodo."""
+    wallet = db.get_token_wallet(node_id)
+    if not wallet:
+        return jsonify({"ok": False, "error": "Nodo non trovato nei wallet"}), 404
+    txs = db.list_token_transactions(node_id=node_id, limit=50)
+    return jsonify({"ok": True, "wallet": wallet, "transactions": txs})
+
+
+@_bp.route('/tokenomics/node/<node_id>/wallet', methods=['POST'])
+def tokenomics_set_wallet(node_id):
+    """Collega o aggiorna l'indirizzo Solana (es. Phantom) per un nodo."""
+    from shared import tokenomics
+    data = request.get_json(force=True, silent=True) or {}
+    address = str(data.get("solana_address") or "").strip()
+    res = tokenomics.link_node_solana_wallet(node_id, address)
+    if not res.get("ok"):
+        return jsonify({"ok": False, "error": res.get("error", "Errore collegamento wallet")}), 400
+    return jsonify(res), 200
+
+
+@_bp.route('/tokenomics/snapshot')
+def tokenomics_snapshot():
+    """Genera lo snapshot di airdrop/allocazione per pump.fun / Solana."""
+    from shared import tokenomics
+    try:
+        pool = float(request.args.get("pool", tokenomics.TOTAL_COMMUNITY_POOL))
+    except (TypeError, ValueError):
+        pool = tokenomics.TOTAL_COMMUNITY_POOL
+    return jsonify(tokenomics.export_pumpfun_snapshot(pool_allocation=pool))
+
 # ── i candidati, in ordine di punteggio ─────────────────────────────────
 
 def _rank_candidate_nodes(active_nodes: list, pinned_node_id: str = None, max_candidates: int = None, model: str = "") -> list:
@@ -687,6 +793,13 @@ def _rank_candidate_nodes(active_nodes: list, pinned_node_id: str = None, max_ca
     if model:
         ids = _node_ids_with_model(model)
         candidates = [n for n in active_nodes if n.get("node_id") in ids]
+        # Modelli densi >= 11B (es. gemma-4:12b): deprecati su nodi con VRAM <= 8.5 GB
+        # Riservati a Mac / nodi con VRAM > 12 GB per evitare memory spilling PCIe e timeout.
+        if any(g in model.lower() for g in ("gemma-4", "gemma4:12b")):
+            candidates = [
+                n for n in candidates
+                if float(n.get("vram_gb") or 0) > 8.5 or n.get("tier") == "leaf" or "mac" in (n.get("alias") or "").lower()
+            ]
     executable = [n for n in candidates if _best_endpoint(n)]
     if not executable:
         return []

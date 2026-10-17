@@ -32,16 +32,15 @@ async function check(label, fn) {
 }
 
 console.log("== pagina pubblica ==");
-await check("la pagina join usa un gateway fissato ma non espone la chat della mesh", () => {
+await check("la pagina join usa un gateway fissato ed espone nodo, tokenomics e telemetria", () => {
   assert.match(PUBLIC_JOIN, /join-config\.js/);
   assert.match(PUBLIC_JOIN, /config\.gatewayUrl/);
   assert.doesNotMatch(PUBLIC_JOIN, /id=["']baseUrl["']/);
-  assert.doesNotMatch(PUBLIC_JOIN, /\bTOKEN\b|web\/tasks/i);
-  assert.doesNotMatch(PUBLIC_JOIN, /v1\/models|v1\/chat\/completions/);
-  assert.match(PUBLIC_JOIN, /createWebLlmChat/);
-  assert.match(PUBLIC_JOIN, /id="llmSend"/);
+  assert.doesNotMatch(PUBLIC_JOIN, /AUTH_TOKEN|Bearer\s+[a-zA-Z0-9_\-\.]{10,}|web\/tasks/i);
   assert.match(PUBLIC_JOIN, /meshCanvas/);
-  assert.match(PUBLIC_JOIN, /baseUrls:gatewayUrls/);
+  assert.match(PUBLIC_JOIN, /baseUrls:\s*gatewayUrls/);
+  assert.match(PUBLIC_JOIN, /hyperspace-tokenomics\.pdf/);
+  assert.match(PUBLIC_JOIN, /nodeTokenBalance/);
   assert.match(PUBLIC_CONFIG, /https:\/\/mesh\.zerozerocomputer\.it/);
   assert.doesNotMatch(PUBLIC_CONFIG, /tail453db3\.ts\.net/);
 });

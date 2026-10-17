@@ -248,8 +248,8 @@
           <span id="activeChatTitle">Nuova conversazione</span>
         </div>
       </div>
-      <div class="topbar-actions">
-        <a href="./assets/presentation/hyperspace-chat-features.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="Scarica la guida di presentazione in PDF">📄 Guida PDF ↗</a>
+        <a href="./ai/" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🚀 AI Studio</a>
+        <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#c084fc;font-weight:600" title="Scarica il Whitepaper Tokenomics in PDF">🪙 $00MESH PDF ↗</a>
         <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> Mesh Connessa</span>
         <button id="clearChatBtn" class="top-action-btn" type="button" title="Pulisci messaggi di questa chat">Pulisci</button>
       </div>
@@ -324,14 +324,14 @@
   </div>
 </div>
 
-<script src="./join-config.js"></script>
+<script src="./join-config.js?v=1.05.4"></script>
 <script type="module">
-  import { AuthManager } from "./src/auth.js";
-  import { ChatClient } from "./src/chat.js";
-  import { renderMarkdown, attachCopyEvents, attachCodeBlockEvents } from "./src/render.js";
-  import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js";
-  import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js";
-  import { runSandboxCode } from "./src/sandbox.js";
+  import { AuthManager } from "./src/auth.js?v=1.05.4";
+  import { ChatClient } from "./src/chat.js?v=1.05.4";
+  import { renderMarkdown, attachCopyEvents, attachCodeBlockEvents } from "./src/render.js?v=1.05.4";
+  import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js?v=1.05.4";
+  import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js?v=1.05.4";
+  import { runSandboxCode } from "./src/sandbox.js?v=1.05.4";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -406,9 +406,15 @@
     if (!sess) return;
     currentSessionId = sess.id;
     $("activeChatTitle").textContent = sess.title || "Conversazione";
-    if (sess.model && $("modelSelect").value !== sess.model) {
+    const availableOptions = Array.from($("modelSelect").options).map(o => o.value);
+    // Se la sessione memorizza un modello non disponibile o noto per essere irraggiungibile, riallinea al modello attivo
+    if (sess.model && availableOptions.includes(sess.model) && !sess.model.includes("hf.co/Abiray")) {
       $("modelSelect").value = sess.model;
       if (chatClient) chatClient.model = sess.model;
+    } else {
+      sess.model = $("modelSelect").value;
+      if (chatClient) chatClient.model = $("modelSelect").value;
+      saveSessions();
     }
     renderActiveMessages();
     renderSessionsList();
@@ -694,14 +700,50 @@
       const options = (models || []).map(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
+        const cleanName = m.id.replace(/^[^\w]+/, "").trim();
         const isAbliterated = /abliterated/i.test(m.id);
-        opt.textContent = isAbliterated ? `🔥 ${m.id} (Abliterated)` : m.id;
+        const isPinned = m.id.includes("::");
+        const pinNode = isPinned ? m.id.split("::")[1] : "";
+
+        let label = cleanName;
+        if (cleanName.startsWith("qwen3-8b-abliterated:latest")) {
+          label = "🔥 Qwen3 8B Abliterated (Consigliato)";
+        } else if (cleanName.startsWith("qwen3:8b")) {
+          label = "⚡ Qwen3 8B (Bilanciato)";
+        } else if (cleanName.startsWith("granite3.3:8b")) {
+          label = "🛡️ Granite 3.3 8B (Istruzioni)";
+        } else if (cleanName.startsWith("hyperspace-openwork:32k")) {
+          label = "🌐 HyperSpace OpenWork (32k Context)";
+        } else if (cleanName.startsWith("huihui_ai/gemma-4-abliterated:12b")) {
+          label = "🔥 Gemma-4 12B Abliterated";
+        } else if (isAbliterated) {
+          label = `🔥 ${cleanName}`;
+        }
+        if (isPinned) {
+          label += ` [nodo: ${pinNode}]`;
+        }
+        opt.textContent = label;
         return opt;
       });
 
       if (options.length) {
         select.replaceChildren(...options);
-        const fav = options.find(o => /abliterated/i.test(o.value)) || options[0];
+        // Priorità assoluta ai modelli stabili, verificati e pronti all'uso sulla mesh
+        const priorities = [
+          "qwen3-8b-abliterated:latest",
+          "qwen3-8b-abliterated",
+          "qwen3:8b",
+          "granite3.3:8b",
+          "hyperspace-openwork:32k",
+        ];
+        let fav = null;
+        for (const p of priorities) {
+          fav = options.find(o => o.value.includes(p) && !o.value.includes("::"));
+          if (fav) break;
+        }
+        if (!fav) {
+          fav = options.find(o => !o.value.includes("hf.co/Abiray") && /abliterated/i.test(o.value)) || options[0];
+        }
         select.value = fav.value;
         chatClient.model = select.value;
       } else {
@@ -803,13 +845,35 @@
 
       target.innerHTML = '<span class="cursor-blink">▊</span>';
 
-      const reply = await chatClient.send(promptPayload, {
-        onDelta: (_p, whole) => {
-          target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
-          attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
-          scrollBottom();
+      let reply;
+      try {
+        reply = await chatClient.send(promptPayload, {
+          onDelta: (_p, whole) => {
+            target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
+            attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+            scrollBottom();
+          }
+        });
+      } catch (sendErr) {
+        // Fallback automatico su modello mesh standard se il modello richiesto non è pronto o non risponde
+        const fallbackModel = "🕸️ qwen3-8b-abliterated:latest";
+        if (chatClient.model !== fallbackModel && !sendErr.message?.includes("fetch")) {
+          console.warn(`Modello ${chatClient.model} non pronto (${sendErr.message}), fallback automatico a ${fallbackModel}`);
+          chatClient.model = fallbackModel;
+          $("modelSelect").value = fallbackModel;
+          if (sess) { sess.model = fallbackModel; saveSessions(); }
+          target.innerHTML = '<span class="cursor-blink">▊</span>';
+          reply = await chatClient.send(promptPayload, {
+            onDelta: (_p, whole) => {
+              target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
+              attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+              scrollBottom();
+            }
+          });
+        } else {
+          throw sendErr;
         }
-      });
+      }
 
       const finalText = reply.text || target.textContent;
       target.innerHTML = renderMarkdown(finalText);
@@ -898,6 +962,12 @@
 
   // Autenticazione iniziale
   async function initAuth() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryKey = urlParams.get("key");
+    if (queryKey && queryKey.trim()) {
+      authManager.saveKey(queryKey.trim());
+    }
+
     await authManager.init();
     const state = authManager.getState();
     if (!state.authenticated) {
@@ -905,12 +975,25 @@
     } else {
       $("userName").textContent = state.label || "Utente Mesh";
       $("userRole").textContent = (state.role || "member").toUpperCase();
-      loadModels();
+      await loadModels();
       loadSessions();
       if (chatSessions.length > 0) {
         selectSession(chatSessions[0].id);
       } else {
         renderActiveMessages();
+      }
+
+      // Se presente un prompt nei parametri URL (es. da form di contatto), avvia subito la chat
+      const initialPrompt = urlParams.get("prompt");
+      if (initialPrompt && initialPrompt.trim()) {
+        const promptText = initialPrompt.trim();
+        window.history.replaceState({}, document.title, window.location.pathname);
+        startNewChat();
+        $("promptInput").value = promptText;
+        updateSendButtonState();
+        setTimeout(() => {
+          handleSend();
+        }, 350);
       }
     }
   }

@@ -149,6 +149,32 @@ def init_db():
                 last_used  TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_web_auth_keys_key ON web_auth_keys(auth_key);
+
+            CREATE TABLE IF NOT EXISTS token_wallets (
+                node_id         TEXT PRIMARY KEY,
+                solana_address  TEXT DEFAULT '',
+                balance         REAL DEFAULT 0.0,
+                total_earned    REAL DEFAULT 0.0,
+                tasks_completed INTEGER DEFAULT 0,
+                uptime_seconds  INTEGER DEFAULT 0,
+                tier            TEXT DEFAULT 'leaf',
+                created_at      TEXT DEFAULT (datetime('now')),
+                updated_at      TEXT DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_token_wallets_solana ON token_wallets(solana_address);
+
+            CREATE TABLE IF NOT EXISTS token_transactions (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                tx_id           TEXT UNIQUE,
+                node_id         TEXT NOT NULL,
+                type            TEXT NOT NULL,
+                amount          REAL NOT NULL,
+                reference_id    TEXT DEFAULT '',
+                memo            TEXT DEFAULT '',
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_token_tx_node ON token_transactions(node_id);
+            CREATE INDEX IF NOT EXISTS idx_token_tx_created ON token_transactions(created_at);
         """)
     print(f"[DB] Initialized at {DB_PATH}")
 
@@ -466,6 +492,19 @@ def get_auth_key(auth_key: str) -> dict | None:
         return dict(row) if row else None
 
 
+def get_auth_key_by_email(email: str) -> dict | None:
+    clean = str(email or "").strip()
+    if not clean:
+        return None
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM web_auth_keys WHERE email = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
+            (clean,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+
 def list_auth_keys(status: str | None = None) -> list[dict]:
     sql = "SELECT * FROM web_auth_keys"
     params = []
@@ -495,4 +534,134 @@ def touch_auth_key(auth_key: str) -> None:
             "UPDATE web_auth_keys SET last_used = datetime('now') WHERE auth_key = ?",
             (clean,),
         )
+
+
+# ── TOKENOMICS & NODE REWARDS ────────────────────────────────────────────────
+
+def get_token_wallet(node_id: str) -> dict | None:
+    nid = (node_id or "").strip()
+    if not nid:
+        return None
+    with _conn() as con:
+        row = con.execute("SELECT * FROM token_wallets WHERE node_id = ?", (nid,)).fetchone()
+        return dict(row) if row else None
+
+
+def upsert_token_wallet(node_id: str, tier: str = "leaf") -> dict:
+    nid = (node_id or "").strip()
+    if not nid:
+        raise ValueError("node_id non può essere vuoto")
+    with _conn() as con:
+        con.execute("""
+            INSERT INTO token_wallets (node_id, tier, updated_at)
+            VALUES (?, ?, datetime('now'))
+            ON CONFLICT(node_id) DO UPDATE SET
+                tier = CASE WHEN excluded.tier != '' THEN excluded.tier ELSE tier END,
+                updated_at = datetime('now')
+        """, (nid, tier))
+        row = con.execute("SELECT * FROM token_wallets WHERE node_id = ?", (nid,)).fetchone()
+        return dict(row) if row else {}
+
+
+def credit_token_balance(node_id: str, amount: float, tx_type: str, reference_id: str = "", memo: str = "") -> dict:
+    nid = (node_id or "").strip()
+    if not nid:
+        raise ValueError("node_id non può essere vuoto")
+    tx_id = f"tx-{uuid.uuid4().hex[:14]}"
+    clean_amount = round(float(amount), 4)
+
+    with _conn() as con:
+        # Assicura esistenza wallet
+        con.execute("""
+            INSERT OR IGNORE INTO token_wallets (node_id) VALUES (?)
+        """, (nid,))
+
+        # Incrementa bilancio e contatori
+        task_inc = 1 if tx_type == "task_reward" else 0
+        con.execute("""
+            UPDATE token_wallets
+            SET balance = ROUND(balance + ?, 4),
+                total_earned = ROUND(total_earned + CASE WHEN ? > 0 THEN ? ELSE 0 END, 4),
+                tasks_completed = tasks_completed + ?,
+                updated_at = datetime('now')
+            WHERE node_id = ?
+        """, (clean_amount, clean_amount, clean_amount, task_inc, nid))
+
+        # Registra transazione
+        con.execute("""
+            INSERT INTO token_transactions (tx_id, node_id, type, amount, reference_id, memo, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        """, (tx_id, nid, tx_type, clean_amount, (reference_id or "").strip(), (memo or "").strip()))
+
+        row = con.execute("SELECT * FROM token_wallets WHERE node_id = ?", (nid,)).fetchone()
+        return {
+            "tx_id": tx_id,
+            "node_id": nid,
+            "amount": clean_amount,
+            "type": tx_type,
+            "new_balance": row["balance"] if row else 0.0,
+            "total_earned": row["total_earned"] if row else 0.0,
+        }
+
+
+def set_node_solana_address(node_id: str, solana_address: str) -> bool:
+    nid = (node_id or "").strip()
+    addr = (solana_address or "").strip()
+    if not nid:
+        return False
+    with _conn() as con:
+        con.execute("INSERT OR IGNORE INTO token_wallets (node_id) VALUES (?)", (nid,))
+        cur = con.execute("""
+            UPDATE token_wallets
+            SET solana_address = ?, updated_at = datetime('now')
+            WHERE node_id = ?
+        """, (addr, nid))
+        return cur.rowcount > 0
+
+
+def list_token_wallets(limit: int = 50, offset: int = 0) -> list[dict]:
+    sql = "SELECT * FROM token_wallets ORDER BY balance DESC, tasks_completed DESC LIMIT ? OFFSET ?"
+    with _conn() as con:
+        rows = con.execute(sql, (max(1, limit), max(0, offset))).fetchall()
+        return [dict(r) for r in rows]
+
+
+def list_token_transactions(node_id: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
+    clauses, params = [], []
+    if node_id:
+        clauses.append("node_id = ?")
+        params.append(node_id.strip())
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    sql = f"SELECT * FROM token_transactions {where} ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([max(1, limit), max(0, offset)])
+    with _conn() as con:
+        rows = con.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_tokenomics_stats() -> dict:
+    with _conn() as con:
+        w_row = con.execute("""
+            SELECT
+                COUNT(*) as total_nodes,
+                COALESCE(SUM(balance), 0.0) as total_circulating,
+                COALESCE(SUM(total_earned), 0.0) as total_mined,
+                COALESCE(SUM(tasks_completed), 0) as total_tasks_rewarded,
+                COUNT(CASE WHEN solana_address != '' THEN 1 END) as nodes_with_solana_wallet
+            FROM token_wallets
+        """).fetchone()
+
+        tx_row = con.execute("SELECT COUNT(*) as total_txs FROM token_transactions").fetchone()
+
+        return {
+            "token_symbol": "$00MESH",
+            "token_name": "00MESH Network Token",
+            "total_nodes_rewarded": w_row["total_nodes"] if w_row else 0,
+            "total_circulating": round(w_row["total_circulating"] if w_row else 0.0, 4),
+            "total_mined": round(w_row["total_mined"] if w_row else 0.0, 4),
+            "total_tasks_rewarded": w_row["total_tasks_rewarded"] if w_row else 0,
+            "nodes_with_solana_wallet": w_row["nodes_with_solana_wallet"] if w_row else 0,
+            "total_transactions": tx_row["total_txs"] if tx_row else 0,
+            "target_dex": "pump.fun (Solana SPL)",
+        }
 

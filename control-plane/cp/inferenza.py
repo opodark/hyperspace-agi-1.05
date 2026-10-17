@@ -145,20 +145,38 @@ def _call_ollama(ollama_base, payload: dict, sign: bool = False, node_id: str = 
     """Inoltra a /v1/chat/completions con FALLBACK sugli endpoint diretti.
 
     `ollama_base` può essere una stringa (un solo endpoint, es. un nodo) o una
-    LISTA (endpoint diretti da provare in ordine). Il fallback scatta SOLO su
-    errore di rete (connessione/timeout): se un endpoint risponde (anche con un
-    HTTP di errore o un body non-JSON) l'errore si propaga e non si prova un
-    altro endpoint. Con una lista il fallback è per il caso diretto (sign=False):
-    un nodo specifico non va confuso con un altro.
+    LISTA (endpoint diretti da provare in ordine). Il fallback scatta su
+    errore di rete (connessione/timeout) o se un endpoint risponde con un errore
+    di modello non trovato (404/not_found) quando ci sono altri endpoint da provare.
+    Con una lista il fallback è per il caso diretto (sign=False): un nodo
+    specifico non va confuso con un altro.
     """
     bases = [ollama_base] if isinstance(ollama_base, str) else list(ollama_base or [])
     last_network_error = None
-    for base in bases:
+    last_response = None
+    for i, base in enumerate(bases):
         try:
-            return _call_ollama_one(base, payload, sign=sign, node_id=node_id)
+            res = _call_ollama_one(base, payload, sign=sign, node_id=node_id)
+            if len(bases) > 1 and i < len(bases) - 1 and isinstance(res, dict) and res.get("error"):
+                err = res.get("error")
+                if isinstance(err, dict):
+                    err_msg = str(err.get("message", "")).lower()
+                    err_code = err.get("code")
+                    err_type = str(err.get("type", "")).lower()
+                else:
+                    err_msg = str(err).lower()
+                    err_code = None
+                    err_type = ""
+                if (err_code in (400, 404) or "not found" in err_msg or "not_found" in err_type
+                        or "does not exist" in err_msg or "unknown model" in err_msg):
+                    last_response = res
+                    continue
+            return res
         except requests.RequestException as e:
             last_network_error = e
             continue
+    if last_response is not None:
+        return last_response
     if last_network_error is not None:
         raise last_network_error
     return {"error": {"message": "nessun endpoint di inferenza diretto disponibile",

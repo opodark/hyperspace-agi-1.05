@@ -152,6 +152,20 @@ export class AuthManager {
     }
   }
 
+  notify() {
+    this._notify();
+  }
+
+  /**
+   * Salva direttamente una chiave di autenticazione e la memorizza nello storage.
+   */
+  saveKey(key) {
+    const trimmed = String(key || "").trim();
+    this.state.key = trimmed;
+    setStoredAuthKey(trimmed, this.storage);
+    return trimmed;
+  }
+
   getState() {
     return { ...this.state };
   }

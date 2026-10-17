@@ -104,6 +104,18 @@ class TestVerdetti(unittest.TestCase):
                 self.assertFalse(v["fits"])
                 self.assertIn("split su CPU", v["verdict"])
 
+    def test_gemma_12b_deprecato_su_8gb_ma_entra_su_mac_e_12gb(self):
+        """Gemma 4 12B non entra in 8 GB (pesi reali 7.54 GB + KV cache > 9 GB) ma gira su Mac 16GB o GPU >=12GB."""
+        v_8gb = assess("huihui_ai/gemma-4-abliterated:12b", 8.0)
+        self.assertFalse(v_8gb["fits"])
+        self.assertIn("deprecati su nodi <= 8 GB VRAM", v_8gb["verdict"])
+
+        v_12gb = assess("huihui_ai/gemma-4-abliterated:12b", 12.0)
+        self.assertTrue(v_12gb["fits"])
+
+        v_mac = assess("huihui_ai/gemma-4-abliterated:12b", 16.0)
+        self.assertTrue(v_mac["fits"])
+
     def test_i_modelli_che_girano_davvero_entrano(self):
         for nome in ("qwen3.5:4b", "qwen3:8b"):
             with self.subTest(nome=nome):

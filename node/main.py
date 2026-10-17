@@ -55,6 +55,7 @@ from shared.crypto_channel import encrypt_envelope, decrypt_envelope
 from shared.node_telemetry import collect_full_node_telemetry
 from shared.mesh_sync import apply_mesh_update
 from shared.power_sense import detect_host_power
+from shared import ollama_native
 from datetime import datetime, timezone
 
 app = FastAPI()

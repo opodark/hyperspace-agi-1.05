@@ -144,6 +144,16 @@ function Get-AutostartStatus {
         InEsecuzione = if ($powerRunning) { "Attivo" } else { "Spento" }
     }
 
+    # 10. Bonsai 2 LLM Server
+    $bonsaiRunning = [bool](Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue)
+    $results += [PSCustomObject]@{
+        Servizio     = "Bonsai 2 Server (27B)"
+        Metodo       = "via start-surfaces"
+        Configurato  = "Incluso"
+        Porta        = "8082"
+        InEsecuzione = if ($bonsaiRunning) { "Attivo" } else { "Spento" }
+    }
+
     return $results
 }
 
