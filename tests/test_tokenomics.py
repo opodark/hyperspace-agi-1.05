@@ -103,6 +103,12 @@ def test_pumpfun_snapshot_allocation():
         assert 99.0 <= tot_pct <= 101.0
 
 
+@pytest.fixture(autouse=True)
+def _cleanup_test_wallets():
+    yield
+    db.delete_test_token_wallets()
+
+
 def test_solana_wallet_anti_farming_and_hijacking():
     import secrets
     b58_chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -127,3 +133,43 @@ def test_solana_wallet_anti_farming_and_hijacking():
     hijack_res = tokenomics.link_node_solana_wallet(test_node_a, other_addr)
     assert hijack_res["ok"] is False
     assert "già associato" in hijack_res["error"]
+
+
+def test_mandatory_ed25519_signature_and_leaderboard_masking():
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+
+    priv = Ed25519PrivateKey.generate()
+    pub_bytes = priv.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    sol_addr = tokenomics.b58encode(pub_bytes)
+    node_id = f"test-node-sig-{uuid.uuid4().hex[:8]}"
+    ts = "1729180000"
+
+    # Senza firma con require_signature=True deve fallire
+    unsigned = tokenomics.link_node_solana_wallet(node_id, sol_addr, require_signature=True)
+    assert unsigned["ok"] is False
+    assert "obbligatoria" in unsigned["error"]
+
+    # Con firma valida Ed25519 deve passare
+    msg = f"00MESH-auth:{node_id}:{ts}".encode("utf-8")
+    sig_b58 = tokenomics.b58encode(priv.sign(msg))
+    signed = tokenomics.link_node_solana_wallet(
+        node_id, sol_addr, signature=sig_b58, timestamp=ts, require_signature=True
+    )
+    assert signed["ok"] is True
+
+    # Mascheramento indirizzo Solana
+    masked = tokenomics.mask_solana_address(sol_addr)
+    assert masked == f"{sol_addr[:4]}...{sol_addr[-4:]}"
+    assert len(masked) < len(sol_addr)
+
+    # La classifica pubblica esclude i test-node-*
+    board = tokenomics.get_tokenomics_leaderboard(limit=100)
+    assert all(not item["node_id"].startswith("test-node-") for item in board)
+    for item in board:
+        if item.get("solana_address"):
+            assert "..." in item["solana_address"]
+

@@ -7,9 +7,31 @@
   <meta name="description" content="00MESH 1.05: Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun. Condividi calcolo ed esegui modelli AI sovrani senza censure.">
   <title>00MESH 1.05 · Rete Neurale Decentralizzata & Tokenomics $00MESH</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%2357e6d9' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791"
-     crossorigin="anonymous"></script>
+  <!-- Google Consent Mode v2 & AdSense (caricato SOLO previo consenso esplicito GDPR) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
+    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
+    gtag('consent', 'default', {
+      'ad_storage': _consentState,
+      'ad_user_data': _consentState,
+      'ad_personalization': _consentState,
+      'analytics_storage': _consentState
+    });
+    function loadAdSenseAfterConsent() {
+      if (document.getElementById('adsense-script')) return;
+      const s = document.createElement('script');
+      s.id = 'adsense-script';
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    }
+    if (_savedConsent === 'granted') {
+      loadAdSenseAfterConsent();
+    }
+  </script>
   <style>
     :root {
       color-scheme: dark;
@@ -862,8 +884,12 @@
       </div>
 
       <div class="field">
-        <label for="solanaAddress">Indirizzo Solana per Snapshot (Opzionale)</label>
-        <input id="solanaAddress" type="text" maxlength="44" placeholder="es. Phantom / Solflare wallet…">
+        <label for="solanaAddress">Indirizzo Solana per Snapshot (Firma Ed25519 obbligatoria)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="solanaAddress" type="text" maxlength="44" placeholder="es. Phantom / Solflare wallet…" style="flex:1;">
+          <button id="connectSolanaBtn" type="button" class="secondary" style="width:auto;margin:0;padding:11px 12px;font-size:12px;white-space:nowrap;" title="Connetti e firma con Phantom o Solflare">🟣 Firma Wallet</button>
+        </div>
+        <div id="walletSignStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
       </div>
 
       <label class="consent">
@@ -1129,20 +1155,6 @@
       </div>
     </form>
   </section>
-
-  <!-- Spazio Pubblicitario Google AdSense -->
-  <div style="margin: 40px auto 16px; max-width: 1080px; text-align: center; padding: 16px 20px; background: rgba(13,20,40,0.5); border: 1px dashed rgba(87,230,217,0.25); border-radius: 14px;">
-    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 8px;">Annuncio Sponsorizzato · Sostieni l'infrastruttura 00MESH</div>
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-4726342205200791"
-         data-ad-slot="auto"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
-  </div>
 </main>
 
 <!-- Footer Aziendale Completo Zero Zero Computer -->
@@ -1169,7 +1181,10 @@
           <li><a href="./chat.html">💬 Console Mesh (Full Screen)</a></li>
           <li><a href="./progetto.html">📖 Architettura 00MESH 1.05</a></li>
           <li><a href="./privacy-policy.html">🔒 Informativa sulla Privacy (GDPR)</a></li>
+          <li><a href="./cookie-policy.html">🍪 Cookie Policy</a></li>
+          <li><a href="./terms.html">⚖️ Termini e Condizioni</a></li>
           <li><a href="./deletion.html">🗑️ Cancellazione Dati Utente</a></li>
+          <li><a href="#" id="reopenCookieBanner">⚙️ Preferenze Cookie</a></li>
         </ul>
       </div>
     </div>
@@ -1179,6 +1194,69 @@
     </div>
   </div>
 </footer>
+
+<!-- Banner Consenso Cookie Preventivo GDPR / Garante Privacy / Consent Mode v2 -->
+<div id="zzcCookieBanner" role="dialog" aria-live="polite" aria-label="Informativa e consenso cookie" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;max-width:960px;margin:0 auto;background:#0b1328f5;border:1px solid #2b3f66;border-radius:16px;padding:18px 22px;z-index:9999;box-shadow:0 18px 48px rgba(0,0,0,0.65);backdrop-filter:blur(12px);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;font-size:13px;color:#cbd5e1;line-height:1.55;">
+      <strong style="color:#fff;font-size:14px;display:block;margin-bottom:4px;">🍪 Rispetto della tua Privacy & Consenso Cookie (GDPR)</strong>
+      Utilizziamo strumenti tecnici strettamente necessari al funzionamento del nodo web e, <strong>solo previo tuo consenso esplicito</strong>, cookie pubblicitari di terze parti (Google AdSense) sulle pagine informative. Nessuno script pubblicitario viene caricato prima della tua scelta. Leggi la <a href="./privacy-policy.html" style="color:#57e6d9;text-decoration:underline;">Privacy Policy</a> e la <a href="./cookie-policy.html" style="color:#57e6d9;text-decoration:underline;">Cookie Policy</a>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="cookieRejectBtn" type="button" class="secondary" style="width:auto;margin:0;padding:10px 16px;font-size:12.5px;border-radius:10px;">Solo Cookie Tecnici (Rifiuta)</button>
+      <button id="cookieAcceptBtn" type="button" style="width:auto;margin:0;padding:10px 18px;font-size:12.5px;border-radius:10px;">Accetta Cookie Pubblicitari</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const banner = document.getElementById('zzcCookieBanner');
+    const acceptBtn = document.getElementById('cookieAcceptBtn');
+    const rejectBtn = document.getElementById('cookieRejectBtn');
+    const reopenLink = document.getElementById('reopenCookieBanner');
+    const current = localStorage.getItem('zzc_cookie_consent');
+    if (!current && banner) {
+      banner.style.display = 'block';
+    }
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', () => {
+        localStorage.setItem('zzc_cookie_consent', 'granted');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            'ad_storage': 'granted',
+            'ad_user_data': 'granted',
+            'ad_personalization': 'granted',
+            'analytics_storage': 'granted'
+          });
+        }
+        if (typeof loadAdSenseAfterConsent === 'function') {
+          loadAdSenseAfterConsent();
+        }
+        if (banner) banner.style.display = 'none';
+      });
+    }
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', () => {
+        localStorage.setItem('zzc_cookie_consent', 'denied');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            'ad_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
+            'analytics_storage': 'denied'
+          });
+        }
+        if (banner) banner.style.display = 'none';
+      });
+    }
+    if (reopenLink) {
+      reopenLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (banner) banner.style.display = 'block';
+      });
+    }
+  })();
+</script>
 
 <!-- Dialog modale per Autenticazione con chiave di rete -->
 <div id="authModal" class="modal-backdrop" style="display:none;">
@@ -1220,6 +1298,69 @@
   $("nodeLabel").value = localStorage.getItem("hyperspace.publicNodeLabel") || "";
   if ($("solanaAddress")) {
     $("solanaAddress").value = localStorage.getItem("hyperspace.solanaAddress") || "";
+  }
+
+  // Codifica Base58 per la firma Ed25519 di Solana
+  const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  function toBase58(bytes) {
+    let digits = [0];
+    for (let i = 0; i < bytes.length; i++) {
+      let carry = bytes[i];
+      for (let j = 0; j < digits.length; j++) {
+        carry += digits[j] << 8;
+        digits[j] = carry % 58;
+        carry = (carry / 58) | 0;
+      }
+      while (carry > 0) {
+        digits.push(carry % 58);
+        carry = (carry / 58) | 0;
+      }
+    }
+    let str = "";
+    for (let k = 0; k < bytes.length && bytes[k] === 0; k++) str += "1";
+    for (let q = digits.length - 1; q >= 0; q--) str += B58_ALPHABET[digits[q]];
+    return str;
+  }
+
+  let walletAuthProof = null;
+  async function signAndLinkSolanaWallet() {
+    const statusEl = $("walletSignStatus");
+    const provider = window.solana || window.solflare;
+    if (!provider || typeof provider.signMessage !== "function") {
+      if (statusEl) {
+        statusEl.style.color = "var(--bad)";
+        statusEl.textContent = "⚠️ Installa l'estensione Phantom o Solflare per firmare la prova crittografica Ed25519.";
+      }
+      return null;
+    }
+    try {
+      const resp = await provider.connect();
+      const pubkey = (resp && resp.publicKey ? resp.publicKey : provider.publicKey).toString();
+      if ($("solanaAddress")) $("solanaAddress").value = pubkey;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const message = `00MESH-auth:${nodeId}:${timestamp}`;
+      const encoded = new TextEncoder().encode(message);
+      const signed = await provider.signMessage(encoded, "utf8");
+      const sigBytes = signed.signature || signed;
+      const signature = toBase58(sigBytes);
+      walletAuthProof = { solana_address: pubkey, signature, timestamp };
+      localStorage.setItem("hyperspace.solanaAddress", pubkey);
+      if (statusEl) {
+        statusEl.style.color = "var(--ok)";
+        statusEl.textContent = "✓ Firma Ed25519 verificata dal wallet (" + pubkey.slice(0, 4) + "..." + pubkey.slice(-4) + ")";
+      }
+      return walletAuthProof;
+    } catch (err) {
+      if (statusEl) {
+        statusEl.style.color = "var(--bad)";
+        statusEl.textContent = "⚠️ Firma annullata o non riuscita: " + (err.message || err);
+      }
+      return null;
+    }
+  }
+
+  if ($("connectSolanaBtn")) {
+    $("connectSolanaBtn").addEventListener("click", signAndLinkSolanaWallet);
   }
 
   // Token Wallet Reward System (Backend-Verified sul Control Plane)
@@ -1271,23 +1412,31 @@
 
     const solAddr = $("solanaAddress")?.value.trim() || "";
     if (solAddr) {
-      localStorage.setItem("hyperspace.solanaAddress", solAddr);
-      // Registrazione sicura del wallet Solana sul Control Plane (ledger autoritativo)
-      try {
-        const linkResp = await fetch(`${gatewayUrl}/web/node/wallet`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ node_id: nodeId, solana_address: solAddr })
-        });
-        if (linkResp.ok) {
-          const linkData = await linkResp.json();
-          if (linkData.ok && linkData.wallet) {
-            currentTokenBalance = Number(linkData.wallet.balance || 0);
-            updateTokenUI();
+      if (!walletAuthProof || walletAuthProof.solana_address !== solAddr) {
+        await signAndLinkSolanaWallet();
+      }
+      if (walletAuthProof && walletAuthProof.solana_address === solAddr) {
+        try {
+          const linkResp = await fetch(`${gatewayUrl}/web/node/wallet`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              node_id: nodeId,
+              solana_address: walletAuthProof.solana_address,
+              signature: walletAuthProof.signature,
+              timestamp: walletAuthProof.timestamp
+            })
+          });
+          if (linkResp.ok) {
+            const linkData = await linkResp.json();
+            if (linkData.ok && linkData.wallet) {
+              currentTokenBalance = Number(linkData.wallet.balance || 0);
+              updateTokenUI();
+            }
           }
+        } catch (err) {
+          console.warn("Impossibile registrare il wallet Solana sul server:", err);
         }
-      } catch (err) {
-        console.warn("Impossibile registrare il wallet Solana sul server:", err);
       }
     } else {
       await refreshServerBalance();

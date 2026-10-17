@@ -772,7 +772,9 @@ def web_node_wallet():
     timestamp = str(data.get("timestamp", "")).strip()
 
     from shared import tokenomics
-    res = tokenomics.link_node_solana_wallet(node_id, solana_address, signature=signature, timestamp=timestamp)
+    res = tokenomics.link_node_solana_wallet(
+        node_id, solana_address, signature=signature, timestamp=timestamp, require_signature=True
+    )
     if not res.get("ok"):
         return jsonify({"ok": False, "error": res.get("error", "Errore collegamento wallet")}), 400
 

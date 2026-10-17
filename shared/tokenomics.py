@@ -139,6 +139,27 @@ def reward_node_uptime(node_id: str, seconds: int = 3600) -> dict:
     return {"ok": True, "reward": amount, "tx": tx}
 
 
+BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def b58encode(b: bytes) -> str:
+    """Codifica bytes in stringa Base58."""
+    if not b:
+        return ""
+    num = int.from_bytes(b, "big")
+    chars = []
+    while num > 0:
+        num, rem = divmod(num, 58)
+        chars.append(BASE58_ALPHABET[rem])
+    pad = 0
+    for byte in b:
+        if byte == 0:
+            pad += 1
+        else:
+            break
+    return ("1" * pad) + "".join(reversed(chars))
+
+
 def b58decode(s: str) -> bytes:
     """Decodifica una stringa Base58 in bytes."""
     num = 0
@@ -157,6 +178,14 @@ def b58decode(s: str) -> bytes:
     return b"\x00" * pad + combined
 
 
+def mask_solana_address(address: str) -> str:
+    """Maschera un indirizzo pubblico Solana per le viste pubbliche (es. 7xKX...gAsU)."""
+    addr = (address or "").strip()
+    if len(addr) >= 12:
+        return f"{addr[:4]}...{addr[-4:]}"
+    return ""
+
+
 def verify_solana_signature(solana_address: str, message: str | bytes, signature_b58: str) -> bool:
     """Verifica crittograficamente la firma Ed25519 generata da un wallet Solana (Phantom/Solflare)."""
     try:
@@ -173,12 +202,18 @@ def verify_solana_signature(solana_address: str, message: str | bytes, signature
         return False
 
 
-def link_node_solana_wallet(node_id: str, solana_address: str, signature: str = "", timestamp: str = "") -> dict:
+def link_node_solana_wallet(
+    node_id: str,
+    solana_address: str,
+    signature: str = "",
+    timestamp: str = "",
+    require_signature: bool = False,
+) -> dict:
     """Collega l'indirizzo wallet Solana (es. Phantom) al node_id per il futuro claim pump.fun.
 
     Protezioni attive:
     - Verifica formato crittografico Base58 dell'indirizzo Solana.
-    - Se fornita firma Ed25519, convalida crittografica dell'indirizzo proprietario.
+    - Convalida obbligatoria (su endpoint pubblico) o opzionale della firma Ed25519.
     - Anti-hijacking: rifiuta la sovrascrittura di un wallet già configurato su un nodo diverso.
     - Anti-farming: il welcome bonus (+50 $00MESH) è erogabile una sola volta per indirizzo Solana su tutta la rete.
     """
@@ -192,8 +227,14 @@ def link_node_solana_wallet(node_id: str, solana_address: str, signature: str = 
     if not validate_solana_address(addr):
         return {"ok": False, "error": "Indirizzo Solana non valido (richiesto formato Base58 32-44 caratteri)"}
 
-    # Se viene fornita una firma crittografica, verificala rigorosamente
-    if sig:
+    if require_signature and (not sig or not ts):
+        return {
+            "ok": False,
+            "error": "Firma crittografica Ed25519 obbligatoria (firma con Phantom/Solflare richiesta)"
+        }
+
+    # Verifica crittografica Ed25519
+    if sig or require_signature:
         expected_msg = f"00MESH-auth:{nid}:{ts}"
         if not verify_solana_signature(addr, expected_msg, sig):
             return {"ok": False, "error": "Firma crittografica non valida per l'indirizzo Solana fornito"}
@@ -228,8 +269,16 @@ def link_node_solana_wallet(node_id: str, solana_address: str, signature: str = 
 
 
 def get_tokenomics_leaderboard(limit: int = 20) -> list[dict]:
-    """Restituisce la classifica dei nodi più attivi e ricompensati nella rete."""
-    return db.list_token_wallets(limit=limit)
+    """Restituisce la classifica dei nodi più attivi e ricompensati nella rete (con indirizzi Solana mascherati)."""
+    rows = db.list_token_wallets(limit=limit, exclude_test_nodes=True)
+    sanitized = []
+    for r in rows:
+        item = dict(r)
+        raw_addr = item.get("solana_address") or ""
+        item["solana_address"] = mask_solana_address(raw_addr)
+        item["wallet_verified"] = bool(raw_addr)
+        sanitized.append(item)
+    return sanitized
 
 
 def get_tokenomics_overview() -> dict:

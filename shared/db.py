@@ -628,11 +628,20 @@ def get_wallets_by_solana_address(solana_address: str) -> list[dict]:
         return [dict(r) for r in rows]
 
 
-def list_token_wallets(limit: int = 50, offset: int = 0) -> list[dict]:
-    sql = "SELECT * FROM token_wallets ORDER BY balance DESC, tasks_completed DESC LIMIT ? OFFSET ?"
+def list_token_wallets(limit: int = 50, offset: int = 0, exclude_test_nodes: bool = True) -> list[dict]:
+    where = "WHERE node_id NOT LIKE 'test-node-%' AND node_id NOT LIKE 'live-test-%'" if exclude_test_nodes else ""
+    sql = f"SELECT * FROM token_wallets {where} ORDER BY balance DESC, tasks_completed DESC LIMIT ? OFFSET ?"
     with _conn() as con:
         rows = con.execute(sql, (max(1, limit), max(0, offset))).fetchall()
         return [dict(r) for r in rows]
+
+
+def delete_test_token_wallets() -> int:
+    """Rimuove dal DB eventuali record di test (test-node-*, live-test-*) creati dalle suite di test."""
+    with _conn() as con:
+        con.execute("DELETE FROM token_transactions WHERE node_id LIKE 'test-node-%' OR node_id LIKE 'live-test-%'")
+        cur = con.execute("DELETE FROM token_wallets WHERE node_id LIKE 'test-node-%' OR node_id LIKE 'live-test-%'")
+        return cur.rowcount or 0
 
 
 def list_token_transactions(node_id: str | None = None, limit: int = 50, offset: int = 0) -> list[dict]:
@@ -658,9 +667,14 @@ def get_tokenomics_stats() -> dict:
                 COALESCE(SUM(tasks_completed), 0) as total_tasks_rewarded,
                 COUNT(CASE WHEN solana_address != '' THEN 1 END) as nodes_with_solana_wallet
             FROM token_wallets
+            WHERE node_id NOT LIKE 'test-node-%' AND node_id NOT LIKE 'live-test-%'
         """).fetchone()
 
-        tx_row = con.execute("SELECT COUNT(*) as total_txs FROM token_transactions").fetchone()
+        tx_row = con.execute("""
+            SELECT COUNT(*) as total_txs
+            FROM token_transactions
+            WHERE node_id NOT LIKE 'test-node-%' AND node_id NOT LIKE 'live-test-%'
+        """).fetchone()
 
         return {
             "token_symbol": "$00MESH",
@@ -673,4 +687,5 @@ def get_tokenomics_stats() -> dict:
             "total_transactions": tx_row["total_txs"] if tx_row else 0,
             "target_dex": "pump.fun (Solana SPL)",
         }
+
 

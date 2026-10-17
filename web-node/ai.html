@@ -8,9 +8,6 @@
   <title>00MESH AI Studio · Chat, Immagini, Ricerca & Documenti ($00MESH)</title>
   <meta name="description" content="Accesso pubblico all'intelligenza artificiale sovrana di 00MESH: generazione testo, sintesi immagini, ricerca web e analisi documenti con tokenomics $00MESH su Solana.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%2357e6d9' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791"
-     crossorigin="anonymous"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -1283,14 +1280,12 @@
       }
 
       conversationHistory.push({ role: "assistant", content: streamText });
-      if (!isAdFree) appendInlineSponsor(botMsgRow);
 
     } catch (err) {
       console.warn("Chiamata streaming mesh non riuscita:", err);
       const errMsg = `⚠️ **Connessione al cluster non riuscita o nodi occupati.**\n\nNon è stato possibile completare l'elaborazione sulla mesh in questo momento. Verifica lo stato della connessione o riprova tra qualche istante.`;
       contentEl.innerHTML = formatMarkdown(errMsg);
       conversationHistory.push({ role: "assistant", content: errMsg });
-      if (!isAdFree) appendInlineSponsor(botMsgRow);
     } finally {
       isGenerating = false;
       $("sendBtn").disabled = false;
@@ -1402,7 +1397,6 @@
       `;
     }
 
-    if (!isAdFree) appendInlineSponsor(botMsgRow);
     isGenerating = false;
     $("sendBtn").disabled = false;
     scrollToBottom();
@@ -1432,7 +1426,6 @@
 
       if (!results.length) {
         contentEl.innerHTML = formatMarkdown(`Nessun risultato trovato per la ricerca **"${query}"** sul motore di indicizzazione.`);
-        if (!isAdFree) appendInlineSponsor(botMsgRow);
         return;
       }
 
@@ -1447,7 +1440,6 @@
 
       let summary = `Risultati della ricerca web in tempo reale per **"${query}"**:\n\n${sourcesHtml}`;
       contentEl.innerHTML = formatMarkdown(summary);
-      if (!isAdFree) appendInlineSponsor(botMsgRow);
     } catch (err) {
       contentEl.textContent = "Errore nella ricerca: " + err.message;
     } finally {
@@ -1472,17 +1464,6 @@
     chatInner.appendChild(row);
     scrollToBottom();
     return row;
-  }
-
-  function appendInlineSponsor(rowEl) {
-    const bubble = rowEl.querySelector(".message-bubble");
-    const adEl = document.createElement("div");
-    adEl.className = "inline-ad-box";
-    adEl.innerHTML = `
-      <span>💎 <b>Sostieni l'AI Sovrana:</b> Scopri la Tokenomics di <b>$00MESH</b> su pump.fun</span>
-      <a href="/docs/hyperspace-tokenomics.pdf" target="_blank" style="color:var(--cyan); font-weight:700; text-decoration:none;">Leggi PDF ↗</a>
-    `;
-    bubble.appendChild(adEl);
   }
 
   function scrollToBottom() {

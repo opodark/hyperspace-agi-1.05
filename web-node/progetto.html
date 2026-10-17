@@ -6,9 +6,31 @@
   <meta name="theme-color" content="#070b18">
   <meta name="description" content="HyperSpace AGI 1.05 — Il Futuro dell'Intelligenza Artificiale che Lavora Davvero: Dai Chatbot ai Sistemi Operativi per Agenti Autonomi Governative.">
   <title>HyperSpace AGI 1.05 · Presentazione del Progetto</title>
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791"
-     crossorigin="anonymous"></script>
+  <!-- Google Consent Mode v2 & AdSense (caricato SOLO previo consenso esplicito GDPR) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
+    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
+    gtag('consent', 'default', {
+      'ad_storage': _consentState,
+      'ad_user_data': _consentState,
+      'ad_personalization': _consentState,
+      'analytics_storage': _consentState
+    });
+    function loadAdSenseAfterConsent() {
+      if (document.getElementById('adsense-script')) return;
+      const s = document.createElement('script');
+      s.id = 'adsense-script';
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    }
+    if (_savedConsent === 'granted') {
+      loadAdSenseAfterConsent();
+    }
+  </script>
   <style>
     :root {
       color-scheme: dark;
@@ -633,6 +655,62 @@ window.addEventListener("keydown", (e) => {
 
 // Inizializza prima slide
 showSlide(0);
+</script>
+
+<!-- Banner Consenso Cookie Preventivo GDPR / Garante Privacy / Consent Mode v2 -->
+<div id="zzcCookieBanner" role="dialog" aria-live="polite" aria-label="Informativa e consenso cookie" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;max-width:960px;margin:0 auto;background:#0b1328f5;border:1px solid #2b3f66;border-radius:16px;padding:18px 22px;z-index:9999;box-shadow:0 18px 48px rgba(0,0,0,0.65);backdrop-filter:blur(12px);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;font-size:13px;color:#cbd5e1;line-height:1.55;">
+      <strong style="color:#fff;font-size:14px;display:block;margin-bottom:4px;">🍪 Rispetto della tua Privacy & Consenso Cookie (GDPR)</strong>
+      Utilizziamo strumenti tecnici strettamente necessari e, <strong>solo previo tuo consenso esplicito</strong>, cookie pubblicitari di terze parti (Google AdSense) sulle pagine informative. Nessuno script pubblicitario viene caricato prima della tua scelta. Leggi la <a href="./privacy-policy.html" style="color:#57e6d9;text-decoration:underline;">Privacy Policy</a>, la <a href="./cookie-policy.html" style="color:#57e6d9;text-decoration:underline;">Cookie Policy</a> e i <a href="./terms.html" style="color:#57e6d9;text-decoration:underline;">Termini</a>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="cookieRejectBtn" type="button" style="padding:10px 16px;font-size:12.5px;border-radius:10px;border:1px solid #2b3f66;background:#111d38;color:#cbd5e1;cursor:pointer;font-weight:700;">Solo Cookie Tecnici (Rifiuta)</button>
+      <button id="cookieAcceptBtn" type="button" style="padding:10px 18px;font-size:12.5px;border-radius:10px;border:none;background:linear-gradient(115deg,#57e6d9,#9a7cff);color:#070b18;cursor:pointer;font-weight:800;">Accetta Cookie Pubblicitari</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const banner = document.getElementById('zzcCookieBanner');
+    const acceptBtn = document.getElementById('cookieAcceptBtn');
+    const rejectBtn = document.getElementById('cookieRejectBtn');
+    const current = localStorage.getItem('zzc_cookie_consent');
+    if (!current && banner) {
+      banner.style.display = 'block';
+    }
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', () => {
+        localStorage.setItem('zzc_cookie_consent', 'granted');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            'ad_storage': 'granted',
+            'ad_user_data': 'granted',
+            'ad_personalization': 'granted',
+            'analytics_storage': 'granted'
+          });
+        }
+        if (typeof loadAdSenseAfterConsent === 'function') {
+          loadAdSenseAfterConsent();
+        }
+        if (banner) banner.style.display = 'none';
+      });
+    }
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', () => {
+        localStorage.setItem('zzc_cookie_consent', 'denied');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            'ad_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
+            'analytics_storage': 'denied'
+          });
+        }
+        if (banner) banner.style.display = 'none';
+      });
+    }
+  })();
 </script>
 
 </body>

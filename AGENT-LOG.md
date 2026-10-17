@@ -4768,6 +4768,107 @@ unico LLM su questo Mac, per liberare i nodi Windows (dedicati a ComfyUI).
   Per liberare del tutto la RAM/VRAM Windows si possono rimuovere lì con
   `ollama rm` (azione lato Windows).
 
+## 2026-10-17 — Cline → utente (fix: immagini bloccate dalla pausa automatica)
+
+Sintomo: "non generano immagini". Causa trovata e corretta; nessun commit/push.
+
+**Causa.** La coda immagini è `auto_paused=true` per la policy "lavoro di fondo
+solo di notte/dopo idle" (`_background_work_allowed` / `_sync_background_image_pause`
+in main.py + `_background_sospeso` in cp/immagini.py): ogni attività foreground
+(chat, /channel/reply) tiene la coda in pausa. Il bypass per i job "interattivi"
+c'era già in `shared/image_jobs.py` (`prossimo()` filtra su
+`JOB_INTERATTIVI` = `{ritratto, webui, chat, operatore, comic, …}`), ma i job dei
+canali utente (Telegram/Instagram) usano come `richiedente` l'**handle grezzo**
+(`zzzzzzxxxxyyyyy`), che non sta nell'insieme → restavano bloccati come il feed.
+Risultato: 12 job pending mai eseguiti (i job `feed` di sogni/sketch restano giusti).
+
+**Fix.** In `shared/image_jobs.py`: aggiunto `CANALI_INTERATTIVI =
+{telegram, instagram, web, webui, irc, cam4, comfy, pm, chat}` e in `prossimo()`
+la pausa automatica ora salta i job con `richiedente` in `JOB_INTERATTIVI`
+**oppure** `canale` in `CANALI_INTERATTIVI`. Il canale (non l'handle) distingue la
+richiesta umana dal lavoro di fondo (`feed`). Aggiunto test
+`test_la_pausa_automatica_non_blocca_i_job_dei_canali_utente`.
+
+**Verifiche.** Suite completa `.venv`: **2431 passed, 18 skipped, 0 failed**.
+Rebuild + `up -d --no-deps control-plane`. Dopo il riavvio il ponte
+(`comfy_bridge.py`) ha ripreso subito i job utente: `/image/jobs` è tornato
+**200** (prima 204), il job Telegram `8906883ced` (sd15) è `running` con claim
+attivo, mentre i job `feed` restano `pending` come da policy. ComfyUI su
+`127.0.0.1:8188` è attivo (v0.40.0).
+
+## 2026-10-17 — Cline → utente (fallback immagini Mac→qwen-image)
+
+Richiesta: quando il ComfyUI del Mac è giù, generare comunque con qwen-image
+(stile di Aurora) invece di lasciare i job di Anna in coda. Implementato il
+fallback lato Mac.
+
+- `shared/image_jobs.py`: `ImmagineQueue.rifamiglia_fallback()` — i job di
+  checkpoint (`sd15`/`sdxl-turbo`) fermi in `pending` oltre la soglia passano a
+  `qwen-image-2.1` (modello/checkpoint/reference azzerati, 768×768/25 passi),
+  a meno che un checkpoint sia in `running` (il ponte locale sta lavorando:
+  coda lunga ≠ ponte giù).
+- `control-plane/main.py`: loop daemon `_image_fallback_loop` + config
+  `IMAGE_FALLBACK_ENABLED` (default true), `IMAGE_FALLBACK_AFTER_S` (900),
+  `IMAGE_FALLBACK_CHECK_S` (60).
+- Test: 3 nuovi in `tests/test_image_jobs.py`. Suite completa: **2434 passed,
+  18 skipped, 0 failed**. Deploy: rebuild + `up -d --no-deps control-plane`,
+  CP `status: ok`, ponte Mac che genera (`bridge_00512_.jpg` ecc.).
+
+**Resta da fare (lato Windows).** Il job rifamigliato a `qwen-image-2.1` resta
+sulla coda del Mac: serve che il ponte Windows interroghi la coda del Mac
+(`CHANNEL_URL=http://100.81.234.102:8085`, `BRIDGE_MODEL=qwen-image-2.1`, token
+del canale "comfy" del Mac). Senza quello, il fallback rifamiglia ma nessuno
+genera il job qwen-image. Non l'ho configurato io: è una macchina Windows e
+non ho accesso al suo bridge/ComfyUI da qui (8188/8189 non raggiungibili).
+
+## 2026-10-17 — Cline → utente (Git Mesh: test P2P reale + fix apply read-only)
+
+**Test P2P end-to-end eseguito** dal Mac verso l'HP Omen (`100.104.238.125`,
+nodo `d7a16c80`, commit `8ce43ffb` — allineato al Mac). Esito: il **trasporto
+funziona** (E2EE ECDH+AES-GCM, firma ECDSA verificata, ACK di ritorno), ma
+l'**apply fallisce**: `[Errno 30] Read-only file system: '/repo/shared/image_jobs.py'`.
+Causa: il mount `- .:/repo:ro` sul **nodo** (docker-compose.yml:649 e
+docker-compose.windows.yml:182) è read-only per la telemetria, e l'endpoint
+`/mesh/sync/patch` (node/main.py) provava a scrivere direttamente sul repo.
+
+**Fix via pulita (scelta dall'utente).** Il nodo riceve e VERIFICA ma NON
+applica; deposita la patch in una cartella scrivibile e un watcher sull'host la
+applica con backup/rollback:
+- `node/main.py`: `/mesh/sync/patch` ora salva la patch verificata in
+  `$DATA_DIR/mesh-patches/<id>.json` e risponde `{"status": "queued", ...}`.
+- `scripts/mesh_patch_watcher.py` (nuovo): watcher host che processa
+  `<data>/node-1/mesh-patches/*.json` via `apply_mesh_update` (backup+rollback),
+  scrive `<id>.result.json`, idempotente. Da avviare sull'host:
+  `python scripts/mesh_patch_watcher.py --patches data/node-1/mesh-patches --repo .`.
+- `tests/test_mesh_patch_watcher.py` (nuovo): 3 test (apply, rollback su checksum
+  errato, non-riapplicazione).
+
+**Tailscale (valutazione).** Taildrop è E2EE ma è un primitivo manuale: non ha
+firma per-patch, checksum applicativo, apply atomico/rollback né ACK, e non
+risolve il vero punto (chi scrive sul repo). Trasporto già sicuro con mesh_sync;
+resta utile solo come fallback manuale occasionale.
+
+**Da fare (non completato per terminale bloccato):** rieseguire la suite
+(`pytest tests/test_mesh_patch_watcher.py`), rebuild del container **nodo**
+(`docker compose build node-1` + `up -d --no-deps node-1`), avviare il watcher
+sull'host e ri-lanciare `mesh_distribute.py --target http://100.104.238.125:8081`
+per chiudere il cerchio. L'ASUS V16 risulta **offline** (spenta da ~1h).
+
+## 2026-10-17 — Cline → utente (follow-up: validazione loop P2P locale)
+
+Suite verde (`test_mesh_patch_watcher` 3/3, mesh 21/21, sintassi node ok).
+Rebuild del nodo Mac (`node-1`) fatto e **loop completo validato in locale**:
+`mesh_distribute.py --files … --target http://127.0.0.1:8081` → il nodo risponde
+**QUEUED** (salva, non applica), deposita la patch in
+`data/node-1/mesh-patches/<id>.json`, il watcher host la preleva e applica il
+`direct_file` scrivendo `<id>.result.json`. Il `status: failed` nel result era
+solo il diff git ridondante (`HEAD~1..HEAD` già applicato sul working tree con
+22 file dirty): il file diretto è applicato. Artefatti di test rimossi, watcher
+fermato. Resta il **deploy sui Windows**: rebuild container nodo + watcher host
+su HP Omen/ASUS V16; la propagazione reale fra Mac e Windows usa `--files` (file
+diretti, anche non committati) oppure `--base <ancestor comune> --target-commit
+<nuovo commit>`.
+
 
 ## 2026-10-17 — Antigravity (Mac): Risoluzione vulnerabilità wallet, rotte gateway live, anti-farming e rimozione fallback esterno immagini
 
@@ -4859,3 +4960,29 @@ unico LLM su questo Mac, per liberare i nodi Windows (dedicati a ComfyUI).
 4. **Allineamento Test (`tests/test_channel_immagine.py`)**:
    - Aggiunto `FAMIGLIA_DEFAULT` agli import e allo scope del mock di canale, supportando la transizione a Qwen-Image 2.1 (nodo 452 con `prompt`/`negative_prompt` oltre a `text`).
    - Suite `tests/test_channel_immagine.py`: 59 passed, 56 subtests passed.
+
+
+## 2026-10-17 — Antigravity (Mac): Correzione completa audit AdSense, GDPR/Consent Mode v2, MiCA e Tokenomics
+
+1. **AdSense & Consenso Preventivo GDPR / Google Consent Mode v2 (`web-node/*`)**:
+   - **`web-node/ads.txt`**: Rimosso il secondo Publisher ID inutilizzato (`pub-8680057388824673`), lasciando esclusivamente `google.com, pub-4726342205200791, DIRECT, f08c47fec0942fa0`.
+   - **Blocco preventivo script AdSense (`web-node/index.html`, `web-node/join.html`, `web-node/progetto.html`)**: Sostituito il caricamento immediato di `adsbygoogle.js` con Google Consent Mode v2 (`ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage` impostati a `'denied'` di default) e banner cookie preventivo (`#zzcCookieBanner`, chiave `zzc_cookie_consent` in `localStorage`) con pulsanti paritetici (*Solo Cookie Tecnici (Rifiuta)* / *Accetta Cookie Pubblicitari*) e link *⚙️ Preferenze Cookie* nel footer per revocare/modificare la scelta in qualsiasi momento. Lo script `adsbygoogle.js` viene iniettato nel DOM solo dopo il consenso esplicito.
+   - **Rimozione slot non valido e testo promozionale**: Rimosso il blocco `<ins class="adsbygoogle" ... data-ad-slot="auto">` e la dicitura *"Sostieni l'infrastruttura 00MESH"* sopra al banner in `index.html` e `join.html` (evitando violazioni per incoraggiamento al clic e slot invalido; Auto Ads opera automaticamente dopo il consenso).
+   - **Rimozione AdSense da schermate applicative e legali**: Rimosso completamente lo script AdSense da `web-node/ai.html`, `web-node/chat.html`, `web-node/privacy-policy.html` e `web-node/privacy.html`.
+   - **Allineamento informative e creazione pagine mancanti (404 fix)**:
+     - Aggiornate `web-node/privacy-policy.html` e `web-node/privacy.html` eliminando la contraddizione sui "soli cookie tecnici" e documentando il blocco preventivo di Google AdSense e l'offuscamento degli indirizzi Solana.
+     - Create `web-node/cookie-policy.html` (`/cookie-policy.html` e `/cookie-policy/`) e `web-node/terms.html` (`/terms.html` e `/terms/`), aggiornando anche `scripts/build-web-node-aruba.sh`.
+
+2. **Tokenomics, Sicurezza Wallet Ed25519 e Conformità MiCA**:
+   - **Rimozione box `pump.fun` sotto le risposte AI (`web-node/ai.html`)**: Rimossa la funzione `appendInlineSponsor()` e tutte le sue chiamate dalle risposte chat, immagini e ricerca web.
+   - **Firma crittografica Ed25519 obbligatoria (`shared/tokenomics.py`, `control-plane/cp/webnode.py`, `web-node/index.html`, `web-node/join.html`)**:
+     - `POST /web/node/wallet` ora invoca `link_node_solana_wallet(..., require_signature=True)`, rifiutando qualsiasi associazione wallet priva di firma Ed25519 valida e timestamp entro ±300s sul messaggio `00MESH-auth:<node_id>:<timestamp>`.
+     - Aggiunto pulsante `🟣 Firma Wallet` (Phantom/Solflare `signMessage`) in `index.html` e `join.html`.
+   - **Pulizia classifica e mascheramento indirizzi Solana (`shared/db.py`, `shared/tokenomics.py`, `tests/test_tokenomics.py`)**:
+     - `list_token_wallets()` e `get_tokenomics_stats()` escludono `test-node-%` e `live-test-%`; aggiunto `delete_test_token_wallets()` + fixture `autouse` in `tests/test_tokenomics.py` per non sporcare mai il DB di produzione.
+     - Aggiunto `mask_solana_address()` (`7xKX...gAsU`) nella leaderboard pubblica (`/web/tokenomics/leaderboard`).
+
+3. **Deploy & Verifica**:
+   - Ricostruito e riavviato `hyperspace_control_plane`; verificato `GET /web/tokenomics/leaderboard` (0 nodi di test, indirizzi mascherati).
+   - Eseguito deploy FTP su Aruba (`scripts/deploy_web_node_aruba.py`: 40 file aggiornati su `https://www.zerozerocomputer.it`).
+   - Test `pytest tests/test_tokenomics.py -q`: **8 passed**.
