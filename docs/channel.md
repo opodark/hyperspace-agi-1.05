@@ -417,6 +417,7 @@ CP, contesto di default:
 | `granite3.3:8b` | ok | no (`valores` non definito) | no (`valores`) | no (modifica la lista) | **1/4** |
 | `huihui_ai/qwen3.5-abliterated:9b` | ok | no (parse) | ok | ok | **3/4** |
 | `qwen3-vl:4b-instruct` | ok | no (parse) | ok | ok | **3/4** |
+| `hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M` | ok | no (regex a tre gruppi) | ok | ok | **3/4** |
 
 Due cose che la tabella dice:
 
@@ -425,6 +426,26 @@ Due cose che la tabella dice:
    limite e i contratti. `HS_MODEL_CODER` è quindi un ruolo senza modello.
 2. **Il 4B batte l'8B sul codice.** `qwen3-vl:4b-instruct` fa 3/4 in 3,07 GB:
    per questo ruolo la dimensione non è il criterio, l'esito del test sì.
+
+Il 9B coder scaricato il 2026-10-18 **pareggia il 4B**, non lo supera. Il
+dettaglio vale più del punteggio: la sua `durata_in_secondi` usa
+`^(\d+)h?\s*(\d+)m?\s*(\d+)s?$`, una regex che pretende **tre** numeri, quindi
+`'1h30m'` e `'45s'` — due dei quattro formati elencati nel prompt — finiscono in
+`ValueError: formato non riconosciuto`. È il bug tipico di chi scrive codice che
+funziona sull'esempio e non sui casi limite, ed è esattamente la differenza fra
+«parla di codice» ed «esegue il contratto» che il driver serve a vedere. Il
+resto è pulito: palindromo, bugfix (`media([]) == 0.0`, `None` saltati) e
+intervalli (ordine, unione a contatto, ingresso non mutato).
+
+Prestazioni dello stesso modello via `/api/chat` diretto, `think: false`: 55,2
+t/s, 5,7 GB caricati a 8192 di contesto, **100% GPU**. La forma testo paga:
+senza `mmproj` non c'è lo sconfinamento in CPU che un distillato con vision
+rischia a parità di quantizzazione.
+
+Un repo che sembra perfetto può non essere prendibile: `fauxpaslife/PentaCoder-9B`
+risponde **401** sia sulla pagina sia su `GET /api/models/<repo>`, cioè è
+privato, gated o rimosso. Verificare il repo con una richiesta all'API prima di
+mettere in conto un download da 6 GB costa un secondo e un'illusione.
 
 Il costo del ragionamento, su questa strada, non si vede: l'endpoint
 OpenAI-compatibile ignora `think` (`docs/architecture.md`), quindi `--think
@@ -441,7 +462,7 @@ Sul budget di VRAM la regola resta quella della tabella qui sopra: un 9B Q4 pesa
 sta al 64%). Per il ruolo coder la vision non serve: meglio un build testo.
 
 ```powershell
-.venv\Scripts\python.exe scripts\model_bench.py --models granite3.3:8b --think false
+.venv\Scripts\python.exe scripts\model_bench.py --think false --models "hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M,granite3.3:8b"
 ```
 
 **Cambiare il modello nel `.env` non basta.** `docker compose` dà precedenza

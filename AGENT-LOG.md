@@ -5539,12 +5539,79 @@ vuole numpy/librosa dall'interprete dell'editor). `ruff` pulito su
 
 **Cosa chiedo.**
 
-1. **Utente — consenso al download (niente è stato scaricato).** Da misurare col
-   banco esteso, ~5,6 GB ciascuno: `PentaCoder-9B` (forma giusta, ma nuovo) e
-   `mradermacher/Qwen3.5-9B-Coder:Q4_K_M`; in alternativa la classe 4B, se si
-   preferisce margine di VRAM. Il distillato Jackrong conviene solo se serve
-   *anche* la vision e si accetta il costo del pensiero.
+1. **Utente — consenso al download.** All'epoca niente era stato scaricato: da
+   misurare col banco esteso, ~5,6 GB ciascuno, `PentaCoder-9B` (forma giusta,
+   ma nuovo) e `mradermacher/Qwen3.5-9B-Coder:Q4_K_M`; in alternativa la classe
+   4B, se si preferisce margine di VRAM. Il distillato Jackrong conviene solo se
+   serve *anche* la vision e si accetta il costo del pensiero.
+   *(Chiuso nel blocco qui sotto: consenso arrivato, download fatto.)*
 2. **Codex**: `HS_MODEL_CODER` punta ancora al 12B e nessun modello da codice è
    installato; la scelta va fatta con l'esito del banco in mano.
-3. Nessun commit e nessun push.
+3. Nessun commit e nessun push. *(Superato nel blocco qui sotto, su richiesta
+   esplicita dell'utente.)*
+
+## 2026-10-18 — Cline → utente, Codex
+
+**Richiesta.** Testare `PentaCoder-9B` e `Qwen3.5-9B-Coder` Q4_K_M col banco
+esteso; controllare cosa era arrivato su `main` dal Mac; poi commit e push.
+
+**PentaCoder-9B: non è prendibile.** `GET
+https://huggingface.co/api/models/fauxpaslife/PentaCoder-9B` risponde **401**,
+e così la pagina: repo privato, gated o rimosso. Nessun download tentato — sei
+giga contati su un repo che non si può scaricare sono tempo sprecato, e la
+verifica costa una richiesta (ora è scritta in `docs/channel.md`).
+
+**Qwen3.5-9B-Coder Q4_K_M: scaricato e misurato.**
+`hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M`, 6,4 GB su disco, 5,7 GB
+caricati a 8192 di contesto, **100% GPU**, 55,2 t/s su `/api/chat` diretto con
+`think: false`. Sulle quattro sonde di codice:
+
+| sonda | esito |
+|---|---|
+| `codice_palindromo` | ok |
+| `codice_durata` | **no** |
+| `codice_bugfix` | ok |
+| `codice_intervalli` | ok |
+| **totale** | **3/4** |
+
+Il «no» non è del banco, è del modello: la sua `durata_in_secondi` usa
+`^(\d+)h?\s*(\d+)m?\s*(\d+)s?$`, che pretende tre numeri, quindi `'1h30m'` e
+`'45s'` — due dei quattro formati elencati nel prompt — finiscono in
+`ValueError: formato non riconosciuto`. Codice idiomatico, casi limite sbagliati:
+la classe di errore che il driver esiste per vedere. Nel resto del banco fa
+5/11, con un LOOP su `allucinazione` (non inventa il romanzo, ma non dice «non
+lo so» e sfora le 30 parole).
+
+**Riferimento in stessa sessione.** `granite3.3:8b`: **1/4** sul codice (solo
+palindromo) e 3/11 in totale, con 3 LOOP e 1 LENTO. Il divario col 9B coder è
+netto sul codice, non sulla prosa.
+
+**Conclusione sul ruolo.** Il 9B coder **non** batte `qwen3-vl:4b-instruct`
+(3/4, 3,07 GB): a parità di esito costa il doppio di VRAM e metà velocità. Per
+riempire `HS_MODEL_CODER` oggi la scelta ragionata è il 4B; il 9B coder resta
+installato come seconda voce dove serve più contesto di codice, non come
+default. La decisione finale resta a Codex, che possiede `HS_MODEL_CODER` (che
+punta ancora al 12B).
+
+**Git.** Il Mac ha pushato due commit mentre lavoravo (`78de71f`
+idempotency/mesh/social e `88702c9` chrome extension bridge). Il commit
+`feat(model-bench)` è stato rebasato sopra entrambi; unico conflitto
+`AGENT-LOG.md` (append da entrambi i lati), risolto tenendo i due blocchi in
+ordine senza riscrivere quello del Mac. Spinto: **`f32f83f`**. Scartata invece
+la modifica locale a `tests/test_comicsol_hyperspace_adapter.py` (uno `skipif`
+per il progetto comics generato a runtime): upstream ha rimosso quella
+superficie, quindi il file non esiste più.
+
+**Verifiche dopo il rebase.** `pytest tests -q` → **2469 passed, 71 skipped,
+999 subtests** (98 s); `pytest tests/test_model_bench.py` → 15 passed + 10
+subtests; `ruff` pulito su `scripts/model_bench.py` e
+`tests/test_model_bench.py`.
+
+**Cosa chiedo.**
+
+1. **Codex**: decidere `HS_MODEL_CODER` con questi numeri in mano — la
+   raccomandazione è `qwen3-vl:4b-instruct` (3,07 GB, 3/4), non il 9B coder.
+2. **Utente**: prima di un altro download, una `GET /api/models/<repo>` sul
+   repo; PentaCoder mostra che un repo può sparire anche quando la scheda
+   sembrava buona.
 
