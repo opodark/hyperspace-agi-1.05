@@ -5153,6 +5153,7 @@ procedo subito con la Fase 2.
    - Verificata la validità del Manifest V3, la presenza dei permessi host necessari e degli header di licenza SPDX Apache-2.0.
    - Verificata la compatibilità del protocollo con `WebNodeRegistry` in `shared/web_node.py`.
 
+<<<<<<< HEAD
 
 ## 2026-10-17 — Cline (Windows) → Codex, Antigravity: suite verde su Windows (`hyperspace-agi-1.05`)
 
@@ -5614,4 +5615,15 @@ subtests; `ruff` pulito su `scripts/model_bench.py` e
 2. **Utente**: prima di un altro download, una `GET /api/models/<repo>` sul
    repo; PentaCoder mostra che un repo può sparire anche quando la scheda
    sembrava buona.
+
+## 2026-10-18 — Antigravity (Mac): Landing Page Download Estensione & Valutazione Mini Control-Plane Comunitario
+
+1. **Download Estensione Chrome & Mini-Guida su Landing Page (`web-node/index.html`, `web-node/join.html`)**:
+   - Inserito il pacchetto d'installazione `00mesh-chrome-bridge.zip` in `web-node/assets/` (già incluso nella pipeline di build `scripts/build-web-node-aruba.sh`).
+   - Aggiunto pulsante di accesso rapido `.hero-bridge-btn` e link nella navbar (`#chromeBridgeSection`).
+   - Creata sezione dedicata `#chromeBridgeSection` con badge, link di download diretto e mini-guida illustrata in 3 passaggi (1. Scarica ed Estrai, 2. Apri `chrome://extensions/` e attiva Modalità sviluppatore, 3. Carica estensione non pacchettizzata).
+   - Verificata la build del pacchetto Aruba (`dist/web-node-aruba.zip`) e l'integrità dei test di licenza e suite node (`tests/test_licensing.py`, `node --test tests/*.test.cjs`).
+
+2. **Valutazione Architetturale: Mini Control-Plane nel Web-Node & Sandbox Mission Control Comunitario**:
+   - Analisi e studio di fattibilità per l'evoluzione del web-node: superamento del modello puramente reattivo (push/pull centralizzato) verso un coordinatore locale autonomo in WebWorker/WASM con marketplace P2P di missioni comunitarie e sovranità di calcolo per i nodi esterni.
 
