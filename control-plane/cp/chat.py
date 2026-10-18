@@ -797,32 +797,20 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
             # il modello soltanto per parafrasare URL già definitivi. Gemma 4
             # poteva restare minuti nel secondo giro (o richiamare il tool),
             # mentre Qwen trasformava i path relativi in link della WebUI.
-            if tool_name in {"create_website", "create_comic"}:
+            if tool_name == "create_website":
                 try:
                     artifact = json.loads(result)
                 except (TypeError, ValueError, json.JSONDecodeError):
                     artifact = {}
                 if artifact.get("ok"):
-                    if tool_name == "create_website":
-                        # Il conteggio delle immagini è l'unica prova testuale
-                        # che la galleria sia stata davvero riempita: senza,
-                        # chi verifica (e il verifier della missione) vede solo
-                        # due link e non sa se dentro c'è una foto o zero.
-                        imported = len(artifact.get("imported_images") or [])
-                        content = (
-                            "Sito creato correttamente.\n\n"
-                            f"- [Apri l’anteprima]({artifact['preview_url']})\n"
-                            f"- [Scarica il progetto ZIP]({artifact['download_url']})\n"
-                            f"- Immagini importate: {imported}\n\n"
-                            f"Progetto: `{artifact['project_id']}`"
-                        )
-                    else:
-                        content = (
-                            "Fumetto e primo episodio salvati correttamente.\n\n"
-                            f"- [Apri l’anteprima]({artifact['preview_url']})\n\n"
-                            f"Progetto: `{artifact['project_id']}` — "
-                            f"episodio: `{artifact['episode_id']}`"
-                        )
+                    imported = len(artifact.get("imported_images") or [])
+                    content = (
+                        "Sito creato correttamente.\n\n"
+                        f"- [Apri l’anteprima]({artifact['preview_url']})\n"
+                        f"- [Scarica il progetto ZIP]({artifact['download_url']})\n"
+                        f"- Immagini importate: {imported}\n\n"
+                        f"Progetto: `{artifact['project_id']}`"
+                    )
                     return {
                         "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
                         "object": "chat.completion", "created": int(time.time()),

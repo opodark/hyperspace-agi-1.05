@@ -14,8 +14,19 @@ def in_hour_window(hour: int, start: int, end: int) -> bool:
     return start <= hour < end if start < end else hour >= start or hour < end
 
 
-def choose_author(counts: dict, *, maximum: int, turn: int = 0) -> str | None:
-    """Choose the least-used sister, alternating ties, within the daily cap."""
+def choose_author(counts: dict, *, maximum: int, turn: int = 0,
+                  total_maximum: int | None = None) -> str | None:
+    """Choose the least-used sister, alternating ties, within the daily cap.
+
+    `total_maximum` (opzionale) è il tetto sulla somma delle due sorelle: con un
+    profilo social unico si vuole un sogno al giorno in tutto, non uno a testa.
+    Vale solo se maggiore di zero; `None` conserva il comportamento storico
+    (solo il tetto per autrice).
+    """
+    if total_maximum is not None and int(total_maximum) > 0:
+        somma = sum(int(counts.get(n, 0)) for n in ("anna", "aurora"))
+        if somma >= int(total_maximum):
+            return None
     order = ("anna", "aurora") if int(turn) % 2 == 0 else ("aurora", "anna")
     available = [name for name in order if int(counts.get(name, 0)) < int(maximum)]
     if not available:

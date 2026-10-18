@@ -5018,3 +5018,123 @@ diretti, anche non committati) oppure `--base <ancestor comune> --target-commit
    - Creato `web-node/robots.txt` che indirizza i crawler e gli agenti verso `/llms.txt` e `/.well-known/ai-agent.json`.
    - Aggiunti i tag `<link rel="alternate" ...>` in `<head>` e il link nel footer di `web-node/index.html` e `web-node/join.html`.
    - Eseguito deploy FTP su Aruba (`https://www.zerozerocomputer.it/llms.txt` e `https://www.zerozerocomputer.it/.well-known/ai-agent.json` attivi online).
+
+
+## 2026-10-17 — Antigravity (Mac): Mascotte Anime Interattiva di Anna (Shimeji Web Companion) per la Landing Page
+
+1. **Implementazione Mascotte (`web-node/src/anna-mascot.js`)**:
+   - Creata mascotte Shimeji anime 2D interattiva di Anna, fedele all'identità canonica di `data/persona-anna.json` (stile flat ChickMixFlat v1.0, capelli scuri con riflessi/punte viola ed ahoge reattivo, occhi anime espressivi con sfumatura viola-ciano, cyber-headset con LED di stato mesh, hoodie techwear nei toni di 00MESH `#57e6d9` e `#9a7cff`).
+   - **Macchina a stati & fisica procedurale**:
+     - `idle`: respirazione naturale, oscillazione ahoge, sbattimento ciglia periodico.
+     - `walk` / `run`: ciclo di camminata/corsa con oscillazione alternata delle gambe e bobbing della testa, specchiando l'avatar a sinistra o destra in base alla direzione.
+     - `sit`: si siede sulle card e dondola le gambe.
+     - `drag`: reazione con posa sorpresa e braccia alzate quando trascinata dall'utente.
+     - `fall`: fisica gravitazionale procedurale con decelerazione ed atterraggio morbido sulle card o sul pavimento del viewport.
+   - **Rilevamento intelligente piattaforme**:
+     - Scansiona le card del DOM (`.card`, `.hero-card`, `section`, `.panel`) permettendo ad Anna di camminare e atterrare sui blocchi della landing page oltre che sul pavimento.
+   - **Fumetti contestuali & Voce di Anna**:
+     - Fumetto manga a comparsa con citazioni tratte dalla lore di Anna e dall'infrastruttura di 00MESH (decentralizzazione, Proof-of-Useful-Work, mining GPU, saluti di benvenuto).
+   - **Salvaguardie UX & Accessibilità**:
+     - Layer trasparente con `pointer-events: none` e solo l'avatar con `pointer-events: auto`: nessun blocco o interferenza sui link/pulsanti della landing page.
+     - Rispetto nativo di `prefers-reduced-motion` (parte a riposo senza correre).
+     - Tasto discreto *"💤 Riposa"* e *"💬 Parla"* nel mini-dock sotto l'avatar; stato salvato in `sessionStorage`.
+     - Scorciatoia globale `Alt+Shift+A` per attivare/disattivare la mascotte.
+     - Parametro URL di override `?anna=off` o `?anna=on`.
+
+2. **Integrazione Landing Page (`web-node/index.html`)**:
+   - Incluso `<script type="module" src="./src/anna-mascot.js?v=1.05.5"></script>` nella pagina principale.
+
+3. **Test & Verifiche (`tests/anna_mascot.test.cjs`, `tests/test_licensing.py`)**:
+   - Creato `tests/anna_mascot.test.cjs` per verificare licenza SPDX Apache-2.0, canon, macchine a stati fisiche, preferenze di moto ridotto e session storage.
+   - `node --test tests/*.test.cjs`: **35 passed, 0 failed**.
+   - `pytest tests/test_licensing.py -q`: **7 passed**.
+   - Eseguito `./scripts/build-web-node-aruba.sh`: pacchetto `dist/web-node-aruba.zip` generato con successo includendo `anna-mascot.js`.
+
+## 2026-10-17 — Cline → utente (e Codex per il riavvio del container)
+
+Pubblicazione social (Anna + Aurora, un profilo condiviso): **Fase 0 e Fase 1
+completate, senza attivare alcun token.** Pubblicazione **congelata** finché la
+Fase 2 non è pronta.
+
+Cosa ho fatto:
+- Freeze nel `.env` locale: `POST_LOOP_ENABLED=false`,
+  `INSTAGRAM_DREAM_PUBLISH_ENABLED=false`,
+  `CONNECTOR_WRITE_TOOLS` ora senza `instagram_publish_image` (i tool DM
+  restano), `DREAM_PER_DAY=1`. **Il freeze vale solo dopo il riavvio del
+  container** (`docker compose up -d --no-deps control-plane`): non ho
+  riavviato nulla io.
+- Nuovi moduli puri, senza rete: `shared/social_policy.py` (guardie, tetti,
+  finestre, disclosure IA, blocco contenuto esplicito),
+  `shared/social_queue.py` (coda SQLite `social_queue`, claim atomici,
+  idempotenza, recupero esito incerto → `needs_review`),
+  `shared/social_text.py` (didascalie e adattamento X deterministico).
+- `shared/dream_schedule.py`: `choose_author` ora accetta `total_maximum`;
+  `control-plane/main.py`: `_decisione_sogno` e `_sogni_config` con
+  `DREAM_PER_DAY` (1 sogno/giorno in totale, non uno a testa).
+- Test: `tests/test_social_policy.py`, `tests/test_social_queue.py`,
+  `tests/test_social_text.py`, più un test in `tests/test_dream_schedule.py`.
+- Doc: `docs/social-automation.md` (architettura, invarianti, config, stato).
+- Suite intera col `.venv` del repo: **2464 passed, 18 skipped, 0 failed**.
+
+Deviazione dal piano approvato, e perché: ho lasciato `CONNECTOR_READ_ONLY=false`
+invece di metterlo `true`. Con `true` si sarebbero fermate anche le risposte ai
+DM (funzione viva che passa dal connector manager); il freeze del feed è già
+garantito da `INSTAGRAM_DREAM_PUBLISH_ENABLED=false` e dalla rimozione di
+`instagram_publish_image` dall'allowlist. Il feed publisher, in Fase 2, non
+passerà più dal connector manager ma da un percorso dedicato con credenziali
+proprie.
+
+Prossimo passo (Fase 2, da fare): `control-plane/cp/social.py` (publisher +
+rotte + kill switch), innesto in `_completa_e_pubblica_sogno` e
+`_publish_dialogue` (accodano invece di pubblicare), e riaccensione controllata.
+Fase 3: connettore X + OAuth, spento di default.
+
+Da decidere con te: chi riavvia il container (io no, è infrastruttura) e se
+procedo subito con la Fase 2.
+
+## 2026-10-18 — Antigravity (Mac): Rimozione Comic Builder, Portabilità Chatbot/Reel e Idempotenza Mission Control (P1)
+
+1. **Rimozione completa Comic Builder ("il creatore di fumetti")**:
+   - Rimosso codice inusabile e non integrato senza regressioni:
+     - Sorgenti e UI: `shared/comic_builder.py`, `control-plane/comics.html`, `control-plane/vendor/panel-foundry/`, `docs/comic-builder.md`, `scripts/comicsol_hyperspace_adapter.py`.
+     - Test associati: `tests/test_comic_builder.py`, `tests/test_comic_editor.py`, `tests/test_comicsol_hyperspace_adapter.py`.
+   - Puliti riferimenti e registrazioni tool in: `control-plane/main.py`, `control-plane/desktop.html`, `control-plane/Dockerfile`, `control-plane/cp/chat.py`, `control-plane/cp/tools_defs.py`, `tests/test_tool_passthrough.py`.
+
+2. **Valutazione Architetturale Portabilità Nodi (Chatbot & TikTok Reel Editor)**:
+   - **Chatbot Gateway**: Attualmente integrato nel processo monolitico del Control Plane. Raccomandato lo scorporo in container autonomo (`bot-gateway`) che dialoga via loopback/API `/v1/chat/completions` con code di messaggi indipendenti, evitando drop delle sessioni Telegram/Discord durante i restart del Control Plane.
+   - **Reel Editor su container/nodi eterogenei**: `autoedit/person_mask.swift` si appoggia a `Vision.framework` di macOS (Apple Neural Engine). Su macOS non può girare dentro Docker Linux (manca il passthrough framework Apple). Per containerizzarlo ed eseguirlo su nodi remoti (Linux o Windows con GPU CUDA), la segmentazione va astratta su ONNX/PyTorch (es. RMBG-1.4 o YOLOv8-seg) come provider alternativo.
+
+3. **P1 — Contratto Run, Ripresa e Idempotenza Mission Control (`AGENTS.md`)**:
+   - **Persistenza & Snapshot (`shared/mission.py`)**:
+     - Incrementato `schema_version = 2`.
+     - Aggiunti `plan_version`, `capabilities_snapshot` (per rendere le run riproducibili e congelate al momento dell'avvio) e registro `receipts` per azioni esterne.
+     - Implementati `record_receipt(mission_id, idempotency_key, action, result)` e `get_receipt(mission_id, idempotency_key)`.
+   - **Protezione Crash / Ripresa e Budget Passi (`shared/mission.py`)**:
+     - `reclaim_orphans()` ora marca i task interrotti con `task["interrupted"] = True`.
+     - In fase di `claim()`, se il task era interrotto viene preservato l'attempt originario (senza erodere il budget globale dei passi della missione `counters["steps"]` per lo stesso step).
+   - **Idempotenza & Deduplica Esecuzioni (`shared/mission_controller.py`, `shared/tool_runtime.py`, `control-plane/cp/mission.py`)**:
+     - In `_run_task()`, calcolo di `idempotency_key = f"{mission_id}:{task_id}:{attempt}"`.
+     - Verifica preventiva nel ledger `receipts`: se un'azione esterna era già stata completata prima di un'interruzione di rete o timeout, il risultato viene riutilizzato senza duplicare l'azione esterna.
+     - Salvataggio atomico delle ricevute a completamento con evidenza nei tool.
+   - **Test & Validazione**:
+     - Aggiunti test mirati in `tests/test_mission.py` e `tests/test_mission_controller.py` (`test_crash_and_resume_preserves_idempotency_and_no_duplicate_external_actions`, `test_interrupted_running_task_on_resume_does_not_double_count_steps`, `test_plan_version_and_capabilities_snapshot`).
+     - Suite di test completa eseguita ed esito 100% verde.
+
+## 2026-10-18 — Antigravity (Mac): Risoluzione Colli di Bottiglia Mesh & Resilienza Heartbeat Control Plane
+
+1. **Diagnostica Prestazioni & Nuovo Tool (`scripts/diagnostics/mesh_perf_diagnosis.py`)**:
+   - Creato script diagnostico rapido conforme alla Regola 6 di `AGENTS.md` per interrogare lo stato dell'heartbeat del Control Plane, latenza di rete inter-nodo, zombie node pendenti e VRAM fit dei modelli.
+
+2. **Risoluzione Bug Crash Heartbeat & Nodi Zombie (`control-plane/cp/battito.py`, `control-plane/cp/webnode.py`, `control-plane/cp/mesh.py`)**:
+   - **Causa del crash**: Un'eccezione SQLite / DNS non catturata si era verificata nel ciclo di polling perché gli endpoint fittizi dei browser (`browser://...`) venivano inseriti in `_known_endpoints` e interrogati via HTTP da `requests.get()`. In assenza di un `try/except` globale, il thread `heartbeat_loop` era morto silenziosamente da oltre 13 ore.
+   - **Conseguenza del blocco**: I nodi spenti (es. `100.64.31.18`) restavano congelati in stato `active` in memoria, causando un timeout sincrono bloccante di 4 secondi ad ogni refresh di `/v1/models` e su ogni richiesta chat.
+   - **Correzione**:
+     - `control-plane/cp/webnode.py`: Aggiunta guardia che impedisce l'inserimento di schemi `browser://` in `_known_endpoints`.
+     - `control-plane/cp/mesh.py`: Normalizzazione degli endpoint che preserva `browser://` senza anteporre `http://`.
+     - `control-plane/cp/battito.py`: Filtraggio HTTP/HTTPS obbligatorio in `_poll_mesh_nodes`, gestione protetta degli errori SQLite transitori in `db.upsert_node`, marcatura immediata di `node["status"] = "unreachable"` in caso di timeout/eccezione di rete e `try ... except` globale attorno al ciclo `while True` di `heartbeat_loop` per renderlo immune ai crash.
+     - `control-plane/Dockerfile`: Rimosso `COPY control-plane/vendor ./vendor` obsoleto.
+
+3. **Deploy e Risultato**:
+   - Eseguito rebuild e restart del container: `docker compose up -d --build --no-deps control-plane`.
+   - Latenza endpoint `/v1/models` scesa da oltre **5,0 s** a **0,29 s** (17x speedup).
+   - Heartbeat attivo e regolarmente in tick ogni 15s. Nodi zombie offline esclusi automaticamente dal routing.

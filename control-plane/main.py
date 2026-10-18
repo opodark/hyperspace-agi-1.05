@@ -123,11 +123,6 @@ from shared import web_search
 from shared import office_bridge
 from shared.webui_tool_api import (tools_api, configure_review, configure_second_pass,
                                    configure_activity, configure_batch)
-from shared.comic_builder import (ComicStore, add_character as comic_add_character,
-                                  add_episode as comic_add_episode,
-                                  episode_html as comic_episode_html,
-                                  new_project as comic_new_project,
-                                  panel_prompt as comic_panel_prompt)
 from shared.website_builder import WebsiteStore, build_site, import_reference_html
 from shared.web_node import (
     WebNodeError,
@@ -276,7 +271,6 @@ OFFICE_BRIDGE_ENABLED = os.getenv("OFFICE_BRIDGE_ENABLED", "false").strip().lowe
 OFFICE_BRIDGE_TOKEN = os.getenv("OFFICE_BRIDGE_TOKEN", "").strip()
 _OFFICE_TOKEN_HEADER = "X-Hyperspace-Office-Token"
 OFFICE_MODEL = os.getenv("HS_MODEL_OFFICE", "").strip()
-COMIC_DIR = os.getenv("COMIC_PROJECT_DIR", "/app/data/comics")
 WEBSITE_DIR = os.getenv("WEBSITE_PROJECT_DIR", "/app/data/websites")
 BUILDER_PUBLIC_BASE_URL = os.getenv(
     "BUILDER_PUBLIC_BASE_URL", "http://localhost:8085").strip().rstrip("/")
@@ -1246,63 +1240,6 @@ def _tool_website_status(args: dict) -> str:
         "assets_on_disk": len(assets),
         "preview_url": f"{BUILDER_PUBLIC_BASE_URL}/website/preview/{project_id}/",
         "applied": False,
-    }, ensure_ascii=False)
-
-
-def _tool_create_comic(args: dict) -> str:
-    """Crea il primo episodio e, salvo richiesta contraria, ne accoda le vignette."""
-    project = comic_new_project(
-        str(args.get("title") or "Nuovo fumetto"),
-        str(args.get("premise") or "").strip(),
-        style=str(args.get("style") or "graphic novel"),
-    )
-    for character in args.get("characters") or []:
-        if isinstance(character, dict) and character.get("name"):
-            comic_add_character(project, name=str(character["name"]),
-                                visual=str(character.get("visual") or ""),
-                                role=str(character.get("role") or ""))
-    if isinstance(args.get("continuity"), dict):
-        project["continuity"].update(
-            {str(k): str(v) for k, v in args["continuity"].items()})
-    panels = args.get("panels") or []
-    if not isinstance(panels, list) or not panels:
-        panels = [{"scene": str(args.get("synopsis") or args.get("premise") or "Prima scena")}]
-    episode = comic_add_episode(project,
-                                title=str(args.get("episode_title") or "Episodio 1"),
-                                synopsis=str(args.get("synopsis") or ""), panels=panels)
-    # La richiesta naturale "crea un fumetto" comprende le immagini: lasciare
-    # solo JSON e una tavola vuota costringeva l'utente a conoscere Panel
-    # Foundry e le route interne. `render_panels=false` conserva la modalità
-    # storyboard quando l'operatore vuole rivedere le scene prima di usare GPU.
-    render_value = args.get("render_panels", True)
-    render_panels = str(render_value).strip().lower() not in {"false", "0", "no"}
-    queued, skipped = [], []
-    if render_panels:
-        for panel in episode["panels"]:
-            try:
-                scene = traduci_scena_immagine(panel["scene"])
-                prompt = comic_panel_prompt(project, episode, panel, scene=scene)
-                job = image_queue.accoda(nuovo_job(
-                    prompt,
-                    negativo=("photo, photorealistic, realistic skin, 3d render, magazine, poster, "
-                              "text, letters, words, logo, watermark, speech bubble, single person, "
-                              "duplicate person, bad anatomy, bad hands, extra fingers, blurry"),
-                    larghezza=768, altezza=768, passi=32, richiedente="comic",
-                    canale="feed", famiglia=FAMIGLIA_SD15, modello="chickmixflat_v10.ckpt",
-                    destinazione=f"comic:{project['id']}:{episode['id']}:{panel['number']}"))
-                panel.update({"image_job_id": job["id"], "status": "queued"})
-                queued.append(job["id"])
-            except (RuntimeError, ValueError) as error:
-                skipped.append({"panel": panel["number"], "error": str(error)[:160]})
-    ComicStore(COMIC_DIR).save(project)
-    return json.dumps({
-        "ok": True, "project_id": project["id"], "episode_id": episode["id"],
-        "panels": len(episode["panels"]), "render_panels": render_panels,
-        "queued_jobs": queued, "skipped_panels": skipped,
-        "preview_url": (f"{BUILDER_PUBLIC_BASE_URL}/comic/projects/{project['id']}"
-                        f"/episodes/{episode['id']}/preview"),
-        "note": (f"{len(queued)} vignette accodate." if render_panels
-                 else "Storyboard salvato: generazione immagini non richiesta."),
     }, ensure_ascii=False)
 
 
@@ -2307,14 +2244,19 @@ def _decisione_sogno(now: datetime, turno: int) -> dict:
     """
     counts, latest = _diario_counts_today(now)
     maximum = max(1, _post_int("DREAM_PER_AUTHOR_PER_DAY", 2))
-    autore = choose_author(counts, maximum=maximum, turn=turno)
+    total_maximum = max(1, _post_int("DREAM_PER_DAY", 1))
+    autore = choose_author(counts, maximum=maximum, turn=turno,
+                           total_maximum=total_maximum)
     notte = in_hour_window(now.hour, _post_int("DREAM_NIGHT_START_HOUR", 0),
                            _post_int("DREAM_NIGHT_END_HOUR", 8))
     inattivo = not _foreground_busy()
     distanziato = not latest or time.time() - latest >= max(
         900, _post_int("DREAM_LOOP_INTERVAL_S", 7200))
     if autore is None:
-        motivo = f"quota giornaliera raggiunta ({maximum} a testa)"
+        if sum(int(counts.get(a, 0)) for a in ("anna", "aurora")) >= total_maximum:
+            motivo = f"quota giornaliera totale raggiunta ({total_maximum})"
+        else:
+            motivo = f"quota giornaliera per autrice raggiunta ({maximum} a testa)"
     elif not distanziato:
         motivo = "intervallo minimo fra due sogni non ancora passato"
     elif _foreground_busy():
@@ -2400,6 +2342,7 @@ def _sogni_config() -> dict:
         "finestra": (_post_int("DREAM_NIGHT_START_HOUR", 0),
                      _post_int("DREAM_NIGHT_END_HOUR", 8)),
         "quota_per_autrice": max(1, _post_int("DREAM_PER_AUTHOR_PER_DAY", 2)),
+        "quota_giornaliera": max(1, _post_int("DREAM_PER_DAY", 1)),
         "intervallo_s": max(900, _post_int("DREAM_LOOP_INTERVAL_S", 7200)),
         "controllo_s": max(60, _post_int("DREAM_LOOP_CHECK_S", 300)),
         "fuso": os.getenv("DREAM_TIMEZONE", "Europe/Rome").strip() or "Europe/Rome",
@@ -3309,9 +3252,6 @@ SURFACES = [
     {"id": "diario", "label": "Diario", "category": "control-plane",
      "path": "/diario", "port": None,
      "desc": "Post e sogni illustrati delle influencer."},
-    {"id": "comics", "label": "Comic Builder", "category": "control-plane",
-     "path": "/comics", "port": None,
-     "desc": "Storyline HyperSpace e impaginazione manuale."},
     {"id": "sites", "label": "Sites Builder", "category": "control-plane",
      "path": "/sites", "port": None,
      "desc": "Crea siti, anteprima e scarica lo ZIP."},
@@ -4235,10 +4175,6 @@ def activity_control():
 def sites_builder_page():
     return send_from_directory(BASE_DIR, 'sites.html')
 
-@app.route('/comics')
-def comics_builder_page():
-    return send_from_directory(BASE_DIR, 'comics.html')
-
 
 @app.route('/conversations')
 def conversations_page():
@@ -4353,35 +4289,10 @@ def feed_route():
     return jsonify({"ok": True, "post": post})
 
 
-# ── COMIC + WEBSITE BUILDERS ────────────────────────────────────────────────
-
-def _comic_store() -> ComicStore:
-    return ComicStore(COMIC_DIR)
-
+# ── WEBSITE BUILDER ─────────────────────────────────────────────────────────
 
 def _website_store() -> WebsiteStore:
     return WebsiteStore(WEBSITE_DIR)
-
-
-def _reconcile_comic_project(project: dict) -> bool:
-    """Riporta nel progetto gli esiti ComfyUI già conclusi dalla coda."""
-    changed = False
-    for episode in project.get("episodes", []):
-        for panel in episode.get("panels", []):
-            job_id = panel.get("image_job_id")
-            if not job_id:
-                continue
-            job = image_queue.job(job_id)
-            if not job:
-                continue
-            status = job.get("stato", panel.get("status", "draft"))
-            file = ((job.get("esito") or {}).get("file", "")
-                    if status == "done" else panel.get("image_file", ""))
-            if panel.get("status") != status or panel.get("image_file", "") != file:
-                panel["status"] = status
-                panel["image_file"] = file
-                changed = True
-    return changed
 
 
 def _builder_auth_error():
@@ -4394,173 +4305,6 @@ def _builder_download_token(project_id: str) -> str:
     message = f"website-download:{project_id}".encode("utf-8")
     return hmac.new(NETWORK_ADMIN_TOKEN.encode("utf-8"), message,
                     hashlib.sha256).hexdigest()
-
-
-@app.route('/comic/editor')
-def comic_editor_page():
-    """Panel Foundry adattato: UI manuale, dati e generazione restano nel CP."""
-    return send_from_directory(os.path.join(BASE_DIR, "vendor", "panel-foundry"),
-                               "index.html")
-
-
-@app.route('/comic/projects/<project_id>/editor-data', methods=['GET', 'PUT'])
-def comic_editor_data(project_id):
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    store = _comic_store()
-    try:
-        project = store.load(project_id)
-        if request.method == 'PUT':
-            if (request.content_length or 0) > 2_000_000:
-                return jsonify({"ok": False, "error": "layout troppo grande"}), 413
-            layout = (request.get_json(silent=True) or {}).get("layout")
-            if not isinstance(layout, dict) or not isinstance(layout.get("pages"), list):
-                return jsonify({"ok": False, "error": "layout non valido"}), 400
-            if len(layout["pages"]) > 100:
-                return jsonify({"ok": False, "error": "troppe pagine"}), 400
-            project["layout"] = layout
-            project["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-            store.save(project)
-    except (OSError, ValueError, json.JSONDecodeError) as error:
-        return jsonify({"ok": False, "error": str(error)}), 404
-    return jsonify({"ok": True, "project": project})
-
-
-@app.route('/comic/projects/<project_id>/generate', methods=['POST'])
-def comic_editor_generate(project_id):
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    try:
-        _comic_store().load(project_id)
-        data = request.get_json(silent=True) or {}
-        prompt = comic_panel_prompt(
-            {"style": "graphic novel", "characters": [], "continuity": {}}, {},
-            {"scene": str(data.get("prompt") or "")})
-        job = image_queue.accoda(nuovo_job(
-            prompt,
-            negativo=str(data.get("negative") or
-                          "photo, photorealistic, text, watermark, bad anatomy, bad hands"),
-            larghezza=768, altezza=768, passi=32, richiedente="comic-editor",
-            canale="feed", famiglia=FAMIGLIA_SD15, modello="chickmixflat_v10.ckpt",
-            destinazione=f"comic-editor:{project_id}"))
-    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
-        return jsonify({"ok": False, "error": str(error)}), 400
-    return jsonify({"ok": True, "job": job}), 201
-
-
-@app.route('/comic/jobs/<job_id>')
-def comic_editor_job(job_id):
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    job = image_queue.job(job_id)
-    if not job:
-        return jsonify({"ok": False, "error": "job non trovato"}), 404
-    return jsonify({"ok": True, "job": job})
-
-
-@app.route('/comic/projects', methods=['GET', 'POST'])
-def comic_projects():
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    store = _comic_store()
-    if request.method == 'GET':
-        projects = store.list()
-        for project in projects:
-            project["editor_url"] = f"/comic/editor?project={quote(project['id'])}"
-        return jsonify({"ok": True, "projects": projects})
-    data = request.get_json(silent=True) or {}
-    try:
-        project = comic_new_project(data.get("title", ""), data.get("premise", ""),
-                                    authors=data.get("authors") or ("anna", "aurora"),
-                                    style=data.get("style") or "graphic novel")
-        for value in data.get("characters") or []:
-            comic_add_character(project, name=value.get("name", ""),
-                                role=value.get("role", ""), visual=value.get("visual", ""))
-        project["continuity"] = dict(data.get("continuity") or {})
-        store.save(project)
-    except (TypeError, ValueError) as error:
-        return jsonify({"ok": False, "error": str(error)}), 400
-    return jsonify({"ok": True, "project": project}), 201
-
-
-@app.route('/comic/projects/<project_id>', methods=['GET'])
-def comic_project(project_id):
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    try:
-        project = _comic_store().load(project_id)
-    except (OSError, ValueError, json.JSONDecodeError):
-        return jsonify({"ok": False, "error": "progetto non trovato"}), 404
-    if _reconcile_comic_project(project):
-        _comic_store().save(project)
-    return jsonify({"ok": True, "project": project})
-
-
-@app.route('/comic/projects/<project_id>/episodes', methods=['POST'])
-def comic_episode_create(project_id):
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    store = _comic_store()
-    try:
-        project = store.load(project_id)
-        data = request.get_json(silent=True) or {}
-        episode = comic_add_episode(project, title=data.get("title", ""),
-                                    synopsis=data.get("synopsis", ""),
-                                    panels=data.get("panels") or [])
-        store.save(project)
-    except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
-        return jsonify({"ok": False, "error": str(error)}), 400
-    return jsonify({"ok": True, "episode": episode}), 201
-
-
-@app.route('/comic/projects/<project_id>/episodes/<episode_id>/panels/<int:number>/render', methods=['POST'])
-def comic_panel_render(project_id, episode_id, number):
-    auth = _builder_auth_error()
-    if auth:
-        return auth
-    store = _comic_store()
-    try:
-        project = store.load(project_id)
-        episode = next(x for x in project["episodes"] if x["id"] == episode_id)
-        panel = next(x for x in episode["panels"] if x["number"] == number)
-        scena = traduci_scena_immagine(panel.get("scene", ""))
-        prompt = comic_panel_prompt(project, episode, panel, scene=scena)
-        job = image_queue.accoda(nuovo_job(
-            prompt,
-            negativo=("photo, photorealistic, realistic skin, 3d render, magazine, poster, "
-                      "text, letters, words, logo, watermark, speech bubble, single person, "
-                      "duplicate person, bad anatomy, bad hands, extra fingers, blurry"),
-            larghezza=768, altezza=768, passi=32, richiedente="comic",
-            canale="feed", famiglia=FAMIGLIA_SD15, modello="chickmixflat_v10.ckpt",
-            destinazione=f"comic:{project_id}:{episode_id}:{number}"))
-        panel.update({"image_job_id": job["id"], "status": "queued", "image_file": ""})
-        store.save(project)
-    except StopIteration:
-        return jsonify({"ok": False, "error": "episodio o vignetta non trovati"}), 404
-    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
-        return jsonify({"ok": False, "error": str(error)}), 400
-    return jsonify({"ok": True, "job": job, "prompt": prompt}), 201
-
-
-@app.route('/comic/projects/<project_id>/episodes/<episode_id>/preview')
-def comic_episode_preview(project_id, episode_id):
-    try:
-        project = _comic_store().load(project_id)
-        if _reconcile_comic_project(project):
-            _comic_store().save(project)
-        episode = next(x for x in project["episodes"] if x["id"] == episode_id)
-    except (OSError, StopIteration, ValueError, json.JSONDecodeError):
-        return jsonify({"ok": False, "error": "episodio non trovato"}), 404
-    page = comic_episode_html(
-        project, episode,
-        image_url=lambda value: "/diario/immagini/" + quote(value, safe="/") if value else "")
-    return Response(page, mimetype="text/html")
 
 
 @app.route('/website/projects', methods=['GET', 'POST'])
@@ -4966,7 +4710,6 @@ def _handlers_nativi_105() -> dict:
         "create_website": _tool_create_website,
         "website_status": _tool_website_status,
         "wayfinder_map": _tool_wayfinder_map,
-        "create_comic": _tool_create_comic,
         "reel_prepare_project": _tool_reel_prepare_project,
         "reel_schedule_daily": _reel_schedule,
         "reel_daily_status": _reel_daily_status,

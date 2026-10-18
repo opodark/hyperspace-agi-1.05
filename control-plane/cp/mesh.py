@@ -171,6 +171,8 @@ def _normalize_endpoint(ep: str) -> str:
     ep = ep.strip().rstrip("/")
     if not ep:
         return ep
+    if ep.startswith("browser://"):
+        return ep
     if ep.startswith("http://") or ep.startswith("https://"):
         return ep
     return f"http://{ep}"

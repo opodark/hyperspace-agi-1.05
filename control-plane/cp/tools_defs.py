@@ -242,41 +242,6 @@ _NATIVE_TOOLS.extend([{'type': 'function',
                                                                            'progetti esistenti.'}},
                               'required': []}}},
  {'type': 'function',
-  'function': {'name': 'create_comic',
-               'description': 'Crea un fumetto completo: salva storyline, personaggi e primo '
-                              'episodio e, salvo render_panels=false, accoda automaticamente una '
-                              "vignetta per ogni scena. Usalo quando l'utente chiede di creare un "
-                              'fumetto; non rispondere con il solo copione.',
-               'parameters': {'type': 'object',
-                              'properties': {'title': {'type': 'string'},
-                                             'premise': {'type': 'string'},
-                                             'style': {'type': 'string',
-                                                       'default': 'graphic novel'},
-                                             'episode_title': {'type': 'string'},
-                                             'synopsis': {'type': 'string'},
-                                             'render_panels': {'type': 'boolean',
-                                                               'default': True,
-                                                               'description': 'true genera le '
-                                                                              'vignette nella coda '
-                                                                              'ComfyUI; false crea '
-                                                                              'solo storyboard per '
-                                                                              'revisione.'},
-                                             'characters': {'type': 'array',
-                                                            'items': {'type': 'object',
-                                                                      'properties': {'name': {'type': 'string'},
-                                                                                     'visual': {'type': 'string'},
-                                                                                     'role': {'type': 'string'}},
-                                                                      'required': ['name',
-                                                                                   'visual']}},
-                                             'continuity': {'type': 'object'},
-                                             'panels': {'type': 'array',
-                                                        'items': {'type': 'object',
-                                                                  'properties': {'scene': {'type': 'string'},
-                                                                                 'caption': {'type': 'string'},
-                                                                                 'dialogue': {'type': 'string'}},
-                                                                  'required': ['scene']}}},
-                              'required': ['title', 'premise', 'episode_title', 'panels']}}},
- {'type': 'function',
   'function': {'name': 'reel_prepare_project',
                'description': "Prepara un progetto nell'editor reel HyperSpace usando nomi esatti: "
                               'per source=anna accetta solo immagini approvate; per source=share '

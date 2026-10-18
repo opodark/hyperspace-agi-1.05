@@ -65,7 +65,6 @@ STRUMENTI_DEL_CP = {
     "create_website": "_tool_create_website",
     "website_status": "_tool_website_status",
     "wayfinder_map": "_tool_wayfinder_map",
-    "create_comic": "_tool_create_comic",
     "reel_prepare_project": "_tool_reel_prepare_project",
     "reel_schedule_daily": "_reel_schedule",
     "reel_daily_status": "_reel_daily_status",

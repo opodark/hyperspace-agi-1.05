@@ -234,6 +234,60 @@ class MissionControllerRobustnessTests(unittest.TestCase):
         controller = self.controller(FakePlanner([linear_plan()]), FakeWorker(), FakeVerifier())
         self.assertEqual(controller.run(mission["id"])["status"], "done")
 
+    def test_crash_and_resume_preserves_idempotency_and_no_duplicate_external_actions(self):
+        mission = self.mission()
+        external_action_calls = []
+
+        def worker_with_side_effect(task, current):
+            receipts = current.get("receipts") or {}
+            action_key = f"{task['task_id']}:external_post"
+            if action_key in receipts:
+                external_result = receipts[action_key]["result"]
+            else:
+                external_action_calls.append(task["task_id"])
+                external_result = f"posted-{task['task_id']}"
+                self.store.record_receipt(current["id"], action_key, "post", external_result)
+
+            if task["task_id"] == "b" and len(external_action_calls) == 2:
+                # Simulate crash right after external action executed for b
+                raise RuntimeError("simulated crash after external action")
+
+            return {"ok": True, "output": f"done-{external_result}"}
+
+        controller1 = self.controller(FakePlanner([linear_plan()]), worker_with_side_effect, FakeVerifier())
+        summary1 = controller1.run(mission["id"])
+        self.assertEqual(summary1["status"], "done")
+        self.assertEqual(external_action_calls, ["a", "b"])
+
+    def test_interrupted_running_task_on_resume_does_not_double_count_steps(self):
+        mission = self.mission()
+        self.store.set_plan(mission["id"], linear_plan())
+        claimed = self.store.claim(mission["id"], "a")
+        self.assertIsNotNone(claimed)
+        before_steps = self.store.get(mission["id"])["counters"]["steps"]
+        self.assertEqual(before_steps, 1)
+
+        fresh_store = MissionStore(self.temp.name, clock=NOW)
+        controller = MissionController(fresh_store, planner=FakePlanner([]), worker=FakeWorker(),
+                                       verifier=FakeVerifier(),
+                                       budget=mission_policy.parse_budget(env={}), clock=NOW)
+        summary = controller.run(mission["id"])
+        self.assertEqual(summary["status"], "done")
+        after_steps = fresh_store.get(mission["id"])["counters"]["steps"]
+        self.assertEqual(after_steps, 2)
+
+    def test_plan_version_and_capabilities_snapshot(self):
+        mission = self.mission()
+        planner = FakePlanner([linear_plan(),
+                               [{"key": "extra", "role": "coder", "title": "Fix", "instruction": "fix"}]])
+        verifier = FakeVerifier(task_verdicts=["replan"])
+        controller = self.controller(planner, FakeWorker(), verifier)
+        controller.run(mission["id"])
+        record = self.store.get(mission["id"])
+        self.assertEqual(record["plan_version"], 2)
+        self.assertIn("capabilities_snapshot", record)
+        self.assertIn("repo-analyst", record["capabilities_snapshot"])
+
 
 if __name__ == "__main__":
     unittest.main()

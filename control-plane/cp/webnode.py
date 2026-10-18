@@ -138,7 +138,8 @@ def web_register():
             "type": "web-node",
             "last_seen": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     _nodes_by_id[node_id] = info
-    _known_endpoints.add(endpoint)
+    if endpoint.startswith("http://") or endpoint.startswith("https://"):
+        _known_endpoints.add(endpoint)
     db.upsert_node(info)
     push_log('mesh_event', f'Web node registered: {node_id[:12]}',
              f"caps={','.join(record['capabilities']) or '-'} browser={record['browser'][:40]}",

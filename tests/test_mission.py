@@ -122,6 +122,34 @@ class MissionStoreTests(unittest.TestCase):
         lines = Path(self.temp.name, "missions.jsonl").read_text(encoding="utf-8").splitlines()
         self.assertEqual(json.loads(lines[-1])["status"], "done")
 
+    def test_receipts_ledger_persists_across_store_instances(self):
+        mission = self.store.create("Receipts test")
+        receipt = self.store.record_receipt(mission["id"], "key-123", "deploy_file", {"status": "ok", "bytes": 42})
+        self.assertEqual(receipt["idempotency_key"], "key-123")
+        self.assertEqual(receipt["action"], "deploy_file")
+
+        # Reload store from same path
+        fresh = MissionStore(self.temp.name)
+        loaded = fresh.get_receipt(mission["id"], "key-123")
+        self.assertIsNotNone(loaded)
+        self.assertEqual(loaded["result"]["bytes"], 42)
+        self.assertIsNone(fresh.get_receipt(mission["id"], "non-existent"))
+
+    def test_capabilities_snapshot_and_plan_version_lifecycle(self):
+        caps = {"coder": ["code_sandbox"], "verifier": ["inspect"]}
+        mission = self.store.create("Caps test", capabilities=caps)
+        self.assertEqual(mission["schema_version"], 2)
+        self.assertEqual(mission["plan_version"], 1)
+        self.assertEqual(mission["capabilities_snapshot"], caps)
+
+        self.store.set_plan(mission["id"], [{"key": "task-1", "instruction": "do 1"}])
+        after_plan = self.store.get(mission["id"])
+        self.assertEqual(after_plan["plan_version"], 1)
+
+        self.store.add_replan(mission["id"], [{"key": "task-2", "instruction": "do 2"}])
+        after_replan = self.store.get(mission["id"])
+        self.assertEqual(after_replan["plan_version"], 2)
+
 
 class DagValidationTests(unittest.TestCase):
     def test_cycle_is_rejected(self):
