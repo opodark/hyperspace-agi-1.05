@@ -72,8 +72,10 @@
     .msg{max-width:88%;padding:14px 18px;border-radius:18px;border:1px solid #233454;animation:fade-in .2s ease;font-size:14.5px;line-height:1.6}
     @keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
     .msg.user{align-self:flex-end;background:#201c3e;border-color:#483c74;color:#f8fafc;white-space:pre-wrap}
-    .msg.assistant{align-self:flex-start;background:#0d162d;border-color:#1e2e4f;color:#e2e8f0;max-width:92%}
-    .msg-who{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+    .msg-who{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:750;letter-spacing:.03em;margin-bottom:8px}
+    .avatar-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px}
+    .avatar-icon.user-icon{background:#9a7cff25;border:1px solid #9a7cff55;color:#c4b5fd}
+    .avatar-icon.ai-icon{background:#57e6d925;border:1px solid #57e6d955;color:var(--cyan);box-shadow:0 0 10px #57e6d933}
     .msg.user .msg-who{color:#b9a9ff}
     .msg.assistant .msg-who{color:var(--cyan)}
     
@@ -237,6 +239,8 @@
     .send-btn{background:linear-gradient(115deg,var(--cyan),#ab91ff);border:none;border-radius:10px;padding:9px 18px;color:#08101d;font-weight:750;font-size:13.5px;cursor:pointer;transition:all .15s}
     .send-btn:hover{filter:brightness(1.1)}
     .send-btn:disabled{cursor:not-allowed;opacity:.4;filter:grayscale(.5)}
+    .send-btn.stop-btn{background:#ff829522;border:1px solid #ff829588;color:#ff8295}
+    .send-btn.stop-btn:hover{background:#ff829544;border-color:#ff8295;color:#fff}
     
     /* Drag & Drop Overlay */
     .drag-overlay{position:fixed;inset:0;background:#070b18ee;border:3px dashed var(--cyan);backdrop-filter:blur(6px);z-index:90;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;pointer-events:none}
@@ -770,7 +774,11 @@
     
     const who = document.createElement("span");
     who.className = "msg-who";
-    who.textContent = role === "user" ? "Tu" : "Assistente Mesh";
+    if (role === "user") {
+      who.innerHTML = '<span class="avatar-icon user-icon">👤</span> <span>Tu</span>';
+    } else {
+      who.innerHTML = '<span class="avatar-icon ai-icon">⚡</span> <span>Zero Zero AI</span>';
+    }
     box.appendChild(who);
 
     // Se il messaggio utente contiene documenti allegati, mostrali come pillole
@@ -871,7 +879,23 @@
           alert("Errore generazione PDF: " + pdfErr.message);
         }
       });
-      footer.append(copyBtn, pdfBtn);
+      const regenBtn = document.createElement("button");
+      regenBtn.className = "copy-msg-btn";
+      regenBtn.type = "button";
+      regenBtn.textContent = "🔄 Rigenera";
+      regenBtn.title = "Rigenera questa risposta da zero";
+      regenBtn.addEventListener("click", () => {
+        const sess = getCurrentSession();
+        if (!sess || !sess.messages.length) return;
+        for (let i = sess.messages.length - 1; i >= 0; i--) {
+          if (sess.messages[i].role === "user") {
+            $("promptInput").value = sess.messages[i].content;
+            handleSend();
+            break;
+          }
+        }
+      });
+      footer.append(copyBtn, pdfBtn, regenBtn);
       box.appendChild(footer);
     }
 
@@ -1092,6 +1116,16 @@
     if (sess) { sess.model = $("modelSelect").value; saveSessions(); }
   });
 
+  let currentAbortController = null;
+
+  function resetSendButton() {
+    const btn = $("sendBtn");
+    if (!btn) return;
+    btn.textContent = "Invia ↗";
+    btn.classList.remove("stop-btn");
+    updateSendButtonState();
+  }
+
   async function handleSend() {
     let text = $("promptInput").value.trim();
     const currentAttachments = [...attachedFiles];
@@ -1190,7 +1224,12 @@
     $("promptInput").value = "";
     attachedFiles = [];
     renderAttachedFiles();
-    $("sendBtn").disabled = true;
+
+    currentAbortController = new AbortController();
+    const sendBtn = $("sendBtn");
+    sendBtn.textContent = "⏹ Interrompi";
+    sendBtn.classList.add("stop-btn");
+    sendBtn.disabled = false;
 
     // Disegna bolla utente con badge allegati
     appendBubble("user", text, true, currentAttachments);
@@ -1265,6 +1304,7 @@ Linee guida di risposta:
       let reply;
       try {
         reply = await chatClient.send(promptPayload, {
+          signal: currentAbortController.signal,
           onDelta: (_p, whole) => {
             target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
             attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
@@ -1272,23 +1312,28 @@ Linee guida di risposta:
           }
         });
       } catch (sendErr) {
-        // Fallback automatico su modello mesh standard se il modello richiesto non è pronto o non risponde
-        const fallbackModel = "🕸️ qwen3-8b-abliterated:latest";
-        if (chatClient.model !== fallbackModel && !sendErr.message?.includes("fetch")) {
-          console.warn(`Modello ${chatClient.model} non pronto (${sendErr.message}), fallback automatico a ${fallbackModel}`);
-          chatClient.model = fallbackModel;
-          $("modelSelect").value = fallbackModel;
-          if (sess) { sess.model = fallbackModel; saveSessions(); }
-          target.innerHTML = '<span class="cursor-blink">▊</span>';
-          reply = await chatClient.send(promptPayload, {
-            onDelta: (_p, whole) => {
-              target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
-              attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
-              smartScrollBottom(false);
-            }
-          });
+        if (currentAbortController?.signal?.aborted) {
+          reply = { text: target.textContent.replace(/▊$/, "").trim() };
         } else {
-          throw sendErr;
+          // Fallback automatico su modello mesh standard se il modello richiesto non è pronto o non risponde
+          const fallbackModel = "🕸️ qwen3-8b-abliterated:latest";
+          if (chatClient.model !== fallbackModel && !sendErr.message?.includes("fetch")) {
+            console.warn(`Modello ${chatClient.model} non pronto (${sendErr.message}), fallback automatico a ${fallbackModel}`);
+            chatClient.model = fallbackModel;
+            $("modelSelect").value = fallbackModel;
+            if (sess) { sess.model = fallbackModel; saveSessions(); }
+            target.innerHTML = '<span class="cursor-blink">▊</span>';
+            reply = await chatClient.send(promptPayload, {
+              signal: currentAbortController.signal,
+              onDelta: (_p, whole) => {
+                target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
+                attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+                smartScrollBottom(false);
+              }
+            });
+          } else {
+            throw sendErr;
+          }
         }
       }
 
@@ -1340,21 +1385,40 @@ Linee guida di risposta:
       if (sess) sess.updatedAt = Date.now();
       saveSessions();
     } catch(err) {
-      target.parentElement.classList.add("error");
-      target.textContent = `Errore di generazione: ${err.message}`;
-      history.pop();
-      saveSessions();
+      if (currentAbortController?.signal?.aborted) {
+        const partial = target.textContent.replace(/▊$/, "").trim();
+        if (partial) {
+          history.push({ role: "assistant", content: partial });
+          if (sess) sess.updatedAt = Date.now();
+          saveSessions();
+        }
+      } else {
+        target.parentElement.classList.add("error");
+        target.textContent = `Errore di generazione: ${err.message}`;
+        history.pop();
+        saveSessions();
+      }
     } finally {
-      $("sendBtn").disabled = false;
+      currentAbortController = null;
+      resetSendButton();
       $("promptInput").focus();
       smartScrollBottom(false);
     }
   }
 
-  $("sendBtn").addEventListener("click", handleSend);
+  $("sendBtn").addEventListener("click", () => {
+    if (currentAbortController) {
+      currentAbortController.abort();
+      currentAbortController = null;
+      resetSendButton();
+      return;
+    }
+    handleSend();
+  });
   $("promptInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      if (currentAbortController) return;
       handleSend();
     }
   });

@@ -5873,5 +5873,19 @@ raggiungibili».
 4. **System Prompt Bilanciato per Doppia Persona**:
    - Iniettato nel payload di invio un prompt di sistema versatile: cordiale, chiaro ed empatico con le famiglie per compiti quotidiani; rigoroso, dettagliato e tecnicamente profondo per sviluppatori, maker e sicurezza/reverse engineering.
 
+## 2026-10-18 — Antigravity (Mac): Rifiniture UX Top-Tier (Pulsante Stop/Interrompi, Rigenera Risposta e Avatar Iconografici)
+
+1. **Interruzione Streaming Istantanea (`⏹ Interrompi`)**:
+   - Esteso `ChatClient.send` in `web-node/src/chat.js` con supporto per `AbortSignal`.
+   - Il pulsante `Invia ↗` si trasforma dinamicamente in `⏹ Interrompi` durante la generazione dei token; un clic blocca lo stream SSE all'istante preservando e salvando il testo generato fino a quel momento senza generare errori a video.
+
+2. **Pulsante Rigenera Risposta (`🔄 Rigenera`)**:
+   - Inserito in calce a ciascuna bolla dell'assistente, accanto a `📋 Copia risposta` e `📑 Scarica PDF`.
+   - Permette con un solo tocco di rieseguire l'ultimo prompt dell'utente per ottenere una risposta alternativa o riprovare.
+
+3. **Avatar Iconografici Distintivi**:
+   - Intestazioni delle bolle arricchite con avatar rotondi: `👤 Tu` per l'utente e `⚡ Zero Zero AI` per l'assistente con alone luminoso ciano.
+
+
 
 
