@@ -13,6 +13,8 @@
 import { searchWeb, parseSearchSources, formatSearchContext } from "./search.js";
 import { runSandboxCode } from "./sandbox.js";
 import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./documents.js";
+import { generateImage } from "./image.js";
+import { buildPdfBinary, downloadPdfFile } from "./pdf.js";
 
 const STOPWORDS = new Set(("a ad al alla allo ai agli alle anche come con cui da dal dalla " +
   "dei del della di e ed gli ha hai hanno i il in io la le lo ma mi ne nei nel nella no non " +
@@ -224,6 +226,33 @@ export class MiniControlPlane {
         };
       },
     });
+
+    // 6. Tool Generazione Immagini (ComfyUI Mesh + Flux Fallback)
+    this.registerTool("image_generate", {
+      name: "image_generate",
+      description: "Generazione immagini fotorealistiche con nodi ComfyUI GPU o motore neurale Flux",
+      parameters: { prompt: "string", width: "number", height: "number" },
+      execute: async ({ prompt, width = 768, height = 768 }) => {
+        return await generateImage({
+          prompt,
+          width,
+          height,
+          gatewayUrl: this.gatewayUrl,
+          token: this.token,
+          fetchImpl: this.fetch,
+        });
+      },
+    });
+
+    // 7. Tool Generazione & Esportazione PDF
+    this.registerTool("pdf_generate", {
+      name: "pdf_generate",
+      description: "Genera ed esporta documenti PDF (%PDF-1.4) vettoriali A4 pronti al download",
+      parameters: { title: "string", content: "string", filename: "string" },
+      execute: async ({ title = "Documento 00MESH", content = "", filename = "" }) => {
+        return downloadPdfFile({ title, content, filename });
+      },
+    });
   }
 
   registerTool(name, def) {
@@ -277,10 +306,12 @@ ${rows}
 | \`/help\` | Mostra questo sommario degli strumenti |
 
 **Esempi d'uso rapidi:**
+- \`/image astronauta cyberpunk sul pianeta Marte, neon ciano, 8k\`
+- \`/pdf Relazione 00MESH | # Titolo\\nContenuto del documento A4 da esportare...\`
 - \`/calc (120 * 4.5) + sqrt(144) - 15%\`
-- \`/search release ollama 0.5\`
+- \`/search novità cluster GPU neuromorfiche\`
 - \`/summary Incolla un testo lungo qui per riassumerlo all'istante\`
-- \`/status\` per verificare la connessione mesh e la latenza.
+- \`/status\` per verificare la connessione mesh, latenza e bridge GPU.
 `;
         return { handled: true, content };
       }
@@ -356,6 +387,45 @@ ${rows}
           return { handled: true, content, meta: res };
         } catch (err) {
           return { handled: true, content: `❌ **Errore diagnostica:** ${err.message}` };
+        }
+      }
+
+      case "image":
+      case "img":
+      case "draw":
+      case "imagine": {
+        if (!rest) {
+          return { handled: true, content: "⚠️ **Uso:** `/image <descrizione>` (es. `/image astronauta cyberpunk sul pianeta Marte, neon ciano, 8k`)" };
+        }
+        try {
+          const res = await this.executeTool("image_generate", { prompt: rest });
+          const badge = res.provider === "comfyui-mesh" ? "ComfyUI GPU 00MESH" : "Motore Neurale Flux";
+          const durationSec = Math.round((res.durationMs || 0) / 100) / 10;
+          const content = `### 🎨 Immagine Generata · ${badge} (${durationSec}s)\n**Prompt:** *"${res.prompt}"*\n\n![${res.prompt}](${res.imageUrl})\n\n[📥 Scarica Immagine HD (${res.width}x${res.height})](${res.imageUrl})`;
+          return { handled: true, content, meta: res };
+        } catch (err) {
+          return { handled: true, content: `❌ **Errore generazione immagine:** ${err.message}` };
+        }
+      }
+
+      case "pdf":
+      case "export-pdf": {
+        if (!rest) {
+          return { handled: true, content: "⚠️ **Uso:** `/pdf [titolo] | [contenuto]` oppure `/pdf <testo>`" };
+        }
+        try {
+          let title = "Documento 00MESH";
+          let textContent = rest;
+          if (rest.includes("|")) {
+            const parts = rest.split("|");
+            title = parts[0].trim();
+            textContent = parts.slice(1).join("|").trim();
+          }
+          const res = await this.executeTool("pdf_generate", { title, content: textContent });
+          const content = `### 📄 Documento PDF Compilato & Scaricato\n**Titolo:** ${title}\n**Pagine:** ${res.totalPages} A4 (Vettoriale %PDF-1.4)\n**File:** \`${res.filename}\` avviato in download!`;
+          return { handled: true, content, meta: res };
+        } catch (err) {
+          return { handled: true, content: `❌ **Errore generazione PDF:** ${err.message}` };
         }
       }
 

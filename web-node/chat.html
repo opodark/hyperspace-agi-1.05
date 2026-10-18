@@ -343,17 +343,17 @@
           <h3>Cosa vuoi costruire oggi?</h3>
           <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG, calcolo matematico client-side e Code Sandbox.</p>
           <div class="chips-grid">
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
-              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
+            <div class="chip-card" data-prompt="/image Cyberpunk digital twin girl looking at neural network nodes in deep night, cinematic 8k, photorealistic">
+              <b>🎨 Genera Immagine</b> Rendering GPU ComfyUI / Flux ad alta risoluzione
             </div>
-            <div class="chip-card" data-prompt="/search release novità architettura neuromorfica e cluster GPU">
+            <div class="chip-card" data-prompt="/pdf Whitepaper Architettura 00MESH | # 00MESH: Rete Neurale Decentralizzata\n\n## 1. Introduzione\nZero Zero Computer coordina potenza GPU distribuita con inferenza sovrana e cluster ComfyUI.\n\n- Zero censure e massima privacy\n- Scalabilità peer-to-peer\n- Web-Node autonomo con Mini-CP">
+              <b>📑 Esporta Documento PDF</b> Compilazione A4 vettoriale scaricabile al volo
+            </div>
+            <div class="chip-card" data-prompt="/search novità cluster GPU neuromorfiche e sistemi distribuiti">
               <b>🌐 Ricerca Web (SearXNG)</b> Fonti verificate in tempo reale tramite slash command
             </div>
-            <div class="chip-card" data-prompt="/calc (150 * 4.2) + sqrt(1024) - 15%">
-              <b>🧮 Calcolatrice Mini-CP</b> Matematica sicura a precisione arbitraria client-side
-            </div>
-            <div class="chip-card" data-prompt="/status">
-              <b>📡 Diagnostica Mesh & GPU</b> Latenza gateway, bridge locale e tool attivi
+            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
+              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
             </div>
           </div>
         </div>
@@ -373,6 +373,8 @@
           <input type="file" id="fileAttachmentInput" multiple accept=".txt,.md,.markdown,.json,.csv,.tsv,.py,.js,.ts,.jsx,.tsx,.html,.css,.xml,.yaml,.yml,.sh,.bash,.zsh,.sql,.log,.env,.toml,.ini,.conf,.pdf" style="display:none">
           <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega codice, documenti o PDF (AnyDoc)">📎 Allega File</button>
           <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Web Search</button>
+          <button id="imageQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Genera immagini fotorealistiche con ComfyUI o Flux (/image)">🎨 /image</button>
+          <button id="pdfQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Esporta o crea documento PDF A4 scaricabile (/pdf)">📑 /pdf</button>
           <button id="calcQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Calcolatrice client-side (/calc)">🧮 /calc</button>
           <button id="summaryQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Riassunto estrattivo immediato (/summary)">📄 /summary</button>
           <button id="statusQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Diagnostica rete e bridge GPU (/status)">📡 /status</button>
@@ -458,7 +460,8 @@
   import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js?v=1.05.4";
   import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js?v=1.05.4";
   import { runSandboxCode } from "./src/sandbox.js?v=1.05.4";
-  import { MiniControlPlane, evaluateMath, summarizeText } from "./src/minicp.js?v=1.05.6";
+  import { MiniControlPlane, evaluateMath, summarizeText } from "./src/minicp.js?v=1.05.7";
+  import { downloadPdfFile } from "./src/pdf.js?v=1.05.7";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -605,17 +608,17 @@
           <h3>Cosa vuoi costruire oggi?</h3>
           <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
           <div class="chips-grid">
+            <div class="chip-card" data-prompt="/image un paesaggio cyberpunk con grattacieli olografici e pioggia al neon, rendering 8k cinematic">
+              <b>🎨 Genera Immagine</b> Sintesi neurale ComfyUI Mesh GPU & Flux
+            </div>
+            <div class="chip-card" data-prompt="/pdf HyperSpace Sovereign Mesh | Guida tecnica alla rete GPU decentralizzata, tokenomics sovrana e Mini-CP">
+              <b>📑 Esporta PDF A4</b> Generatore vettoriale istantaneo a zero dipendenze
+            </div>
             <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
               <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
             </div>
             <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
               <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
-            </div>
-            <div class="chip-card" data-prompt="Spiega come analizzare file PDF ed estrarre testo strutturato a zero dipendenze nel browser.">
-              <b>📎 AnyDoc Ingestion</b> Analisi istantanea di codice e documenti
-            </div>
-            <div class="chip-card" data-prompt="Quali sono i vantaggi di eseguire modelli linguistici abliterated su cluster GPU decentralizzati?">
-              <b>🔥 Modelli Abliterated</b> Libertà e privacy del calcolo
             </div>
           </div>
         </div>
@@ -717,7 +720,28 @@
           setTimeout(() => { copyBtn.textContent = "📋 Copia risposta"; }, 2000);
         } catch { copyBtn.textContent = "Errore copia"; }
       });
-      footer.append(copyBtn);
+      const pdfBtn = document.createElement("button");
+      pdfBtn.className = "copy-msg-btn";
+      pdfBtn.type = "button";
+      pdfBtn.textContent = "📑 Scarica PDF";
+      pdfBtn.title = "Esporta questa risposta come documento PDF vettoriale A4";
+      pdfBtn.addEventListener("click", () => {
+        const fullText = body.innerText || body.textContent;
+        const sess = getCurrentSession();
+        const title = (sess && sess.title) ? sess.title : "Documento HyperSpace";
+        try {
+          downloadPdfFile({
+            title,
+            content: fullText,
+            filename: `hyperspace-${Date.now()}.pdf`,
+          });
+          pdfBtn.textContent = "✓ PDF Scaricato!";
+          setTimeout(() => { pdfBtn.textContent = "📑 Scarica PDF"; }, 2500);
+        } catch (pdfErr) {
+          alert("Errore generazione PDF: " + pdfErr.message);
+        }
+      });
+      footer.append(copyBtn, pdfBtn);
       box.appendChild(footer);
     }
 
@@ -1190,6 +1214,18 @@
   });
 
   // Mini-CP Quick Tool Shortcuts
+  $("imageQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/image ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("pdfQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/pdf ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
   $("calcQuickBtn")?.addEventListener("click", () => {
     $("promptInput").value = "/calc ";
     $("promptInput").focus();

@@ -5824,3 +5824,31 @@ raggiungibili».
    - Suite Python: `.venv/bin/python -m pytest tests/test_smart_economic_fallback.py tests/test_licensing.py -q`: **16 passed**.
    - Pacchetto Aruba: `bash scripts/build-web-node-aruba.sh`: generato con successo `dist/web-node-aruba.zip`.
 
+## 2026-10-18 — Antigravity (Mac): Strumenti Generativi ad Alto Valore sul Mini-CP (Sintesi Immagini Neurale ComfyUI/Flux + Compilatore Vettoriale PDF A4)
+
+1. **Generazione Immagini Neurale (`web-node/src/image.js`, `web-node/tests/image.test.mjs`)**:
+   - Creato modulo `generateImage` che tenta prioritariamente il routing su GPU ComfyUI della mesh (`POST /web/image/generate` con polling asincrono su `GET /web/image/status/{task_id}`).
+   - Implementato fallback automatico e trasparente su motore neurale Flux/SDXL ad alta risoluzione: anche se i worker ComfyUI locali sono offline o occupati, l'utente riceve sempre e in pochi secondi un'immagine fotorealistica ad alta definizione rendering 8k pronta da visualizzare e scaricare.
+   - Integrato nel Mini-CP come tool `image_generate` e slash command (`/image <prompt>`, `/draw <prompt>`, `/imagine <prompt>`) con rendering Markdown immediato `![alt](url)` e pulsante diretto "📥 Scarica Immagine HD".
+
+2. **Compilatore & Esportatore PDF Vettoriale A4 Client-Side (`web-node/src/pdf.js`, `web-node/tests/pdf.test.mjs`)**:
+   - Sviluppato generatore binario conforme alla specifica `%PDF-1.4` a zero dipendenze esterne (`buildPdfBinary` e `downloadPdfFile`).
+   - Caratteristiche:
+     - Formato standard A4 (595.28 x 841.89 pt) con margini ergonomici.
+     - Tipografia vettoriale pulita (Helvetica-Bold per intestazioni e titoli, Helvetica per il corpo del testo).
+     - Text-wrapping automatico, gestione interlinea e paginazione dinamica multipagina.
+     - Header decorativo con linea guida e numerazione pagine progressiva in calce ("Pagina X di Y").
+     - Perfetta compatibilità con il lettore `extractPdfText` di AnyDoc (validato con test roundtrip).
+   - Integrato nel Mini-CP come tool `pdf_generate` e slash command (`/pdf <titolo> | <contenuto>`).
+   - Aggiunto pulsante 1-click `📑 Scarica PDF` sul footer di ogni risposta dell'assistente in chat per esportare all'istante l'intero output formattato.
+
+3. **Integrazione UI Chat Estesa (`web-node/chat.html`)**:
+   - Aggiunti pulsanti dedicati nella toolbar rapida del composer: `🎨 /image` e `📑 /pdf`.
+   - Aggiornati i chip dell'empty-state per mostrare l'esempio di prompt per la generazione di immagini cyberpunk e per l'esportazione di whitepaper tecnici in PDF.
+   - Aggiunti listener e trigger di download immediato sia da comando slash che dal footer di messaggio.
+
+4. **Verifiche Suite Completa**:
+   - Node.js tests: `node --test web-node/tests/*.test.mjs`: **48 passed, 0 failed**.
+   - Python tests: `tests/test_smart_economic_fallback.py`: **9 passed**.
+
+

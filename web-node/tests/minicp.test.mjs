@@ -55,6 +55,8 @@ test("MiniControlPlane: registra i tool essenziali client-side", () => {
   assert.ok(names.includes("web_search"));
   assert.ok(names.includes("code_sandbox"));
   assert.ok(names.includes("system_status"));
+  assert.ok(names.includes("image_generate"));
+  assert.ok(names.includes("pdf_generate"));
 });
 
 test("MiniControlPlane: handleSlashCommand riconosce e smista /help, /calc, /summary, /clear", async () => {
@@ -74,6 +76,18 @@ test("MiniControlPlane: handleSlashCommand riconosce e smista /help, /calc, /sum
   const calc = await mcp.handleSlashCommand("/calc 50 * 3 + sqrt(25)");
   assert.equal(calc.handled, true);
   assert.match(calc.content, /155/);
+
+  // /image
+  const img = await mcp.handleSlashCommand("/image un paesaggio neon cyberpunk");
+  assert.equal(img.handled, true);
+  assert.match(img.content, /Immagine Generata/);
+  assert.match(img.content, /paesaggio neon cyberpunk/);
+
+  // /pdf
+  const pdf = await mcp.handleSlashCommand("/pdf Titolo Prova | Contenuto paragrafo");
+  assert.equal(pdf.handled, true);
+  assert.match(pdf.content, /Documento PDF Compilato/);
+  assert.match(pdf.content, /Titolo Prova/);
 
   // /clear
   const clear = await mcp.handleSlashCommand("/clear");
