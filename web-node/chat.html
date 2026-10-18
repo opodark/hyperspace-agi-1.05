@@ -182,24 +182,33 @@
     .cursor-blink{display:inline-block;width:7px;height:16px;vertical-align:middle;background:var(--cyan);margin-left:3px;animation:blink 1s step-end infinite}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     
-    .empty-state{margin:auto;text-align:center;padding:40px 20px;max-width:480px}
-    .empty-icon{width:58px;height:58px;border-radius:50%;margin:0 auto 16px;background:radial-gradient(circle,var(--cyan),#57e6d922 35%,transparent 70%);box-shadow:0 0 44px #57e6d933;border:1px solid #57e6d966}
-    .empty-state h3{font-size:20px;margin:0 0 8px;color:#fff}
-    .empty-state p{color:var(--muted);font-size:13.5px;margin:0 0 24px}
+    .empty-state{margin:auto;text-align:center;padding:36px 16px;max-width:760px;width:100%}
+    .empty-icon{width:64px;height:64px;border-radius:50%;margin:0 auto 16px;background:radial-gradient(circle,var(--cyan),#57e6d922 35%,transparent 70%);box-shadow:0 0 44px #57e6d933;border:1px solid #57e6d966}
+    .empty-state h3{font-size:25px;margin:0 0 8px;color:#fff;font-weight:750;letter-spacing:-.015em}
+    .empty-state p{color:var(--muted);font-size:14px;margin:0 auto 22px;max-width:580px;line-height:1.55}
     
-    .chips-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;text-align:left}
-    .chip-card{background:#0c152a;border:1px solid #1e2e4c;border-radius:11px;padding:11px 13px;cursor:pointer;transition:all .18s;color:#cbd5e1;font-size:12.5px}
-    .chip-card:hover{border-color:var(--cyan);background:#132244;color:#fff;transform:translateY(-1px)}
-    .chip-card b{display:block;color:#fff;font-size:13px;margin-bottom:3px}
+    .category-tabs{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+    .category-tab{background:#0a1224;border:1px solid #1e3052;border-radius:999px;padding:6px 14px;color:var(--muted);font-size:12.5px;font-weight:650;cursor:pointer;transition:all .18s ease;display:inline-flex;align-items:center;gap:6px}
+    .category-tab:hover{color:#fff;border-color:var(--cyan);background:#132244}
+    .category-tab.active{background:linear-gradient(115deg,#57e6d925,#9a7cff25);border-color:var(--cyan);color:#fff;box-shadow:0 0 16px #57e6d933}
+
+    .chips-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left}
+    @media(max-width:640px){.chips-grid{grid-template-columns:1fr}}
+    .chip-card{background:#0c152a;border:1px solid #1e2e4c;border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .18s;color:#cbd5e1;font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+    .chip-card:hover{border-color:var(--cyan);background:#132244;color:#fff;transform:translateY(-1px);box-shadow:0 4px 16px #0006}
+    .chip-card b{color:#fff;font-size:13.5px;display:flex;align-items:center;gap:6px}
+    .chip-desc{color:var(--muted);font-size:12px;line-height:1.4}
     
     /* Composer bottom */
     .chat-bottom{padding:14px 20px 20px;background:linear-gradient(to top,#070b18 80%,transparent);flex-shrink:0}
     .composer-container{width:min(860px,100%);margin:0 auto;background:#0d162c;border:1px solid #233454;border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px #0007;position:relative}
     .composer-container:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px #57e6d922, 0 12px 36px #0007}
     
-    /* AnyDoc & Web Search Toolbar */
-    .composer-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-    .composer-tool-btn{background:#091224;border:1px solid #233454;border-radius:8px;color:#cbd5e1;font-size:11.5px;font-weight:600;padding:4px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+    /* AnyDoc, Generative & Web Search Toolbar */
+    .composer-toolbar{display:flex;align-items:center;gap:7px;margin-bottom:8px;overflow-x:auto;padding-bottom:3px}
+    .composer-toolbar::-webkit-scrollbar{height:3px}
+    .composer-toolbar::-webkit-scrollbar-thumb{background:#1e2d4a;border-radius:3px}
+    .composer-tool-btn{background:#091224;border:1px solid #233454;border-radius:8px;color:#cbd5e1;font-size:11.5px;font-weight:600;padding:5px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;flex-shrink:0}
     .composer-tool-btn:hover{background:#132244;border-color:var(--cyan);color:#fff}
     .composer-tool-btn.active{background:#57e6d922;border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px #57e6d933}
 
@@ -303,13 +312,16 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="user-pill">
-        <span class="user-name" id="userName">Utente Mesh</span>
-        <span class="user-role" id="userRole">MEMBER</span>
+      <div class="user-pill" id="userPillBox" style="cursor:pointer" title="Accesso Libero attivo. Clicca per inserire una Chiave o connettere il plugin GPU.">
+        <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden">
+          <span class="user-name" id="userName">Visitatore Libero</span>
+          <span style="font-size:10.5px;color:var(--cyan)">🔑 Opzioni GPU / Chiave</span>
+        </div>
+        <span class="user-role" id="userRole">LIBERO</span>
       </div>
       <div class="footer-links">
         <a href="./index.html">← Torna al Sito</a>
-        <button id="logoutBtn" class="logout-btn" type="button">Disconnetti</button>
+        <button id="logoutBtn" class="logout-btn" type="button">Esci</button>
       </div>
     </div>
   </aside>
@@ -324,36 +336,45 @@
         </div>
       </div>
       <div class="topbar-actions">
-        <div id="miniCpBadge" class="minicp-badge" title="Mini-CP Autonomo Client-Side: clicca per visualizzare gli strumenti disponibili">
+        <div id="miniCpBadge" class="minicp-badge" title="Mini-CP Autonomo: clicca per visualizzare gli strumenti disponibili">
           <span>⚡</span>
-          <span>Mini-CP Autonomo</span>
+          <span>Strumenti & Generative AI</span>
         </div>
         <a href="./" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🌐 Home 00MESH</a>
         <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#c084fc;font-weight:600" title="Scarica il Whitepaper Tokenomics in PDF">🪙 $00MESH PDF ↗</a>
-        <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> Mesh Connessa</span>
+        <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> 🔒 Chat Privata</span>
         <button id="clearChatBtn" class="top-action-btn" type="button" title="Pulisci messaggi di questa chat">Pulisci</button>
       </div>
     </header>
 
     <div class="chat-scroll" id="chatScroll">
       <div class="chat-container" id="chatContainer">
-        <!-- Stato Iniziale Vuoto -->
+        <!-- Stato Iniziale Vuoto Caricato Dinamicamente da JS -->
         <div class="empty-state" id="emptyState">
           <div class="empty-icon"></div>
-          <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG, calcolo matematico client-side e Code Sandbox.</p>
-          <div class="chips-grid">
-            <div class="chip-card" data-prompt="/image Cyberpunk digital twin girl looking at neural network nodes in deep night, cinematic 8k, photorealistic">
-              <b>🎨 Genera Immagine</b> Rendering GPU ComfyUI / Flux ad alta risoluzione
+          <h3>Come posso aiutarti oggi?</h3>
+          <p>La tua intelligenza artificiale libera, privata e sovrana: utile ogni giorno per compiti di famiglia e studio, potente per sviluppatori e appassionati di reverse engineering.</p>
+          <div class="category-tabs" id="categoryTabs">
+            <button type="button" class="category-tab active" data-cat="family">🏡 Famiglia & Vita Quotidiana</button>
+            <button type="button" class="category-tab" data-cat="dev">🔬 Coding & Reverse Engineering</button>
+            <button type="button" class="category-tab" data-cat="tools">✨ Strumenti (PDF / Immagini)</button>
+          </div>
+          <div class="chips-grid" id="chipsGrid">
+            <div class="chip-card" data-prompt="Ho a disposizione pasta, zucchine, pomodorini, uova e parmigiano: suggeriscimi 3 idee veloci e sane per cena, con istruzioni passo-passo.">
+              <b>🍳 Cucina & Ricette Svuotafrigo</b>
+              <span class="chip-desc">3 piatti sfiziosi e sani con quello che hai in casa</span>
             </div>
-            <div class="chip-card" data-prompt="/pdf Whitepaper Architettura 00MESH | # 00MESH: Rete Neurale Decentralizzata\n\n## 1. Introduzione\nZero Zero Computer coordina potenza GPU distribuita con inferenza sovrana e cluster ComfyUI.\n\n- Zero censure e massima privacy\n- Scalabilità peer-to-peer\n- Web-Node autonomo con Mini-CP">
-              <b>📑 Esporta Documento PDF</b> Compilazione A4 vettoriale scaricabile al volo
+            <div class="chip-card" data-prompt="Spiegami la caduta dell'Impero Romano d'Occidente e le sue cause principali in modo semplice e appassionante, adatto a un ragazzo delle scuole medie.">
+              <b>📚 Aiuto Compiti & Studio</b>
+              <span class="chip-desc">Spiegazioni chiare e coinvolgenti per studenti di ogni età</span>
             </div>
-            <div class="chip-card" data-prompt="/search novità cluster GPU neuromorfiche e sistemi distribuiti">
-              <b>🌐 Ricerca Web (SearXNG)</b> Fonti verificate in tempo reale tramite slash command
+            <div class="chip-card" data-prompt="Scrivi un'email formale ma cordiale da inviare al mio fornitore di energia elettrica per contestare un addebito anomalo sull'ultima bolletta.">
+              <b>✉️ Scrittura & Burocrazia</b>
+              <span class="chip-desc">Bozze di email, lettere formali o contestazione bollette</span>
             </div>
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
-              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
+            <div class="chip-card" data-prompt="Crea un itinerario di 2 giorni per un weekend in famiglia con bambini tra borghi storici e natura, con suggerimenti su soste e attività adatte a tutte le età.">
+              <b>🗓️ Pianificazione & Weekend</b>
+              <span class="chip-desc">Gite ed itinerari adatti a genitori e figli con budget contenuto</span>
             </div>
           </div>
         </div>
@@ -368,24 +389,24 @@
 
     <footer class="chat-bottom">
       <div class="composer-container" id="composerContainer">
-        <!-- Barra strumenti connettori estesi: AnyDoc, Web Search & Mini-CP Tools -->
+        <!-- Barra strumenti connettori estesi: AnyDoc, Generative AI & Mini-CP Tools -->
         <div class="composer-toolbar">
           <input type="file" id="fileAttachmentInput" multiple accept=".txt,.md,.markdown,.json,.csv,.tsv,.py,.js,.ts,.jsx,.tsx,.html,.css,.xml,.yaml,.yml,.sh,.bash,.zsh,.sql,.log,.env,.toml,.ini,.conf,.pdf" style="display:none">
-          <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega codice, documenti o PDF (AnyDoc)">📎 Allega File</button>
-          <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Web Search</button>
-          <button id="imageQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Genera immagini fotorealistiche con ComfyUI o Flux (/image)">🎨 /image</button>
-          <button id="pdfQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Esporta o crea documento PDF A4 scaricabile (/pdf)">📑 /pdf</button>
-          <button id="calcQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Calcolatrice client-side (/calc)">🧮 /calc</button>
-          <button id="summaryQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Riassunto estrattivo immediato (/summary)">📄 /summary</button>
-          <button id="statusQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Diagnostica rete e bridge GPU (/status)">📡 /status</button>
+          <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega foto, documenti, PDF o codice da analizzare (AnyDoc)">📎 Allega File</button>
+          <button id="imageQuickBtn" class="composer-tool-btn" type="button" title="Genera immagini ad alta definizione con ComfyUI o Flux">🎨 Crea Immagine</button>
+          <button id="pdfQuickBtn" class="composer-tool-btn" type="button" title="Crea un documento PDF A4 vettoriale scaricabile">📑 Salva PDF A4</button>
+          <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Cerca Web</button>
+          <button id="calcQuickBtn" class="composer-tool-btn" type="button" title="Calcolatrice matematica istantanea client-side">🧮 Calcola</button>
+          <button id="summaryQuickBtn" class="composer-tool-btn" type="button" title="Riassumi un testo lungo o articolo">📄 Riassumi</button>
+          <button id="statusQuickBtn" class="composer-tool-btn" type="button" title="Stato della connessione e nodi GPU attivi">📡 Diagnostica</button>
         </div>
 
         <!-- Vassoio chip documenti allegati -->
         <div id="attachedFilesTray" class="attached-files-tray" style="display:none"></div>
 
-        <textarea id="promptInput" class="composer-text" placeholder="Invia un messaggio alla mesh… (usa /help, /calc, /search, o trascina file qui)" rows="1"></textarea>
+        <textarea id="promptInput" class="composer-text" placeholder="Chiedimi qualsiasi cosa (ricette, compiti scolastici, email, codice, reverse engineering, o trascina un file)..." rows="1"></textarea>
         <div class="composer-footer">
-          <span class="composer-hint">Max token sbloccato · Mini-CP, AnyDoc, SearXNG & Sandbox attivi</span>
+          <span class="composer-hint">🔒 Chat 100% privata e sovrana · Nessun tracciamento commerciale · Strumenti avanzati inclusi</span>
           <button id="sendBtn" class="send-btn" type="button" disabled>Invia ↗</button>
         </div>
       </div>
@@ -400,16 +421,13 @@
   <p>Supporta codice (Python, JS, TS, HTML, JSON), testo e PDF con estrazione istantanea</p>
 </div>
 
-<!-- Modal di Autenticazione & Gate Sovrano -->
+<!-- Modal di Autenticazione & Opzioni Avanzate Rete -->
 <div id="authModal" class="auth-modal" style="display:none;">
-  <div class="auth-card">
+  <div class="auth-card" style="position:relative">
+    <button id="modalCloseBtn" type="button" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1" title="Chiudi e continua come Visitatore Libero">✕</button>
     <div class="mark" style="margin:0 auto 14px"></div>
-    <h2>Accesso Riservato alla Rete 00MESH</h2>
-    <p>La chat con modelli linguistici sovrani e non censurati è riservata a chi contribuisce al calcolo con la propria GPU o possiede una Chiave di Rete autorizzata.</p>
-
-    <div class="auth-notice-box">
-      ℹ️ <strong>Chat libera per tutti in arrivo:</strong> Quando il programma pubblicitario AdSense o i nodi sponsor copriranno i costi computazionali della mesh, apriremo l'accesso libero a tutti i visitatori.
-    </div>
+    <h2>Accesso e Potenza di Calcolo 00MESH</h2>
+    <p>La chat è attiva in <strong>Accesso Libero</strong> per tutti. Puoi collegare la tua scheda video (GPU) o inserire una Chiave di Rete per ottenere priorità massima e sbloccare modelli estesi.</p>
 
     <div class="auth-methods-grid">
       <!-- Metodo A: Plugin Chrome Bridge -->
@@ -440,8 +458,9 @@
       </div>
     </div>
 
-    <div style="margin-top:12px;font-size:12.5px">
-      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none">Non hai una GPU né una chiave? Richiedila qui →</a>
+    <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
+      <button id="modalGuestBtn" type="button" class="btn-bridge-check" style="background:#132244;color:#fff;border-color:var(--cyan);font-weight:700">✨ Continua come Visitatore Libero</button>
+      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none;font-size:12.5px">Richiedi una chiave →</a>
     </div>
   </div>
 </div>
@@ -595,6 +614,136 @@
     });
   }
 
+  const PROMPT_CATEGORIES = {
+    family: {
+      label: "🏡 Famiglia & Vita Quotidiana",
+      cards: [
+        {
+          title: "🍳 Cucina & Ricette Svuotafrigo",
+          desc: "3 piatti sfiziosi e sani con quello che hai in casa",
+          prompt: "Ho a disposizione pasta, zucchine, pomodorini, uova e parmigiano: suggeriscimi 3 idee veloci e sane per cena, con istruzioni passo-passo."
+        },
+        {
+          title: "📚 Aiuto Compiti & Studio",
+          desc: "Spiegazioni chiare e coinvolgenti per studenti di ogni età",
+          prompt: "Spiegami la caduta dell'Impero Romano d'Occidente e le sue cause principali in modo semplice e appassionante, adatto a un ragazzo delle scuole medie."
+        },
+        {
+          title: "✉️ Scrittura & Burocrazia",
+          desc: "Bozze di email, lettere formali o contestazione bollette",
+          prompt: "Scrivi un'email formale ma cordiale da inviare al mio fornitore di energia elettrica per contestare un addebito anomalo sull'ultima bolletta."
+        },
+        {
+          title: "🗓️ Pianificazione & Weekend",
+          desc: "Gite ed itinerari adatti a genitori e figli con budget contenuto",
+          prompt: "Crea un itinerario di 2 giorni per un weekend in famiglia con bambini tra borghi storici e natura, con suggerimenti su soste e attività adatte a tutte le età."
+        }
+      ]
+    },
+    dev: {
+      label: "🔬 Coding & Reverse Engineering",
+      cards: [
+        {
+          title: "🔍 Metodologia Reverse Engineering",
+          desc: "Come disassemblare e analizzare binari, APK o firmware",
+          prompt: "Spiegami come iniziare a fare reverse engineering su un binario ELF o un'applicazione Android (APK): quali strumenti usare (Ghidra, Jadx, Frida), l'approccio di analisi statica/dinamica e le trappole comuni."
+        },
+        {
+          title: "🛡️ Ispezione Script & Sicurezza",
+          desc: "Analizza codice offuscato e individua chiamate di rete o backdoor",
+          prompt: "Come si analizza uno script JavaScript o Python offuscato per estrarre URL di command & control, payload nascosti e token di autenticazione?"
+        },
+        {
+          title: "🐍 Automazione & Scripting Python",
+          desc: "Script pratici per riordinare file, estrarre dati e PCAP",
+          prompt: "Scrivi uno script Python completo che monitori una cartella, rinomini automaticamente le immagini in base alla data di scatto EXIF e archivi i file in sotto-cartelle ordinate per mese."
+        },
+        {
+          title: "⚡ Esegui in Docker Sandbox",
+          desc: "Scrivi codice ed eseguilo direttamente nel container isolato",
+          prompt: "Scrivi un programma Python che calcola i primi 50 numeri di Fibonacci e misura il tempo di esecuzione con precisione al microsecondo, pronto per essere eseguito nella Sandbox."
+        }
+      ]
+    },
+    tools: {
+      label: "✨ Strumenti (PDF & Immagini)",
+      cards: [
+        {
+          title: "🎨 Crea Immagine Neurale",
+          desc: "Sintesi GPU fotorealistica ComfyUI / Flux ad alta risoluzione",
+          prompt: "/image Un accogliente laboratorio di un inventore pieno di marchingegni ottici e libri antichi, stile Pixar 3D, rendering cinematografico 8k"
+        },
+        {
+          title: "📑 Compila & Scarica PDF A4",
+          desc: "Generatore vettoriale A4 istantaneo pronto al download",
+          prompt: "/pdf Guida alla Sicurezza Informatica in Famiglia | # Sicurezza Digitale per Tutti\\n\\nConsigli essenziali per proteggere computer, smartphone e password domestiche...\\n\\n- Password complesse e gestori di credenziali\\n- Backup su supporti esterni\\n- Come riconoscere i tentativi di phishing"
+        },
+        {
+          title: "🌐 Ricerca Web Privata (SearXNG)",
+          desc: "Interroga il web senza tracciamento o profilazione commerciale",
+          prompt: "/search ultime novità strumenti open-source per reverse engineering e analisi malware"
+        },
+        {
+          title: "🧮 Calcolatrice Intelligente",
+          desc: "Calcoli matematici sicuri con percentuali, radici e potenze",
+          prompt: "/calc (2200 * 12) - 24% imposte + sqrt(256)"
+        }
+      ]
+    }
+  };
+
+  let activeCategory = "family";
+
+  function renderEmptyStateHtml() {
+    const cat = PROMPT_CATEGORIES[activeCategory] || PROMPT_CATEGORIES.family;
+    const tabsHtml = Object.entries(PROMPT_CATEGORIES).map(([key, c]) => `
+      <button type="button" class="category-tab ${key === activeCategory ? "active" : ""}" data-cat="${key}">
+        ${c.label}
+      </button>
+    `).join("");
+
+    const cardsHtml = cat.cards.map(card => {
+      const escapedPrompt = card.prompt.replace(/"/g, "&quot;").replace(/\n/g, "&#10;");
+      return `
+        <div class="chip-card" data-prompt="${escapedPrompt}">
+          <b>${card.title}</b>
+          <span class="chip-desc">${card.desc}</span>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon"></div>
+        <h3>Come posso aiutarti oggi?</h3>
+        <p>La tua intelligenza artificiale libera, privata e sovrana: utile ogni giorno per compiti di famiglia e studio, potente per sviluppatori e appassionati di reverse engineering.</p>
+        <div class="category-tabs" id="categoryTabs">
+          ${tabsHtml}
+        </div>
+        <div class="chips-grid" id="chipsGrid">
+          ${cardsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function setupCategoryListeners() {
+    document.querySelectorAll(".category-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const cat = tab.getAttribute("data-cat");
+        if (cat && PROMPT_CATEGORIES[cat]) {
+          activeCategory = cat;
+          const container = $("chatContainer");
+          if (container && $("emptyState")) {
+            container.innerHTML = renderEmptyStateHtml();
+            setupCategoryListeners();
+            setupChipListeners();
+          }
+        }
+      });
+    });
+  }
+
   function renderActiveMessages() {
     const container = $("chatContainer");
     container.innerHTML = "";
@@ -602,27 +751,8 @@
     const msgs = sess ? sess.messages : [];
 
     if (!msgs.length) {
-      container.innerHTML = `
-        <div class="empty-state" id="emptyState">
-          <div class="empty-icon"></div>
-          <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
-          <div class="chips-grid">
-            <div class="chip-card" data-prompt="/image un paesaggio cyberpunk con grattacieli olografici e pioggia al neon, rendering 8k cinematic">
-              <b>🎨 Genera Immagine</b> Sintesi neurale ComfyUI Mesh GPU & Flux
-            </div>
-            <div class="chip-card" data-prompt="/pdf HyperSpace Sovereign Mesh | Guida tecnica alla rete GPU decentralizzata, tokenomics sovrana e Mini-CP">
-              <b>📑 Esporta PDF A4</b> Generatore vettoriale istantaneo a zero dipendenze
-            </div>
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
-              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
-            </div>
-            <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
-              <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
-            </div>
-          </div>
-        </div>
-      `;
+      container.innerHTML = renderEmptyStateHtml();
+      setupCategoryListeners();
       setupChipListeners();
       return;
     }
@@ -1114,6 +1244,22 @@
         promptPayload[lastIdx].content = [docContext, searchContext, text].filter(Boolean).join("\n\n---\n\n");
       }
 
+      // Istruzioni di sistema versatili: accogliente ed empatico per famiglie e vita quotidiana,
+      // rigoroso ed esaustivo per sviluppatori e appassionati di reverse engineering
+      const SYSTEM_PROMPT = `Sei l'assistente IA ufficiale di Zero Zero Computer / HyperSpace.
+Sei progettato per essere accogliente, chiaro, pratico ed empatico per due perimetri di utilizzo:
+1. Famiglie, studenti e vita quotidiana: compiti scolastici, ricette di cucina, scrittura email e lettere formali, gestione della casa, chiarimenti su burocrazia e bollette, consigli pratici e viaggi. Usa un tono caloroso, incoraggiante e privo di tecnicismi incomprensibili.
+2. Sviluppatori, maker, curiosi di codice e reverse engineering: analisi di script e codice sorgente, decompilazione e reverse engineering (Ghidra, Jadx, Frida, Radare2, ispezione APK/binari), estrazione di chiamate API o protocolli di rete, scrittura di script Python/Bash e test di sicurezza. Fornisci risposte tecniche di massimo livello, rigorose, con spiegazioni del funzionamento "sotto il cofano" e codice pronto per l'esecuzione.
+
+Linee guida di risposta:
+- Rispondi sempre in perfetto italiano naturale, cordiale e ben strutturato.
+- Usa una formattazione Markdown chiara (titoli con ## o ###, elenchi puntati, tabelle e blocchi di codice con linguaggio specificato).
+- Ricorda che l'utente può esportare direttamente la tua risposta in PDF A4 con 1 clic: rendi i documenti, i riassunti, le ricette o le guide completi e ben impaginati.`;
+
+      if (!promptPayload.some(m => m.role === "system")) {
+        promptPayload.unshift({ role: "system", content: SYSTEM_PROMPT });
+      }
+
       target.innerHTML = '<span class="cursor-blink">▊</span>';
 
       let reply;
@@ -1335,23 +1481,34 @@
     }
   }
 
-  // Autenticazione & Gate Sovrano
+  // Autenticazione & Gate Sovrano: Modalità Libera & Accesso Diretto
   async function initAuth() {
     const authResult = await checkGate();
-    if (!authResult.authorized) {
-      $("authModal").style.display = "flex";
-      updateGateBridgeStatus();
-      return;
-    }
-
     $("authModal").style.display = "none";
-    if (authResult.via === "key") {
-      $("userName").textContent = authResult.state.label || "Utente Mesh";
-      $("userRole").textContent = (authResult.state.role || "member").toUpperCase();
+
+    if (!authResult.authorized) {
+      // Accesso Libero per tutti: famiglie, studenti e visitatori entrano all'istante
+      $("userName").textContent = "Visitatore Libero";
+      $("userRole").textContent = "LIBERO";
+      $("userRole").style.background = "#57e6d922";
+      $("userRole").style.color = "var(--cyan)";
+      $("userRole").style.borderColor = "#57e6d955";
+      $("activeChatTitle").textContent = "Nuova conversazione";
     } else {
-      $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
-      $("userRole").textContent = "NODE OPERATOR";
-      $("activeChatTitle").textContent = "Chat Sovrana (Bridge GPU Attivo)";
+      if (authResult.via === "key") {
+        $("userName").textContent = authResult.state.label || "Utente Mesh";
+        $("userRole").textContent = (authResult.state.role || "member").toUpperCase();
+        $("userRole").style.background = "#70e6aa22";
+        $("userRole").style.color = "var(--ok)";
+        $("userRole").style.borderColor = "#70e6aa55";
+      } else {
+        $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
+        $("userRole").textContent = "NODE OPERATOR";
+        $("userRole").style.background = "#9a7cff22";
+        $("userRole").style.color = "var(--violet)";
+        $("userRole").style.borderColor = "#9a7cff55";
+        $("activeChatTitle").textContent = "Chat Sovrana (Bridge GPU Attivo)";
+      }
     }
 
     await loadModels();
@@ -1376,6 +1533,18 @@
       }, 350);
     }
   }
+
+  // Gestori apertura/chiusura modale opzioni GPU & Chiavi
+  $("userPillBox")?.addEventListener("click", () => {
+    $("authModal").style.display = "flex";
+    updateGateBridgeStatus();
+  });
+  $("modalCloseBtn")?.addEventListener("click", () => {
+    $("authModal").style.display = "none";
+  });
+  $("modalGuestBtn")?.addEventListener("click", () => {
+    $("authModal").style.display = "none";
+  });
 
   if ($("btnCheckBridge")) {
     $("btnCheckBridge").addEventListener("click", updateGateBridgeStatus);

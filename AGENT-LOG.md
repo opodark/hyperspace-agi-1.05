@@ -5851,4 +5851,27 @@ raggiungibili».
    - Node.js tests: `node --test web-node/tests/*.test.mjs`: **48 passed, 0 failed**.
    - Python tests: `tests/test_smart_economic_fallback.py`: **9 passed**.
 
+## 2026-10-18 — Antigravity (Mac): Riprogettazione UX User-Friendly Stile ChatGPT/Gemini/Claude (Doppia Anima Famiglia & Quotidiano + Coding & Reverse Engineering)
+
+1. **Accesso Libero Immediato (Guest Mode senza Muri di Login)**:
+   - Eliminato il blocco forzato del gate modal per i visitatori privi di chiave o estensione Chrome.
+   - Tutti gli utenti (famiglie, studenti, curiosi) possono chattare immediatamente in modalità "Visitatore Libero" sfruttando la mesh e il paracadute Groq gratuito.
+   - Le opzioni avanzate (collegamento GPU o chiave di rete autorizzata) sono accessibili con un clic dal pill utente nella sidebar, con pulsante di chiusura `✕` e ritorno a ospite.
+
+2. **Empty State & Selettore di Categorie Dinamico**:
+   - Titolo accogliente: *"Come posso aiutarti oggi?"* con sottotitolo esplicativo.
+   - Schede di categoria a commutazione rapida:
+     - 🏡 **Famiglia & Vita Quotidiana**: ricette svuota-frigo, spiegazioni compiti scolastici, bozze di email e lettere formali per bollette/burocrazia, itinerari di viaggio per genitori e figli.
+     - 🔬 **Coding & Reverse Engineering**: metodologia di reverse engineering su binari ed APK (Ghidra, Jadx, Frida), ispezione di script offuscati e ricerca backdoor, automazione Python per file/PCAP, esecuzione in Docker Sandbox.
+     - ✨ **Strumenti (PDF & Immagini)**: generazione di immagini neurali ad alta risoluzione (`/image`), compilazione di guide PDF A4 scaricabili in 1 clic (`/pdf`), ricerca privata SearXNG, calcoli matematici istantanei.
+
+3. **Toolbar Ergonomica & Placeholder Umano**:
+   - Pulsanti della toolbar del composer rinominati con etichette naturali e auto-esplicative: `📎 Allega File`, `🎨 Crea Immagine`, `📑 Salva PDF A4`, `🌐 Cerca Web`, `🧮 Calcola`, `📄 Riassumi`, `📡 Diagnostica`.
+   - Scroll orizzontale su schermi smartphone per non rompere il layout.
+   - Placeholder del compositore: *"Chiedimi qualsiasi cosa (ricette, compiti scolastici, email, codice, reverse engineering, o trascina un file)..."*.
+
+4. **System Prompt Bilanciato per Doppia Persona**:
+   - Iniettato nel payload di invio un prompt di sistema versatile: cordiale, chiaro ed empatico con le famiglie per compiti quotidiani; rigoroso, dettagliato e tecnicamente profondo per sviluppatori, maker e sicurezza/reverse engineering.
+
+
 
