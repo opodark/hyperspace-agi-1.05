@@ -5763,3 +5763,13 @@ raggiungibili».
    - Rigenerato pacchetto Aruba: `dist/web-node-aruba.zip` (16 MB) tramite `scripts/build-web-node-aruba.sh`.
 
 
+## 2026-10-18 — Antigravity (Mac): Guida Rapida & Presentazione Divulgativa per 00MESH 1.05 + Deploy Aruba
+
+1. **Generatore Presentazione & Infografiche HD (`scripts/generate_00mesh_guida_rapida.py`)**:
+   - Creato script riproducibile per la generazione di 8 infografiche HD 2x Retina (`docs/presentation_assets/00mesh_guida_01_cover.png` … `00mesh_guida_08_tokenomics.png`), presentazione Widescreen 16:9 di 10 slide in PDF (`docs/00mesh-guida-rapida.pdf` e copia in `web-node/docs/00mesh-guida-rapida.pdf`) e guida illustrata Markdown (`docs/00mesh-guida-rapida.md`).
+   - Aggiunto pulsante diretto `📘 Guida Rapida & Tool (PDF) ↗` nell'Hero section e nel footer di `web-node/index.html` e `web-node/join.html`, rigenerato `dist/web-node-aruba.zip` e pubblicato su Aruba (`www.zerozerocomputer.it`) via `scripts/deploy_web_node_aruba.py`.
+   - Contenuti coperti con linguaggio divulgativo e accessibile: modello economico gratuito a 3 porte (Banner pubblicitario AdSense GDPR + Nodo Web Browser, Condivisione GPU locale con Ollama / LM Studio via estensione Chrome `00mesh-chrome-bridge.zip`, o Chiave di Rete `hs-mesh-*`), panoramica e attivazione automatica delle 25+ skill e tool già integrati (AnyDoc, Unlimited OCR, SearXNG Web Search, `web_fetch`, Docker Code Sandbox, Skill Forge ECC SHA-256, ComfyUI / Anna Batch DWPose, Reel Editor 9:16 con Apple Vision `person_mask.swift`, `create_website`, Memoria Hermes SQLite FTS5 e Dream Loop), mini-guida di installazione in 4 passi (3 minuti) e tokenomics PoUW `$00MESH`.
+   - Test passati: `tests/test_licensing.py` (7/7) e suite `web-node/tests/*.test.mjs` (28/28). Eseguito commit e push su `origin/main` su conferma esplicita dell'utente.
+
+
+
