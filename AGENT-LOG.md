@@ -5627,3 +5627,72 @@ subtests; `ruff` pulito su `scripts/model_bench.py` e
 2. **Valutazione Architetturale: Mini Control-Plane nel Web-Node & Sandbox Mission Control Comunitario**:
    - Analisi e studio di fattibilità per l'evoluzione del web-node: superamento del modello puramente reattivo (push/pull centralizzato) verso un coordinatore locale autonomo in WebWorker/WASM con marketplace P2P di missioni comunitarie e sovranità di calcolo per i nodi esterni.
 
+## 2026-10-18 — Cline → utente, Codex
+
+**Richiesta.** Prima di un refresh dei container, decidere `HS_MODEL_CODER`; poi
+un solo rebuild.
+
+**I container erano fermi a ieri, e il motivo non erano i modelli.** Immagini
+`core`/`node-1`/`web-node`/`sandbox` costruite il 17/10 alle 21:17, container in
+piedi dalle 11:09 di oggi, quindi **prima** di `88702c9` (11:48) e `d9e5789`
+(12:21), e senza `78de71f` — che sul control-plane tocca `main.py` (−275 righe),
+`cp/battito.py`, `cp/chat.py`, `cp/mesh.py`, `cp/mission.py`,
+`cp/tools_defs.py`, `cp/webnode.py`, il `Dockerfile`, e rimuove `comics.html` e
+`vendor/panel-foundry`. Nessun bind mount: il codice sta nell'immagine, quindi un
+`restart` non avrebbe cambiato niente. Ricostruiti solo i servizi con file
+cambiati dopo l'immagine: **core** (`control-plane/` + `shared/`), **node-1**
+(`shared/`), **web-node** (`*.html` + `assets/`).
+
+**Decisione: `HS_MODEL_CODER=qwen3-vl:4b-instruct`.** Il 12B in `.env` non era
+**mai** stato misurato: 1/4 sul codice (durata in errore HTTP, bugfix e
+intervalli oltre il budget di parole) e 7/11 in totale — il migliore in generale
+del gruppo, il peggiore nell'eseguire. Il 4B fa 3/4 e **8/11**, il punteggio più
+alto, con 4,3 GB e 84,8 t/s a 8192 di contesto; il 9B coder resta 3/4 e 5/11,
+granite 1/4 e 3/11. Configurazione scritta in `.env`:
+
+```ini
+HS_MODEL_CODER=qwen3-vl:4b-instruct
+HS_MODEL_CODER_FALLBACK=hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M
+```
+
+`.env` è in `.gitignore` (riga 19), quindi questa riga non entra nel commit: la
+traccia versionata della decisione sono `docs/channel.md` e questo blocco. Se il
+ruolo coder va allineato sulle altre macchine, i template tracciati
+(`.env.mac`, `.env.ubuntu`, `.env.windows`) vanno toccati da chi li possiede.
+
+**Trappola della shell, vista dal vivo.** Dopo `up -d --build` il container
+aveva ancora il 12B: la shell di lavoro esportava `HS_MODEL_CODER` e compose dà
+precedenza all'ambiente sul `.env`. Risolto con `Remove-Item Env:\HS_MODEL_CODER`
+e un `up -d --no-build hyperspace-core`; la sequenza è ora in `docs/channel.md`,
+perché un rebuild che sembra riuscito e non cambia niente è il tipo di errore che
+si paga due volte.
+
+**Verifiche.** `/health` 200 su CP e sul gateway (Caddy va riavviato dopo la
+ricreazione: risolve gli upstream all'avvio), node-1 200, `web-node` serve
+`/assets/00mesh-chrome-bridge.zip` (200, 12.378 byte), una generazione via CP con
+`model=qwen3-vl:4b-instruct` risponde, nessun traceback nei log di core. Contesto
+misurato sul 4B: 16.384 token = 5,5 GB, 100% GPU, 95,6 t/s; 32.768 = 8,4 GB, 31%
+CPU, 29,4 t/s — il tetto dei ~7 GB è confermato. Suite dopo il rebuild:
+**2469 passed, 71 skipped, 999 subtests**.
+
+**Caveat aperto — il sandbox si è ricostruito lo stesso.** `docker compose up
+--build` ricostruisce *tutti* i servizi del progetto, non solo quelli nominati:
+l'immagine `hyperspace-code-sandbox` è passata dal 17/10 21:17 a oggi 13:12 e
+contiene il WIP non committato di `sandbox/runner.py` (+73/−29: due thread di
+drenaggio al posto di `select()` sulle pipe, che su Windows accetta solo socket;
+`taskkill /T` per l'albero dei processi; path assoluti POSIX nel record di audit).
+Il container è `healthy` e il fix riguarda proprio Windows, quindi non lo tolgo —
+ma l'immagine non è più riproducibile da git: **chi ha scritto quel file lo
+committi**. Per tornare a HEAD: `git stash push -- sandbox/runner.py`,
+`docker compose -f docker-compose.windows.yml build code-sandbox`, `git stash pop`.
+
+**Seconda cosa da chiudere.** `.env.windows` (non committato, non mio) punta
+`HS_MODEL_CODER_FALLBACK` a `hf.co/Abiray/Qwen3.5-9B-abliterated-GGUF:Q6_K`, che
+non è installato; oggi è inerte perché compose interpola `.env`, ma chi avvia con
+`--env-file .env.windows` si trova un fallback che non risolve. Non l'ho toccato.
+
+**Cosa chiedo.** Codex: il ruolo coder ora ha un modello e un numero. Se il 4B
+va promosso anche a `HS_MODEL_GENERAL` (dove granite fa 3/11 e il 4B 8/11) è una
+decisione sua, non presa qui: il canale ha requisiti di voce che il banco non
+misura.
+

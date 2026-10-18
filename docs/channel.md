@@ -395,9 +395,8 @@ Lo script stampa per ogni modello caricamento, primo token, tokens/s, se sta in
 GPU, il testo prodotto e il verdetto; `--models` limita la prova a una lista.
 Nessun download: legge `/api/tags`, quindi giudica solo ciò che è già installato.
 
-Se un giorno serve qualità a costo di latenza, il ritorno indietro è una riga:
-`HS_MODEL_CODER=huihui_ai/gemma-4-abliterated:12b` è già così, e il 12B resta
-installato proprio per i task dove nessuno aspetta.
+Il 12B resta installato per i task dove nessuno aspetta, ma **non è più il
+coder di default**: la sezione qui sotto lo boccia proprio sul codice.
 
 #### Scegliere il coder: decide il test, non la tabella dei parametri
 
@@ -412,20 +411,44 @@ di codice è 400 parole e a decidere è il test.
 Misura del 2026-10-18, stesso nodo (RTX 3070 laptop), `--think false`, percorso
 CP, contesto di default:
 
-| Modello | palindromo | durata | bugfix | intervalli | Totale |
-|---|---|---|---|---|---|
-| `granite3.3:8b` | ok | no (`valores` non definito) | no (`valores`) | no (modifica la lista) | **1/4** |
-| `huihui_ai/qwen3.5-abliterated:9b` | ok | no (parse) | ok | ok | **3/4** |
-| `qwen3-vl:4b-instruct` | ok | no (parse) | ok | ok | **3/4** |
-| `hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M` | ok | no (regex a tre gruppi) | ok | ok | **3/4** |
+| Modello | palindromo | durata | bugfix | intervalli | Codice | Tutte le 11 |
+|---|---|---|---|---|---|---|
+| `granite3.3:8b` | ok | no (`valores` non definito) | no (`valores`) | no (modifica la lista) | **1/4** | 3/11 |
+| `huihui_ai/gemma-4-abliterated:12b` | ok | err (HTTP) | lento (sfora il budget) | lento (sfora) | **1/4** | 7/11 |
+| `huihui_ai/qwen3.5-abliterated:9b` | ok | no (parse) | ok | ok | **3/4** | non misurato |
+| `hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M` | ok | no (regex a tre gruppi) | ok | ok | **3/4** | 5/11 |
+| `qwen3-vl:4b-instruct` | ok | no (parse) | ok | ok | **3/4** | **8/11** |
 
-Due cose che la tabella dice:
+Tre cose che la tabella dice:
 
-1. **Nessuno dei modelli di casa è un coder.** granite — il modello del canale e
-   del ruolo generale — passa solo il palindromo: sul codice sbaglia i casi
-   limite e i contratti. `HS_MODEL_CODER` è quindi un ruolo senza modello.
-2. **Il 4B batte l'8B sul codice.** `qwen3-vl:4b-instruct` fa 3/4 in 3,07 GB:
-   per questo ruolo la dimensione non è il criterio, l'esito del test sì.
+1. **Il coder di default non era mai stato misurato.** `huihui_ai/gemma-4-abliterated:12b`
+   stava in `.env` da prima che esistesse il banco: sul codice fa **1/4** come
+   granite, e per motivi peggiori — `durata` va in errore HTTP, `bugfix` e
+   `intervalli` sforano il budget di parole senza fermarsi. È il **migliore in
+   generale** del gruppo (7/11) e il peggiore nell'eseguire. Un ruolo assegnato
+   per reputazione, non per misura.
+2. **Il 4B vince, e non solo sul codice.** `qwen3-vl:4b-instruct` fa 3/4 e
+   **8/11** in totale, il punteggio più alto di tutti; all'allucinazione risponde
+   «non lo so» dove il 12B si inventa un autore e una casa editrice. Per questo
+   ruolo la dimensione non è il criterio: l'esito del test sì.
+3. **Nessuno arriva a 4/4.** La sonda `durata` è quella che separa: quattro
+   formati in ingresso (`1h30m`, `45s`, `2h`, `10m30s`) e un `ValueError` sui
+   casi invalidi. Tutti i modelli provati sbagliano almeno quel contratto, quindi
+   il codice che esce da questo ruolo va **letto**, non solo eseguito.
+
+Da qui la configurazione in `.env` (2026-10-18):
+
+```ini
+HS_MODEL_CODER=qwen3-vl:4b-instruct
+HS_MODEL_CODER_FALLBACK=hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M
+```
+
+Il 4B era già `CHANNEL_VISION_MODEL` e `HS_MODEL_GENERAL_FALLBACK`: un solo
+modello residente copre tre ruoli e costa 4,3 GB invece di 7,6. Il fallback è il
+9B coder perché granite, con 1/4, non è un ripiego utile per il codice. Nota:
+`HS_MODEL_CODER_FALLBACK` in questa versione dello stack è solo passato dal
+compose — nessun modulo Python lo legge; il consumatore vero è `FORGE_MODEL` in
+`control-plane/cp/config.py`.
 
 Il 9B coder scaricato il 2026-10-18 **pareggia il 4B**, non lo supera. Il
 dettaglio vale più del punteggio: la sua `durata_in_secondi` usa
@@ -437,10 +460,20 @@ funziona sull'esempio e non sui casi limite, ed è esattamente la differenza fra
 resto è pulito: palindromo, bugfix (`media([]) == 0.0`, `None` saltati) e
 intervalli (ordine, unione a contatto, ingresso non mutato).
 
-Prestazioni dello stesso modello via `/api/chat` diretto, `think: false`: 55,2
-t/s, 5,7 GB caricati a 8192 di contesto, **100% GPU**. La forma testo paga:
-senza `mmproj` non c'è lo sconfinamento in CPU che un distillato con vision
-rischia a parità di quantizzazione.
+Prestazioni a 8192 di contesto e `think: false`, `/api/chat` diretto:
+
+| Modello | VRAM caricata | Processore | Velocità |
+|---|---|---|---|
+| `qwen3-vl:4b-instruct` | 4,3 GB | 100% GPU | 84,8 t/s |
+| `hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M` | 5,7 GB | 100% GPU | 55,2 t/s |
+| `huihui_ai/gemma-4-abliterated:12b` | 7,6 GB | 64% GPU | lenta per costruzione |
+
+Il 4B è anche l'unico con margine sul contesto: a 16.384 token sta in **5,5 GB,
+100% GPU, 95,6 t/s**; a 32.768 sfora (8,4 GB, riparto 31% CPU / 69% GPU) e crolla
+a 29,4 t/s. Il tetto dei ~7 GB si vede a occhio nudo. Oggi quel margine non si
+usa — `forge.py` chiede `num_ctx: 8192` per richiesta e l'host ha
+`OLLAMA_CONTEXT_LENGTH=8192` — ma portarlo a 16384 è una riga e non costa un
+byte di VRAM.
 
 Un repo che sembra perfetto può non essere prendibile: `fauxpaslife/PentaCoder-9B`
 risponde **401** sia sulla pagina sia su `GET /api/models/<repo>`, cioè è
@@ -458,22 +491,34 @@ misurato in entrambe le configurazioni.
 
 Sul budget di VRAM la regola resta quella della tabella qui sopra: un 9B Q4 pesa
 5,6–5,8 GB e arriva a ~6,5 GB scaricati se il repo include anche il proiettore
-`mmproj` per la vision; oltre ~7 GB il modello scende in CPU (il 12B a 7,04 GB
-sta al 64%). Per il ruolo coder la vision non serve: meglio un build testo.
+`mmproj` per la vision; oltre ~7 GB il modello scende in CPU (il 12B a 7,6 GB sta
+al 64%). Sulla carta un build testo sarebbe preferibile per il ruolo coder, ma la
+misura dice il contrario: il 4B **con** vision è il miglior esecutore disponibile
+qui, quindi la scelta è andata ai numeri e non alla forma del repo.
 
 ```powershell
-.venv\Scripts\python.exe scripts\model_bench.py --think false --models "hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M,granite3.3:8b"
+.venv\Scripts\python.exe scripts\model_bench.py --think false --models "qwen3-vl:4b-instruct,hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M,granite3.3:8b"
 ```
 
 **Cambiare il modello nel `.env` non basta.** `docker compose` dà precedenza
 all'ambiente della shell sulle variabili del `.env`: se il terminale da cui si
 riavvia lo stack ha ancora esportate `HS_MODEL_GENERAL`/`OLLAMA_MODEL` vecchie,
 i container ripartono col modello vecchio e sembra che l'edit non abbia effetto.
-Verificato il 2026-10-18: dopo un `--force-recreate` due container erano ancora
-sul modello precedente. Il controllo che dice la verità è dentro il container:
+Verificato due volte il 2026-10-18: dopo un `--force-recreate` due container
+erano ancora sul modello precedente, e dopo il cambio del coder un rebuild
+completo ha prodotto `HS_MODEL_CODER=huihui_ai/gemma-4-abliterated:12b` — il
+valore vecchio — perché la shell di lavoro lo aveva esportato. Il rimedio è
+togliere la variabile *da quella shell* e ricreare solo il servizio:
 
 ```powershell
-docker exec hyperspace-core printenv OLLAMA_MODEL
+Remove-Item Env:\HS_MODEL_CODER -ErrorAction SilentlyContinue
+docker compose -f docker-compose.windows.yml up -d --no-build hyperspace-core
+```
+
+Il controllo che dice la verità è dentro il container:
+
+```powershell
+docker exec hyperspace-core printenv HS_MODEL_CODER
 ```
 
 Vale anche per il driver: `LocalBrain` legge `CHANNEL_MODEL`/`OLLAMA_MODEL` con
