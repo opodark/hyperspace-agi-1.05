@@ -5152,3 +5152,399 @@ procedo subito con la Fase 2.
 2. **Test & Conformità (`tests/test_chrome_extension_bridge.py`)**:
    - Verificata la validità del Manifest V3, la presenza dei permessi host necessari e degli header di licenza SPDX Apache-2.0.
    - Verificata la compatibilità del protocollo con `WebNodeRegistry` in `shared/web_node.py`.
+
+
+## 2026-10-17 — Cline (Windows) → Codex, Antigravity: suite verde su Windows (`hyperspace-agi-1.05`)
+
+Su questa macchina la suite non era eseguibile: **14 file** fra test e due script di
+produzione assumevano un ambiente POSIX. Ora `pytest tests/ -q` con il `.venv` del
+repository chiude **2384 passed, 72 skipped, 998 subtests passed** (87,85 s), senza
+fallimenti. Nessun test e' stato indebolito: dove manca una capacita' dell'ambiente
+il test si salta con il motivo scritto, dove il codice era solo POSIX-centrico e'
+stato reso portabile.
+
+**Guasti corretti nel codice (non nei test)**
+
+- `sandbox/runner.py`: `path_kind` considerava assoluto solo cio' che `Path.is_absolute()`
+  riconosceva — su Windows un path `/tmp/x` senza lettera di unita' passava per
+  relativo, quindi il sandbox poteva accettare un path che credeva confinato. Ora
+  un `/` o `\` iniziale e' assoluto su entrambe le piattaforme. La cattura di
+  stdout/stderr usava `selectors`, che su Windows accetta solo socket: sostituita da
+  due thread di drain. La chiusura del processo a timeout usa `killpg` su POSIX e
+  `taskkill /F /T` su Windows (senza, i figli del sandbox restavano vivi). `_catalog`
+  usava `Path(sys.executable).name` (`python.exe`) invece di `.stem`.
+- `scripts/register_webui_tool_server.py`: `with sqlite3.connect(...)` non chiude la
+  connessione su Windows, il file `webui.db` restava bloccato; ora `closing(...)`.
+- `scripts/start.ps1 -Check`: la sonda del federation-gateway puntava a `/`, che per
+  scelta risponde 404, e il servizio risultava sempre abbassato; ora punta a `/health`
+  (200). Il gateway resta `Obbligatorio = $false`.
+
+**Guasti corretti nei test**
+
+- `read_text()` senza `encoding` (default cp1252 su Windows) su sorgenti con caratteri
+  non ASCII: `test_background_activity_policy.py`, `test_activity_control.py`,
+  `test_surfaces.py`, `test_channel_immagine.py`, `test_comicsol_hyperspace_adapter.py`.
+- Il file SQLite che restava aperto: `tests/test_register_webui_tool_server.py` ora usa un
+  contextmanager `_database` (commit + close) al posto di `with sqlite3.connect(...)`.
+- `tests/test_rea_surface.py`: il test dell'argv usava `Path("/tmp/x/malware.bin")`,
+  che su Windows diventa `\tmp\x\malware.bin`; ora `PurePosixPath`, perche' il target
+  e' un path del sandbox e resta POSIX ovunque. Le classi che *eseguono* la superficie
+  (`RunnerTests`, `RotteTests`, `SenzaReaTests`) si saltano su Windows con
+  `SERVE_POSIX`: il runner chiude i lavori con `os.killpg` e le fixture sono script
+  `#!/bin/sh`. Il resto del file (perimetro, riduzione, contratto) resta attivo.
+
+**Cosa si salta su Windows, e perche'**
+
+- `test_rea_surface.py::RunnerTests|RotteTests|SenzaReaTests` — `os.killpg` + fixture
+  `#!/bin/sh` (sopra).
+- `test_harness.py::test_la_sintassi_e_valida` e `test_start_all_macos.py::test_shell_syntax`
+  — il `bash` disponibile qui e' WSL (`C:\Windows\System32\bash.exe`) e non risolve i
+  path nativi `C:/...` (`No such file or directory`, 127). Non e' un difetto degli
+  script: su macOS/Linux i controlli girano invariati.
+- `test_comfyui_bridge_url.py::ScriptDiAvvioTests` — usa `.venv/bin/python` (symlink
+  POSIX) e bash.
+- `test_comicsol_hyperspace_adapter.py` — dipende da
+  `data/control-plane/comics/hyperspace-memories-956e1ab5.json`, che scrive il
+  control-plane a runtime e non e' nel repository: `pytest.mark.skipif` con il motivo.
+- `test_harness.py` non pretende piu' il bit di esecuzione su NTFS (non esiste) e
+  usa `as_posix()` dove serve passare un path a bash.
+
+**Servizi** — ricostruite e riavviate le due immagini rimaste indietro e verificate
+nuove: `hyperspace-webui` su `ghcr.io/open-webui/open-webui:main` (`4860ba005ae8`) e
+`hyperspace-searxng` su `searxng/searxng:latest` (`8bdd9aa136b2`). `scripts\start.ps1 -Check`:
+**tutte e otto le sonde 200** (Control Plane, Dashboard, Open WebUI, Registry, Node 1,
+Bridge, SearXNG, Gateway). Undici container `Up`, `hyperspace-core` e
+`hyperspace-federation-gateway` senza healthcheck.
+
+**Aperto / da decidere**
+
+1. Niente commit: le modifiche sono nella working tree (14 file, vedi `git status`).
+   Aspetto conferma esplicita dell'utente prima di committare o pushare.
+2. `AGENTS.md` dice "`.venv/bin/python`" e cita 5 fallimenti noti: sono riferiti al Mac.
+   Su questa macchina il percorso e' `.venv\Scripts\python.exe` e la suite e' verde;
+   se volete, allineo `AGENTS.md` con una sezione Windows.
+3. La superficie REA non e' nativa su Windows: renderla tale richiede fixture `.cmd`
+   e un `_termina_gruppo` senza `killpg` (lo stesso lavoro fatto in `sandbox/runner.py`).
+   Non l'ho fatto perche' su Windows nessuno la avvia (`start.ps1` non la include).
+4. `hyperspace-federation-gateway` non ha `HEALTHCHECK` nel compose: basterebbe
+   `curl -f http://127.0.0.1:8095/health`, cosi' anche `docker ps` dice qualcosa.
+
+
+## 2026-10-17 — Cline (Windows) → utente, Codex, Antigravity: failsafe di persone e ricette reel
+
+Su richiesta dell'utente: rendere questo nodo capace di **importare e
+ripristinare** le persone di Anna e Aurora e le ricette dei reel, come rete di
+sicurezza se il Mac (primario dell'editor) non c'e' piu'.
+
+**Cosa ho trovato**
+
+- Le persone non sono in git, ed e' voluto (`213b71f`): `data/` e' gitignored e
+  il canale previsto e' `scripts/mesh_distribute.py --personas --all` (E2EE).
+  Il mesh vede online **solo** `100.104.238.125:8081`, quindi adesso non c'e'
+  modo di *tirare* nulla dal Mac: si puo' solo ricevere o copiare.
+- Le due copie locali **non coincidono**: `data/persona-anna.json` v7 sha
+  `963f4711f0d3` e `data/persona-aurora.json` v5 sha `d5a327102f2d`, mentre
+  `C:\\HyperSpace\\data` ha Anna v7 sha `05753a6a8b05` e Aurora **v4** sha
+  `d104f4ba14d8`. Quale sia quella buona va deciso dal primario, non da qui.
+- Le ricette invece sono in git (48 file fra `scripts/reel_*.py`, `autoedit/`,
+  preset e `docs/reel-*.md`), ma su Windows mancano `ffmpeg`/`ffprobe` e
+  `numpy`/`librosa`, e `autoedit/person_layers.py` chiama `os.uname()` +
+  `swiftc`: la segmentazione persona resta del Mac.
+
+**Cosa ho aggiunto**
+
+- `scripts/reel_failsafe.py` — perimetro chiuso: legge repo e (opzionale)
+  `HS_DATA_DIR`, scrive solo in `data/failsafe/` e, con `restore --yes`, sui
+  file persona/preset; non tocca servizi ne' database; non stampa contenuti
+  delle persone. Comandi: `report`, `export`, `verify`, `restore`, `diff`.
+  Il bundle conserva **il testo esatto** dei file (lettura/scrittura in binario)
+  e gli sha256 di tutte le ricette: un `read_text` avrebbe normalizzato i CRLF
+  e il ripristino non sarebbe stato fedele.
+- `tests/test_reel_failsafe.py` — 14 test, incluso il giro export/restore su
+  fixture **CRLF**, il rifiuto del ripristino senza `--yes`, il drift di una
+  persona, la ricetta cancellata e la ricetta **nuova** (il bundle invecchia in
+  silenzio se nessuno la segnala).
+- `docs/reel-failsafe.md` — perimetro, comandi, le due strade di import (mesh o
+  copia + `diff --from`), cosa si puo' replicare qui e cosa no.
+
+**Stato reale adesso**
+
+- `export --runtime` → `data/failsafe/reel-failsafe-20261017T200822Z.json`
+  (2 persone, 5 preset, 48 ricette, git `bcf2bde`), `verify` → **55/55**.
+- `diff --from C:\\HyperSpace\\data` → le due persone risultano **diverse** dal
+  runtime: e' la fotografia, non un errore.
+- Verdetto `report`: questa macchina **non** puo' ancora rigenerare i reel
+  (mancano ffmpeg, ffprobe, numpy, librosa; swiftc manchera' sempre).
+
+**Cosa chiedo**
+
+1. All'utente: quale copia delle persone e' quella buona? Con quella, `restore
+   --yes --runtime` allinea il runtime e poi va riavviato il control-plane.
+2. A Codex: se sul Mac c'e' un export piu' recente, `mesh_distribute.py
+   --personas --all` da li' e' la strada pulita (nessun `diff` manuale).
+3. Niente commit: i tre file nuovi sono untracked, in attesa di conferma.
+   `pytest tests/ -q` → **2398 passed, 72 skipped, 998 subtests**, zero
+   fallimenti.
+
+## 2026-10-18 — Antigravity → utente, Cline, Codex (installazione PONY XL e ChickMixFlat in ComfyUI)
+
+Su richiesta dell'utente: installazione di **PONY XL** e del secondo modello senza censura attivo sugli altri nodi (**ChickMixFlat v1.0**, SD 1.5 con supporto NSFW per i ritratti di Anna sul Mac).
+
+**Cosa è stato fatto:**
+1. **Script di installazione Windows (`integrations/comfyui/install-model.ps1`):**
+   - Esteso per supportare il parametro `-Manifest` (allineato a `install-model.sh` del Mac) per checkpoint singoli (`.checkpoint`) e manifest multi-file (`.file`), mantenendo piena retrocompatibilità con `modelli.json` (Qwen-Image).
+   - Risolto un problema di type coercion di PowerShell sulla variabile del manifest e corretto l'escaping delle variabili prima di `?download=true`.
+2. **Download e verifica SHA-256:**
+   - Scaricato e verificato `chickmixflat_v10.ckpt` (2.132.857.134 byte, SHA-256 `c7bf573453ba...`) in `C:\Users\opoda\AppData\Local\Comfy-Desktop\ComfyUI-Shared\models\checkpoints\`.
+   - Scaricato e verificato `CyberRealisticPony_V18.0_F16.safetensors` (6.938.041.288 byte, SHA-256 `1d580c1c3f36...`) in `C:\Users\opoda\AppData\Local\Comfy-Desktop\ComfyUI-Shared\models\checkpoints\`.
+3. **Nodi ComfyUI:**
+   - Creata la giunzione `custom_nodes\hyperspace_nodes` verso `integrations\comfyui` tramite `install.ps1`.
+   - Installato `custom_nodes\hyperspace_save_jpeg.py` tramite `install-jpeg-node.ps1`.
+4. **Verifiche:**
+   - ComfyUI su `127.0.0.1:8188` (ComfyUI Desktop 0.41.3) vede entrambi i checkpoint in `CheckpointLoaderSimple.ckpt_name`.
+   - `tests/test_comfyui_*.py` con il `.venv` del repo: **19 passed, 1 skipped, 10 subtests passed**.
+   - Nessun commit e nessun push.
+
+
+## 2026-10-18 — Cline → utente, Codex (fallback locale del driver Telegram)
+
+Su richiesta dell'utente: il bot Telegram non deve restare muto quando il
+control-plane è giù o non configurato. Il driver ora ha **due voci** con la
+stessa identità: prima il CP, poi un cervello locale (persona + Ollama).
+
+**Cosa è stato fatto**
+
+1. `shared/chatbrain.py` (nuovo): `LocalBrain` (system block della persona,
+   `/api/chat` con `think: false`, troncamento a `max_chars`, audit di
+   disclosure fail-closed), `BrainSwitch` con isteresi, `probe_channel`,
+   `ollama_base_url`. Il file della persona è **sola lettura**: l'unico
+   scrittore resta il CP, quindi nessuno split-brain al ritorno del CP.
+2. `scripts/telegram_bot.py`: `CHANNEL_TOKEN` opzionale, `chiedi_risposta`
+   (CP-first → locale), outbox/ingest/state/comandi solo quando `BRAIN.current
+   == "cp"`, sonda di recupero ogni `CHANNEL_PROBE_S`, riga di boot con
+   `brain=`. Un `skip` del CP **non** diventa una risposta locale (è una
+   decisione, non un guasto); `error`/rete/5xx/401/403 sì.
+3. `scripts/telegram_bot.py`: se il modello locale non esiste, il ciclo stampa
+   `nessuna risposta per <chat>: … 404 (brain=…)` invece di tacere (il sintomo
+   sarebbe indistinguibile dal silenzio voluto). La sonda di recupero non
+   riparte nello stesso istante del boot (`last_probe` inizializzato).
+4. `shared/chatbrain.py`: `host.docker.internal` (l'alias che il `.env` usa per
+   i **container**) viene mappato su `127.0.0.1` per un client nativo, con
+   opt-out `CHANNEL_OLLAMA_HOST_NATIVE=0`. Senza, il fallback su questa macchina
+   finiva su `192.168.1.100:11434`, dove Ollama non ascolta.
+5. `scripts/start.ps1`: esporta anche `PERSONA_FILE` accanto a
+   `AURORA_PERSONA_FILE` — il cervello locale legge il primo, il driver il
+   secondo: senza, il fallback parlava con l'identità di default ("HyperSpace")
+   invece che con Aurora.
+6. `scripts/start-telegram.ps1`: risolve `CHANNEL_MODEL`/`CHANNEL_VISION_MODEL`
+   dal `.env` e il file persona (runtime, poi repo; `-Persona` vince);
+   `-Check` verifica Ollama raggiungibile, modello installato, drift fra la
+   persona che legge il CP e quella che leggerebbe il driver; verdetto corretto
+   (mancavano le parentesi: `Fail "x: " + (...)` passava tre argomenti e il
+   motivo spariva). L'endpoint sondato è lo stesso che userà il driver.
+7. `scripts/diagnostics/smoke_telegram_local_boot.py` (nuovo): prova il giro
+   completo senza Telegram — `tg` e `un_solo_driver` finti, CP su porta chiusa,
+   un solo giro del ciclo, verdetto `[ok]`/`[ko]`; la rete è solo Ollama (senza
+   `CHANNEL_MODEL` usa il primo modello installato, così non dipende da un nome
+   che esista solo su questa macchina).
+8. `docs/channel.md`: sezione del cervello locale (tabella di precedenza, env,
+   sonda/recupero, diagnosi del modello mancante, come provarla);
+   `docs/persona.md`: il pattern del fallback e la garanzia di un solo scrittore.
+9. `tests/test_chatbrain.py`, `tests/test_telegram_bot.py`: 85 test sul percorso
+   nuovo (CP irraggiungibile → locale, `error` → locale senza degradare, `skip`
+   intatto, `reply` del CP non toccato, `!presentati` deterministico anche in
+   locale, alias Ollama mappato, 404 che arriva al ciclo).
+
+**Verifiche**
+
+- `pytest tests -q`: **2440 passed, 72 skipped, 998 subtests**, zero fallimenti.
+- `ruff check` sui file toccati: pulito.
+- Smoke con Ollama vero: `brain=local` al boot, `inviata risposta a 42
+  (brain=local)` con `granite3.3:8b`; con `CHANNEL_MODEL=qwen3.5:4b` (non
+  installato) la riga `nessuna risposta per 42: … 404` e zero invii.
+- `.\\scripts\\start-telegram.ps1 -Check`: Ollama 200, CP 200, avverte che
+  `qwen3.5:4b` non è installato e che la persona del CP è più vecchia di quella
+  del repo.
+
+**Cosa chiedo**
+
+1. All'utente: `qwen3.5:4b` (il `OLLAMA_MODEL` del `.env`) **non è** fra gli 8
+   modelli installati su questa macchina — quindi né il CP né il fallback locale
+   possono rispondere oggi. `ollama pull qwen3.5:4b` (o `CHANNEL_MODEL=` uno
+   degli installati: `granite3.3:8b`, `qwen3-vl:4b-instruct`, …). Non ho
+   scaricato nulla da solo: sono GB e una scelta dell'operatore.
+2. All'utente: la persona letta dal CP (`C:\HyperSpace\data\persona-aurora.json`,
+   2026-10-14) è più vecchia di quella del repo (2026-10-17): il fallback
+   parlerebbe con una versione diversa da quella servita dal CP. `-Check` lo
+   segnala; allineare è una decisione (export runtime o `restore --runtime`).
+3. Niente commit e niente push: `shared/chatbrain.py`,
+   `scripts/diagnostics/smoke_telegram_local_boot.py`, `tests/test_chatbrain.py`
+   sono nuovi/untracked, il resto è modificato in working tree.
+4. Nota per Codex: il `.env` serve al CP via `env_file:` nel compose, quindi
+   `CHANNEL_MODEL`/`PERSONA_FILE` non vanno aggiunti al compose.
+
+## 2026-10-18 — Cline → utente, Codex
+
+**Contesto.** L'utente ha rimosso `qwen3.5:4b` perché inusabile. Quel nome era
+il modello generale (`OLLAMA_MODEL`), il ripiego dei due ruoli (`HS_MODEL_*_FALLBACK`),
+il default del driver (`shared/chatbrain.py: DEFAULT_MODEL`) e il ripiego di
+`channel_model()`. Due container su quattro giravano con un modello che non
+esiste più: `hyperspace-bridge` e `hyperspace-webui` rispondevano 404 a ogni
+richiesta, non solo il bot.
+
+**Cosa ho misurato** (RTX 3070 laptop 8 GB, desktop acceso, prompt reale del
+canale a 4096 di contesto; nuovo strumento
+`scripts/diagnostics/channel_model_bench.py`, nessun download, legge `/api/tags`):
+
+| Modello | Peso | GPU | Primo token | Gen. | Nota |
+|---|---|---|---|---|---|
+| `qwen3-vl:4b-instruct` | 3,07 GB | 100% | 0,12–0,61 s | 86 t/s | vede le immagini |
+| `granite3.3:8b` | 4,60 GB | 100% | 0,20–0,25 s | 55 t/s | prosa pulita, niente markdown |
+| `huihui_ai/qwen3.5-abliterated:9b` | 6,14 GB | 100% | 0,36–0,92 s | 54 t/s | verboso (500–600 car) |
+| `qwen3-8b-abliterated:latest` | 4,68 GB | 100% | 0,17–0,95 s | 58 t/s | ripete la prima frase: evitarlo |
+| `huihui_ai/gemma-4-abliterated:12b` | 7,04 GB | **64%** | 1,03–**13,17 s** | 8,6 t/s | sfora la VRAM |
+
+Il banco applica anche i due gate invisibili: `audit_reply` (nessuna offesa nei
+tre scenari, nessun modello si è spacciato per umano) e le promesse impossibili
+(`qwen3-8b-abliterated` ha scritto «ti mando una foto»: il cervello locale non ha
+un outbox). Regola: su 8 GB un Q4 fino a ~5 GB sta in GPU, oltre diventa sei
+volte più lento.
+
+**Cosa ho cambiato.**
+
+- `.env`: `OLLAMA_MODEL=granite3.3:8b` (era il modello cancellato),
+  `HS_MODEL_GENERAL=granite3.3:8b` (era il 12B al 64% in GPU),
+  `HS_MODEL_GENERAL_FALLBACK=qwen3-vl:4b-instruct`,
+  `HS_MODEL_CODER_FALLBACK=granite3.3:8b`, `CHANNEL_MODEL=granite3.3:8b`,
+  `CHANNEL_VISION_MODEL=qwen3-vl:4b-instruct`. `HS_MODEL_CODER` resta il 12B:
+  nessun modello da codice è installato, e per i task dove nessuno aspetta la
+  qualità vale la latenza. Blocco delle misure riscritto con la data.
+- `shared/chatbrain.py`: `DEFAULT_MODEL = "qwen3-vl:4b-instruct"`, con il perché
+  nel commento (prima puntava a un modello che non esiste più: era il ripiego
+  che taceva). Inoltre `_senza_etichetta()`: `granite3.3:8b` ricopia il formato
+  del transcript e pubblica `Aurora: "…"`; ora l'etichetta col nome della persona
+  e le virgolette che avvolgono tutta la battuta si tolgono prima del limite di
+  caratteri e dell'audit (`Certo: …` invece resta, non è un'etichetta). Due test
+  nuovi in `tests/test_chatbrain.py`.
+- `.env.windows`: `HS_MODEL_CODER_FALLBACK` non punta più a un modello assente;
+  il blocco misure avverte che sono di *un* nodo e che ogni nodo si rimisura.
+- `scripts/generate_test_report.py`: l'atteso `HS_MODEL_GENERAL` del template
+  era `qwen3.5:4b` mentre il template dichiara MiniCPM5 — il report segnalava
+  una deriva che non c'era.
+- `docs/channel.md`: tabella delle misure, i tre criteri (primo token, audit,
+  quante volte si cambia modello su una scheda sola), come rimisurare, e il
+  tranello del compose (sotto).
+- Container: `hyperspace-core`, `hyperspace-node-1`, `hyperspace-bridge`,
+  `hyperspace-webui` ricreati; tutti e quattro ora riportano
+  `OLLAMA_MODEL=granite3.3:8b` (`printenv`), CP `/health` e `/channel/status` 200.
+
+**Tranello trovato (da ricordare).** Il primo `--force-recreate` ha lasciato
+core e node-1 sul 12B: la shell aveva ancora esportate le vecchie
+`HS_MODEL_GENERAL`/`OLLAMA_MODEL` e `docker compose` dà precedenza all'ambiente
+sul `.env`. Azzerate le variabili nella stessa chiamata, i container sono
+ripartiti col modello giusto. Lo stesso vale per il driver, che legge con
+`os.getenv`: uno smoke lanciato da quella shell ha risposto `404` con
+`CHANNEL_MODEL=qwen3.5:4b` esportato, *non* con quello nel `.env` — cioè un
+fallimento che sembra del codice ed è dell'ambiente. Documentato in
+`docs/channel.md`, con i due comandi che dicono la verità:
+`docker exec hyperspace-core printenv OLLAMA_MODEL` e
+`$env:CHANNEL_MODEL` nella shell del driver.
+
+**Verifiche.** `pytest tests -q` → **2442 passed, 72 skipped, 998 subtests** (96 s).
+`ruff check` pulito sui file toccati (`generate_test_report.py` ha sei E741
+preesistenti, non miei). `scripts/diagnostics/smoke_telegram_local_boot.py` con
+ambiente pulito e `CHANNEL_MODEL=granite3.3:8b`: `brain=local`, una risposta
+pubblicata senza etichetta davanti, `[ok]`. Banco ripetuto due volte su
+`granite3.3:8b`: 55 t/s, primo token 0,24 s, audit pulito.
+
+**Cosa chiedo / resta aperto.**
+
+1. **Utente — download da decidere (niente fatto senza consenso).** A monte
+   esistono `qwen3-vl:8b-instruct` (8B *con* vision: risolverebbe qualità e foto
+   in un solo modello, ~5,5 GB) e `qwen2.5-coder:7b` (~4,7 GB, oggi nessun
+   modello da codice è installato). Entrambi vanno *misurati* col banco prima di
+   adottarli: un 8B con vision può sforare come il 12B.
+2. **Codex**: `qwen3.5:4b` è ancora citato come *fixture* in molti test
+   (`test_model_fit.py`, `test_gpu_budget.py`, `test_webui_gateway.py`, …). Sono
+   stringhe finte, non configurazione: non le ho toccate apposta, ma chi legge
+   `qwen3.5:4b` in un test può credere che sia il modello di casa. Se volete,
+   le rinomino in un giro separato.
+3. **Codex**: `docs/windows-node-handoff.md` e `scripts/generate_tokenomics_pdf.py`
+   contengono misure storiche del nodo con `qwen3.5:4b`. Sono fotografie di un
+   momento, non istruzioni: le ho lasciate.
+4. Nessun commit e nessun push. Nuovo non tracciato:
+   `scripts/diagnostics/channel_model_bench.py` (oltre ai tre file del giro
+   precedente).
+
+
+
+## 2026-10-18 — Cline → utente, Codex
+
+**Richiesta.** Cercare, per il ruolo coder, `Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF`
+o simili. Ricerca fatta; nessun download, nessun modello installato, nessun
+commit.
+
+**Il repo esiste, e questi sono i numeri** (Hugging Face, 2026-10-18): base
+`Qwen/Qwen3.5-9B`, Apache-2.0, 21.531 download, 398 like, ultimo aggiornamento
+2026-04-06, contesto 262.144. File: `Q4_K_M` **5,63 GB**, `Q5_K_M` 6,47 GB,
+`Q8_0` 9,53 GB, **`mmproj-BF16` 0,92 GB** — è la base *vision* di Qwen3.5,
+quindi un 9B più proiettore. Il distillato, però, è **generale** (matematica,
+logica, HumanEval), non un coder; il template inietta `<think>` di default e la
+card avverte che le capacità generali possono calare. A 4096 di contesto sono
+~6,5 GB di pesi prima del KV: sopra la soglia osservata dei ~7 GB per restare al
+100% GPU.
+
+**Stessa base senza vision.** `fauxpaslife/PentaCoder-9B`: 5,63 GB, testo,
+Q4_K_M, 256K, specializzato codice+agentico — la forma giusta, ma caricato 14
+ore prima con 8 download, non verificato. `mradermacher/Qwen3.5-9B-Coder-GGUF`
+(base `armand0e/Qwen3.5-9B-Coder`, SFT su tracce claude-code): Q4_K_M 5,78 GB,
+`mmproj` opzionale. Classe 4B, comoda in 8 GB: `richardyoung/frognano-4b-2609`
+(2,78 + 0,67 GB, MIT) e `jica98/qwen3.5-4B-super-coder` (Q4_0 2,61 GB, su HF).
+Restano fuori i 12B e oltre.
+
+**Banco: cosa ho cambiato e perché.** `scripts/model_bench.py` aveva una sola
+sonda di codice (palindromo). Ne ho aggiunte tre con il contratto negli assert
+(`codice_durata`, `codice_bugfix`, `codice_intervalli`) e ho generalizzato
+`codice_ok` in `codice_esegue(risposta, vincolo, driver)`. Tre difetti trovati
+misurando, tutti corretti: (a) il file temporaneo era scritto con la codifica
+locale, quindi un `è` in un commento diventava `SyntaxError` e un codice giusto
+veniva bocciato; (b) sorgente e driver erano concatenati senza riga nuova
+(`return x` + `print(...)`); (c) il budget di 160 parole bocciava come LOOP
+risposte corrette ma verbose — per le sonde di codice è 400, e a decidere è il
+test. Cinque test nuovi in `tests/test_model_bench.py` (10 subtests) difendono
+giudice, codifica, prosa attorno al blocco e assenza della funzione.
+
+**Misure (2026-10-18, RTX 3070 laptop, `--think false`, percorso CP).**
+`granite3.3:8b` **1/4** (solo palindromo: `valores` non definito su durata e
+bugfix, lista in ingresso modificata su intervalli);
+`huihui_ai/qwen3.5-abliterated:9b` **3/4**; `qwen3-vl:4b-instruct` **3/4**
+(fallisce la durata). Con il pensiero attivo, in presa diretta su Ollama, il 9B
+consuma 3.000 token e 9.200–10.300 caratteri di ragionamento per prova senza
+arrivare al codice: 175 s per tre prove, 0/3; con `think: false` le stesse tre
+finiscono in 9,3 s.
+
+**Difetto trovato, non mio.** `--think true` sul percorso CP è un no-op:
+l'endpoint OpenAI-compatibile ignora il campo e solo `false` passa dal percorso
+nativo (`docs/architecture.md`). L'ho scritto nel docstring del banco, così chi
+vuole prezzare il ragionamento sa che deve chiamare `/api/chat` diretto.
+
+**Documentazione.** `docs/channel.md`, nuova sezione «Scegliere il coder: decide
+il test, non la tabella dei parametri» con tabella delle misure, regola VRAM
+(9B Q4 5,6–5,8 GB, +0,9 GB con `mmproj`, tetto ~7 GB) e comando di rimisura.
+
+**Verifiche.** `pytest tests -q` → **2446 passed, 69 skipped, 1001 subtests**
+(98 s; i tre skip in meno sono `tests/test_reel_person_layers.py`, escluso perché
+vuole numpy/librosa dall'interprete dell'editor). `ruff` pulito su
+`scripts/model_bench.py` e `tests/test_model_bench.py`.
+
+**Cosa chiedo.**
+
+1. **Utente — consenso al download (niente è stato scaricato).** Da misurare col
+   banco esteso, ~5,6 GB ciascuno: `PentaCoder-9B` (forma giusta, ma nuovo) e
+   `mradermacher/Qwen3.5-9B-Coder:Q4_K_M`; in alternativa la classe 4B, se si
+   preferisce margine di VRAM. Il distillato Jackrong conviene solo se serve
+   *anche* la vision e si accetta il costo del pensiero.
+2. **Codex**: `HS_MODEL_CODER` punta ancora al 12B e nessun modello da codice è
+   installato; la scelta va fatta con l'esito del banco in mano.
+3. Nessun commit e nessun push.
+

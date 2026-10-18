@@ -78,6 +78,91 @@ def is_palindrome(s):
         self.assertEqual(mb._json("niente qui"), {})
 
 
+class SondeCodiceTests(unittest.TestCase):
+    """Le tre sonde nate per il ruolo coder (`HS_MODEL_CODER`).
+
+    Ognuna deve dire sì al codice giusto e no a quello sbagliato: una sonda che
+    dice sempre sì rende la tabella inutile proprio dove serve decidere un
+    download da 5 GB. Il contratto sta negli assert dei driver, quindi qui si
+    prova anche che i casi limite (stringa vuota, None, mutazione) contino.
+    """
+
+    GIUSTO = {
+        "codice_durata": (
+            "```python\nimport re\n\n"
+            "def durata_in_secondi(testo):\n"
+            "    if not testo:\n"
+            "        raise ValueError('vuoto')\n"
+            "    pezzi = re.fullmatch(r'(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?', testo)\n"
+            "    if not pezzi:\n"
+            "        raise ValueError(testo)\n"
+            "    ore, minuti, secondi = (int(x or 0) for x in pezzi.groups())\n"
+            "    return ore * 3600 + minuti * 60 + secondi\n```"
+        ),
+        "codice_bugfix": (
+            "```python\ndef media(valori):\n"
+            "    puliti = [v for v in valori if v is not None]\n"
+            "    return sum(puliti) / len(puliti) if puliti else 0.0\n```"
+        ),
+        "codice_intervalli": (
+            "```python\ndef unisci(intervalli):\n"
+            "    if not intervalli:\n"
+            "        return []\n"
+            "    ordinati = sorted(intervalli)\n"
+            "    uniti = [ordinati[0]]\n"
+            "    for inizio, fine in ordinati[1:]:\n"
+            "        ultimo_inizio, ultimo_fine = uniti[-1]\n"
+            "        if inizio <= ultimo_fine:\n"
+            "            uniti[-1] = (ultimo_inizio, max(ultimo_fine, fine))\n"
+            "        else:\n"
+            "            uniti.append((inizio, fine))\n"
+            "    return uniti\n```"
+        ),
+    }
+
+    SBAGLIATO = {
+        # Nessun caso limite: zero invece di 5400.
+        "codice_durata": "def durata_in_secondi(testo):\n    return 0\n",
+        # Corregge la divisione per zero ma non i None: il contratto è più largo.
+        "codice_bugfix": ("def media(valori):\n"
+                          "    return sum(valori) / len(valori) if valori else 0.0\n"),
+        # Non unisce niente e ignora l'ordine.
+        "codice_intervalli": "def unisci(intervalli):\n    return list(intervalli)\n",
+    }
+
+    def test_ogni_sonda_di_codice_distingue_giusto_e_sbagliato(self):
+        giudici = _giudici()
+        for nome in self.GIUSTO:
+            with self.subTest(nome=nome):
+                self.assertTrue(giudici[nome](self.GIUSTO[nome])[0],
+                                f"{nome} non riconosce il codice corretto")
+                sbagliato = giudici[nome](self.SBAGLIATO[nome])
+                self.assertFalse(sbagliato[0], f"{nome} approva il codice sbagliato")
+                self.assertTrue(sbagliato[1], f"{nome} deve dire perché ha rifiutato")
+
+    def test_senza_la_funzione_chiesta_non_passa(self):
+        ok, nota = mb.codice_esegue("print('ciao')", "def unisci", mb.DRIVER_INTERVALLI)
+        self.assertFalse(ok)
+        self.assertIn("unisci", nota)
+
+    def test_il_codice_giusto_tra_prosa_si_estrae_lo_stesso(self):
+        risposta = "Ecco la funzione:\n\n" + self.GIUSTO["codice_intervalli"] + "\nSpero aiuti."
+        self.assertTrue(mb.codice_esegue(risposta, "def unisci", mb.DRIVER_INTERVALLI)[0])
+
+    def test_un_accento_nel_codice_non_diventa_un_syntax_error(self):
+        """Su Windows il file veniva scritto con la codifica locale: un `è` in un
+        commento produceva un byte 0xf2 e il codice non si poteva nemmeno
+        importare, bocciando una risposta giusta."""
+        codice = ("# conversione per l'utente: è solo un commento\n"
+                  "def unisci(intervalli):\n"
+                  "    return sorted(intervalli)\n")
+        ok, _nota = mb.codice_esegue(codice, "def unisci", "print('CODICE-OK')\n",
+                                     tempfile.mktemp(suffix=".py"))
+        self.assertTrue(ok)
+
+
+
+
 class StreamTests(unittest.TestCase):
     def test_uno_stream_normale_si_chiude_con_done(self):
         testo, limite = mb.consume_stream([_riga("ciao"), "data: [DONE]\n\n"], 100)

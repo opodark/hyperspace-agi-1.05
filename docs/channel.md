@@ -280,7 +280,193 @@ Il token del bot **non** va nel `.env`: quel file arriva a tutti i container
 Avvio: `.\scripts\start-telegram.ps1` (o `-Check`, che non avvia nulla e dice cosa
 manca: token del bot, token del canale, privacy mode, control-plane raggiungibile,
 con 401 e 503 distinti). L'identità resta una sola e vive in
-`data/persona-aurora.json`: il driver non la conosce, la inietta il CP.
+`data/persona-aurora.json`: con il CP attivo la inietta il CP e il driver non la
+legge; in locale il driver rilegge lo stesso file (solo lettura: il file lo scrive
+il CP, mai il driver).
+
+### Quando il control-plane non c'è: cervello locale
+
+Il driver non resta più muto se il CP è giù. `shared/chatbrain.py` gli dà un
+secondo percorso: la stessa persona (`PERSONA_FILE`, sola lettura) e lo stesso
+Ollama, con l'audit delle risposte fatto in locale prima di pubblicare.
+
+La precedenza non cambia: **finché il CP risponde, decide lui**. Il locale entra
+solo quando il CP non può decidere, e la distinzione è quella che conta —
+un `skip` è una decisione, un errore no:
+
+| Risposta del CP | Cosa fa il driver |
+|---|---|
+| `reply` | pubblica la risposta del CP; il locale non viene usato |
+| `skip` | **non risponde**: audit o moderazione hanno deciso così, il locale non li aggira |
+| `error` (modello giù, batch scaduto) | risposta locale |
+| connessione rifiutata, timeout, 5xx, 401/403 | risposta locale |
+
+Le variabili del percorso locale:
+
+| Variabile | Default | Cosa fa |
+|---|---|---|
+| `CHANNEL_MODEL` | `OLLAMA_MODEL`, poi `qwen3-vl:4b-instruct` | modello Ollama usato in locale: lo stesso nome che il CP usa per il canale |
+| `OLLAMA_URL` / `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | endpoint Ollama di casa; un `/v1` finale viene tolto e una lista separata da virgole usa il primo host |
+| `CHANNEL_VISION_MODEL` / `VISION_MODEL` | vuoto | modello vision per le foto; senza, il driver dice che in locale non può guardare l'immagine invece di inventarla |
+| `CHANNEL_PROBE_S` | `30` | ogni quanto il driver riprova il CP mentre è in locale (minimo 5) |
+| `CHANNEL_FAIL_THRESHOLD` | `3` | guasti consecutivi prima di degradare: un timeout isolato non cambia la voce a metà conversazione |
+| `CHANNEL_RECOVER_THRESHOLD` | `2` | successi consecutivi prima di tornare al CP |
+| `CHANNEL_OLLAMA_HOST_NATIVE` | `1` | `host.docker.internal` (l'alias dei container, quello che sta nel `.env`) viene sostituito con `127.0.0.1`, perché un driver nativo lo risolve in un indirizzo dove Ollama spesso non ascolta. Metti `0` solo se un giorno il driver girerà in container |
+
+Il cambio si vede una volta sola nel log del driver (`[telegram] brain=cp` /
+`[telegram] brain=local (control-plane non disponibile: …)`), e la riga di avvio
+riporta `brain=` accanto a `bot=` e `nome=`. Mentre è in locale il driver
+continua a **sondare** `GET /channel/status`: quando il CP torna e il token è
+quello giusto, riprende a decidere lui. Le azioni che richiedono il CP
+(outbox immagini, comandi, ingest, stato) restano ferme finché è in locale:
+non si inventa un outbox.
+
+Il modello del canale è l'altra metà del fallback. Se non è installato in Ollama
+(`ollama list`), la risposta locale è un `404` e non si pubblica niente — ma il
+driver **lo dice**, invece di sembrare sordo:
+
+```
+[telegram] nessuna risposta per 42: modello locale non raggiungibile: 404 Client
+Error: Not Found for url: http://127.0.0.1:11434/api/chat (brain=local)
+```
+
+`scripts\start-telegram.ps1 -Check` verifica la stessa cosa prima del tempo
+(Ollama raggiungibile, `CHANNEL_MODEL` presente fra i modelli, identità del CP
+e del driver allineate) e dice cosa fare: `ollama pull <modello>` oppure
+`CHANNEL_MODEL=<modello installato>` nel `.env`.
+
+#### Provare il fallback senza Telegram
+
+Non serve un bot vero per vedere il giro completo: `scripts/diagnostics/
+smoke_telegram_local_boot.py` finge l'API di Telegram (`tg` e `un_solo_driver`),
+punta il driver a un CP su porta chiusa e fa un solo giro del ciclo — la rete è
+solo quella di Ollama:
+
+```powershell
+.venv\Scripts\python.exe scripts\diagnostics\smoke_telegram_local_boot.py
+```
+
+Atteso: `brain=local` nella riga di avvio, `inviata risposta a 42 (brain=local)`,
+il testo prodotto dal modello e la riga `[ok] il driver ha pubblicato senza
+control-plane`. Con `CHANNEL_MODEL` puntato a un modello non installato, la riga
+`nessuna risposta per 42: … 404`, zero messaggi inviati e il verdetto `[ko]`.
+Senza `CHANNEL_MODEL`, lo smoke usa il primo modello installato: serve a vedere
+il giro, non a giudicare la scelta del modello.
+#### Scegliere il modello del canale: cosa dicono le misure
+
+Il nome del modello non si sceglie dal numero di parametri: su una scheda da 8 GB
+un Q4 più grosso della VRAM disponibile finisce in CPU e diventa più lento di uno
+piccolo. Misura del 2026-10-18 (RTX 3070 laptop, desktop acceso, prompt **reale**
+del canale a 4096 di contesto, tre scenari: conversazione, disclosure, richiesta
+di una foto):
+
+| Modello | Peso | Dove gira | Primo token | Generazione | Nota |
+|---|---|---|---|---|---|
+| `qwen3-vl:4b-instruct` | 3,07 GB | 100% GPU | 0,12–0,61 s | **86 t/s** | vede le immagini: un solo modello per chat e foto |
+| `granite3.3:8b` | 4,60 GB | 100% GPU | 0,20–0,25 s | 55 t/s | prosa asciutta, nessun asterisco markdown |
+| `huihui_ai/qwen3.5-abliterated:9b` | 6,14 GB | 100% GPU | 0,36–0,92 s | 54 t/s | verboso: 500–600 caratteri per battuta |
+| `qwen3-8b-abliterated:latest` | 4,68 GB | 100% GPU | 0,17–0,95 s | 58 t/s | **ripete la stessa frase**: da evitare |
+| `huihui_ai/gemma-4-abliterated:12b` | 7,04 GB | 64% GPU | 1,03–**13,17 s** | 8,6 t/s | sfora la VRAM: sei volte più lento di granite |
+
+Tre cose che questa tabella dice e una lista di parametri non direbbe:
+
+1. **Il primo token, non i tokens/s, è ciò che l'utente sente.** Il 12B produce
+   bei testi a 8,6 t/s, ma il primo arriva dopo 1–13 secondi: in una stanza è
+   silenzio, e sembra che il bot sia rotto.
+2. **Il modello "migliore" può essere quello che non promette.** Il banco
+   applica `audit_reply` e cerca le promesse che il cervello locale non può
+   mantenere: `qwen3-8b-abliterated` ha risposto *«ti mando una foto del mio
+   cervello in azione»* — un 4B più piccolo non lo fa. Un modello più capace che
+   mente è un modello peggiore.
+3. **Su una scheda sola conta quante volte si cambia modello.** `qwen3-vl:4b` è
+   il più veloce, ma tenerlo diverso dal modello generale farebbe scaricare e
+   ricaricare la scheda a ogni job (3–9 s di attesa a ogni scambio). Per questo
+   chat e lavoro condividono `granite3.3:8b` (55 t/s, 100% GPU) e il 4B entra
+   solo quando arriva una foto (`CHANNEL_VISION_MODEL`).
+
+Rimisura con lo stesso prompt del driver, senza scaricare nulla:
+
+```powershell
+.venv\Scripts\python.exe scripts\diagnostics\channel_model_bench.py
+.venv\Scripts\python.exe scripts\diagnostics\channel_model_bench.py --models granite3.3:8b
+```
+
+Lo script stampa per ogni modello caricamento, primo token, tokens/s, se sta in
+GPU, il testo prodotto e il verdetto; `--models` limita la prova a una lista.
+Nessun download: legge `/api/tags`, quindi giudica solo ciò che è già installato.
+
+Se un giorno serve qualità a costo di latenza, il ritorno indietro è una riga:
+`HS_MODEL_CODER=huihui_ai/gemma-4-abliterated:12b` è già così, e il 12B resta
+installato proprio per i task dove nessuno aspetta.
+
+#### Scegliere il coder: decide il test, non la tabella dei parametri
+
+Il banco del canale misura la voce; un coder si giudica **eseguendo** quello che
+scrive. `scripts/model_bench.py` ha quattro sonde `codice_*` (palindromo,
+durata, bugfix, intervalli) in cui il contratto sta negli assert di un driver,
+non nella prosa del prompt: il codice viene estratto dal blocco, scritto in un
+file e lanciato in un processo separato. "Quasi giusto" non passa; una risposta
+verbosa ma corretta non viene bocciata come LOOP, perché il budget delle sonde
+di codice è 400 parole e a decidere è il test.
+
+Misura del 2026-10-18, stesso nodo (RTX 3070 laptop), `--think false`, percorso
+CP, contesto di default:
+
+| Modello | palindromo | durata | bugfix | intervalli | Totale |
+|---|---|---|---|---|---|
+| `granite3.3:8b` | ok | no (`valores` non definito) | no (`valores`) | no (modifica la lista) | **1/4** |
+| `huihui_ai/qwen3.5-abliterated:9b` | ok | no (parse) | ok | ok | **3/4** |
+| `qwen3-vl:4b-instruct` | ok | no (parse) | ok | ok | **3/4** |
+
+Due cose che la tabella dice:
+
+1. **Nessuno dei modelli di casa è un coder.** granite — il modello del canale e
+   del ruolo generale — passa solo il palindromo: sul codice sbaglia i casi
+   limite e i contratti. `HS_MODEL_CODER` è quindi un ruolo senza modello.
+2. **Il 4B batte l'8B sul codice.** `qwen3-vl:4b-instruct` fa 3/4 in 3,07 GB:
+   per questo ruolo la dimensione non è il criterio, l'esito del test sì.
+
+Il costo del ragionamento, su questa strada, non si vede: l'endpoint
+OpenAI-compatibile ignora `think` (`docs/architecture.md`), quindi `--think
+true` è un no-op e solo `--think false` cambia qualcosa. Misurato in presa
+diretta su Ollama, `huihui_ai/qwen3.5-abliterated:9b` con il pensiero attivo
+consuma 3.000 token e 9.200–10.300 caratteri di ragionamento per prova **senza
+arrivare al codice** (175 s per tre sonde, 0/3); con `think: false` le stesse
+tre prove finiscono in 9,3 s. Un distillato di reasoning, se lo si adotta, va
+misurato in entrambe le configurazioni.
+
+Sul budget di VRAM la regola resta quella della tabella qui sopra: un 9B Q4 pesa
+5,6–5,8 GB e arriva a ~6,5 GB scaricati se il repo include anche il proiettore
+`mmproj` per la vision; oltre ~7 GB il modello scende in CPU (il 12B a 7,04 GB
+sta al 64%). Per il ruolo coder la vision non serve: meglio un build testo.
+
+```powershell
+.venv\Scripts\python.exe scripts\model_bench.py --models granite3.3:8b --think false
+```
+
+**Cambiare il modello nel `.env` non basta.** `docker compose` dà precedenza
+all'ambiente della shell sulle variabili del `.env`: se il terminale da cui si
+riavvia lo stack ha ancora esportate `HS_MODEL_GENERAL`/`OLLAMA_MODEL` vecchie,
+i container ripartono col modello vecchio e sembra che l'edit non abbia effetto.
+Verificato il 2026-10-18: dopo un `--force-recreate` due container erano ancora
+sul modello precedente. Il controllo che dice la verità è dentro il container:
+
+```powershell
+docker exec hyperspace-core printenv OLLAMA_MODEL
+```
+
+Vale anche per il driver: `LocalBrain` legge `CHANNEL_MODEL`/`OLLAMA_MODEL` con
+`os.getenv`, quindi un bot lanciato da quella stessa shell usa il modello
+esportato e non quello del `.env` — la stessa riga `nessuna risposta … 404` che
+si vedrebbe con un modello assente. Prima di dichiarare rotto il fallback, si
+guarda cosa vede il processo (`$env:CHANNEL_MODEL`), non cosa c'è scritto nel
+file. Se serve riallineare da una shell sporca, si azzerano prima le variabili
+(`$env:HS_MODEL_GENERAL=$null; $env:OLLAMA_MODEL=$null`) e poi si ricrea il
+servizio o si riavvia il driver. Un `.env` corretto con un processo che nega il
+contrario è il modo più facile di passare un pomeriggio a cercare un bug che non
+esiste.
+
+
 
 ### Privacy mode: la decisione che cambia cosa vede il bot
 

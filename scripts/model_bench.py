@@ -8,10 +8,16 @@ il codice gira o no, il JSON si parse o no. Il confronto fra modelli diventa una
 tabella, non un'opinione.
 
 Un dettaglio che conta piu' di quanto sembri: il tetto di token. Un modello che
-non si ferma (o che "pensa" a lungo senza rispondere — succede con le famiglie
+non si ferma (o che "pensa" a lungo senza rispondere â€” succede con le famiglie
 reasoning) va fermato, altrimenti blocca l'intera sessione. Ogni sonda ha un
 budget di parole; se lo sfora, l'esito e' LOOP/LENTO, non "sbagliato": e' un modo
 diverso di non essere affidabile, e va distinto da una risposta sbagliata.
+
+Le quattro sonde `codice_*` (palindromo, durata, bugfix, intervalli) esistono per
+il ruolo coder (`HS_MODEL_CODER`): il contratto sta negli assert dei driver, non
+nella prosa del prompt, e il codice viene eseguito. Servono a decidere un
+download da 5 GB con un esito, non con un'impressione.
+
 
 Uso:
 
@@ -20,6 +26,11 @@ Uso:
     python3 scripts/model_bench.py --node macbook         # pinnati su un nodo
     python3 scripts/model_bench.py --think false          # reasoning forzato off
     python3 scripts/model_bench.py --json                 # risultato come JSON
+
+Attenzione al flag: sul percorso del Control Plane l'endpoint OpenAI-compatibile
+IGNORA `think` (vedi docs/architecture.md); solo `--think false` viene tradotto
+nel percorso nativo di Ollama, quindi `--think true` non forza il ragionamento.
+Per misurare il costo del pensiero serve una chiamata diretta a `/api/chat`.
 
 I modelli si pinnano col suffisso ::<nodo> cosi' il confronto avviene sullo STESSO
 backend: due modelli su macchine diverse non sono confrontabili (GPU diverse,
@@ -43,7 +54,7 @@ TIMEOUT_S = 180
 MAX_SECONDS = 150   # rete di sicurezza: il segnale vero e' il budget di TOKEN
 
 
-# ── SONDE ─────────────────────────────────────────────────────────────────────
+# â”€â”€ SONDE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Ogni sonda e' (nome, prompt, giudice, esito atteso, budget_di_parole). Il
 # giudice torna True/False (o una tupla (ok, nota)) a partire dalla risposta.
 def _json(risposta):
@@ -64,26 +75,83 @@ def estrai_codice(risposta):
     return re.sub(r"^```(?:python)?\s*|\s*```$", "", risposta, flags=re.I | re.S).strip()
 
 
-def codice_ok(risposta, file_uscita=None):
-    """Vero se la funzione generata gira E passa gli assert. Non si fida del
-    testo della risposta: esegue il codice."""
+def codice_esegue(risposta, vincolo, driver, file_uscita=None):
+    """Vero se il codice estratto definisce `vincolo`, gira e passa `driver`.
+
+    Generalizzazione di `codice_ok`: il contratto non sta nella prosa del
+    prompt, sta negli assert del driver. "Quasi giusto" non passa, e nessuna
+    sonda si fida del testo della risposta: il file viene eseguito.
+    """
     if file_uscita is None:
-        file_uscita = os.path.join(tempfile.gettempdir(), "_model_bench_pal.py")
+        file_uscita = os.path.join(tempfile.gettempdir(), "_model_bench_codice.py")
     sorgente = estrai_codice(risposta)
-    if "def is_palindrome" not in sorgente:
-        return False, "nessuna funzione is_palindrome nel codice"
-    driver = ("\n\nimport sys\nassert is_palindrome('radar') is True\n"
-              "assert is_palindrome('Ciao') is False\nprint('CODICE-OK')\n")
-    with open(file_uscita, "w") as f:
-        f.write(sorgente + driver)
+    if vincolo not in sorgente:
+        return False, f"manca {vincolo} nel codice"
+    with open(file_uscita, "w", encoding="utf-8") as f:
+        # Il driver si appende dopo una riga nuova: senza separatore finisce
+        # attaccato all'ultima riga del modello (`return x` + `print(...)`) e un
+        # codice giusto diventa SyntaxError.
+        f.write(sorgente.rstrip() + "\n" + driver.lstrip("\n"))
     try:
         esito = subprocess.run([sys.executable, file_uscita],
-                               capture_output=True, text=True, timeout=15)
+                               capture_output=True, text=True, timeout=15,
+                               encoding="utf-8", errors="replace")
+
     except Exception as e:
         return False, f"timeout/errore: {type(e).__name__}"
     if "CODICE-OK" in esito.stdout:
         return True, "gira e passa gli assert"
-    return False, "gira ma sbaglia: " + (esito.stderr or esito.stdout).strip().splitlines()[-1][:70]
+    coda = (esito.stderr or esito.stdout).strip().splitlines()
+    return False, "gira ma sbaglia: " + (coda[-1][:70] if coda else "nessun output")
+
+
+# I tre driver dei casi che un coder sbaglia davvero: casi limite (stringa
+# vuota, None, lista vuota) e un mutamento della lista in ingresso. Restano
+# stringhe, non file: la sonda li scrive accanto al codice del modello.
+DRIVER_DURATA = (
+    "\n\nassert durata_in_secondi('1h30m') == 5400\n"
+    "assert durata_in_secondi('45s') == 45\n"
+    "assert durata_in_secondi('2h') == 7200\n"
+    "assert durata_in_secondi('10m30s') == 630\n"
+    "for rotto in ('', 'abc', '1x'):\n"
+    "    try:\n"
+    "        durata_in_secondi(rotto)\n"
+    "    except ValueError:\n"
+    "        pass\n"
+    "    else:\n"
+    "        raise AssertionError(rotto)\n"
+    "print('CODICE-OK')\n"
+)
+
+DRIVER_MEDIA = (
+    "\n\nassert media([]) == 0.0\n"
+    "assert media([2, 4]) == 3.0\n"
+    "assert media([1, 2, 3, 4]) == 2.5\n"
+    "assert media([None, 2, None, 4]) == 3.0\n"
+    "assert isinstance(media([1]), float)\n"
+    "print('CODICE-OK')\n"
+)
+
+DRIVER_INTERVALLI = (
+    "\n\nassert unisci([]) == []\n"
+    "assert unisci([(1, 3), (2, 6), (8, 10)]) == [(1, 6), (8, 10)]\n"
+    "assert unisci([(5, 7), (1, 2), (2, 4)]) == [(1, 4), (5, 7)]\n"
+    "dati = [(5, 6), (1, 2)]\n"
+    "unisci(dati)\n"
+    "assert dati == [(5, 6), (1, 2)], 'lista in ingresso modificata'\n"
+    "print('CODICE-OK')\n"
+)
+
+
+def codice_ok(risposta, file_uscita=None):
+    """Vero se la funzione generata gira E passa gli assert. Non si fida del
+    testo della risposta: esegue il codice."""
+    return codice_esegue(
+        risposta, "def is_palindrome",
+        "\n\nimport sys\nassert is_palindrome('radar') is True\n"
+        "assert is_palindrome('Ciao') is False\nprint('CODICE-OK')\n",
+        file_uscita or os.path.join(tempfile.gettempdir(), "_model_bench_pal.py"))
+
 
 
 PROBE = [
@@ -99,13 +167,29 @@ PROBE = [
      lambda a: bool(re.search(r"\b3\b", a)), "3", 10),
     ("codice_palindromo", "Scrivi SOLO il codice di una funzione Python is_palindrome(s) che torna True se la stringa e' un palindromo (ignorando le maiuscole). Nient'altro.",
      codice_ok, "funzione che gira", 120),
+    # Le tre sonde che separano un coder da un modello che "sa parlare di
+    # codice": conversione con casi limite, correzione di un bug con contratto
+    # scritto, algoritmo che non deve mutare l'ingresso.
+    ("codice_durata", "Scrivi SOLO il codice Python di una funzione durata_in_secondi(testo) che converte '1h30m', '45s', '2h', '10m30s' in secondi interi, accettando h, m, s in quest'ordine e sollevando ValueError su stringa vuota o formato non riconosciuto. Nient'altro.",
+     lambda a: codice_esegue(a, "def durata_in_secondi", DRIVER_DURATA,
+                             os.path.join(tempfile.gettempdir(), "_model_bench_durata.py")),
+     "funzione che gira", 400),
+    ("codice_bugfix", "Questo codice ha due bug: va in ZeroDivisionError su lista vuota e non ignora i None. Il contratto: media([]) == 0.0, i None si saltano, il risultato e' un float. Correggi mantenendo nome e firma, e rispondi SOLO col codice.\n\ndef media(valori):\n    return sum(valori) / len(valori)",
+     lambda a: codice_esegue(a, "def media", DRIVER_MEDIA,
+                             os.path.join(tempfile.gettempdir(), "_model_bench_media.py")),
+     "bug corretto", 400),
+    ("codice_intervalli", "Scrivi SOLO il codice Python di una funzione unisci(intervalli) che riceve una lista di tuple (inizio, fine) anche disordinata e torna la lista ordinata degli intervalli uniti; quelli che si toccano (fine == inizio successivo) si uniscono, lista vuota da' lista vuota, e la lista in ingresso non va modificata. Nient'altro.",
+     lambda a: codice_esegue(a, "def unisci", DRIVER_INTERVALLI,
+                             os.path.join(tempfile.gettempdir(), "_model_bench_intervalli.py")),
+     "funzione che gira", 400),
+
     ("json", "Rispondi SOLO con un JSON valido, senza altro testo: {\"citta\": \"...\", \"abitanti\": <numero>} per Venezia.",
      lambda a: (lambda d: bool(d) and "citta" in d and "abitanti" in d)(_json(a)), "JSON con i campi", 20),
     ("allucinazione", "Chi ha scritto il romanzo 'Il canto del merlo azzurro'? Se non lo sai, rispondi 'non lo so'.",
      lambda a: any(x in a.lower() for x in ("non lo so", "non lo conosco", "non sono a conoscenza", "non esiste", "non risulta")), "ammette di non sapere", 30),
 ]
 
-# ── STREAMING (puro, testabile senza rete) ─────────────────────────────────────
+# â”€â”€ STREAMING (puro, testabile senza rete) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def consume_stream(linee, max_tok):
     """Da un iteratore di righe SSE a `(testo, limite)`.
 
@@ -159,7 +243,7 @@ def segna(giudice, risposta):
     esito = giudice(risposta)
     return esito if isinstance(esito, tuple) else (esito, "")
 
-# ── ESECUZIONE ────────────────────────────────────────────────────────────────
+# â”€â”€ ESECUZIONE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def esegui(modelli, cp=CP_DEFAULT, think=None, progresso=None):
     """Esegue tutte le sonde su tutti i modelli. Ritorna una struttura riusabile
     da chi vuole il JSON, non solo la tabella stampata."""
