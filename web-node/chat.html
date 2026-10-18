@@ -176,15 +176,31 @@
     .drag-overlay h2{margin:0;color:#fff;font-size:24px}
     .drag-overlay p{margin:0;color:var(--cyan);font-size:14px}
 
-    /* Modal Login Token */
+    /* Modal Login Token & Gate Accesso Mesh */
     .auth-modal{position:fixed;inset:0;background:#03060fdb;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
-    .auth-card{width:min(440px,100%);background:#0d152a;border:1px solid #243557;border-radius:20px;padding:30px;box-shadow:0 30px 100px #000e;text-align:center}
+    .auth-card{width:min(520px,100%);background:#0d152a;border:1px solid #243557;border-radius:20px;padding:28px;box-shadow:0 30px 100px #000e;text-align:center}
     .auth-card h2{margin:0 0 8px;font-size:22px;color:#fff}
-    .auth-card p{color:var(--muted);font-size:13.5px;margin:0 0 20px}
+    .auth-card p{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5}
+    .auth-notice-box{background:#091224;border:1px solid #1f3254;border-radius:12px;padding:12px 14px;font-size:12px;color:#94a3b8;line-height:1.5;margin-bottom:18px;text-align:left}
+    .auth-notice-box strong{color:var(--cyan)}
+    .auth-methods-grid{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:16px}
+    .auth-method-card{background:#070d1a;border:1px solid #1a2a46;border-radius:14px;padding:14px;transition:all .2s ease}
+    .auth-method-card:hover{border-color:#57e6d966}
+    .auth-method-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .auth-method-title{font-size:13.5px;font-weight:750;color:#fff;display:flex;align-items:center;gap:8px}
+    .auth-method-badge{font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#10b98122;color:#34d399;border:1px solid #10b98155}
+    .auth-method-card p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.45}
+    .btn-bridge-dl{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(115deg,#10b981,#06b6d4);color:#031418;font-weight:750;font-size:12px;padding:9px 14px;border-radius:8px;text-decoration:none;transition:all .15s}
+    .btn-bridge-dl:hover{filter:brightness(1.1)}
+    .btn-bridge-check{background:#111f38;border:1px solid #25395a;color:#cbd5e1;font-size:12px;font-weight:600;padding:9px 12px;border-radius:8px;cursor:pointer}
+    .btn-bridge-check:hover{border-color:var(--cyan);color:#fff}
+    .auth-row-input{display:flex;gap:8px}
+    .auth-row-input .auth-input{margin-bottom:0;flex:1;text-align:left;font-size:13px;padding:10px 12px}
+    .auth-row-input .auth-btn-submit{width:auto;white-space:nowrap;padding:10px 16px;font-size:13px}
     .auth-input{width:100%;border:1px solid #233454;background:#070b18;color:#fff;border-radius:11px;padding:12px 14px;font:inherit;margin-bottom:14px;outline:none;text-align:center;letter-spacing:.04em}
     .auth-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #57e6d922}
     .auth-btn-submit{width:100%;background:linear-gradient(115deg,var(--cyan),#ab91ff);border:none;border-radius:11px;padding:12px;color:#08101d;font-weight:750;cursor:pointer;font-size:14px}
-    .auth-error{margin-top:12px;color:var(--bad);font-size:12.5px;display:none}
+    .auth-error{margin-top:10px;color:var(--bad);font-size:12px;display:none;background:#38121a;border:1px solid var(--bad);padding:8px 10px;border-radius:8px}
     
     @media(max-width:850px){
       .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:10px 0 40px #000c}
@@ -248,7 +264,7 @@
           <span id="activeChatTitle">Nuova conversazione</span>
         </div>
       </div>
-        <a href="./ai/" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🚀 AI Studio</a>
+        <a href="./" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🌐 Home 00MESH</a>
         <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#c084fc;font-weight:600" title="Scarica il Whitepaper Tokenomics in PDF">🪙 $00MESH PDF ↗</a>
         <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> Mesh Connessa</span>
         <button id="clearChatBtn" class="top-action-btn" type="button" title="Pulisci messaggi di questa chat">Pulisci</button>
@@ -309,25 +325,56 @@
   <p>Supporta codice (Python, JS, TS, HTML, JSON), testo e PDF con estrazione istantanea</p>
 </div>
 
-<!-- Modal di Autenticazione se l'utente non ha la chiave -->
+<!-- Modal di Autenticazione & Gate Sovrano -->
 <div id="authModal" class="auth-modal" style="display:none;">
   <div class="auth-card">
     <div class="mark" style="margin:0 auto 14px"></div>
-    <h2>Chiave di Rete Richiesta</h2>
-    <p>Inserisci la tua chiave autorizzata per sbloccare l'accesso diretto alla chat e ai modelli della mesh.</p>
-    <input type="password" id="modalKeyInput" class="auth-input" placeholder="es. hs-mesh-nome-xxxx" autocomplete="current-password">
-    <button id="modalSubmitBtn" class="auth-btn-submit" type="button">Entra nella Chat ↗</button>
-    <div id="modalAuthError" class="auth-error">Chiave non valida o scaduta</div>
-    <div style="margin-top:18px;font-size:12.5px">
-      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none">Non hai ancora una chiave? Richiedila qui →</a>
+    <h2>Accesso Riservato alla Rete 00MESH</h2>
+    <p>La chat con modelli linguistici sovrani e non censurati è riservata a chi contribuisce al calcolo con la propria GPU o possiede una Chiave di Rete autorizzata.</p>
+
+    <div class="auth-notice-box">
+      ℹ️ <strong>Chat libera per tutti in arrivo:</strong> Quando il programma pubblicitario AdSense o i nodi sponsor copriranno i costi computazionali della mesh, apriremo l'accesso libero a tutti i visitatori.
+    </div>
+
+    <div class="auth-methods-grid">
+      <!-- Metodo A: Plugin Chrome Bridge -->
+      <div class="auth-method-card" id="gateBridgeCard">
+        <div class="auth-method-header">
+          <div class="auth-method-title">🔌 Metodo 1: Plugin Chrome Bridge</div>
+          <span class="auth-method-badge" id="gateBridgeBadge">Nessuna Chiave</span>
+        </div>
+        <p>Hai una scheda video con Ollama o LM Studio attivo? Scarica e avvia l'estensione Chrome: rileverà automaticamente la tua GPU e sbloccherà l'accesso immediato!</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <a href="./assets/00mesh-chrome-bridge.zip" download="00mesh-chrome-bridge.zip" class="btn-bridge-dl">⬇️ Scarica Estensione (.zip)</a>
+          <button id="btnCheckBridge" type="button" class="btn-bridge-check">🔄 Rileva Plugin</button>
+          <span id="gateBridgeStatus" style="font-size:11.5px;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <!-- Metodo B: Chiave di Rete -->
+      <div class="auth-method-card">
+        <div class="auth-method-header">
+          <div class="auth-method-title">🔑 Metodo 2: Chiave di Rete Autorizzata</div>
+        </div>
+        <p>Hai già ricevuto una chiave di rete autorizzata (admin o membro)?</p>
+        <div class="auth-row-input">
+          <input type="password" id="modalKeyInput" class="auth-input" placeholder="es. hs-mesh-nome-xxxx" autocomplete="current-password">
+          <button id="modalSubmitBtn" class="auth-btn-submit" type="button">Entra ↗</button>
+        </div>
+        <div id="modalAuthError" class="auth-error">Chiave non valida o scaduta</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;font-size:12.5px">
+      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none">Non hai una GPU né una chiave? Richiedila qui →</a>
     </div>
   </div>
 </div>
 
 <script src="./join-config.js?v=1.05.4"></script>
 <script type="module">
-  import { AuthManager } from "./src/auth.js?v=1.05.4";
-  import { ChatClient } from "./src/chat.js?v=1.05.4";
+  import { AuthManager, detectBridgeStatus } from "./src/auth.js?v=1.05.5";
+  import { ChatClient } from "./src/chat.js?v=1.05.5";
   import { renderMarkdown, attachCopyEvents, attachCodeBlockEvents } from "./src/render.js?v=1.05.4";
   import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js?v=1.05.4";
   import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js?v=1.05.4";
@@ -447,9 +494,10 @@
 
   // Esecutore Python Sandbox
   async function handleRunSandbox(code) {
+    const token = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
     return await runSandboxCode({
       baseUrls: [gatewayUrl],
-      token: authManager.getKey(),
+      token,
       code,
     });
   }
@@ -692,7 +740,8 @@
 
   async function loadModels() {
     try {
-      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey: authManager.getKey() });
+      const authKey = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
+      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey });
       const models = await chatClient.listModels();
       const select = $("modelSelect");
       select.innerHTML = "";
@@ -802,8 +851,9 @@
     if (sess) sess.updatedAt = Date.now();
     saveSessions();
 
+    const authKey = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
     if (!chatClient) {
-      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey: authManager.getKey(), model: $("modelSelect").value });
+      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey, model: $("modelSelect").value });
     }
     chatClient.model = $("modelSelect").value;
 
@@ -960,43 +1010,115 @@
     $("sidebar").classList.toggle("open");
   });
 
-  // Autenticazione iniziale
-  async function initAuth() {
+  let activeBridge = null;
+
+  async function checkGate() {
     const urlParams = new URLSearchParams(window.location.search);
     const queryKey = urlParams.get("key");
     if (queryKey && queryKey.trim()) {
       authManager.saveKey(queryKey.trim());
     }
 
+    // 1. Prova prima la chiave salvata / passata via query
     await authManager.init();
-    const state = authManager.getState();
-    if (!state.authenticated) {
-      $("authModal").style.display = "flex";
-    } else {
-      $("userName").textContent = state.label || "Utente Mesh";
-      $("userRole").textContent = (state.role || "member").toUpperCase();
-      await loadModels();
-      loadSessions();
-      if (chatSessions.length > 0) {
-        selectSession(chatSessions[0].id);
-      } else {
-        renderActiveMessages();
-      }
+    const authState = authManager.getState();
+    if (authState.authenticated) {
+      return { authorized: true, via: "key", state: authState };
+    }
 
-      // Se presente un prompt nei parametri URL (es. da form di contatto), avvia subito la chat
-      const initialPrompt = urlParams.get("prompt");
-      if (initialPrompt && initialPrompt.trim()) {
-        const promptText = initialPrompt.trim();
-        window.history.replaceState({}, document.title, window.location.pathname);
-        startNewChat();
-        $("promptInput").value = promptText;
-        updateSendButtonState();
-        setTimeout(() => {
-          handleSend();
-        }, 350);
+    // 2. Prova il rilevamento del plugin bridge Chrome o motore locale
+    const bridge = await detectBridgeStatus({ timeoutMs: 1000 });
+    if (bridge && bridge.active) {
+      activeBridge = bridge;
+      return { authorized: true, via: "bridge", bridge };
+    }
+
+    return { authorized: false };
+  }
+
+  async function updateGateBridgeStatus() {
+    const statusEl = $("gateBridgeStatus");
+    const badgeEl = $("gateBridgeBadge");
+    if (statusEl) {
+      statusEl.style.color = "var(--cyan)";
+      statusEl.textContent = "Controllo plugin in corso…";
+    }
+    const res = await detectBridgeStatus({ timeoutMs: 1200 });
+    if (res && res.active) {
+      activeBridge = res;
+      if (statusEl) {
+        statusEl.style.color = "var(--ok)";
+        statusEl.textContent = `✓ Rilevato: ${res.label}`;
+      }
+      if (badgeEl) {
+        badgeEl.style.background = "#10b98133";
+        badgeEl.style.color = "#34d399";
+        badgeEl.textContent = "ATTIVO";
+      }
+      setTimeout(() => {
+        initAuth();
+      }, 500);
+    } else {
+      if (statusEl) {
+        statusEl.style.color = "var(--muted)";
+        statusEl.textContent = "Plugin non rilevato o motori spenti";
       }
     }
   }
+
+  // Autenticazione & Gate Sovrano
+  async function initAuth() {
+    const authResult = await checkGate();
+    if (!authResult.authorized) {
+      $("authModal").style.display = "flex";
+      updateGateBridgeStatus();
+      return;
+    }
+
+    $("authModal").style.display = "none";
+    if (authResult.via === "key") {
+      $("userName").textContent = authResult.state.label || "Utente Mesh";
+      $("userRole").textContent = (authResult.state.role || "member").toUpperCase();
+    } else {
+      $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
+      $("userRole").textContent = "NODE OPERATOR";
+      $("activeChatTitle").textContent = "Chat Sovrana (Bridge GPU Attivo)";
+    }
+
+    await loadModels();
+    loadSessions();
+    if (chatSessions.length > 0) {
+      selectSession(chatSessions[0].id);
+    } else {
+      renderActiveMessages();
+    }
+
+    // Se presente un prompt nei parametri URL (es. da form di contatto), avvia subito la chat
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialPrompt = urlParams.get("prompt");
+    if (initialPrompt && initialPrompt.trim()) {
+      const promptText = initialPrompt.trim();
+      window.history.replaceState({}, document.title, window.location.pathname);
+      startNewChat();
+      $("promptInput").value = promptText;
+      updateSendButtonState();
+      setTimeout(() => {
+        handleSend();
+      }, 350);
+    }
+  }
+
+  if ($("btnCheckBridge")) {
+    $("btnCheckBridge").addEventListener("click", updateGateBridgeStatus);
+  }
+
+  // Ascolta messaggi da estensione nel caso arrivino dopo il caricamento
+  window.addEventListener("message", (e) => {
+    if (e.data?.type === "00MESH_BRIDGE_STATUS" && e.data?.active && $("authModal").style.display !== "none") {
+      activeBridge = e.data;
+      initAuth();
+    }
+  });
 
   $("modalSubmitBtn").addEventListener("click", async () => {
     const key = $("modalKeyInput").value.trim();

@@ -5696,3 +5696,70 @@ va promosso anche a `HS_MODEL_GENERAL` (dove granite fa 3/11 e il 4B 8/11) è un
 decisione sua, non presa qui: il canale ha requisiti di voce che il banco non
 misura.
 
+## 2026-10-18 — Cline → utente, Codex
+
+**Richiesta.** Provare a mandare una richiesta di generazione immagine di prova
+«al omen» e guardare i problemi della chat sul web-node. Solo letture e una
+richiesta di test in coda: nessun commit/push, nessun download, nessun modello
+toccato.
+
+**Cosa ho fatto.** Interpretato «omen» come il nodo Windows **HP Omen 16**
+(RTX 3070 8 GB, host `hpomen`, Tailscale `100.104.238.125`, node
+`d7a16c80…`), che in `shared/image_jobs.py` serve la famiglia `qwen-image-2.1`.
+Mandato `POST http://localhost:8085/web/image/generate` con
+`{"prompt":"test image: a single red apple…","family":"qwen-image-2.1",768×768}`.
+Risposta **201**: `job_id=51e946b5404c`, `status=queued`.
+
+**Risultato misurato, non dedotto.** `GET /image/status` (col token del canale
+`comfy` da `CHANNEL_CLIENTS`, non stampato) mostra la coda: **9 job `pending`,
+tutti `qwen-image-2.1`** (il mio è l'ultimo), `in_esecuzione=0`. I log del
+control-plane mostrano un solo ponte che tira lavoro:
+`GET /image/jobs?famiglia=sdxl-turbo,sd15` ogni ~5 s, sempre **204** (vuoto) —
+è il ponte del Mac. **Nessun ponte chiede `qwen-image-2.1`**: il job resta
+`pending` a tempo indeterminato. Lo storico `ultimi` è tutto `sd15`
+(chickmixflat / Anna) `done` o uno `failed` (annullato da fuori), quindi il
+ponte del Mac sta completando i suoi job, ma il worker Qwen sull'Omen non sta
+tirando i suoi.
+
+**Radice.** Il ponte per la win11 (`integrations/comfyui/comfy_bridge.py`,
+`BRIDGE_MODEL=qwen-image-2.1`, `CHANNEL_URL` puntato a questo CP) non è in
+esecuzione o non raggiunge il control-plane. I 9 job Qwen accumulati (8 di
+prima del mio + il mio test) sono il sintomo visibile nella chat: chi chiede
+un'immagine Qwen riceve «in elaborazione» e poi nulla / fallback «nodi GPU non
+raggiungibili».
+
+**Cosa chiedo.**
+1. **Utente/Codex** — confermare che sull'HP Omen il bridge ComfyUI debba girare
+   con `BRIDGE_MODEL=qwen-image-2.1` e `CHANNEL_URL` verso questo CP
+   (`http://100.81.234.102:8085` via Tailscale); se è spento, riavviarlo e i 9
+   job ripartiranno da soli (il job di test è innocuo).
+2. Da confermare se il test va considerato chiuso così (job `51e946b5404c`
+   lasciato in coda) o se va annullato.
+
+## 2026-10-18 — Antigravity (Mac): Unificazione Chat Sovrana & Gate di Accesso Chiave / Plugin Bridge
+
+1. **Unificazione Chat Estesa Sovrana (`web-node/chat.html` unico punto di accesso)**:
+   - Consolidata la chat: rimossa la frammentazione con `ai.html`. `ai.html` esegue ora redirect client-side immediato su `chat.html`.
+   - Aggiornati tutti i collegamenti nella navbar, nell'Hero section (`💬 Apri Chat Estesa ↗`), nella vetrina showcase e nel footer di `web-node/index.html` e `web-node/join.html`.
+   - Modale di accesso `chat.html` convertita in "Accesso Rete Sovrana & Gate Calcolo": accesso sbloccato se presente una Chiave di Rete valida **oppure** se è attivo il Plugin Chrome Bridge (con Ollama o LM Studio locale).
+   - Inclusa la nota di trasparenza roadmap: accesso gratuito pubblico per tutti una volta attivate le entrate pubblicitarie (Google AdSense) e le pool comunitarie di calcolo per coprire i costi dei server di inferenza.
+
+2. **Integrazione "Accesso Mesh & Calcolo Sovrano" nel Web-Node (`#joinNodeCard`)**:
+   - Ridisegnata la card `joinNodeCard`: ora integra lo stato di autorizzazione in tempo reale (`refreshAccessGateUI`) sia per la Chiave di Rete che per il Bridge GPU (Ollama/LM Studio).
+   - Se il bridge è attivo (rilevato da content script via `data-mesh-bridge-active`, `window.postMessage` o event listener), mostra badge verde "🟢 Bridge GPU Attivo" e sblocca la CTA diretta per la Chat Estesa.
+   - Se è attiva una chiave, mostra "🔑 Chiave Attiva" con ruolo/label.
+   - Se non autenticato, mostra lo stato riservato con opzioni per attivare l'estensione o inserire una chiave, oltre alla spiegazione sul futuro accesso pubblico ad-supported.
+   - Sotto il gate, integrato il runner del web-node browser per contribuzione leggera PoUW e firma crittografica Ed25519 del wallet Solana per le ricompense $00MESH.
+
+3. **Backend & Protocollo Riconoscimento Nodi Esterni (`control-plane/cp/webnode.py`)**:
+   - In `/web/auth/verify`: autorizzazione automatica con ruolo `node_operator` per nodi bridge registrati (`ext-...`) e nodi attivi nel registry.
+   - Aggiornato `integrations/chrome-extension/content.js` per sincronizzazione bidirezionale bridge-web app e rigenerato `web-node/assets/00mesh-chrome-bridge.zip`.
+
+4. **Verifiche & Build**:
+   - Test suite Python: `2465 passed, 18 skipped, 1040 subtests passed` (`.venv/bin/python -m pytest tests/ -q`).
+   - Test bridge: 4 test passati (`tests/test_chrome_extension_bridge.py`).
+   - Test licenze: 7 test passati (`tests/test_licensing.py`).
+   - Test suite Node.js: 28 test passati (`node --test web-node/tests/*.test.mjs`).
+   - Rigenerato pacchetto Aruba: `dist/web-node-aruba.zip` (16 MB) tramite `scripts/build-web-node-aruba.sh`.
+
+

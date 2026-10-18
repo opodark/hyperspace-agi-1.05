@@ -490,6 +490,17 @@ def web_auth_verify():
             "label": label
         })
 
+    # 4. Controllo nodi attivi / bridge registrati
+    if provided in _nodes_by_id or (provided.startswith("ext-") and len(provided) >= 8):
+        node_rec = _nodes_by_id.get(provided) or {}
+        label = node_rec.get("label") or f"Operatore GPU ({provided[:10]})"
+        return jsonify({
+            "ok": True,
+            "authenticated": True,
+            "role": "node_operator",
+            "label": label
+        })
+
     return jsonify({"ok": False, "authenticated": False, "error": "Chiave o token non valido"}), 401
 
 

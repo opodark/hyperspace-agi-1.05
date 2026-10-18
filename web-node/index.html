@@ -632,6 +632,126 @@
       font-weight: 700;
     }
 
+    /* Access Gate Status inside Join Card */
+    .access-status-box {
+      background: #060b17;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 20px;
+      transition: all .25s ease;
+    }
+    .access-status-box.active-bridge {
+      border-color: #10b98188;
+      background: linear-gradient(135deg, #061c2488, #0b1426);
+      box-shadow: 0 0 24px #10b98122;
+    }
+    .access-status-box.active-key {
+      border-color: #57e6d988;
+      background: linear-gradient(135deg, #091f2c88, #0b1426);
+      box-shadow: 0 0 24px #57e6d922;
+    }
+    .access-status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .access-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 750;
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: .03em;
+    }
+    .access-badge.locked {
+      background: #3b1d2833;
+      border: 1px solid #f43f5e55;
+      color: #fda4af;
+    }
+    .access-badge.bridge {
+      background: #064e3b33;
+      border: 1px solid #10b98166;
+      color: #34d399;
+    }
+    .access-badge.key {
+      background: #0e3a4733;
+      border: 1px solid #06b6d466;
+      color: #38bdf8;
+    }
+    .access-chat-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 750;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all .2s ease;
+      box-sizing: border-box;
+    }
+    .access-chat-cta.bridge-btn {
+      background: linear-gradient(115deg, #10b981, #06b6d4);
+      color: #031418;
+      box-shadow: 0 8px 24px #10b98144;
+    }
+    .access-chat-cta.key-btn {
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      color: #08101d;
+      box-shadow: 0 8px 24px #57e6d944;
+    }
+    .access-chat-cta:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+    .access-gate-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .access-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #0a1122;
+      color: #dce3f7;
+      transition: all .15s ease;
+      width: 100%;
+      box-shadow: none;
+    }
+    .access-action-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+      background: #111a33;
+    }
+    .access-future-notice {
+      margin-top: 10px;
+      padding: 9px 11px;
+      background: #0d152a66;
+      border: 1px dashed #2a3c64;
+      border-radius: 9px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #94a3b8;
+    }
+
     /* Section Headers */
     .section-head {
       display: flex;
@@ -1022,14 +1142,14 @@
     <a href="./" class="brand"><i class="mark"></i><span id="siteName">ZeroZeroComputer</span></a>
     <div class="nav-actions">
       <span class="live-badge"><i class="pulse-dot"></i><span id="navMeshStatus">MESH LIVE</span></span>
-      <a href="./ai/" class="nav-link" style="color:#57e6d9;font-weight:700;">🚀 AI Studio</a>
+      <a href="./chat.html" class="nav-link" style="color:#57e6d9;font-weight:700;">💬 Chat Sovrana</a>
       <a href="#chromeBridgeSection" class="nav-link">🔌 Estensione GPU</a>
       <a href="#tokenomics" class="nav-link">🪙 Tokenomics ($00MESH)</a>
       <a href="#topology" class="nav-link">🌐 3D Mesh</a>
       <a href="./progetto.html" class="nav-link">📖 Architettura</a>
-      <a href="./chat.html" class="nav-link">💬 Console</a>
+      <a href="#joinNodeCard" class="nav-link">⚡ Nodo Web</a>
       <button id="openAuthModal" class="auth-btn" type="button">🔑 Chiave Rete</button>
-      <a href="./ai/" class="nav-cta-btn">Prova AI Studio ↗</a>
+      <a href="./chat.html" class="nav-cta-btn">Apri Chat ↗</a>
     </div>
   </nav>
 
@@ -1047,8 +1167,8 @@
       </div>
 
       <div class="hero-actions">
-        <a href="./ai/" class="hero-primary-btn">
-          🚀 Prova AI Studio (Gratis) ↗
+        <a href="./chat.html" class="hero-primary-btn">
+          💬 Apri Chat Estesa ↗
         </a>
         <a href="#chromeBridgeSection" class="hero-bridge-btn">
           🔌 Estensione Chrome (Ollama/LM Studio) ↓
@@ -1057,57 +1177,105 @@
           📜 Whitepaper Tokenomics (PDF) ↗
         </a>
         <a href="#joinNodeCard" class="hero-secondary-btn">
-          ⚡ Collega Nodo Web ↓
+          ⚡ Accesso Mesh & Nodo Web ↓
         </a>
       </div>
     </section>
 
-    <!-- Card Collegamento Nodo Web & Mining Token -->
+    <!-- Card Collegamento Nodo Web & Accesso Rete Sovrana -->
     <section class="card" id="joinNodeCard" aria-labelledby="joinTitle">
-      <h2 id="joinTitle">Ospita un Nodo Web</h2>
-      <p class="small">Condividi capacità leggere del tuo browser e accumula punti PoUW $00MESH.</p>
-
-      <div class="field">
-        <label for="nodeLabel">Nome del dispositivo</label>
-        <input id="nodeLabel" type="text" maxlength="80" placeholder="es. MacBook Pro di Alberto">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
+        <h2 id="joinTitle" style="margin:0;">Accesso Mesh & Calcolo Sovrano</h2>
+        <span class="live-badge" style="font-size:10.5px;padding:3px 10px;" id="nodeCardGlobalBadge">
+          <i class="pulse-dot"></i><span id="nodeCardGlobalBadgeText">Verifica Accesso…</span>
+        </span>
       </div>
+      <p class="small" style="margin-bottom:16px;">La Chat Sovrana unificata è attiva per i nodi che forniscono calcolo neurale (Plugin Chrome) o utenti con Chiave di Rete.</p>
 
-      <div class="field">
-        <label for="solanaAddress">Indirizzo Solana per Snapshot (Firma Ed25519 obbligatoria)</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input id="solanaAddress" type="text" maxlength="44" placeholder="es. Phantom / Solflare wallet…" style="flex:1;">
-          <button id="connectSolanaBtn" type="button" class="secondary" style="width:auto;margin:0;padding:11px 12px;font-size:12px;white-space:nowrap;" title="Connetti e firma con Phantom o Solflare">🟣 Firma Wallet</button>
+      <!-- Box Stato Accesso Dinamico (Bridge / Chiave / Locked) -->
+      <div id="accessStatusBox" class="access-status-box">
+        <div class="access-status-header">
+          <span style="font-size:12px;font-weight:700;color:#e2e8f0;">Stato Chat Sovrana:</span>
+          <span id="accessStatusBadge" class="access-badge locked">🔒 Riservato ai Nodi & Chiavi</span>
         </div>
-        <div id="walletSignStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
-      </div>
+        <p id="accessStatusDesc" style="font-size:12px;color:var(--muted);margin:0;line-height:1.5;">
+          Per accedere alla chat sovrana attiva l'estensione Chrome GPU (Ollama/LM Studio) o inserisci una chiave di rete valida.
+        </p>
 
-      <label class="consent">
-        <input id="consent" type="checkbox">
-        <span>Acconsento a condividere capacità web-safe (calcolo, embedding, routing) con la mesh HyperSpace durante la permanenza.</span>
-      </label>
-
-      <button id="join" disabled>Entra nella mesh & Inizia Mining</button>
-      <button id="leave" class="secondary" disabled>Disconnetti nodo</button>
-
-      <div id="status" class="status" role="status">
-        <i class="dot"></i><span id="statusText">Pronto a collegarsi</span>
-      </div>
-
-      <div class="metrics">
-        <div class="metric"><b id="completed">0</b><span>task eseguiti</span></div>
-        <div class="metric"><b id="failed">0</b><span>task falliti</span></div>
-        <div class="metric"><b id="capCount">—</b><span>capacità web</span></div>
-      </div>
-
-      <!-- Saldo $00MESH Wallet Autoritativo -->
-      <div class="token-wallet-badge">
-        <div>
-          <span style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700;">Saldo Reward PoUW:</span>
-          <div class="token-balance-val" id="nodeTokenBalance">0.00 <span>$00MESH</span></div>
+        <!-- CTA se autorizzato (mostrato quando bridge o key attivo) -->
+        <div id="accessAuthorizedSection" style="display:none;margin-top:10px;">
+          <a href="./chat.html" id="accessChatBtn" class="access-chat-cta key-btn">
+            💬 Apri Chat Estesa Sovrana ↗
+          </a>
         </div>
-        <div style="text-align:right;">
-          <span style="font-size:10.5px; color:#a855f7; font-weight:700; display:block;">+50 $00MESH Onboarding</span>
-          <span style="font-size:10px; color:var(--muted);">Solana SPL pump.fun</span>
+
+        <!-- Azioni se NON autorizzato -->
+        <div id="accessUnauthorizedSection" style="display:block;">
+          <div class="access-gate-actions">
+            <a href="#chromeBridgeSection" class="access-action-btn">
+              🔌 Estensione Chrome GPU
+            </a>
+            <button type="button" id="cardAuthModalBtn" class="access-action-btn">
+              🔑 Chiave di Rete
+            </button>
+          </div>
+          <!-- Nota Trasparenza Pubblicità & Chat Pubblica -->
+          <div class="access-future-notice">
+            📢 <b>Chat Pubblica Gratuita in Arrivo:</b> Stiamo integrando il circuito pubblicitario AdSense. Non appena le entrate o le pool comunitarie copriranno i costi dei server di inferenza, la chat estesa sarà aperta liberamente a tutti.
+          </div>
+        </div>
+      </div>
+
+      <!-- Sezione Nodo Web Browser & Mining PoUW $00MESH -->
+      <div style="border-top:1px solid var(--line-subtle);padding-top:16px;margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:13px;font-weight:700;color:#fff;">Ospita un Nodo Web (Browser)</span>
+          <span class="pill auth" style="font-size:10px;">PoUW Reward</span>
+        </div>
+        <p class="small" style="margin-bottom:12px;">Condividi compiti web-safe (routing, embedding) dal tuo browser e accumula punti computazionali $00MESH.</p>
+
+        <div class="field" style="margin-top:10px;">
+          <label for="nodeLabel">Nome del dispositivo</label>
+          <input id="nodeLabel" type="text" maxlength="80" placeholder="es. MacBook Pro di Alberto">
+        </div>
+
+        <div class="field" style="margin-top:10px;">
+          <label for="solanaAddress">Indirizzo Solana per Snapshot (Firma Ed25519 obbligatoria)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="solanaAddress" type="text" maxlength="44" placeholder="es. Phantom / Solflare wallet…" style="flex:1;">
+            <button id="connectSolanaBtn" type="button" class="secondary" style="width:auto;margin:0;padding:11px 12px;font-size:12px;white-space:nowrap;" title="Connetti e firma con Phantom o Solflare">🟣 Firma Wallet</button>
+          </div>
+          <div id="walletSignStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+        </div>
+
+        <label class="consent" style="margin:14px 0 12px;">
+          <input id="consent" type="checkbox">
+          <span>Acconsento a condividere capacità web-safe (calcolo, embedding, routing) con la mesh HyperSpace durante la navigazione.</span>
+        </label>
+
+        <button id="join" disabled>Entra nella mesh & Inizia Mining</button>
+        <button id="leave" class="secondary" disabled>Disconnetti nodo</button>
+
+        <div id="status" class="status" role="status">
+          <i class="dot"></i><span id="statusText">Pronto a collegarsi</span>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><b id="completed">0</b><span>task eseguiti</span></div>
+          <div class="metric"><b id="failed">0</b><span>task falliti</span></div>
+          <div class="metric"><b id="capCount">—</b><span>capacità web</span></div>
+        </div>
+
+        <!-- Saldo $00MESH Wallet Autoritativo -->
+        <div class="token-wallet-badge">
+          <div>
+            <span style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700;">Saldo Reward PoUW:</span>
+            <div class="token-balance-val" id="nodeTokenBalance">0.00 <span>$00MESH</span></div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:10.5px; color:#a855f7; font-weight:700; display:block;">+50 $00MESH Onboarding</span>
+            <span style="font-size:10px; color:var(--muted);">Solana SPL pump.fun</span>
+          </div>
         </div>
       </div>
     </section>
@@ -1255,11 +1423,11 @@
       </div>
 
       <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <a href="./ai/" class="hero-primary-btn" style="padding:12px 22px;">
-          🚀 Apri HyperSpace AI Studio ↗
+        <a href="./chat.html" class="hero-primary-btn" style="padding:12px 22px;">
+          💬 Apri Chat Sovrana Estesa ↗
         </a>
-        <a href="./chat.html" class="hero-secondary-btn" style="padding:12px 18px;">
-          💬 Console Full-Screen ↗
+        <a href="#chromeBridgeSection" class="hero-secondary-btn" style="padding:12px 18px;">
+          🔌 Collega la tua GPU Locale ↗
         </a>
       </div>
     </div>
@@ -1416,7 +1584,7 @@
       <div class="footer-col links-col">
         <h4>Navigazione & Risorse</h4>
         <ul>
-          <li><a href="./ai/">🚀 AI Studio (Chat, Immagini, Documenti)</a></li>
+          <li><a href="./chat.html">💬 Chat Sovrana Estesa (Multi-Modello)</a></li>
           <li><a href="./docs/hyperspace-tokenomics.pdf" target="_blank">📜 Whitepaper Tokenomics ($00MESH PDF)</a></li>
           <li><a href="./chat.html">💬 Console Mesh (Full Screen)</a></li>
           <li><a href="./progetto.html">📖 Architettura 00MESH 1.05</a></li>
@@ -1522,7 +1690,7 @@
 <script src="./join-config.js?v=1.05.5"></script>
 <script src="./src/anna-mascot.js?v=1.05.5"></script>
 <script type="module">
-  import { WebNode, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology } from "./src/index.js?v=1.05.5";
+  import { WebNode, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology, detectBridgeStatus } from "./src/index.js?v=1.05.5";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -1725,7 +1893,55 @@
 
   window.addEventListener("beforeunload", () => node?.stop());
 
-  // ── AUTENTICAZIONE MESH ──────────────────────────────────────────────────
+  // ── AUTENTICAZIONE MESH & GATE ACCESSO SOVRANO ───────────────────────────
+  function refreshAccessGateUI() {
+    const authState = authManager.getState();
+    const box = $("accessStatusBox");
+    const badge = $("accessStatusBadge");
+    const desc = $("accessStatusDesc");
+    const authSec = $("accessAuthorizedSection");
+    const unauthSec = $("accessUnauthorizedSection");
+    const chatBtn = $("accessChatBtn");
+    const cardBadge = $("nodeCardGlobalBadgeText");
+
+    if (!box || !badge) return;
+
+    if (authState.bridgeActive) {
+      box.className = "access-status-box active-bridge";
+      badge.className = "access-badge bridge";
+      const prov = authState.bridgeStatus?.provider || "Ollama/LM Studio";
+      badge.innerHTML = `🟢 Bridge GPU Attivo (${prov})`;
+      desc.textContent = "Nodo autorizzato al calcolo sovrano! La tua GPU locale sta contribuendo all'inferenza della rete. La Chat Estesa Sovrana è sbloccata.";
+      if (authSec) authSec.style.display = "block";
+      if (unauthSec) unauthSec.style.display = "none";
+      if (chatBtn) {
+        chatBtn.className = "access-chat-cta bridge-btn";
+        chatBtn.innerHTML = "💬 Apri Chat Estesa Sovrana ↗";
+      }
+      if (cardBadge) cardBadge.textContent = "GPU CONNESSA";
+    } else if (authState.authenticated) {
+      box.className = "access-status-box active-key";
+      badge.className = "access-badge key";
+      badge.innerHTML = `🔑 Chiave Attiva (${authState.label || "Rete"})`;
+      desc.textContent = "Accesso autorizzato con chiave di rete autoritativa. Modelli LLM distribuiti ed abliterated pronti all'uso.";
+      if (authSec) authSec.style.display = "block";
+      if (unauthSec) unauthSec.style.display = "none";
+      if (chatBtn) {
+        chatBtn.className = "access-chat-cta key-btn";
+        chatBtn.innerHTML = "💬 Apri Chat Estesa Sovrana ↗";
+      }
+      if (cardBadge) cardBadge.textContent = "CHIAVE ATTIVA";
+    } else {
+      box.className = "access-status-box";
+      badge.className = "access-badge locked";
+      badge.textContent = "🔒 Riservato ai Nodi & Chiavi";
+      desc.textContent = "La Chat Sovrana unificata richiede un contributo di calcolo locale (estensione Chrome con Ollama/LM Studio) oppure una Chiave di Rete. In alternativa, puoi avviare il nodo web browser sottostante.";
+      if (authSec) authSec.style.display = "none";
+      if (unauthSec) unauthSec.style.display = "block";
+      if (cardBadge) cardBadge.textContent = "ACCESSO RISERVATO";
+    }
+  }
+
   const authManager = new AuthManager({
     baseUrls: gatewayUrls,
     onStateChange: (authState) => {
@@ -1746,6 +1962,43 @@
         $("authKeyInput").value = "";
         $("authKeyInput").disabled = false;
       }
+      refreshAccessGateUI();
+    }
+  });
+
+  if ($("cardAuthModalBtn")) {
+    $("cardAuthModalBtn").addEventListener("click", () => {
+      $("openAuthModal").click();
+    });
+  }
+
+  // Verifica immediata bridge Chrome / motori locali all'avvio
+  authManager.checkBridge().then(() => {
+    refreshAccessGateUI();
+  });
+
+  // Ricezione telemetria bridge da content script estensione Chrome
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "00MESH_BRIDGE_STATUS") {
+      authManager.state.bridgeActive = Boolean(event.data.active);
+      authManager.state.bridgeStatus = event.data;
+      if (authManager.state.bridgeActive && !authManager.state.authenticated) {
+        authManager.state.role = "node_operator";
+        authManager.state.label = event.data.label || "Operatore GPU Locale";
+      }
+      refreshAccessGateUI();
+    }
+  });
+
+  document.addEventListener("00mesh:bridge-status", (event) => {
+    if (event.detail) {
+      authManager.state.bridgeActive = Boolean(event.detail.active);
+      authManager.state.bridgeStatus = event.detail;
+      if (authManager.state.bridgeActive && !authManager.state.authenticated) {
+        authManager.state.role = "node_operator";
+        authManager.state.label = event.detail.label || "Operatore GPU Locale";
+      }
+      refreshAccessGateUI();
     }
   });
 

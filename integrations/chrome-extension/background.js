@@ -272,7 +272,7 @@ async function runPollingLoop() {
 // Gestione messaggi inviati dalla UI Popup
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
-    if (msg.type === "GET_STATE") {
+    if (msg.type === "GET_STATE" || msg.type === "GET_BRIDGE_STATUS") {
       const state = await getOrInitState();
       sendResponse(state);
     } else if (msg.type === "SCAN_ENGINES") {

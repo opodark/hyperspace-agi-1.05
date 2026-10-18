@@ -39,6 +39,7 @@ def test_chrome_extension_manifest():
 def test_chrome_extension_files_and_spdx():
     files_to_check = [
         "background.js",
+        "content.js",
         "popup.html",
         "popup.js",
         "popup.css",
@@ -95,3 +96,32 @@ def test_extension_registration_compatibility_with_web_registry():
     )
     assert completed["ok"] is True
     assert completed["result"]["tokens_generated"] == 10
+
+
+def test_node_operator_bridge_auth_verify():
+    """Verifica che /web/auth/verify riconosca e autorizzi i node ID di bridge/operatori GPU."""
+    import sys
+    cp_dir = str(Path(__file__).resolve().parent.parent / "control-plane")
+    if cp_dir not in sys.path:
+        sys.path.insert(0, cp_dir)
+
+    from flask import Flask
+    from cp.webnode import monta
+
+    app = Flask(__name__)
+    monta(app)
+    client = app.test_client()
+
+    # 1. Nodo con prefisso bridge 'ext-...'
+    resp = client.post("/web/auth/verify", json={"key": "ext-test-12345"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["ok"] is True
+    assert data["authenticated"] is True
+    assert data["role"] == "node_operator"
+
+    # 2. Richiesta non autenticata / chiave vuota
+    resp_bad = client.post("/web/auth/verify", json={"key": "non-existent-key"})
+    assert resp_bad.status_code == 401
+    assert resp_bad.get_json()["authenticated"] is False
+
