@@ -5138,3 +5138,17 @@ procedo subito con la Fase 2.
    - Eseguito rebuild e restart del container: `docker compose up -d --build --no-deps control-plane`.
    - Latenza endpoint `/v1/models` scesa da oltre **5,0 s** a **0,29 s** (17x speedup).
    - Heartbeat attivo e regolarmente in tick ogni 15s. Nodi zombie offline esclusi automaticamente dal routing.
+
+## 2026-10-18 — Antigravity (Mac): Estensione Chrome "00MESH Local Bridge" per Ollama & LM Studio
+
+1. **Nuovo modulo estensione Chrome (`integrations/chrome-extension/`)**:
+   - Creato bridge nativo browser (Manifest V3) per consentire a nodi esterni e utenti consumer di condividere la propria GPU locale (tramite Ollama o LM Studio) sulla rete decentralizzata 00MESH:
+     - `manifest.json`: Manifest V3 con `host_permissions` mirate per `localhost:11434` (Ollama), `127.0.0.1:1234` (LM Studio), `zerozerocomputer.it` e `localhost:8085` (Hub/Control Plane), bypassando i vincoli CORS e Private Network Access (PNA).
+     - `background.js`: Service worker in ascolto che esegue auto-discovery dei modelli locali, registrazione del nodo all'hub (`POST /web/register`), long-polling dei task (`POST /web/poll`), dispatch locale via OpenAI-compatible API (`/v1/chat/completions`) e invio dei risultati validati (`POST /web/result`).
+     - `popup.html`, `popup.css`, `popup.js`: Interfaccia utente compatta stile cyberpunk 00MESH/Anna (stato motori in tempo reale, toggle di condivisione GPU/mining, associazione wallet Solana per premi Proof-of-Useful-Work, contatore token serviti e latenza media, pulsante di test inferenza locale).
+     - `icons/`: Icone standard (16x16, 48x48, 128x128).
+     - `README.md`: Guida di installazione e utilizzo su Chrome, Brave ed Edge.
+
+2. **Test & Conformità (`tests/test_chrome_extension_bridge.py`)**:
+   - Verificata la validità del Manifest V3, la presenza dei permessi host necessari e degli header di licenza SPDX Apache-2.0.
+   - Verificata la compatibilità del protocollo con `WebNodeRegistry` in `shared/web_node.py`.
