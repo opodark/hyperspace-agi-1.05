@@ -5788,3 +5788,39 @@ raggiungibili».
 3. **Verifiche**:
    - Creata suite `tests/test_smart_economic_fallback.py` (8 test unitari su calcolo risparmi Mesh, blocco per cap EUR, blocco per cap chiamate, modalità `0.0` EUR = 100% Mesh gratuita, rollover mezzanotte UTC e wiring in `_try_omniroute_fallback`).
    - Eseguiti `.venv/bin/python -m pytest tests/test_smart_economic_fallback.py tests/test_request_budget.py tests/test_finalize_task_risposta.py tests/test_runtime_recovery.py tests/test_config_runtime.py tests/test_licensing.py -q`: **58 passed, 46 subtests passed**. Nessun commit/push (in attesa di eventuale conferma utente).
+
+## 2026-10-18 — Antigravity (Mac): Attivazione Live Groq Free-Tier nello Smart Economic Fallback (Stream + Non-Stream)
+
+1. **Sanitizzazione Payload OpenAI & Rotazione Modelli Multipli (`control-plane/cp/chat.py`)**:
+   - In `_try_omniroute_fallback`: rimossi i campi interni del Control Plane (`_hyperspace_surface`, `_hyperspace_tools_off`, `think`, `surface`, `hyperspace_skills`, `tools`, `tool_choice`) non accettati da endpoint OpenAI-compatible rigorosi come Groq (`HTTP 400 property '_hyperspace_surface' / 'think' is unsupported`).
+   - Supportata lista di modelli separati da virgola in `EXTERNAL_FALLBACK_MODEL` (`openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b`): se un modello raggiunge il rate-limit giornaliero/minuto (HTTP 429), il fallback ruota automaticamente sul successivo triplicando la capacità gratuita (~3.000 req/giorno a 0 €).
+   - Esteso `_stream_gen` per usare `_try_omniroute_fallback` anche in modalità streaming (`stream=True`) sia su selezione esplicita (`🌐 OmniRoute (auto)`) sia come paracadute quando tutti i nodi locali/mesh sono occupati o irraggiungibili.
+
+2. **Verifiche Live & Test**:
+   - Configurata nel `.env` locale (gitignorato, nessun segreto nei file tracciati) l'integrazione con Groq (`https://api.groq.com/openai/v1`).
+   - Ricostruito e ricreato `hyperspace_control_plane`: testati con successo `/v1/chat/completions` in modalità sia `stream=False` che `stream=True` (`HTTP 200` in ~0.22s su `openai/gpt-oss-120b`) e verificato il tracciamento su `GET /web/budget/status`.
+   - Suite `tests/test_smart_economic_fallback.py`, `tests/test_request_budget.py`, `tests/test_licensing.py`: **37 passed**.
+
+## 2026-10-18 — Antigravity (Mac): Mini-CP Autonomo su Web-Node & Restyling Chat Estesa (Smart Scroll, URL Attivi, Anteprime Link, Tabelle Markdown)
+
+1. **Mini-CP Autonomo Client-Side (`web-node/src/minicp.js`, `web-node/tests/minicp.test.mjs`)**:
+   - Creato modulo orchestratore per il browser (`MiniControlPlane`) con strumenti client-side essenziali:
+     - `calc`: valutatore matematico client-side ad alta precisione sicuro da injection (senza `eval()`) per aritmetica, percentuali (`%`), potenze (`^`), costanti (`pi`, `e`), radici quadrate (`sqrt`), funzioni trigonometriche e statistiche.
+     - `summarize`: riassunto estrattivo istantaneo client-side a zero chiamate LLM basato sulla frequenza dei termini (con stopword multilingue).
+     - `web_search`: ricerca web privata in tempo reale tramite SearXNG / gateway (`searchWeb`, parsing fonti e citazioni).
+     - `code_sandbox`: esecuzione di codice Python in container Docker Sandbox isolato (`runSandboxCode`).
+     - `system_status`: diagnostica in tempo reale di latenza gateway, presenza bridge GPU locale (Chrome plugin / Ollama) e supporto WebGPU.
+   - Dispatcher di comandi slash integrato: `/help`, `/calc <espressione>`, `/search <query>`, `/summary <testo>`, `/status`, `/clear`.
+   - Test unitari dedicati in `web-node/tests/minicp.test.mjs` (8/8 passed).
+
+2. **UI Chat Estesa & Rendering Avanzato (`web-node/src/render.js`, `web-node/chat.html`, `web-node/tests/render.test.mjs`)**:
+   - **Smart Sticky Scroll**: risolto il rimbalzo continuo durante lo streaming SSE. La vista aggancia il fondo solo se l'utente è entro 70px dal fondo; se l'utente scorre verso l'alto per leggere la cronologia, lo scroll viene congelato e appare un pill flottante `↓ Nuovi messaggi` con punto pulsante. Un clic esegue uno scroll smooth e riattiva l'aggancio.
+   - **URL Attivi & Parsing Markdown Completo**: auto-linking di tutti gli URL grezzi in testo (`https://...`) con `target="_blank" rel="noopener noreferrer"`, rendering di tabelle responsive con allineamenti (`| col1 | col2 |`), task lists (`- [ ]`, `- [x]`), immagini (`![alt](url)` con thumbnail e lightbox), blockquotes, hr e sanificazione XSS.
+   - **Anteprime Link & Risorse (Link Preview Cards)**: rilevamento automatico di tutti gli URL univoci nel messaggio dell'assistente con generazione di una griglia di card d'anteprima (favicon del dominio, hostname, percorso, pulsante diretto "Apri ↗" e pulsante "Copia link 📋").
+   - **Pulsanti Rapidi Mini-CP**: badge interattivo `⚡ Mini-CP Autonomo` nella topbar e scorciatoie slash nella toolbar del composer (`🧮 /calc`, `📄 /summary`, `📡 /status`).
+
+3. **Verifiche & Pacchetto Aruba**:
+   - Suite completa Node.js: `node --test web-node/tests/*.test.mjs`: **42 passed, 0 failed**.
+   - Suite Python: `.venv/bin/python -m pytest tests/test_smart_economic_fallback.py tests/test_licensing.py -q`: **16 passed**.
+   - Pacchetto Aruba: `bash scripts/build-web-node-aruba.sh`: generato con successo `dist/web-node-aruba.zip`.
+

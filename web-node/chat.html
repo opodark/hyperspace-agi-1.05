@@ -80,11 +80,70 @@
     /* Markdown Styles */
     .msg-body p{margin:0 0 10px 0}
     .msg-body p:last-child{margin-bottom:0}
-    .msg-body h1,.msg-body h2,.msg-body h3{color:#fff;margin:16px 0 8px 0;line-height:1.2}
+    .msg-body h1,.msg-body h2,.msg-body h3,.msg-body h4{color:#fff;margin:16px 0 8px 0;line-height:1.25}
     .msg-body ul,.msg-body ol{margin:6px 0 10px 22px;padding:0}
     .msg-body li{margin-bottom:4px}
     .msg-body code{background:#060a14;padding:2px 6px;border-radius:6px;border:1px solid #20304a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:var(--cyan)}
+    .msg-body blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--cyan);background:#091224;border-radius:0 8px 8px 0;color:#cbd5e1;font-style:italic}
     
+    /* Active Links & URLs */
+    .md-link{color:#83fff0;text-decoration:none;font-weight:600;border-bottom:1px dotted #57e6d988;transition:all .15s ease;word-break:break-word}
+    .md-link:hover{color:#fff;border-bottom-color:var(--cyan);text-shadow:0 0 8px #57e6d966}
+    .md-link .ext-icon{font-size:11px;opacity:.8;margin-left:2px;display:inline-block}
+    .md-autolink{color:#a78bfa;border-bottom-color:#a78bfa66}
+    .md-autolink:hover{color:#c4b5fd;border-bottom-color:#c4b5fd}
+
+    /* Markdown Tables */
+    .table-wrap{margin:14px 0;overflow-x:auto;border-radius:10px;border:1px solid #1e2e4c;background:#080f20}
+    .md-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+    .md-table th{background:#0d172e;color:#e2e8f0;font-weight:700;padding:9px 13px;border-bottom:1px solid #233454;letter-spacing:.02em}
+    .md-table td{padding:8px 13px;border-bottom:1px solid #142036;color:#cbd5e1}
+    .md-table tr:last-child td{border-bottom:none}
+    .md-table tr:hover td{background:#111e3b55}
+
+    /* Markdown Images & HR */
+    .md-image-box{margin:14px 0;border-radius:12px;overflow:hidden;border:1px solid #1e2e4c;background:#050812;display:inline-flex;flex-direction:column;max-width:100%}
+    .md-img{max-width:100%;height:auto;display:block;border-radius:10px 10px 0 0;transition:transform .2s ease}
+    .md-img:hover{transform:scale(1.01)}
+    .md-img-caption{font-size:11px;color:var(--muted);padding:5px 10px;background:#0a1122;font-style:italic}
+    .md-hr{border:none;height:1px;background:linear-gradient(90deg,transparent,#233454,transparent);margin:18px 0}
+
+    /* Task Lists */
+    .task-item{list-style:none;display:flex;align-items:center;gap:7px;margin-left:-14px}
+    .task-box{font-size:14px;color:var(--muted)}
+    .task-done .task-box{color:var(--ok)}
+    .task-done{text-decoration:line-through;color:var(--muted)}
+
+    /* Link Preview Cards */
+    .msg-link-previews{margin-top:12px;padding-top:10px;border-top:1px dashed #1c2b48}
+    .link-previews-header{font-size:11px;font-weight:750;color:var(--cyan);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .link-previews-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+    .link-card{background:#091124;border:1px solid #1e3052;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;transition:all .18s ease}
+    .link-card:hover{border-color:var(--cyan);background:#0d1833;transform:translateY(-1px);box-shadow:0 4px 14px #0008}
+    .link-card-thumb img{width:100%;height:85px;object-fit:cover;border-radius:6px;margin-bottom:4px}
+    .link-card-host{display:flex;align-items:center;gap:6px}
+    .link-card-favicon{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+    .link-card-domain{font-size:12px;font-weight:750;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .link-card-path{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .link-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:2px}
+    .link-card-btn{background:#111c36;border:1px solid #24375a;color:#cbd5e1;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;cursor:pointer;text-decoration:none;transition:all .15s}
+    .link-card-btn:hover{border-color:var(--cyan);color:#fff}
+    .link-card-btn.open{background:#57e6d918;color:var(--cyan);border-color:#57e6d944}
+    .link-card-btn.open:hover{background:#57e6d933;color:#fff}
+
+    /* Floating Smart Scroll-to-Bottom Button */
+    .scroll-bottom-pill{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);background:#0d1833;border:1px solid var(--cyan);color:#fff;padding:7px 15px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px #000c,0 0 14px #57e6d944;display:none;align-items:center;gap:7px;z-index:30;transition:all .2s ease}
+    .scroll-bottom-pill.visible{display:inline-flex;animation:slide-up .2s ease}
+    .scroll-bottom-pill:hover{background:#152650;transform:translateX(-50%) translateY(-2px);box-shadow:0 6px 24px #000e,0 0 20px #57e6d966}
+    .scroll-bottom-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:pulse-glow .8s infinite alternate}
+    @keyframes slide-up{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+    /* Mini-CP Badge & Quick Chips */
+    .minicp-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:750;background:linear-gradient(115deg,#9a7cff22,#57e6d922);border:1px solid #9a7cff55;color:#c4b5fd;cursor:pointer;transition:all .15s}
+    .minicp-badge:hover{border-color:var(--cyan);color:#fff;box-shadow:0 0 12px #57e6d944}
+    .composer-tool-btn.chip-slash{color:#c4b5fd;border-color:#9a7cff44}
+    .composer-tool-btn.chip-slash:hover{border-color:#c4b5fd;background:#9a7cff22;color:#fff}
+
     /* Code Box & Sandbox Controls */
     .code-box{margin:12px 0;border:1px solid #27395a;border-radius:10px;background:#050811;overflow:hidden}
     .code-box-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#0b1326;border-bottom:1px solid #1c2b46;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
@@ -264,6 +323,11 @@
           <span id="activeChatTitle">Nuova conversazione</span>
         </div>
       </div>
+      <div class="topbar-actions">
+        <div id="miniCpBadge" class="minicp-badge" title="Mini-CP Autonomo Client-Side: clicca per visualizzare gli strumenti disponibili">
+          <span>⚡</span>
+          <span>Mini-CP Autonomo</span>
+        </div>
         <a href="./" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🌐 Home 00MESH</a>
         <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#c084fc;font-weight:600" title="Scarica il Whitepaper Tokenomics in PDF">🪙 $00MESH PDF ↗</a>
         <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> Mesh Connessa</span>
@@ -277,40 +341,49 @@
         <div class="empty-state" id="emptyState">
           <div class="empty-icon"></div>
           <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
+          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG, calcolo matematico client-side e Code Sandbox.</p>
           <div class="chips-grid">
             <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
               <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
             </div>
-            <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
-              <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
+            <div class="chip-card" data-prompt="/search release novità architettura neuromorfica e cluster GPU">
+              <b>🌐 Ricerca Web (SearXNG)</b> Fonti verificate in tempo reale tramite slash command
             </div>
-            <div class="chip-card" data-prompt="Spiega come analizzare file PDF ed estrarre testo strutturato a zero dipendenze nel browser.">
-              <b>📎 AnyDoc Ingestion</b> Analisi istantanea di codice e documenti
+            <div class="chip-card" data-prompt="/calc (150 * 4.2) + sqrt(1024) - 15%">
+              <b>🧮 Calcolatrice Mini-CP</b> Matematica sicura a precisione arbitraria client-side
             </div>
-            <div class="chip-card" data-prompt="Quali sono i vantaggi di eseguire modelli linguistici abliterated su cluster GPU decentralizzati?">
-              <b>🔥 Modelli Abliterated</b> Libertà e privacy del calcolo
+            <div class="chip-card" data-prompt="/status">
+              <b>📡 Diagnostica Mesh & GPU</b> Latenza gateway, bridge locale e tool attivi
             </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Pulsante Flottante Smart Scroll-to-Bottom -->
+    <button id="scrollBottomBtn" class="scroll-bottom-pill" type="button" aria-label="Scorri ai nuovi messaggi">
+      <span class="scroll-bottom-dot"></span>
+      <span>↓ Nuovi messaggi</span>
+    </button>
+
     <footer class="chat-bottom">
       <div class="composer-container" id="composerContainer">
-        <!-- Barra strumenti connettori estesi: AnyDoc e Web Search -->
+        <!-- Barra strumenti connettori estesi: AnyDoc, Web Search & Mini-CP Tools -->
         <div class="composer-toolbar">
           <input type="file" id="fileAttachmentInput" multiple accept=".txt,.md,.markdown,.json,.csv,.tsv,.py,.js,.ts,.jsx,.tsx,.html,.css,.xml,.yaml,.yml,.sh,.bash,.zsh,.sql,.log,.env,.toml,.ini,.conf,.pdf" style="display:none">
           <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega codice, documenti o PDF (AnyDoc)">📎 Allega File</button>
           <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Web Search</button>
+          <button id="calcQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Calcolatrice client-side (/calc)">🧮 /calc</button>
+          <button id="summaryQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Riassunto estrattivo immediato (/summary)">📄 /summary</button>
+          <button id="statusQuickBtn" class="composer-tool-btn chip-slash" type="button" title="Diagnostica rete e bridge GPU (/status)">📡 /status</button>
         </div>
 
         <!-- Vassoio chip documenti allegati -->
         <div id="attachedFilesTray" class="attached-files-tray" style="display:none"></div>
 
-        <textarea id="promptInput" class="composer-text" placeholder="Invia un messaggio alla mesh… (Shift+Invio per a capo, trascina file qui)" rows="1"></textarea>
+        <textarea id="promptInput" class="composer-text" placeholder="Invia un messaggio alla mesh… (usa /help, /calc, /search, o trascina file qui)" rows="1"></textarea>
         <div class="composer-footer">
-          <span class="composer-hint">Max token sbloccato · AnyDoc, SearXNG & Sandbox Docker attivi</span>
+          <span class="composer-hint">Max token sbloccato · Mini-CP, AnyDoc, SearXNG & Sandbox attivi</span>
           <button id="sendBtn" class="send-btn" type="button" disabled>Invia ↗</button>
         </div>
       </div>
@@ -375,10 +448,17 @@
 <script type="module">
   import { AuthManager, detectBridgeStatus } from "./src/auth.js?v=1.05.5";
   import { ChatClient } from "./src/chat.js?v=1.05.5";
-  import { renderMarkdown, attachCopyEvents, attachCodeBlockEvents } from "./src/render.js?v=1.05.4";
+  import {
+    renderMarkdown,
+    attachCopyEvents,
+    attachCodeBlockEvents,
+    extractUrls,
+    renderLinkPreviewSection
+  } from "./src/render.js?v=1.05.6";
   import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js?v=1.05.4";
   import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js?v=1.05.4";
   import { runSandboxCode } from "./src/sandbox.js?v=1.05.4";
+  import { MiniControlPlane, evaluateMath, summarizeText } from "./src/minicp.js?v=1.05.6";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -386,6 +466,16 @@
 
   const authManager = new AuthManager({ baseUrl: gatewayUrl });
   let chatClient = null;
+  let miniCp = null;
+
+  function initMiniCp() {
+    const token = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
+    miniCp = new MiniControlPlane({
+      gatewayUrl,
+      token,
+      activeBridge,
+    });
+  }
 
   // Session Management
   let chatSessions = [];
@@ -537,7 +627,7 @@
     for (const msg of msgs) {
       appendBubble(msg.role, msg.content, false, msg.attachments || [], msg.webSources || []);
     }
-    scrollBottom();
+    smartScrollBottom(true);
   }
 
   function appendBubble(role, content, animate = true, attachments = [], webSources = []) {
@@ -573,6 +663,20 @@
       body.textContent = content;
     }
     box.appendChild(body);
+
+    // Anteprima Link e Risorse Cliccabili
+    if (role === "assistant" && content) {
+      const urls = extractUrls(content);
+      if (urls.length > 0) {
+        const previewsHtml = renderLinkPreviewSection(urls);
+        if (previewsHtml) {
+          const previewDiv = document.createElement("div");
+          previewDiv.innerHTML = previewsHtml;
+          attachCopyEvents(previewDiv);
+          box.appendChild(previewDiv);
+        }
+      }
+    }
 
     // Accordion fonti web se disponibili
     if (role === "assistant" && webSources && webSources.length > 0) {
@@ -618,14 +722,39 @@
     }
 
     $("chatContainer").append(box);
-    scrollBottom();
+    smartScrollBottom(false);
     return body;
   }
 
-  function scrollBottom() {
-    const scroller = $("chatScroll");
-    scroller.scrollTop = scroller.scrollHeight;
+  // ── Smart Scroll con rilevamento intento utente ───────────────────────────
+  const chatScrollEl = $("chatScroll");
+  const scrollBottomBtn = $("scrollBottomBtn");
+  let isUserScrolledUp = false;
+
+  chatScrollEl?.addEventListener("scroll", () => {
+    const threshold = 70;
+    const distanceToBottom = chatScrollEl.scrollHeight - chatScrollEl.scrollTop - chatScrollEl.clientHeight;
+    isUserScrolledUp = distanceToBottom > threshold;
+    if (!isUserScrolledUp) {
+      scrollBottomBtn?.classList.remove("visible");
+    }
+  });
+
+  function smartScrollBottom(force = false) {
+    if (!chatScrollEl) return;
+    if (force || !isUserScrolledUp) {
+      chatScrollEl.scrollTop = chatScrollEl.scrollHeight;
+      scrollBottomBtn?.classList.remove("visible");
+    } else {
+      scrollBottomBtn?.classList.add("visible");
+    }
   }
+
+  scrollBottomBtn?.addEventListener("click", () => {
+    isUserScrolledUp = false;
+    chatScrollEl?.scrollTo({ top: chatScrollEl.scrollHeight, behavior: "smooth" });
+    scrollBottomBtn?.classList.remove("visible");
+  });
 
   function setupChipListeners() {
     document.querySelectorAll(".chip-card").forEach(chip => {
@@ -818,6 +947,74 @@
       text = "Analizza i documenti allegati ed estrai le informazioni e i punti chiave.";
     }
 
+    // Gestione Slash Commands Mini-CP autonomo (/help, /calc, /search, /summary, /status, /clear)
+    if (text.startsWith("/")) {
+      if (!currentSessionId) {
+        currentSessionId = "sess-" + Date.now();
+        const title = text.length > 28 ? text.slice(0, 28) + "…" : text;
+        $("activeChatTitle").textContent = title;
+        chatSessions.unshift({
+          id: currentSessionId,
+          title,
+          model: $("modelSelect").value,
+          messages: [],
+          updatedAt: Date.now()
+        });
+        saveSessions();
+      }
+      const sess = getCurrentSession();
+      const history = sess ? sess.messages : [];
+
+      $("promptInput").value = "";
+      attachedFiles = [];
+      renderAttachedFiles();
+      $("sendBtn").disabled = true;
+
+      if (text.toLowerCase() === "/clear") {
+        $("clearChatBtn").click();
+        $("sendBtn").disabled = false;
+        return;
+      }
+
+      appendBubble("user", text, true, currentAttachments);
+      history.push({ role: "user", content: text });
+      if (sess) sess.updatedAt = Date.now();
+      saveSessions();
+
+      const target = appendBubble("assistant", "");
+      target.innerHTML = '<span class="cursor-blink">▊</span>';
+
+      try {
+        if (!miniCp) initMiniCp();
+        const cmdRes = await miniCp.handleSlashCommand(text);
+        const replyText = cmdRes.content || "Comando completato.";
+        target.innerHTML = renderMarkdown(replyText);
+        attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+
+        const urls = extractUrls(replyText);
+        if (urls.length > 0) {
+          const previewsHtml = renderLinkPreviewSection(urls);
+          if (previewsHtml) {
+            const previewDiv = document.createElement("div");
+            previewDiv.innerHTML = previewsHtml;
+            attachCopyEvents(previewDiv);
+            target.parentElement.appendChild(previewDiv);
+          }
+        }
+
+        history.push({ role: "assistant", content: replyText });
+        if (sess) sess.updatedAt = Date.now();
+        saveSessions();
+      } catch (cmdErr) {
+        target.textContent = `Errore Mini-CP: ${cmdErr.message}`;
+      } finally {
+        $("sendBtn").disabled = false;
+        $("promptInput").focus();
+        smartScrollBottom(true);
+      }
+      return;
+    }
+
     if (!currentSessionId) {
       currentSessionId = "sess-" + Date.now();
       const title = text.length > 28 ? text.slice(0, 28) + "…" : text;
@@ -901,7 +1098,7 @@
           onDelta: (_p, whole) => {
             target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
             attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
-            scrollBottom();
+            smartScrollBottom(false);
           }
         });
       } catch (sendErr) {
@@ -917,7 +1114,7 @@
             onDelta: (_p, whole) => {
               target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
               attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
-              scrollBottom();
+              smartScrollBottom(false);
             }
           });
         } else {
@@ -928,6 +1125,18 @@
       const finalText = reply.text || target.textContent;
       target.innerHTML = renderMarkdown(finalText);
       attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+
+      // Anteprima Link e Risorse (se presenti URL nel messaggio finale)
+      const urls = extractUrls(finalText);
+      if (urls.length > 0) {
+        const previewsHtml = renderLinkPreviewSection(urls);
+        if (previewsHtml) {
+          const previewDiv = document.createElement("div");
+          previewDiv.innerHTML = previewsHtml;
+          attachCopyEvents(previewDiv);
+          target.parentElement.appendChild(previewDiv);
+        }
+      }
 
       // Se c'erano fonti web, aggiungi accordion
       if (webSources && webSources.length > 0) {
@@ -968,6 +1177,7 @@
     } finally {
       $("sendBtn").disabled = false;
       $("promptInput").focus();
+      smartScrollBottom(false);
     }
   }
 
@@ -977,6 +1187,29 @@
       e.preventDefault();
       handleSend();
     }
+  });
+
+  // Mini-CP Quick Tool Shortcuts
+  $("calcQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/calc ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("summaryQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/summary ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("statusQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/status";
+    handleSend();
+  });
+
+  $("miniCpBadge")?.addEventListener("click", () => {
+    $("promptInput").value = "/help";
+    handleSend();
   });
 
   $("promptInput").addEventListener("input", () => {

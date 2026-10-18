@@ -210,7 +210,14 @@ class OmnirouteSmartFallbackWiringTests(unittest.TestCase):
                 requests_mock,
                 push_log_mock,
             )
-            data = {"model": "qwen3:8b", "messages": [{"role": "user", "content": "ciao"}]}
+            data = {
+                "model": "qwen3:8b",
+                "messages": [{"role": "user", "content": "ciao"}],
+                "think": False,
+                "_hyperspace_surface": "openwebui",
+                "_hyperspace_tools_off": False,
+                "tools": [{"type": "function", "function": {"name": "web_search"}}],
+            }
             res = fn(data)
             self.assertIsNotNone(res)
             requests_mock.post.assert_called_once()
@@ -219,8 +226,59 @@ class OmnirouteSmartFallbackWiringTests(unittest.TestCase):
             called_headers = requests_mock.post.call_args[1]["headers"]
             self.assertEqual(called_url, "https://openrouter.ai/api/v1/chat/completions")
             self.assertEqual(called_json["model"], "deepseek/deepseek-chat")
+            self.assertNotIn("_hyperspace_surface", called_json)
+            self.assertNotIn("think", called_json)
+            self.assertNotIn("tools", called_json)
             self.assertEqual(called_headers.get("Authorization"), "Bearer sk-test-123")
             self.assertEqual(len(recorded), 1)
+        finally:
+            real_budget.check_external_fallback_budget = orig_check
+            real_budget.record_external_fallback_usage = orig_record
+            for k, v in saved_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+    def test_fallback_rotates_models_on_rate_limit(self):
+        requests_mock = Mock()
+        fail_resp = Mock()
+        fail_resp.raise_for_status.side_effect = RuntimeError("429 Too Many Requests")
+        ok_resp = Mock()
+        ok_resp.json.return_value = {
+            "choices": [{"message": {"role": "assistant", "content": "Secondo modello Groq OK"}}],
+            "usage": {"prompt_tokens": 50, "completion_tokens": 50},
+        }
+        requests_mock.post.side_effect = [fail_resp, ok_resp]
+        push_log_mock = Mock()
+
+        import cp.budget as real_budget
+        orig_check = real_budget.check_external_fallback_budget
+        orig_record = real_budget.record_external_fallback_usage
+        saved_env = {
+            k: os.environ.get(k)
+            for k in ("EXTERNAL_FALLBACK_API_URL", "EXTERNAL_FALLBACK_API_KEY", "EXTERNAL_FALLBACK_MODEL")
+        }
+        try:
+            os.environ["EXTERNAL_FALLBACK_API_URL"] = "https://api.groq.com/openai/v1"
+            os.environ["EXTERNAL_FALLBACK_API_KEY"] = "gsk_test"
+            os.environ["EXTERNAL_FALLBACK_MODEL"] = "openai/gpt-oss-120b,qwen/qwen3.8-27b"
+            real_budget.check_external_fallback_budget = lambda: (True, "ok")
+            real_budget.record_external_fallback_usage = lambda d, r: None
+
+            fn, _ = self._load_fallback_fn(
+                real_budget.check_external_fallback_budget,
+                real_budget.record_external_fallback_usage,
+                requests_mock,
+                push_log_mock,
+            )
+            res = fn({"model": "qwen3:8b", "messages": [{"role": "user", "content": "ciao"}]})
+            self.assertIsNotNone(res)
+            self.assertEqual(requests_mock.post.call_count, 2)
+            first_model = requests_mock.post.call_args_list[0][1]["json"]["model"]
+            second_model = requests_mock.post.call_args_list[1][1]["json"]["model"]
+            self.assertEqual(first_model, "openai/gpt-oss-120b")
+            self.assertEqual(second_model, "qwen/qwen3.8-27b")
         finally:
             real_budget.check_external_fallback_budget = orig_check
             real_budget.record_external_fallback_usage = orig_record
