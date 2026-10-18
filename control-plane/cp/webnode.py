@@ -837,6 +837,7 @@ def web_tokenomics_status():
         return '', 204
 
     from shared import tokenomics
+    from cp.budget import EXTERNAL_FALLBACK_BUDGET
     overview = tokenomics.get_tokenomics_overview()
     return jsonify({
         "ok": True,
@@ -846,7 +847,21 @@ def web_tokenomics_status():
         "bonding_pool": tokenomics.TOTAL_BONDING_POOL,
         "community_pool": tokenomics.TOTAL_COMMUNITY_POOL,
         "ecosystem_pool": tokenomics.TOTAL_ECOSYSTEM_POOL,
+        "smart_fallback_budget": EXTERNAL_FALLBACK_BUDGET.status(),
         **overview
+    }), 200
+
+
+@_bp.route('/web/budget/status', methods=['GET', 'OPTIONS'])
+def web_budget_status():
+    """Stato in tempo reale del budget Smart Economic Fallback (Mesh-First, API-Second)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    from cp.budget import EXTERNAL_FALLBACK_BUDGET
+    return jsonify({
+        "ok": True,
+        **EXTERNAL_FALLBACK_BUDGET.status(),
     }), 200
 
 

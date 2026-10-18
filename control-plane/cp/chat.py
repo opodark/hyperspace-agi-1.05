@@ -407,24 +407,39 @@ def _catalogo_nativi(superficie: str = "") -> list:
 # ── la compressione del prompt e il ripiego su OmniRoute ──────────────────
 
 def _try_omniroute_fallback(data: dict, timeout: int = 60):
-    """Ultimo livello di fallback: inoltra la richiesta chat/completions cosi'
-    com'e' a OmniRoute (gateway verso 278+ provider esterni, molti free-tier),
-    chiamato SOLO quando mesh e federazione hanno gia' fallito entrambe.
-    OMNIROUTE_API_KEY e' opzionale: l'immagine ufficiale risponde gia' con
-    provider free-tier di default senza alcuna configurazione — la chiave
-    va aggiunta solo se/quando l'utente collega provider propri dalla
-    dashboard OmniRoute. OMNIROUTE_ENABLED=false disattiva del tutto questo
-    livello. Ritorna None su qualunque errore, cosi' il chiamante puo'
-    proseguire con l'ultimo fallback locale (ollama diretto) invariato."""
-    if not OMNIROUTE_ENABLED:
+    """Ultimo livello di fallback ("Mesh-First, API-Second"): inoltra la
+    richiesta chat/completions a OmniRoute o a un endpoint OpenAI-compatible
+    low-cost (EXTERNAL_FALLBACK_API_URL), chiamato SOLO quando i nodi GPU della
+    mesh, l'inferenza locale e la federazione hanno gia' fallito o sono saturi.
+    Protetto dal gate giornaliero `check_external_fallback_budget()` (tetto in
+    Euro e in chiamate/giorno) per garantire zero sorprese in fattura."""
+    ext_url = os.getenv("EXTERNAL_FALLBACK_API_URL", "").strip().rstrip("/")
+    if not OMNIROUTE_ENABLED and not ext_url:
         return None
-    payload = {**data, "model": data.get("model") or OMNIROUTE_MODEL, "stream": False}
-    headers = {"Authorization": f"Bearer {OMNIROUTE_API_KEY}"} if OMNIROUTE_API_KEY else {}
-    if PROMPT_COMPRESSION_ENABLED:
+    try:
+        from cp.budget import check_external_fallback_budget, record_external_fallback_usage
+        allowed, reason = check_external_fallback_budget()
+        if not allowed:
+            push_log('inter_node_message', 'Smart Fallback bloccato per budget giornaliero',
+                     reason, status='warn')
+            return None
+    except Exception:
+        record_external_fallback_usage = None
+
+    ext_model = os.getenv("EXTERNAL_FALLBACK_MODEL", "").strip()
+    target_model = ext_model or data.get("model") or OMNIROUTE_MODEL
+    payload = {**data, "model": target_model, "stream": False}
+    api_key = os.getenv("EXTERNAL_FALLBACK_API_KEY", "").strip() or OMNIROUTE_API_KEY
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    if PROMPT_COMPRESSION_ENABLED and not ext_url:
         headers["x-omniroute-compression"] = PROMPT_COMPRESSION_MODE
+    base_url = ext_url or OMNIROUTE_URL
+    endpoint = base_url if base_url.endswith("/chat/completions") else f"{base_url}/v1/chat/completions"
+    if base_url.endswith("/v1"):
+        endpoint = f"{base_url}/chat/completions"
     try:
         r = requests.post(
-            f"{OMNIROUTE_URL}/v1/chat/completions",
+            endpoint,
             json=payload,
             headers=headers,
             timeout=timeout,
@@ -432,6 +447,11 @@ def _try_omniroute_fallback(data: dict, timeout: int = 60):
         r.raise_for_status()
         result = r.json()
         if isinstance(result, dict) and not result.get("error"):
+            if record_external_fallback_usage is not None:
+                try:
+                    record_external_fallback_usage(data, result)
+                except Exception:
+                    pass
             return result
     except Exception as e:
         push_log('inter_node_message', 'OmniRoute fallback fallito', str(e), status='warn')
@@ -519,6 +539,9 @@ def _finalize_task(task, task_id, node_id, model, prompt, result_json):
     try:
         from shared import tokenomics
         tokenomics.reward_task_completion(node_id, task_id, model=model)
+        if node_id != "omniroute":
+            from cp.budget import record_mesh_completion
+            record_mesh_completion(prompt, result_json)
     except Exception:
         pass
     ts_now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

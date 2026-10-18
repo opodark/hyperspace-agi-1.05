@@ -3428,6 +3428,11 @@ _ENV_RUNTIME_GET = {
     "OMNIROUTE_API_KEY": lambda: OMNIROUTE_API_KEY,
     "OMNIROUTE_MODEL": lambda: OMNIROUTE_MODEL,
     "OMNIROUTE_ENABLED": lambda: OMNIROUTE_ENABLED,
+    "EXTERNAL_FALLBACK_DAILY_EUR_CAP": lambda: float(os.getenv("EXTERNAL_FALLBACK_DAILY_EUR_CAP", "0.50")),
+    "EXTERNAL_FALLBACK_DAILY_CALLS_CAP": lambda: int(os.getenv("EXTERNAL_FALLBACK_DAILY_CALLS_CAP", "500")),
+    "EXTERNAL_FALLBACK_API_URL": lambda: os.getenv("EXTERNAL_FALLBACK_API_URL", ""),
+    "EXTERNAL_FALLBACK_API_KEY": lambda: os.getenv("EXTERNAL_FALLBACK_API_KEY", ""),
+    "EXTERNAL_FALLBACK_MODEL": lambda: os.getenv("EXTERNAL_FALLBACK_MODEL", ""),
     "PROMPT_COMPRESSION_ENABLED": lambda: PROMPT_COMPRESSION_ENABLED,
     "PROMPT_COMPRESSION_MODE": lambda: PROMPT_COMPRESSION_MODE,
     "PROMPT_COMPRESSION_MIN_CHARS": lambda: PROMPT_COMPRESSION_MIN_CHARS,
@@ -3550,6 +3555,16 @@ def _apply_env_runtime(meta: dict, cv) -> None:
         OMNIROUTE_MODEL = str(cv)
     elif key == "OMNIROUTE_ENABLED":
         OMNIROUTE_ENABLED = bool(cv)
+    elif key == "EXTERNAL_FALLBACK_DAILY_EUR_CAP":
+        _config.EXTERNAL_FALLBACK_DAILY_EUR_CAP = max(0.0, float(cv))
+    elif key == "EXTERNAL_FALLBACK_DAILY_CALLS_CAP":
+        _config.EXTERNAL_FALLBACK_DAILY_CALLS_CAP = max(0, int(cv))
+    elif key == "EXTERNAL_FALLBACK_API_URL":
+        _config.EXTERNAL_FALLBACK_API_URL = str(cv).strip().rstrip("/")
+    elif key == "EXTERNAL_FALLBACK_API_KEY":
+        _config.EXTERNAL_FALLBACK_API_KEY = str(cv).strip()
+    elif key == "EXTERNAL_FALLBACK_MODEL":
+        _config.EXTERNAL_FALLBACK_MODEL = str(cv).strip()
     elif key == "PROMPT_COMPRESSION_ENABLED":
         PROMPT_COMPRESSION_ENABLED = bool(cv)
     elif key == "PROMPT_COMPRESSION_MODE":

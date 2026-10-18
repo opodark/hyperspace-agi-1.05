@@ -5773,3 +5773,18 @@ raggiungibili».
 
 
 
+## 2026-10-18 — Antigravity (Mac): Smart Economic Fallback ("Mesh-First, API-Second" + Tetto Giornaliero)
+
+1. **Budget Gate Giornaliero (`control-plane/cp/budget.py`)**:
+   - Introdotto `ExternalFallbackBudget` (con istanza globale `EXTERNAL_FALLBACK_BUDGET` e helper `check_external_fallback_budget`, `record_external_fallback_usage`, `record_mesh_completion`).
+   - Applica la politica **Mesh-First, API-Second**: tutte le richieste passano prima dai nodi GPU gratuiti della Mesh (nodi locali Ollama/LM Studio, nodi Chrome Extension Bridge, federazione) registrando il risparmio (`saved_eur_today`, `mesh_served_today`, `mesh_offload_pct`).
+   - Quando tutti i nodi gratuiti sono occupati o offline, il fallback esterno (OmniRoute o endpoint OpenAI-compatible diretto come OpenRouter / DeepSeek / Qwen) è protetto da un hard-cap giornaliero in Euro (`EXTERNAL_FALLBACK_DAILY_EUR_CAP`, default `0.50` EUR/giorno = max ~15 €/mese) e in numero di chiamate (`EXTERNAL_FALLBACK_DAILY_CALLS_CAP`, default `500`), con azzeramento automatico alla mezzanotte UTC.
+
+2. **Integrazione Routing, Configurazione & Telemetria (`control-plane/cp/chat.py`, `cp/config.py`, `cp/env_meta.py`, `cp/webnode.py`, `main.py`)**:
+   - `_try_omniroute_fallback` verifica `check_external_fallback_budget()` prima di effettuare chiamate HTTP esterne e blocca immediatamente il fallback a pagamento se il tetto giornaliero è raggiunto, registrando il consumo reale (`usage.prompt_tokens` / `completion_tokens`) a chiamata conclusa.
+   - Aggiunte le variabili `EXTERNAL_FALLBACK_DAILY_EUR_CAP`, `EXTERNAL_FALLBACK_DAILY_CALLS_CAP`, `EXTERNAL_FALLBACK_API_URL`, `EXTERNAL_FALLBACK_API_KEY`, `EXTERNAL_FALLBACK_MODEL` in `cp/config.py`, nella tab Setup (`cp/env_meta.py`) e in `_apply_env_runtime` (`main.py`).
+   - Esposto lo stato in tempo reale in `GET /web/budget/status` e nel campo `smart_fallback_budget` di `GET /web/tokenomics/status`.
+
+3. **Verifiche**:
+   - Creata suite `tests/test_smart_economic_fallback.py` (8 test unitari su calcolo risparmi Mesh, blocco per cap EUR, blocco per cap chiamate, modalità `0.0` EUR = 100% Mesh gratuita, rollover mezzanotte UTC e wiring in `_try_omniroute_fallback`).
+   - Eseguiti `.venv/bin/python -m pytest tests/test_smart_economic_fallback.py tests/test_request_budget.py tests/test_finalize_task_risposta.py tests/test_runtime_recovery.py tests/test_config_runtime.py tests/test_licensing.py -q`: **58 passed, 46 subtests passed**. Nessun commit/push (in attesa di eventuale conferma utente).
