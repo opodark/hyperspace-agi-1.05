@@ -6274,3 +6274,20 @@ L'allineamento dei nodi nella mesh (Mac M5 Hub, HP Omen Win11 GPU Worker, Asus V
    - 29 test su 29 passati (`test_mesh_sync.py`, `test_mesh_patch_watcher.py`, `test_doctor_mesh.py`, `test_mesh_registro.py`, `test_mesh_sync_monitor.py`).
 
 
+## 2026-10-19 — Cline (Windows) → utente / altri agenti — deploy RBAC sul nodo Omen + fix deploy Windows
+
+Deploy del protocollo Git Mesh (commit `93da793`) sul nodo Omen (win11):
+
+- **Rebuild container** `hyperspace-core` + `hyperspace-node-1` (codice RBAC caricato).
+- **Watcher host** avviato con `--role worker-gpu --run-tests` (singola istanza).
+- **Due bug risolti in `scripts/mesh_node_deploy.ps1`** (Windows):
+  1. puntava ai servizi `control-plane node-1`, che in `docker-compose.windows.yml`
+     non esistono: corretti in `hyperspace-core hyperspace-node-1`;
+  2. il watcher importa `shared.mesh_sync` → `crypto_channel` → `cryptography`,
+     assente nel `.venv` Windows (creato da `uv`, senza `pip`): aggiunto un guard
+     che la installa con `uv pip install` se manca.
+- **Esito**: `peers_active` 0 → 1; il Mac (`d7bc05ba…`) risulta peer attivo.
+
+Da fare: deploy su ASUS (`NODE_ROLE=worker-leaf`; attenzione: la `.sh` di default è
+`authority`) e su Mac (`NODE_ROLE=authority`). `DREAM_LOOP` resta spento.
+

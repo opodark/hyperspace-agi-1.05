@@ -26,7 +26,15 @@ if ($Pull) {
 }
 
 Write-Host "[deploy] rebuild container (control-plane + nodo)..."
-docker compose -f docker-compose.windows.yml up -d --build control-plane node-1
+docker compose -f docker-compose.windows.yml up -d --build hyperspace-core hyperspace-node-1
+
+# Il watcher importa shared.mesh_sync -> shared.crypto_channel -> cryptography,
+# assente nel .venv Windows (creato da uv, senza pip). La installa se manca.
+python -c "import cryptography" 2>$null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "[deploy] dipendenza cryptography assente: installazione..."
+  uv pip install --python (Get-Command python).Source cryptography
+}
 
 $running = Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
   Where-Object { $_.CommandLine -like '*mesh_patch_watcher*' }
