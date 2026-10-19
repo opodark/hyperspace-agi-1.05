@@ -6101,3 +6101,69 @@ metterlo o a darmi il via.
   - Ricetta pasta al tonno in 5 min con tabella Markdown: **`2.78s`**.
   - Guida reverse engineering Jadx & Frida per SSL pinning con script pronto: **`9.02s`**.
 - **Chat Web (`https://www.zerozerocomputer.it/chat.html`):** HTTP 200, online e reattiva con supporto PDF con 1 clic (`📑 Scarica PDF`).
+
+
+## 2026-10-17 — Cline → utente / Codex — scambio AGENTS.md + AGENT-LOG.md sul canale mesh: verificato (round-trip OK)
+
+Risposta alla domanda "si possono scambiare AGENTS.md e il log sul canale
+Hyperspace, o serve un piccolo filesystem distribuito per le patch?":
+
+- **Il filesystem distribuito esiste già.** `shared/mesh_sync.py` ha
+  `direct_files` (pack di file arbitrari in gzip + base64 + sha256) e
+  `apply_mesh_update` (applicazione atomica con backup/rollback e verifica
+  checksum). Trasporto E2EE (ECDH + AES-256-GCM + ECDSA) via
+  `distribute_payload_to_node` → POST `/mesh/sync/patch` sul nodo, che deposita
+  in `mesh-patches/` (repo read-only); l'applicazione la fa
+  `scripts/mesh_patch_watcher.py` sull'host.
+- **Test round-trip locale** dentro `hyperspace-node-1` (container, cryptography
+  50.0.2) con il nuovo `scripts/diagnostics/mesh_agent_files_roundtrip.py`:
+  pack di `AGENTS.md` (14 660 B) + `AGENT-LOG.md` (378 242 B) → apply in temp →
+  **SHA-256 match su entrambi, ROUNDTRIP OK**.
+- **Per mandarli davvero**: `python scripts/mesh_distribute.py --files
+  "AGENTS.md,AGENT-LOG.md" --target http://<nodo>:8081` (oppure `--all`).
+- **Limite attuale**: mesh mononodo (solo l'hub locale `5d96b588…` attivo,
+  `peers_active: 0`); un test reale cross-nodo richiede un secondo nodo online
+  (Mac, HP Omen, ASUS). Il repo `.venv` Windows non ha `cryptography` (dipendenza
+  del canale): il test gira nel container node, non nel `.venv` host.
+- **Nota di scala**: `AGENT-LOG.md` è ~378 KB; per una sync continua conviene un
+  delta append-only (solo i blocchi nuovi) invece del file intero.
+
+
+## 2026-10-17 — Cline → utente / Codex — merge de-track persone: il merge cancella i file persona dal disco
+
+Merge di `origin/main` (2 commit: `213b71f` de-track persone + `bcf2bde` log) nel
+ramo locale divergente (`4c3ed6a`). Merge commit `89a50c2`, nessun conflitto.
+
+- **Trappola trovata.** `213b71f` usa `git rm --cached` per de-tracciare
+  `data/persona-anna.json` e `data/persona-aurora.json`. Il `--cached` tiene il
+  file SOLO sulla macchina di chi l'ha eseguito: quando il commit (delete mode
+  100644) viene **mergiato** su un'altra macchina, git applica la cancellazione e
+  **rimuove i file anche dal disco** di chi fa il merge. Su questo nodo Windows
+  i due file erano spariti dopo il merge.
+- **Ripristino.** `git checkout 8262df4 -- data/persona-aurora.json` e
+  `git checkout 233c458 -- data/persona-anna.json`, poi `git reset` per non
+  ri-tracciarli. Byte-perfetti (aurora 7803 B, anna 8374 B, JSON valido), ora
+  non tracciati e ignorati da git come previsto.
+- **Per i prossimi nodi** (ASUS, HP Omen, Mac): NON fare un semplice `git pull`
+  del de-track senza prima **backup dei file persona** (oppure redistribuirli
+  cifrati con `scripts/mesh_distribute.py --personas --all`). Sequenza sicura:
+  backup → pull → ripristino, come già indicato nel log di `bcf2bde` per l'ASUS.
+
+
+## 2026-10-19 — Cline (Windows) → utente / altri agenti — recupero git: pull completato, conflitto AGENT-LOG risolto
+
+Su richiesta dell'utente, recuperato lo stato git del nodo Windows (`hyperspace-agi-1.05`):
+
+- **Nessun merge era in corso** (`git merge --abort` → "no merge to abort"): il
+  ramo `main` era solo divergente da `origin/main` (2 commit locali vs 14 remoti).
+- **`git stash`** del blocco AGENT-LOG non committato (round-trip OK + de-track).
+- **`git pull`** → merge dei 14 commit di `origin/main` (merge commit `3f6c643`).
+  Conflitto SOLO in `AGENT-LOG.md`, risolto mantenendo entrambi i lati.
+  Rimosso anche un `<<<<<<< HEAD` orfano già **committato in `origin/main`**
+  (commit `10e01c6`, nel blob alla riga 5156): non committare mai i marker di conflitto.
+- **`git stash pop`** → conflitto in `AGENT-LOG.md` (i due blocchi stashati sono
+  riapparsi in coda), risolto manualmente; stash poi droppato.
+- Nessun commit del working tree e nessun push (regola repo). `main` è avanti di
+  3 commit su `origin/main`. Restano non committati: `AGENT-LOG.md` (blocchi del
+  17-10) e lo script `scripts/diagnostics/mesh_agent_files_roundtrip.py`.
+
