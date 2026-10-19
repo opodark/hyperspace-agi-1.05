@@ -20,7 +20,7 @@
 #   integrations/comfyui/start-bridge.sh           # in attesa, in ciclo
 set -euo pipefail
 
-REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.05}"
+REPO="${HYPERSPACE_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 cd "$REPO"
 
 # ── CHANNEL_TOKEN (dal canale "comfy" in CHANNEL_CLIENTS) ────────────────

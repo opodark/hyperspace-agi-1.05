@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.hyperspace.webui-gateway</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/opo/hyperspace-agi-1.04/integrations/comfyui/start-gateway.sh</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.04</string>
+    <!-- L'ambiente DEL JOB vince su quello del dominio launchd: senza questo, un
+         `launchctl setenv COMFY_URL` dimenticato in giro diventerebbe la porta del
+         gateway, come è già successo al ponte il 2026-10-01. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>COMFY_URL</key><string>http://127.0.0.1:8188</string>
+        <key>WEBUI_GATEWAY_PORT</key><string>8189</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+    <key>ThrottleInterval</key><integer>15</integer>
+    <key>StandardOutPath</key><string>/private/tmp/webui-gateway.log</string>
+    <key>StandardErrorPath</key><string>/private/tmp/webui-gateway.log</string>
+</dict>
+</plist>

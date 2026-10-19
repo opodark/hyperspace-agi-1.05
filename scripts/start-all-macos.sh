@@ -74,6 +74,23 @@ else
   log "bridge ComfyUI caricato e avviato"
 fi
 
+# ── gateway WebUI (8189): la porta che Open WebUI usa per disegnare ──────────
+gateway_label="com.hyperspace.webui-gateway"
+gateway_domain="gui/$(id -u)/$gateway_label"
+gateway_plist="$REPO/integrations/comfyui/com.hyperspace.webui-gateway.plist"
+if launchctl print "$gateway_domain" >/dev/null 2>&1; then
+  if launchctl print "$gateway_domain" 2>/dev/null | grep -q 'state = running'; then
+    log "gateway WebUI già attivo"
+  else
+    launchctl kickstart "$gateway_domain"
+    log "gateway WebUI avviato"
+  fi
+else
+  launchctl bootstrap "gui/$(id -u)" "$gateway_plist"
+  launchctl kickstart "$gateway_domain" 2>/dev/null || true
+  log "gateway WebUI caricato e avviato"
+fi
+
 if running '[t]elegram_bot.py'; then
   log "Telegram già attivo"
 else
