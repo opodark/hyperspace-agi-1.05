@@ -78,17 +78,32 @@ class MissionController:
         view = dict(mission)
         view["_execution_budget"] = mission_policy.effective_budget(mission, self.budget)
         view["_deadline"] = getattr(self, "_deadline", None)
+        view["receipts"] = mission.get("receipts") or {}
         mission_id = mission["id"]
         view["_cancelled"] = lambda: (self.store.get(mission_id) or {}).get("status") in {"cancelled", "failed"}
         return view
 
     def _run_task(self, mission_id, task):
+        attempt = task.get("attempts", 1)
+        idempotency_key = f"{mission_id}:{task['task_id']}:{attempt}"
+        receipt = getattr(self.store, "get_receipt", lambda mid, ikey: None)(mission_id, idempotency_key)
+        if receipt and isinstance(receipt.get("result"), dict) and receipt["result"].get("ok"):
+            return receipt["result"]
+
+        task_view = dict(task)
+        task_view["idempotency_key"] = idempotency_key
         try:
-            outcome = self.worker(task, self._view(self.store.get(mission_id))) or {}
+            outcome = self.worker(task_view, self._view(self.store.get(mission_id))) or {}
         except Exception as error:  # a worker crash is a task failure, not a crash
             outcome = {"ok": False, "error": str(error) or type(error).__name__}
         if not isinstance(outcome, dict):
             outcome = {"ok": False, "error": "worker returned a non-dict outcome"}
+        if outcome.get("ok"):
+            try:
+                if hasattr(self.store, "record_receipt"):
+                    self.store.record_receipt(mission_id, idempotency_key, "task_execution", outcome)
+            except Exception:
+                pass
         return outcome
 
     def _dispatch_wave(self, mission_id, tasks, deadline, pool):
@@ -177,9 +192,11 @@ class MissionController:
         except Exception as error:
             self.store.finish(mission_id, "failed", f"planner error: {error}")
             return False
+        caps = {t.get("role", "worker"): t.get("tools", []) for t in tasks if isinstance(t, dict)}
         try:
             self.store.set_plan(mission_id, tasks, plan={"roles": sorted(
-                {t.get("role", "worker") for t in tasks if isinstance(t, dict)})})
+                {t.get("role", "worker") for t in tasks if isinstance(t, dict)}),
+                "capabilities": caps})
         except ValueError as error:
             self.store.finish(mission_id, "failed", f"invalid plan: {error}")
             return False

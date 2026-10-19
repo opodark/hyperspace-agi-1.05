@@ -815,6 +815,21 @@ upload: i nomi, l'impronta, il peso, l'ordine LoRA-adattatore, e le quattro cose
 fermarsi) e `tests/test_comfyui_bridge_modelli.py` (`--check` chiede a ogni famiglia solo i
 file che la sua ricetta dichiara, e distingue un nodo assente da una cartella vuota).
 
+Oltre al preflight, il ponte verifica **a ogni job** che i nodi che il grafo userà
+davvero esistano ancora in ComfyUI (`nodi_mancanti` in `comfy_bridge.py`): un
+`custom_nodes` rimosso dopo l'avvio, una seconda installazione o una versione di
+ComfyUI diversa non si vedono da `--check`. Due nodi in particolare — `DWPreprocessor`
+e `HyperSpacePosePreset` — entrano nel grafo solo quando un job chiede una posa, e il
+preflight non li controlla. Un nodo assente ferma il job **prima** di mandare il grafo,
+con il nome del nodo e lo script da lanciare, invece di morire dentro ComfyUI con un
+dump troncato.
+
+Il fallimento torna al control-plane anche con un **codice macchina** (`codice` in
+`/image/result`): `node_missing`/`model_missing`/`rejected`/`cuda_error` (ripara),
+`interrupted`/`timeout`/`unreachable` (rilancia), `error` (non classificato). Il
+classificatore è `codice_fallimento` in `comfy_bridge.py`, così la dashboard può
+distinguere «ripara» da «rilancia» senza leggere il testo libero.
+
 ## La ragione della scelta: 8 GB di VRAM sono un budget
 
 Su questa scheda un modello di linguaggio e un modello d'immagine **non stanno

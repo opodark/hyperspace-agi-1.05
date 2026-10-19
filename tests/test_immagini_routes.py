@@ -196,6 +196,19 @@ class CicloDelPonteTests(MontaggioCodaMixin, unittest.TestCase):
         self.assertEqual(esito.status_code, 200)
         self.assertTrue(esito.get_json()["job"]["esito"]["file"].endswith(".jpg"))
 
+    def test_il_codice_del_ponte_arriva_nell_esito(self):
+        accodato = self.client.post("/image/generate",
+                                    json={"prompt": "prova", "canale": "prova"},
+                                    headers=CANALE)
+        job_id = accodato.get_json()["job"]["id"]
+        self.client.get("/image/jobs", headers=CANALE)
+        esito = self.client.post("/image/result",
+                                 json={"id": job_id, "ok": False,
+                                       "errore": "nodo mancante: X",
+                                       "codice": "node_missing"}, headers=CANALE)
+        self.assertEqual(esito.status_code, 200)
+        self.assertEqual(esito.get_json()["job"]["esito"]["codice"], "node_missing")
+
     def test_un_job_inesistente_e_404(self):
         risposta = self.client.get("/image/job/non-esiste", headers=CANALE)
         self.assertEqual(risposta.status_code, 404)

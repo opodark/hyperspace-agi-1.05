@@ -88,6 +88,8 @@ _synced_memory_keys: set = set()
 
 def _poll_mesh_nodes():
     for ep in list(_known_endpoints):
+        if not ep or not (ep.startswith("http://") or ep.startswith("https://")):
+            continue
         if ep and _LOCAL_NODE_ENDPOINT and _normalize_endpoint(ep) == _normalize_endpoint(_LOCAL_NODE_ENDPOINT):
             continue
         try:
@@ -106,13 +108,16 @@ def _poll_mesh_nodes():
                        not _normalize_endpoint(existing.get("endpoint","")).startswith("https://") or \
                        ep.startswith("https://"):
                         _nodes_by_id[nid] = info
-                        db.upsert_node(info)
+                        try:
+                            db.upsert_node(info)
+                        except Exception:
+                            pass
                 try:
                     rp = requests.get(f"{ep}/peers", timeout=2)
                     if _is_valid_json_response(rp):
                         for peer in rp.json().get("peers", []):
                             pep = _normalize_endpoint(peer.get("endpoint", ""))
-                            if pep and pep not in _known_endpoints:
+                            if pep and (pep.startswith("http://") or pep.startswith("https://")) and pep not in _known_endpoints:
                                 _known_endpoints.add(pep)
                 except Exception:
                     pass
@@ -120,7 +125,10 @@ def _poll_mesh_nodes():
                 for nid, n in list(_nodes_by_id.items()):
                     if _normalize_endpoint(n.get("endpoint","")) == ep and n.get("node_id") != _LOCAL_NODE_ID:
                         _nodes_by_id[nid]["status"] = "unreachable"
-                        db.upsert_node({**_nodes_by_id[nid], "status": "unreachable"})
+                        try:
+                            db.upsert_node({**_nodes_by_id[nid], "status": "unreachable"})
+                        except Exception:
+                            pass
                         push_log('mesh_event',
                                  f'Node zombie detected: {nid[:12]}',
                                  f'endpoint={ep} http={r.status_code} content-type={r.headers.get("Content-Type","?")}',
@@ -129,7 +137,10 @@ def _poll_mesh_nodes():
             for nid, n in list(_nodes_by_id.items()):
                 if _normalize_endpoint(n.get("endpoint","")) == ep and n.get("node_id") != _LOCAL_NODE_ID:
                     _nodes_by_id[nid]["status"] = "unreachable"
-                    db.upsert_node({**_nodes_by_id[nid], "status": "unreachable"})
+                    try:
+                        db.upsert_node({**_nodes_by_id[nid], "status": "unreachable"})
+                    except Exception:
+                        pass
 
     if _LOCAL_NODE_ENABLED:
         remote_active = [
@@ -220,42 +231,56 @@ def heartbeat_loop():
              status='info')
     hb_state["running"] = True
     while True:
-        cycle = hb_state["cycle"] + 1
-        hb_state["cycle"]     = cycle
-        hb_state["last_tick"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        _poll_mesh_nodes()
-        hb_state["nodes_seen"] = [
-            n.get("node_id", n.get("endpoint","?"))[:12]
-            for n in _node_list() if n.get("status") == "active"
-        ]
-        if cycle % 2 == 0:
-            _sync_memory_across_nodes()
-            hb_state["last_memory_sync"] = hb_state["last_tick"]
-        for node in _node_list():
-            if node.get("status") != "active": continue
-            if node.get("is_local"): continue
-            nid = node.get("node_id", node.get("endpoint","unknown"))[:12]
-            ep  = _best_endpoint(node)
-            if not ep: continue
-            tid = str(uuid.uuid4())[:8]
-            try:
-                t0  = time.time()
-                r   = requests.get(f"{ep}/health", timeout=2)
-                lat = int((time.time()-t0)*1000)
-                if _is_valid_json_response(r):
-                    push_log('connection_test', f'HB#{cycle} ping OK -> {nid}',
-                             f'latency: {lat}ms | score: {round(_node_score(node),3)}',
-                             source='control-plane', target=nid, status='success', trace_id=tid)
-                    hb_state["last_conn"] = hb_state["last_tick"]
-                    _notify_bridge("task", {"from": "cp", "to": nid, "type": "heartbeat",
-                                            "label": f"HB#{cycle} {lat}ms"})
-                else:
-                    push_log('connection_test', f'HB#{cycle} zombie -> {nid}',
-                             f'HTTP {r.status_code} non-JSON ({r.headers.get("Content-Type","?")})',
+        try:
+            cycle = hb_state["cycle"] + 1
+            hb_state["cycle"]     = cycle
+            hb_state["last_tick"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            _poll_mesh_nodes()
+            hb_state["nodes_seen"] = [
+                n.get("node_id", n.get("endpoint","?"))[:12]
+                for n in _node_list() if n.get("status") == "active"
+            ]
+            if cycle % 2 == 0:
+                _sync_memory_across_nodes()
+                hb_state["last_memory_sync"] = hb_state["last_tick"]
+            for node in _node_list():
+                if node.get("status") != "active": continue
+                if node.get("is_local"): continue
+                nid = node.get("node_id", node.get("endpoint","unknown"))[:12]
+                ep  = _best_endpoint(node)
+                if not ep: continue
+                tid = str(uuid.uuid4())[:8]
+                try:
+                    t0  = time.time()
+                    r   = requests.get(f"{ep}/health", timeout=2)
+                    lat = int((time.time()-t0)*1000)
+                    if _is_valid_json_response(r):
+                        push_log('connection_test', f'HB#{cycle} ping OK -> {nid}',
+                                 f'latency: {lat}ms | score: {round(_node_score(node),3)}',
+                                 source='control-plane', target=nid, status='success', trace_id=tid)
+                        hb_state["last_conn"] = hb_state["last_tick"]
+                        _notify_bridge("task", {"from": "cp", "to": nid, "type": "heartbeat",
+                                                "label": f"HB#{cycle} {lat}ms"})
+                    else:
+                        push_log('connection_test', f'HB#{cycle} zombie -> {nid}',
+                                 f'HTTP {r.status_code} non-JSON ({r.headers.get("Content-Type","?")})',
+                                 source='control-plane', target=nid, status='failed', trace_id=tid)
+                        node["status"] = "unreachable"
+                        try:
+                            db.upsert_node({**node, "status": "unreachable"})
+                        except Exception:
+                            pass
+                except Exception as e:
+                    push_log('connection_test', f'HB#{cycle} FAILED -> {nid}', str(e),
                              source='control-plane', target=nid, status='failed', trace_id=tid)
                     node["status"] = "unreachable"
-                    db.upsert_node({**node, "status": "unreachable"})
-            except Exception as e:
-                push_log('connection_test', f'HB#{cycle} FAILED -> {nid}', str(e),
-                         source='control-plane', target=nid, status='failed', trace_id=tid)
+                    try:
+                        db.upsert_node({**node, "status": "unreachable"})
+                    except Exception:
+                        pass
+        except Exception as loop_err:
+            try:
+                push_log('system', f'Heartbeat loop error: {loop_err}', status='error')
+            except Exception:
+                pass
         time.sleep(15)

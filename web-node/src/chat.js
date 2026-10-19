@@ -170,13 +170,14 @@ export class ChatClient {
   }
 
   /** Invia la conversazione e restituisce `{text, chunks}`.
-   *  `onDelta(pezzo, testoCompleto)` viene chiamato a ogni pezzo per il vivo. */
-  async send(messages, { onDelta } = {}) {
+   *  `onDelta(pezzo, testoCompleto)` viene chiamato a ogni pezzo per il vivo.
+   *  `signal` opzionale (AbortSignal) permette all'utente di interrompere lo stream al volo. */
+  async send(messages, { onDelta, signal } = {}) {
     if (!this.model) throw new ChatError("nessun modello selezionato");
     let lastError = null;
     for (const base of this.baseUrls) {
       try {
-        return await this._sendOne(base, messages, { onDelta });
+        return await this._sendOne(base, messages, { onDelta, signal });
       } catch (error) {
         lastError = error;
         // status > 0 = il CP ha risposto: nessun fallback.
@@ -186,9 +187,13 @@ export class ChatClient {
     throw lastError;
   }
 
-  async _sendOne(base, messages, { onDelta } = {}) {
+  async _sendOne(base, messages, { onDelta, signal } = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    if (signal) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
     let response;
     const headers = { "Content-Type": "application/json" };
     if (this.token) {

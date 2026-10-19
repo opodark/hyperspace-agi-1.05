@@ -155,12 +155,12 @@ class MissionStore:
             return mission
 
     # ── lifecycle ─────────────────────────────────────────────────────────────
-    def create(self, objective, success_criteria=None, budget=None, policy=None, mission_id=""):
+    def create(self, objective, success_criteria=None, budget=None, policy=None, mission_id="", capabilities=None):
         now = self.clock()
         mission_id = _clean(mission_id, 80) or "mission-" + uuid.uuid4().hex[:16]
         criteria = [_clean(c, 500) for c in (success_criteria or []) if _clean(c, 500)]
         record = {
-            "schema_version": 1,
+            "schema_version": 2,
             "id": mission_id,
             "trace_id": "trace-" + uuid.uuid4().hex[:12],
             "objective": _clean(objective, 4000),
@@ -168,6 +168,9 @@ class MissionStore:
             "status": "planned",
             "budget": dict(budget or {}),
             "policy": dict(policy or {}),
+            "plan_version": 1,
+            "capabilities_snapshot": dict(capabilities or {}),
+            "receipts": {},
             "tasks": [],
             "plan_log": [],
             "reviews": [],
@@ -231,7 +234,7 @@ class MissionStore:
             "finished_at": None,
         }
 
-    def set_plan(self, mission_id, tasks, plan=None):
+    def set_plan(self, mission_id, tasks, plan=None, capabilities=None):
         """Replace the mission's DAG (first plan). Validates the graph."""
         validated = validate_dag(tasks)
         now = self.clock()
@@ -240,6 +243,11 @@ class MissionStore:
             if mission["tasks"]:
                 raise ValueError("mission already has a plan")
             mission["tasks"] = [self._build_task(tid, raw, deps, now) for tid, raw, deps in validated]
+            mission["plan_version"] = 1
+            if capabilities:
+                mission["capabilities_snapshot"] = dict(capabilities)
+            elif isinstance(plan, dict) and "capabilities" in plan:
+                mission["capabilities_snapshot"] = dict(plan.get("capabilities") or {})
             mission["plan_log"].append({"at": _iso(now), "kind": "plan", **(plan or {})})
 
         return self._mutate(mission_id, mutate)
@@ -260,6 +268,7 @@ class MissionStore:
             mission["tasks"].extend(
                 self._build_task(tid, raw, deps, now) for tid, raw, deps in validated)
             mission["counters"]["replans"] = mission["counters"].get("replans", 0) + 1
+            mission["plan_version"] = mission.get("plan_version", 1) + 1
             mission["plan_log"].append({"at": _iso(now), "kind": "replan", **(plan or {})})
 
         return self._mutate(mission_id, mutate)
@@ -291,13 +300,15 @@ class MissionStore:
             if not set(task["dependencies"]) <= done:
                 return
             now = self.clock()
+            was_interrupted = task.pop("interrupted", False)
             task["status"] = "running"
             task["attempts"] += 1
             task["started_at"] = _iso(now)
             task["updated_at"] = _iso(now)
             mission["status"] = "running"
             mission["started_at"] = mission.get("started_at") or _iso(now)
-            mission["counters"]["steps"] = mission["counters"].get("steps", 0) + 1
+            if not was_interrupted:
+                mission["counters"]["steps"] = mission["counters"].get("steps", 0) + 1
             claimed.update(task)
 
         self._mutate(mission_id, mutate)
@@ -387,7 +398,8 @@ class MissionStore:
 
         Called once at the start of a resumed run, when no other controller is
         driving the mission: a `running` task at that moment is an orphan, not a
-        live thread. Attempts are preserved so the retry budget still applies.
+        live thread. Attempts are preserved so the retry budget still applies,
+        but the task is marked as interrupted so step counters aren't double-charged.
         """
         def mutate(mission):
             now = self.clock()
@@ -396,8 +408,33 @@ class MissionStore:
                     task["status"] = "pending"
                     task["started_at"] = None
                     task["updated_at"] = _iso(now)
+                    task["interrupted"] = True
 
         return self._mutate(mission_id, mutate)
+
+    def record_receipt(self, mission_id, idempotency_key, action, result):
+        """Record an action receipt tied to an idempotency key."""
+        now = self.clock()
+        receipt = {
+            "idempotency_key": _clean(idempotency_key, 160),
+            "action": _clean(action, 80),
+            "result": result,
+            "at": _iso(now),
+        }
+
+        def mutate(mission):
+            receipts = mission.setdefault("receipts", {})
+            receipts[receipt["idempotency_key"]] = receipt
+
+        self._mutate(mission_id, mutate)
+        return receipt
+
+    def get_receipt(self, mission_id, idempotency_key):
+        """Retrieve a stored receipt, or None."""
+        mission = self.get(mission_id)
+        if not mission:
+            return None
+        return (mission.get("receipts") or {}).get(idempotency_key)
 
     def set_verification(self, mission_id, task_id, verification):
         def mutate(mission):

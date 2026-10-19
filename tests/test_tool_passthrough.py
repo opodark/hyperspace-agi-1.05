@@ -65,7 +65,6 @@ STRUMENTI_DEL_CP = {
     "create_website": "_tool_create_website",
     "website_status": "_tool_website_status",
     "wayfinder_map": "_tool_wayfinder_map",
-    "create_comic": "_tool_create_comic",
     "reel_prepare_project": "_tool_reel_prepare_project",
     "reel_schedule_daily": "_reel_schedule",
     "reel_daily_status": "_reel_daily_status",
@@ -358,12 +357,13 @@ class ChunkTests(unittest.TestCase):
         # chunk finale con la stessa funzione: se uno dei due se lo scrive a
         # mano, i due rami divergono e lo stesso modello risponde in due modi.
         chiamate = _chiamate_a("_chunk_finale", cp_source.albero())
-        self.assertEqual(len(chiamate), 2, "una chiamata per ramo dello stream")
+        chiamate_tool = [c for c in chiamate if [getattr(a, "id", "") for a in c[1].args[:1]] == ["result_json"]]
+        self.assertEqual(len(chiamate_tool), 2, "una chiamata per ramo dello stream")
         for scope, chiamata in chiamate:
             with self.subTest(scope=scope):
                 self.assertEqual(scope, "_stream_gen")
-                self.assertEqual([getattr(a, "id", "") for a in chiamata.args[:1]],
-                                 ["result_json"])
+                self.assertIn([getattr(a, "id", "") for a in chiamata.args[:1]][0],
+                              ("result_json", "omni_res"))
 
 
 class DeduplicaChiamateFalliteTests(unittest.TestCase):

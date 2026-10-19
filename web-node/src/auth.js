@@ -251,6 +251,8 @@ export class AuthManager {
     clearStoredAuthKey(this.storage);
     this.state = {
       authenticated: false,
+      bridgeActive: false,
+      bridgeStatus: null,
       role: "guest",
       label: "Ospite",
       key: "",
@@ -260,4 +262,109 @@ export class AuthManager {
     this._notify();
     return this.getState();
   }
+
+  /**
+   * Verifica lo stato del plugin bridge Chrome o motore locale.
+   */
+  async checkBridge(options = {}) {
+    try {
+      const res = await detectBridgeStatus({ ...options, fetchImpl: this.fetchImpl });
+      this.state.bridgeActive = Boolean(res && res.active);
+      this.state.bridgeStatus = res;
+      if (this.state.bridgeActive && !this.state.authenticated) {
+        this.state.role = "node_operator";
+        this.state.label = res.label || "Operatore GPU Locale";
+      }
+      this._notify();
+      return res;
+    } catch {
+      this.state.bridgeActive = false;
+      return { installed: false, active: false };
+    }
+  }
+
+  /**
+   * Restituisce true se l'utente ha accesso autorizzato (tramite chiave O tramite plugin bridge attivo).
+   */
+  isAuthorized() {
+    return Boolean(this.state.authenticated || this.state.bridgeActive);
+  }
+}
+
+/**
+ * Rileva se il plugin 00MESH Chrome Bridge è attivo nel browser
+ * o se è raggiungibile un motore di inferenza locale (Ollama / LM Studio).
+ */
+export async function detectBridgeStatus({ timeoutMs = 1200, fetchImpl = globalThis.fetch } = {}) {
+  // 1. Controlla attributo DOM impostato dal content script dell'estensione
+  if (typeof document !== "undefined" && document.documentElement?.dataset?.meshBridgeActive === "true") {
+    return {
+      installed: true,
+      active: true,
+      source: "content_script",
+      label: "Plugin Chrome Bridge Attivo",
+    };
+  }
+
+  // 2. Chiedi via postMessage al content script dell'estensione
+  if (typeof window !== "undefined") {
+    const postMessageResult = await new Promise((resolve) => {
+      let done = false;
+      const timer = setTimeout(() => {
+        if (!done) {
+          done = true;
+          resolve(null);
+        }
+      }, Math.min(timeoutMs, 800));
+
+      function handler(event) {
+        if (event.data && event.data.type === "00MESH_BRIDGE_STATUS") {
+          if (!done) {
+            done = true;
+            clearTimeout(timer);
+            window.removeEventListener("message", handler);
+            resolve(event.data);
+          }
+        }
+      }
+
+      window.addEventListener("message", handler);
+      window.postMessage({ type: "00MESH_PING_BRIDGE" }, "*");
+    });
+
+    if (postMessageResult && postMessageResult.active) {
+      return {
+        installed: true,
+        active: true,
+        source: "extension_message",
+        nodeId: postMessageResult.node_id,
+        label: "Plugin Chrome Bridge Attivo",
+      };
+    }
+  }
+
+  // 3. Fallback: verifica se Ollama (11434) o LM Studio (1234) rispondono localmente
+  if (typeof fetchImpl === "function") {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 600);
+      const res = await fetchImpl("http://localhost:11434/api/tags", { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        return { installed: true, active: true, source: "ollama_direct", label: "Ollama Locale Attivo" };
+      }
+    } catch {}
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 600);
+      const res = await fetchImpl("http://127.0.0.1:1234/v1/models", { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        return { installed: true, active: true, source: "lmstudio_direct", label: "LM Studio Locale Attivo" };
+      }
+    } catch {}
+  }
+
+  return { installed: false, active: false, label: "Plugin non rilevato" };
 }

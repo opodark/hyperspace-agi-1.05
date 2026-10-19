@@ -11,13 +11,13 @@ import { detectCapabilities, describeEnvironment } from "./capabilities.js?v=1.0
 import { TransportError, WebNodeTransport } from "./transport.js?v=1.05.4";
 import { TaskUnsupported, runTask, supportedTaskTypes } from "./task-runner.js?v=1.05.4";
 import { ContactError, validateContactForm, sendContactMessage } from "./contact.js?v=1.05.4";
-import { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey } from "./auth.js?v=1.05.4";
+import { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey, detectBridgeStatus } from "./auth.js?v=1.05.4";
 import { fetchTopology, sanitizeTopologyData } from "./topology.js?v=1.05.4";
 
 export { PROTOCOL_VERSION, TransportError, TaskUnsupported, supportedTaskTypes };
 export { detectCapabilities, describeEnvironment };
 export { ContactError, validateContactForm, sendContactMessage };
-export { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey };
+export { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey, detectBridgeStatus };
 export { fetchTopology, sanitizeTopologyData };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

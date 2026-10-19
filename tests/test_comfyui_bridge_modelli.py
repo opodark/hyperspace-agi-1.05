@@ -21,15 +21,18 @@ rimedi sono script diversi. Il 2026-09-30 la prima lettura mandava a reinstallar
 pacchetto che c'era: `IPAdapterModelLoader` cercava `<ComfyUI>/models/ipadapter`,
 una cartella che l'istanza desktop non mappa sulla cartella condivisa.
 """
+import inspect
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from integrations.comfyui import comfy_bridge as ponte  # noqa: E402
 from integrations.comfyui.comfy_bridge import (  # noqa: E402
-    _elenco_file, _file_attesi, _perche_niente_file)
+    _elenco_file, _file_attesi, _perche_niente_file, codice_fallimento)
 from shared.image_jobs import (FAMIGLIA_DEFAULT, FIX_UPSCALER,  # noqa: E402
                                MODELLO_DEFAULT, MODELLO_SD15, MODELLO_SDXL)
 
@@ -168,6 +171,94 @@ class PercheNienteFileTests(unittest.TestCase):
         motivo = _perche_niente_file("CLIPVisionLoader", {})
         self.assertIn("in questa versione di ComfyUI", motivo)
         self.assertNotIn("install-nodes.sh", motivo)
+
+
+class NodiMancantiTests(unittest.TestCase):
+    """Un nodo che sparisce DOPO l'avvio deve fermare il job prima di ComfyUI.
+
+    Il preflight guarda i FILE all'avvio; qui si guarda ogni nodo che il grafo
+    userà davvero, al momento del job. La differenza non è di stile:
+    `DWPreprocessor` e `HyperSpacePosePreset` entrano nel grafo solo quando un
+    job chiede una posa, e il preflight non li controlla — un nodo assente
+    morirebbe dentro ComfyUI con un dump troncato invece di dire «installa
+    comfyui_controlnet_aux».
+    """
+
+    def _risposta(self, presenti=()):
+        """Un `_richiesta` finto: 200, e il nodo compare solo se è fra i presenti."""
+        def finto(url, *, payload=None, timeout=30.0, headers=None):
+            nodo = str(url).rsplit("/", 1)[-1]
+            if nodo in presenti:
+                return 200, {nodo: {}}
+            return 200, {}
+        return finto
+
+    def test_con_tutti_i_nodi_presenti_non_segna_niente(self):
+        grafo = {"1": {"class_type": "KSampler"}, "2": {"class_type": "SaveImage"}}
+        with mock.patch.object(ponte, "_richiesta",
+                               self._risposta(("KSampler", "SaveImage"))):
+            self.assertEqual(ponte.nodi_mancanti(grafo, "http://x"), [])
+
+    def test_un_nodo_del_repo_mancante_nomina_il_pacchetto(self):
+        grafo = {"3": {"class_type": "HyperSpacePosePreset"}}
+        with mock.patch.object(ponte, "_richiesta", self._risposta(())):
+            mancanti = ponte.nodi_mancanti(grafo, "http://x")
+        self.assertEqual(len(mancanti), 1)
+        self.assertIn("HyperSpacePosePreset", mancanti[0])
+        self.assertIn("install-nodes.sh", mancanti[0])
+
+    def test_un_nodo_nativo_mancante_nomina_comfyui_non_un_pacchetto(self):
+        grafo = {"4": {"class_type": "KSampler"}}
+        with mock.patch.object(ponte, "_richiesta", self._risposta(())):
+            mancanti = ponte.nodi_mancanti(grafo, "http://x")
+        self.assertEqual(len(mancanti), 1)
+        self.assertIn("in questa versione di ComfyUI", mancanti[0])
+        self.assertNotIn("install-nodes.sh", mancanti[0])
+
+    def test_esegui_job_verifica_i_nodi_prima_di_mandare_il_grafo(self):
+        """La funzione serve solo se `esegui_job` la chiama davvero."""
+        self.assertIn("nodi_mancanti", inspect.getsource(ponte.esegui_job))
+
+
+class CodiceFallimentoTests(unittest.TestCase):
+    """Il codice macchina separa «ripara» da «rilancia».
+
+    Il control-plane non legge il testo libero: riceve dal ponte un codice
+    accanto all'errore. «Ripara» è un nodo o un peso mancante, «rilancia» è un
+    timeout o una rete caduta — due azioni diverse, due codici diversi.
+    """
+
+    def test_un_nodo_mancante_si_ripara(self):
+        self.assertEqual(codice_fallimento(
+            "nodo mancante: DWPreprocessor non installato: serve comfyui_controlnet_aux"),
+            "node_missing")
+
+    def test_un_peso_mancante_si_ripara(self):
+        self.assertEqual(codice_fallimento("manca «chickmixflat_v10.ckpt» — installalo"),
+                         "model_missing")
+
+    def test_un_annullamento_si_rilancia(self):
+        self.assertEqual(codice_fallimento("annullato da fuori: qualcuno ha interrotto il job"),
+                         "interrupted")
+
+    def test_un_timeout_si_rilancia(self):
+        self.assertEqual(codice_fallimento("nessuna immagine entro 1800s"), "timeout")
+
+    def test_una_rete_caduta_si_rilancia(self):
+        self.assertEqual(codice_fallimento("ComfyUI non raggiungibile: connection refused"),
+                         "unreachable")
+
+    def test_un_errore_cuda_si_ripara(self):
+        self.assertEqual(codice_fallimento(
+            "torch.AcceleratorError in KSampler: CUDA error: unknown error"),
+            "cuda_error")
+
+    def test_cio_che_non_si_conosce_resta_error(self):
+        self.assertEqual(codice_fallimento("qualcosa di inatteso"), "error")
+
+    def test_l_errore_vuoto_non_e_un_codice_di_riparazione(self):
+        # Vuoto = successo: il chiamante non aggiunge `codice` quando il job è ok.
+        self.assertEqual(codice_fallimento(""), "error")
 
 
 if __name__ == "__main__":

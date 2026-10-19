@@ -138,7 +138,8 @@ def web_register():
             "type": "web-node",
             "last_seen": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     _nodes_by_id[node_id] = info
-    _known_endpoints.add(endpoint)
+    if endpoint.startswith("http://") or endpoint.startswith("https://"):
+        _known_endpoints.add(endpoint)
     db.upsert_node(info)
     push_log('mesh_event', f'Web node registered: {node_id[:12]}',
              f"caps={','.join(record['capabilities']) or '-'} browser={record['browser'][:40]}",
@@ -489,6 +490,17 @@ def web_auth_verify():
             "label": label
         })
 
+    # 4. Controllo nodi attivi / bridge registrati
+    if provided in _nodes_by_id or (provided.startswith("ext-") and len(provided) >= 8):
+        node_rec = _nodes_by_id.get(provided) or {}
+        label = node_rec.get("label") or f"Operatore GPU ({provided[:10]})"
+        return jsonify({
+            "ok": True,
+            "authenticated": True,
+            "role": "node_operator",
+            "label": label
+        })
+
     return jsonify({"ok": False, "authenticated": False, "error": "Chiave o token non valido"}), 401
 
 
@@ -825,6 +837,7 @@ def web_tokenomics_status():
         return '', 204
 
     from shared import tokenomics
+    from cp.budget import EXTERNAL_FALLBACK_BUDGET
     overview = tokenomics.get_tokenomics_overview()
     return jsonify({
         "ok": True,
@@ -834,7 +847,21 @@ def web_tokenomics_status():
         "bonding_pool": tokenomics.TOTAL_BONDING_POOL,
         "community_pool": tokenomics.TOTAL_COMMUNITY_POOL,
         "ecosystem_pool": tokenomics.TOTAL_ECOSYSTEM_POOL,
+        "smart_fallback_budget": EXTERNAL_FALLBACK_BUDGET.status(),
         **overview
+    }), 200
+
+
+@_bp.route('/web/budget/status', methods=['GET', 'OPTIONS'])
+def web_budget_status():
+    """Stato in tempo reale del budget Smart Economic Fallback (Mesh-First, API-Second)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    from cp.budget import EXTERNAL_FALLBACK_BUDGET
+    return jsonify({
+        "ok": True,
+        **EXTERNAL_FALLBACK_BUDGET.status(),
     }), 200
 
 

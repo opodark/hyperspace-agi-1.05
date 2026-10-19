@@ -164,6 +164,15 @@ def parse_inference_urls(value: str, fallback: str) -> list:
     fallback = str(fallback or "").strip().rstrip("/")
     return urls or ([fallback] if fallback else [])
 
+
+def _should_skip_local_ollama() -> bool:
+    """True se la memoria unificata del Mac è occupata e l'inferenza locale va deviata."""
+    try:
+        from flask import request
+        return bool(request and getattr(request, "environ", {}).get("hyperspace.skip_local_ollama"))
+    except Exception:
+        return False
+
 def _inference_urls() -> list:
     """Gli endpoint diretti attuali: DIRECT_INFERENCE_URLS oppure OLLAMA_URL."""
     return parse_inference_urls(os.getenv("DIRECT_INFERENCE_URLS", ""), OLLAMA_URL)
@@ -407,34 +416,71 @@ def _catalogo_nativi(superficie: str = "") -> list:
 # ── la compressione del prompt e il ripiego su OmniRoute ──────────────────
 
 def _try_omniroute_fallback(data: dict, timeout: int = 60):
-    """Ultimo livello di fallback: inoltra la richiesta chat/completions cosi'
-    com'e' a OmniRoute (gateway verso 278+ provider esterni, molti free-tier),
-    chiamato SOLO quando mesh e federazione hanno gia' fallito entrambe.
-    OMNIROUTE_API_KEY e' opzionale: l'immagine ufficiale risponde gia' con
-    provider free-tier di default senza alcuna configurazione — la chiave
-    va aggiunta solo se/quando l'utente collega provider propri dalla
-    dashboard OmniRoute. OMNIROUTE_ENABLED=false disattiva del tutto questo
-    livello. Ritorna None su qualunque errore, cosi' il chiamante puo'
-    proseguire con l'ultimo fallback locale (ollama diretto) invariato."""
-    if not OMNIROUTE_ENABLED:
+    """Ultimo livello di fallback ("Mesh-First, API-Second"): inoltra la
+    richiesta chat/completions a un endpoint OpenAI-compatible low-cost/free
+    (EXTERNAL_FALLBACK_API_URL, es. Groq) o a OmniRoute, chiamato SOLO quando i
+    nodi GPU della mesh, l'inferenza locale e la federazione hanno gia' fallito
+    o sono saturi. Protetto dal gate giornaliero `check_external_fallback_budget()`."""
+    ext_url = os.getenv("EXTERNAL_FALLBACK_API_URL", "").strip().rstrip("/")
+    if not OMNIROUTE_ENABLED and not ext_url:
         return None
-    payload = {**data, "model": data.get("model") or OMNIROUTE_MODEL, "stream": False}
-    headers = {"Authorization": f"Bearer {OMNIROUTE_API_KEY}"} if OMNIROUTE_API_KEY else {}
-    if PROMPT_COMPRESSION_ENABLED:
-        headers["x-omniroute-compression"] = PROMPT_COMPRESSION_MODE
     try:
-        r = requests.post(
-            f"{OMNIROUTE_URL}/v1/chat/completions",
-            json=payload,
-            headers=headers,
-            timeout=timeout,
-        )
-        r.raise_for_status()
-        result = r.json()
-        if isinstance(result, dict) and not result.get("error"):
-            return result
-    except Exception as e:
-        push_log('inter_node_message', 'OmniRoute fallback fallito', str(e), status='warn')
+        from cp.budget import check_external_fallback_budget, record_external_fallback_usage
+        allowed, reason = check_external_fallback_budget()
+        if not allowed:
+            push_log('inter_node_message', 'Smart Fallback bloccato per budget giornaliero',
+                     reason, status='warn')
+            return None
+    except Exception:
+        record_external_fallback_usage = None
+
+    # Rimuove campi interni del CP e chiavi specifiche di Ollama non supportate da API OpenAI-compatible
+    # rigorose (es. Groq rifiuta `_hyperspace_surface`, `think` e `options` con HTTP 400).
+    _strip_keys = {
+        "_hyperspace_surface", "_hyperspace_tools_off", "think",
+        "surface", "hyperspace_skills", "tools", "tool_choice",
+        "options", "keep_alive", "format", "template", "raw", "context",
+    }
+    clean_data = {k: v for k, v in (data or {}).items() if k not in _strip_keys}
+
+    ext_model_raw = os.getenv("EXTERNAL_FALLBACK_MODEL", "").strip()
+    ext_models = [m.strip() for m in ext_model_raw.split(",") if m.strip()]
+    if not ext_models:
+        ext_models = [data.get("model") or OMNIROUTE_MODEL]
+
+    api_key = os.getenv("EXTERNAL_FALLBACK_API_KEY", "").strip() or OMNIROUTE_API_KEY
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    if PROMPT_COMPRESSION_ENABLED and not ext_url:
+        headers["x-omniroute-compression"] = PROMPT_COMPRESSION_MODE
+    base_url = ext_url or OMNIROUTE_URL
+    endpoint = base_url if base_url.endswith("/chat/completions") else f"{base_url}/v1/chat/completions"
+    if base_url.endswith("/v1"):
+        endpoint = f"{base_url}/chat/completions"
+
+    last_err = None
+    for target_model in ext_models:
+        payload = {**clean_data, "model": target_model, "stream": False}
+        try:
+            r = requests.post(
+                endpoint,
+                json=payload,
+                headers=headers,
+                timeout=timeout,
+            )
+            r.raise_for_status()
+            result = r.json()
+            if isinstance(result, dict) and not result.get("error"):
+                if record_external_fallback_usage is not None:
+                    try:
+                        record_external_fallback_usage(data, result)
+                    except Exception:
+                        pass
+                return result
+        except Exception as e:
+            last_err = e
+            continue
+    if last_err is not None:
+        push_log('inter_node_message', 'OmniRoute/External fallback fallito', str(last_err), status='warn')
     return None
 
 
@@ -519,6 +565,9 @@ def _finalize_task(task, task_id, node_id, model, prompt, result_json):
     try:
         from shared import tokenomics
         tokenomics.reward_task_completion(node_id, task_id, model=model)
+        if node_id != "omniroute":
+            from cp.budget import record_mesh_completion
+            record_mesh_completion(prompt, result_json)
     except Exception:
         pass
     ts_now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -797,32 +846,20 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
             # il modello soltanto per parafrasare URL già definitivi. Gemma 4
             # poteva restare minuti nel secondo giro (o richiamare il tool),
             # mentre Qwen trasformava i path relativi in link della WebUI.
-            if tool_name in {"create_website", "create_comic"}:
+            if tool_name == "create_website":
                 try:
                     artifact = json.loads(result)
                 except (TypeError, ValueError, json.JSONDecodeError):
                     artifact = {}
                 if artifact.get("ok"):
-                    if tool_name == "create_website":
-                        # Il conteggio delle immagini è l'unica prova testuale
-                        # che la galleria sia stata davvero riempita: senza,
-                        # chi verifica (e il verifier della missione) vede solo
-                        # due link e non sa se dentro c'è una foto o zero.
-                        imported = len(artifact.get("imported_images") or [])
-                        content = (
-                            "Sito creato correttamente.\n\n"
-                            f"- [Apri l’anteprima]({artifact['preview_url']})\n"
-                            f"- [Scarica il progetto ZIP]({artifact['download_url']})\n"
-                            f"- Immagini importate: {imported}\n\n"
-                            f"Progetto: `{artifact['project_id']}`"
-                        )
-                    else:
-                        content = (
-                            "Fumetto e primo episodio salvati correttamente.\n\n"
-                            f"- [Apri l’anteprima]({artifact['preview_url']})\n\n"
-                            f"Progetto: `{artifact['project_id']}` — "
-                            f"episodio: `{artifact['episode_id']}`"
-                        )
+                    imported = len(artifact.get("imported_images") or [])
+                    content = (
+                        "Sito creato correttamente.\n\n"
+                        f"- [Apri l’anteprima]({artifact['preview_url']})\n"
+                        f"- [Scarica il progetto ZIP]({artifact['download_url']})\n"
+                        f"- Immagini importate: {imported}\n\n"
+                        f"Progetto: `{artifact['project_id']}`"
+                    )
                     return {
                         "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
                         "object": "chat.completion", "created": int(time.time()),
@@ -856,7 +893,11 @@ def v1_chat_completions():
 
     # Toglie i prefissi cosmetici aggiunti in /v1/models prima di usare il
     # nome per il routing vero — vedi commento su MESH_MODEL_ICON sopra.
-    omniroute_direct = (raw_model == OMNIROUTE_MODEL_ID)
+    omniroute_direct = (raw_model == OMNIROUTE_MODEL_ID
+                        or raw_model in ("🌐 OmniRoute", "OmniRoute", "omniroute")
+                        or raw_model.startswith("🌐 OmniRoute")
+                        or raw_model.startswith("ext:")
+                        or raw_model.startswith("groq:"))
     if omniroute_direct:
         model, pinned_node_id = OMNIROUTE_MODEL, None
     else:
@@ -985,6 +1026,9 @@ def v1_chat_completions():
     # inline, non ritentati su un altro nodo.
     if stream:
         candidates = [] if omniroute_direct else _rank_candidate_nodes(active, pinned_node_id, model=model)
+        if _should_skip_local_ollama():
+            candidates = [c for c in candidates if "mac" not in (c.get("alias") or "").lower()
+                          and c.get("node_id") != "d7bc05baed5b752aeab6ba2624243b59fc333b9f"]
         stream_data = dict(data)
         if _model_supports_tools(model):
             ct = stream_data.get("tools", [])
@@ -998,26 +1042,21 @@ def v1_chat_completions():
             if omniroute_direct:
                 task["node"] = "omniroute"
                 db.update_task(task_id, "assigned", node_id="omniroute", endpoint=OMNIROUTE_URL)
-                omni_headers = {"Authorization": f"Bearer {OMNIROUTE_API_KEY}"} if OMNIROUTE_API_KEY else {}
-                if PROMPT_COMPRESSION_ENABLED:
-                    omni_headers["x-omniroute-compression"] = PROMPT_COMPRESSION_MODE
-                try:
-                    req = requests.post(f"{OMNIROUTE_URL}/v1/chat/completions",
-                                         json=stream_data, headers=omni_headers, stream=True,
-                                         timeout=_inference_timeout(stream_data.get("model", "")))
-                    with req as resp:
-                        for chunk in resp.iter_content(chunk_size=None):
-                            if chunk:
-                                yield chunk
+                omni_res = _try_omniroute_fallback(stream_data)
+                if omni_res:
+                    chunk = _chunk_finale(omni_res, stream_data.get("model", model), task_id)
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n".encode()
+                    yield b"data: [DONE]\n\n"
                     task["status"]       = "done"
                     task["completed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                     db.update_task(task_id, "done")
                     push_log('inter_node_message', f'stream {task_id} done',
                              source='omniroute', target='webui', status='success')
-                except Exception as e:
-                    yield ('data: ' + json.dumps({'error': str(e)}, ensure_ascii=False) + '\n\n').encode()
+                else:
+                    err_msg = "OmniRoute / External Fallback non raggiungibile o budget giornaliero esaurito"
+                    yield ('data: ' + json.dumps({'error': err_msg}, ensure_ascii=False) + '\n\n').encode()
                     task["status"] = "failed"
-                    db.update_task(task_id, "failed", error=str(e))
+                    db.update_task(task_id, "failed", error=err_msg)
                 return
 
             # Il backend Ollama puo' emettere tool_calls nello stream, ma il
@@ -1111,6 +1150,8 @@ def v1_chat_completions():
             task["node"] = "ollama-direct"
             db.update_task(task_id, "assigned", node_id="ollama-direct", endpoint=ollama_base)
             try:
+                if _should_skip_local_ollama():
+                    raise RuntimeError("Il Mac sta completando un'immagine")
                 if _native_direct_enabled(model):
                     # Fallback nativo (/api/chat) per i modelli reasoning
                     # (elenco in _NATIVE_CHAT_FALLBACK_PATTERNS, estendibile via
@@ -1169,6 +1210,19 @@ def v1_chat_completions():
                 push_log('inter_node_message', f'stream {task_id} done',
                          source='ollama-direct', target='webui', status='success')
             except Exception as e:
+                omni_res = _try_omniroute_fallback(stream_data)
+                if omni_res:
+                    chunk = _chunk_finale(omni_res, stream_data.get("model", model), task_id)
+                    task["node"] = "omniroute"
+                    db.update_task(task_id, "assigned", node_id="omniroute", endpoint=OMNIROUTE_URL)
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n".encode()
+                    yield b"data: [DONE]\n\n"
+                    task["status"]       = "done"
+                    task["completed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    db.update_task(task_id, "done")
+                    push_log('inter_node_message', f'stream {task_id} -> omniroute (fallback esterno)',
+                             source='omniroute', target='webui', status='success')
+                    return
                 yield ('data: ' + json.dumps({'error': str(e)}, ensure_ascii=False) + '\n\n').encode()
                 task["status"] = "failed"
                 db.update_task(task_id, "failed", error=str(e))
@@ -1196,6 +1250,9 @@ def v1_chat_completions():
         return jsonify({"error": {"message": task["error"], "type": "server_error"}}), 502
 
     candidates = _rank_candidate_nodes(active, pinned_node_id, model=model)
+    if _should_skip_local_ollama():
+        candidates = [c for c in candidates if "mac" not in (c.get("alias") or "").lower()
+                      and c.get("node_id") != "d7bc05baed5b752aeab6ba2624243b59fc333b9f"]
     for candidate in candidates:
         node_id  = candidate.get("node_id", "cp")
         endpoint = _best_endpoint(candidate)

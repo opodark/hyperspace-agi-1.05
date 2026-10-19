@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>00MESH Local Bridge</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <span class="brand-glow">00</span><span class="brand-name">MESH</span>
+        <span class="badge-sub">BRIDGE</span>
+      </div>
+      <div class="status-pill" id="status-pill">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Inizializzazione...</span>
+      </div>
+    </header>
+
+    <!-- Main Switch -->
+    <div class="action-card">
+      <div class="switch-row">
+        <div>
+          <div class="switch-title">Condivisione GPU</div>
+          <div class="switch-desc">Fornisci inferenza al network e guadagna token</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-sharing" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Local Engines -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🖥️ Motori Locali Rilevati</span>
+        <button class="btn-icon" id="btn-refresh-engines" title="Riscansiona motori">🔄</button>
+      </div>
+      <div class="engine-list">
+        <div class="engine-item" id="engine-ollama">
+          <div class="engine-info">
+            <span class="engine-dot" id="dot-ollama"></span>
+            <span class="engine-name">Ollama (11434)</span>
+          </div>
+          <span class="badge" id="badge-ollama">Offline</span>
+        </div>
+        <div class="engine-item" id="engine-lmstudio">
+          <div class="engine-info">
+            <span class="engine-dot" id="dot-lmstudio"></span>
+            <span class="engine-name">LM Studio (1234)</span>
+          </div>
+          <span class="badge" id="badge-lmstudio">Offline</span>
+        </div>
+      </div>
+      <div class="models-preview" id="models-preview">Nessun modello locale rilevato.</div>
+    </div>
+
+    <!-- PoUW Metrics -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⚡ Metriche Proof-of-Work</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-num" id="stat-tasks">0</div>
+          <div class="metric-lbl">Task Eseguiti</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-num" id="stat-tokens">0</div>
+          <div class="metric-lbl">Token Generati</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-num" id="stat-latency">0ms</div>
+          <div class="metric-lbl">Tempo Medio</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network & Wallet Settings -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🌐 Configurazione Rete</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="hub-url">Hub 00MESH:</label>
+        <div class="input-row">
+          <input type="text" id="hub-url" class="input-text" placeholder="http://localhost:8085">
+          <button class="btn-sm" id="btn-save-hub">Salva</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="solana-address">Wallet Solana (Phantom/Solflare):</label>
+        <div class="input-row">
+          <input type="text" id="solana-address" class="input-text" placeholder="Indirizzo Solana per premi">
+          <button class="btn-sm" id="btn-save-wallet">Salva</button>
+        </div>
+      </div>
+      <div class="node-id-row">
+        <span>Node ID:</span> <code id="node-id">caricamento...</code>
+      </div>
+    </div>
+
+    <!-- Testing & Logs -->
+    <div class="card-footer">
+      <button class="btn-test" id="btn-test-infer">🧪 Prova Inferenza Locale</button>
+      <div class="log-banner" id="log-banner">In attesa...</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

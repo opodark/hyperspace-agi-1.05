@@ -15,7 +15,7 @@ class ExecutionStopped(ValueError):
 
 class Invocation:
     def __init__(self, role="", max_tokens=None, deadline=None, cancelled=None,
-                 workspace_id=""):
+                 workspace_id="", idempotency_key="", receipts=None):
         self.role = role
         self.max_tokens = max_tokens
         self.deadline = deadline
@@ -23,10 +23,25 @@ class Invocation:
         # Workspace della catena: se un task a monte ne ha gia' creato uno, va
         # riusato invece di ricrearne un altro (memoria condivisa della missione).
         self.workspace_id = str(workspace_id or "")
+        self.idempotency_key = str(idempotency_key or "")
+        self.receipts = dict(receipts or {})
         self.tokens = 0
         self.reserved_tokens = 0
         self.usage_known = True
         self.results = []
+
+    def get_receipt(self, action_key):
+        return self.receipts.get(action_key)
+
+    def record_receipt(self, action_key, action, result):
+        receipt = {
+            "idempotency_key": self.idempotency_key,
+            "action": action,
+            "result": result,
+            "at": time.time(),
+        }
+        self.receipts[action_key] = receipt
+        return receipt
 
     def checkpoint(self):
         if self.cancelled():
@@ -177,6 +192,8 @@ class Invocation:
                 or "non gestito da nessun connector" in lowered
             )
         evidence = {"tool": name, "ok": ok}
+        if self.idempotency_key:
+            evidence["idempotency_key"] = self.idempotency_key
         if isinstance(value, dict):
             for key in (
                 "completed",

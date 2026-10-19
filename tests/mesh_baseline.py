@@ -134,6 +134,7 @@ def raccogli() -> dict:
         "web_image_status": _get("/web/image/status"),
         "web_image_file": _get("/web/image/file"),
         "web_tokenomics_leaderboard": _get("/web/tokenomics/leaderboard"),
+        "web_budget_status": _get("/web/budget/status"),
 
         # l'annuncio: e' la via che un nodo si presenta
         "announce_corpo_vuoto": _post("/mesh/announce", {}),

@@ -59,3 +59,12 @@ def test_prossima_finestra_annuncia_la_riapertura_solo_da_fuori():
         2026, 10, 6, 22, 0, tzinfo=timezone.utc)
     assert prossima_finestra(mezzogiorno, 0, 0) is None       # finestra sempre aperta
 
+
+def test_choose_author_rispetta_il_tetto_totale():
+    assert choose_author({"anna": 1, "aurora": 0}, maximum=2, turn=0,
+                         total_maximum=1) is None
+    assert choose_author({"anna": 0, "aurora": 0}, maximum=2, turn=0,
+                         total_maximum=1) == "anna"
+    # senza total_maximum il comportamento storico resta invariato
+    assert choose_author({"anna": 1, "aurora": 0}, maximum=2, turn=0) == "aurora"
+

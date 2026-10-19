@@ -14,9 +14,7 @@ COPY control-plane/conversations.html .
 COPY control-plane/diario.html .
 COPY control-plane/intimo.html .
 COPY control-plane/sites.html .
-COPY control-plane/comics.html .
 COPY control-plane/spider ./spider
-COPY control-plane/vendor ./vendor
 COPY control-plane/connectors ./connectors
 COPY control-plane/cp ./cp
 

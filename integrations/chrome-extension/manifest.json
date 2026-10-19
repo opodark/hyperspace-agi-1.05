@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "00MESH Local Bridge — AI Node Connector",
+  "version": "1.0.0",
+  "description": "Connect your local Ollama or LM Studio GPU directly to the decentralized HyperSpace 00MESH network and earn tokens.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "00MESH Local Bridge"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.zerozerocomputer.it/*",
+        "*://zerozerocomputer.it/*",
+        "*://oszerozero.onrender.com/*",
+        "http://localhost/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1/*",
+        "http://127.0.0.1:*/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*",
+    "http://localhost:11434/*",
+    "http://127.0.0.1:11434/*",
+    "http://localhost:1234/*",
+    "http://127.0.0.1:1234/*",
+    "http://localhost:8085/*",
+    "http://127.0.0.1:8085/*",
+    "https://www.zerozerocomputer.it/*"
+  ]
+}

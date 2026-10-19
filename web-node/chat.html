@@ -72,19 +72,80 @@
     .msg{max-width:88%;padding:14px 18px;border-radius:18px;border:1px solid #233454;animation:fade-in .2s ease;font-size:14.5px;line-height:1.6}
     @keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
     .msg.user{align-self:flex-end;background:#201c3e;border-color:#483c74;color:#f8fafc;white-space:pre-wrap}
-    .msg.assistant{align-self:flex-start;background:#0d162d;border-color:#1e2e4f;color:#e2e8f0;max-width:92%}
-    .msg-who{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+    .msg-who{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:750;letter-spacing:.03em;margin-bottom:8px}
+    .avatar-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px}
+    .avatar-icon.user-icon{background:#9a7cff25;border:1px solid #9a7cff55;color:#c4b5fd}
+    .avatar-icon.ai-icon{background:#57e6d925;border:1px solid #57e6d955;color:var(--cyan);box-shadow:0 0 10px #57e6d933}
     .msg.user .msg-who{color:#b9a9ff}
     .msg.assistant .msg-who{color:var(--cyan)}
     
     /* Markdown Styles */
     .msg-body p{margin:0 0 10px 0}
     .msg-body p:last-child{margin-bottom:0}
-    .msg-body h1,.msg-body h2,.msg-body h3{color:#fff;margin:16px 0 8px 0;line-height:1.2}
+    .msg-body h1,.msg-body h2,.msg-body h3,.msg-body h4{color:#fff;margin:16px 0 8px 0;line-height:1.25}
     .msg-body ul,.msg-body ol{margin:6px 0 10px 22px;padding:0}
     .msg-body li{margin-bottom:4px}
     .msg-body code{background:#060a14;padding:2px 6px;border-radius:6px;border:1px solid #20304a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:var(--cyan)}
+    .msg-body blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid var(--cyan);background:#091224;border-radius:0 8px 8px 0;color:#cbd5e1;font-style:italic}
     
+    /* Active Links & URLs */
+    .md-link{color:#83fff0;text-decoration:none;font-weight:600;border-bottom:1px dotted #57e6d988;transition:all .15s ease;word-break:break-word}
+    .md-link:hover{color:#fff;border-bottom-color:var(--cyan);text-shadow:0 0 8px #57e6d966}
+    .md-link .ext-icon{font-size:11px;opacity:.8;margin-left:2px;display:inline-block}
+    .md-autolink{color:#a78bfa;border-bottom-color:#a78bfa66}
+    .md-autolink:hover{color:#c4b5fd;border-bottom-color:#c4b5fd}
+
+    /* Markdown Tables */
+    .table-wrap{margin:14px 0;overflow-x:auto;border-radius:10px;border:1px solid #1e2e4c;background:#080f20}
+    .md-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+    .md-table th{background:#0d172e;color:#e2e8f0;font-weight:700;padding:9px 13px;border-bottom:1px solid #233454;letter-spacing:.02em}
+    .md-table td{padding:8px 13px;border-bottom:1px solid #142036;color:#cbd5e1}
+    .md-table tr:last-child td{border-bottom:none}
+    .md-table tr:hover td{background:#111e3b55}
+
+    /* Markdown Images & HR */
+    .md-image-box{margin:14px 0;border-radius:12px;overflow:hidden;border:1px solid #1e2e4c;background:#050812;display:inline-flex;flex-direction:column;max-width:100%}
+    .md-img{max-width:100%;height:auto;display:block;border-radius:10px 10px 0 0;transition:transform .2s ease}
+    .md-img:hover{transform:scale(1.01)}
+    .md-img-caption{font-size:11px;color:var(--muted);padding:5px 10px;background:#0a1122;font-style:italic}
+    .md-hr{border:none;height:1px;background:linear-gradient(90deg,transparent,#233454,transparent);margin:18px 0}
+
+    /* Task Lists */
+    .task-item{list-style:none;display:flex;align-items:center;gap:7px;margin-left:-14px}
+    .task-box{font-size:14px;color:var(--muted)}
+    .task-done .task-box{color:var(--ok)}
+    .task-done{text-decoration:line-through;color:var(--muted)}
+
+    /* Link Preview Cards */
+    .msg-link-previews{margin-top:12px;padding-top:10px;border-top:1px dashed #1c2b48}
+    .link-previews-header{font-size:11px;font-weight:750;color:var(--cyan);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .link-previews-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+    .link-card{background:#091124;border:1px solid #1e3052;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;transition:all .18s ease}
+    .link-card:hover{border-color:var(--cyan);background:#0d1833;transform:translateY(-1px);box-shadow:0 4px 14px #0008}
+    .link-card-thumb img{width:100%;height:85px;object-fit:cover;border-radius:6px;margin-bottom:4px}
+    .link-card-host{display:flex;align-items:center;gap:6px}
+    .link-card-favicon{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+    .link-card-domain{font-size:12px;font-weight:750;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .link-card-path{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .link-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:2px}
+    .link-card-btn{background:#111c36;border:1px solid #24375a;color:#cbd5e1;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;cursor:pointer;text-decoration:none;transition:all .15s}
+    .link-card-btn:hover{border-color:var(--cyan);color:#fff}
+    .link-card-btn.open{background:#57e6d918;color:var(--cyan);border-color:#57e6d944}
+    .link-card-btn.open:hover{background:#57e6d933;color:#fff}
+
+    /* Floating Smart Scroll-to-Bottom Button */
+    .scroll-bottom-pill{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);background:#0d1833;border:1px solid var(--cyan);color:#fff;padding:7px 15px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px #000c,0 0 14px #57e6d944;display:none;align-items:center;gap:7px;z-index:30;transition:all .2s ease}
+    .scroll-bottom-pill.visible{display:inline-flex;animation:slide-up .2s ease}
+    .scroll-bottom-pill:hover{background:#152650;transform:translateX(-50%) translateY(-2px);box-shadow:0 6px 24px #000e,0 0 20px #57e6d966}
+    .scroll-bottom-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:pulse-glow .8s infinite alternate}
+    @keyframes slide-up{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+    /* Mini-CP Badge & Quick Chips */
+    .minicp-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:750;background:linear-gradient(115deg,#9a7cff22,#57e6d922);border:1px solid #9a7cff55;color:#c4b5fd;cursor:pointer;transition:all .15s}
+    .minicp-badge:hover{border-color:var(--cyan);color:#fff;box-shadow:0 0 12px #57e6d944}
+    .composer-tool-btn.chip-slash{color:#c4b5fd;border-color:#9a7cff44}
+    .composer-tool-btn.chip-slash:hover{border-color:#c4b5fd;background:#9a7cff22;color:#fff}
+
     /* Code Box & Sandbox Controls */
     .code-box{margin:12px 0;border:1px solid #27395a;border-radius:10px;background:#050811;overflow:hidden}
     .code-box-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#0b1326;border-bottom:1px solid #1c2b46;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
@@ -123,24 +184,33 @@
     .cursor-blink{display:inline-block;width:7px;height:16px;vertical-align:middle;background:var(--cyan);margin-left:3px;animation:blink 1s step-end infinite}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     
-    .empty-state{margin:auto;text-align:center;padding:40px 20px;max-width:480px}
-    .empty-icon{width:58px;height:58px;border-radius:50%;margin:0 auto 16px;background:radial-gradient(circle,var(--cyan),#57e6d922 35%,transparent 70%);box-shadow:0 0 44px #57e6d933;border:1px solid #57e6d966}
-    .empty-state h3{font-size:20px;margin:0 0 8px;color:#fff}
-    .empty-state p{color:var(--muted);font-size:13.5px;margin:0 0 24px}
+    .empty-state{margin:auto;text-align:center;padding:36px 16px;max-width:760px;width:100%}
+    .empty-icon{width:64px;height:64px;border-radius:50%;margin:0 auto 16px;background:radial-gradient(circle,var(--cyan),#57e6d922 35%,transparent 70%);box-shadow:0 0 44px #57e6d933;border:1px solid #57e6d966}
+    .empty-state h3{font-size:25px;margin:0 0 8px;color:#fff;font-weight:750;letter-spacing:-.015em}
+    .empty-state p{color:var(--muted);font-size:14px;margin:0 auto 22px;max-width:580px;line-height:1.55}
     
-    .chips-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;text-align:left}
-    .chip-card{background:#0c152a;border:1px solid #1e2e4c;border-radius:11px;padding:11px 13px;cursor:pointer;transition:all .18s;color:#cbd5e1;font-size:12.5px}
-    .chip-card:hover{border-color:var(--cyan);background:#132244;color:#fff;transform:translateY(-1px)}
-    .chip-card b{display:block;color:#fff;font-size:13px;margin-bottom:3px}
+    .category-tabs{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+    .category-tab{background:#0a1224;border:1px solid #1e3052;border-radius:999px;padding:6px 14px;color:var(--muted);font-size:12.5px;font-weight:650;cursor:pointer;transition:all .18s ease;display:inline-flex;align-items:center;gap:6px}
+    .category-tab:hover{color:#fff;border-color:var(--cyan);background:#132244}
+    .category-tab.active{background:linear-gradient(115deg,#57e6d925,#9a7cff25);border-color:var(--cyan);color:#fff;box-shadow:0 0 16px #57e6d933}
+
+    .chips-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left}
+    @media(max-width:640px){.chips-grid{grid-template-columns:1fr}}
+    .chip-card{background:#0c152a;border:1px solid #1e2e4c;border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .18s;color:#cbd5e1;font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+    .chip-card:hover{border-color:var(--cyan);background:#132244;color:#fff;transform:translateY(-1px);box-shadow:0 4px 16px #0006}
+    .chip-card b{color:#fff;font-size:13.5px;display:flex;align-items:center;gap:6px}
+    .chip-desc{color:var(--muted);font-size:12px;line-height:1.4}
     
     /* Composer bottom */
     .chat-bottom{padding:14px 20px 20px;background:linear-gradient(to top,#070b18 80%,transparent);flex-shrink:0}
     .composer-container{width:min(860px,100%);margin:0 auto;background:#0d162c;border:1px solid #233454;border-radius:16px;padding:12px 14px;box-shadow:0 12px 36px #0007;position:relative}
     .composer-container:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px #57e6d922, 0 12px 36px #0007}
     
-    /* AnyDoc & Web Search Toolbar */
-    .composer-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-    .composer-tool-btn{background:#091224;border:1px solid #233454;border-radius:8px;color:#cbd5e1;font-size:11.5px;font-weight:600;padding:4px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+    /* AnyDoc, Generative & Web Search Toolbar */
+    .composer-toolbar{display:flex;align-items:center;gap:7px;margin-bottom:8px;overflow-x:auto;padding-bottom:3px}
+    .composer-toolbar::-webkit-scrollbar{height:3px}
+    .composer-toolbar::-webkit-scrollbar-thumb{background:#1e2d4a;border-radius:3px}
+    .composer-tool-btn{background:#091224;border:1px solid #233454;border-radius:8px;color:#cbd5e1;font-size:11.5px;font-weight:600;padding:5px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;flex-shrink:0}
     .composer-tool-btn:hover{background:#132244;border-color:var(--cyan);color:#fff}
     .composer-tool-btn.active{background:#57e6d922;border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px #57e6d933}
 
@@ -169,6 +239,8 @@
     .send-btn{background:linear-gradient(115deg,var(--cyan),#ab91ff);border:none;border-radius:10px;padding:9px 18px;color:#08101d;font-weight:750;font-size:13.5px;cursor:pointer;transition:all .15s}
     .send-btn:hover{filter:brightness(1.1)}
     .send-btn:disabled{cursor:not-allowed;opacity:.4;filter:grayscale(.5)}
+    .send-btn.stop-btn{background:#ff829522;border:1px solid #ff829588;color:#ff8295}
+    .send-btn.stop-btn:hover{background:#ff829544;border-color:#ff8295;color:#fff}
     
     /* Drag & Drop Overlay */
     .drag-overlay{position:fixed;inset:0;background:#070b18ee;border:3px dashed var(--cyan);backdrop-filter:blur(6px);z-index:90;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;pointer-events:none}
@@ -176,15 +248,31 @@
     .drag-overlay h2{margin:0;color:#fff;font-size:24px}
     .drag-overlay p{margin:0;color:var(--cyan);font-size:14px}
 
-    /* Modal Login Token */
+    /* Modal Login Token & Gate Accesso Mesh */
     .auth-modal{position:fixed;inset:0;background:#03060fdb;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
-    .auth-card{width:min(440px,100%);background:#0d152a;border:1px solid #243557;border-radius:20px;padding:30px;box-shadow:0 30px 100px #000e;text-align:center}
+    .auth-card{width:min(520px,100%);background:#0d152a;border:1px solid #243557;border-radius:20px;padding:28px;box-shadow:0 30px 100px #000e;text-align:center}
     .auth-card h2{margin:0 0 8px;font-size:22px;color:#fff}
-    .auth-card p{color:var(--muted);font-size:13.5px;margin:0 0 20px}
+    .auth-card p{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5}
+    .auth-notice-box{background:#091224;border:1px solid #1f3254;border-radius:12px;padding:12px 14px;font-size:12px;color:#94a3b8;line-height:1.5;margin-bottom:18px;text-align:left}
+    .auth-notice-box strong{color:var(--cyan)}
+    .auth-methods-grid{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:16px}
+    .auth-method-card{background:#070d1a;border:1px solid #1a2a46;border-radius:14px;padding:14px;transition:all .2s ease}
+    .auth-method-card:hover{border-color:#57e6d966}
+    .auth-method-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .auth-method-title{font-size:13.5px;font-weight:750;color:#fff;display:flex;align-items:center;gap:8px}
+    .auth-method-badge{font-size:10px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#10b98122;color:#34d399;border:1px solid #10b98155}
+    .auth-method-card p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.45}
+    .btn-bridge-dl{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(115deg,#10b981,#06b6d4);color:#031418;font-weight:750;font-size:12px;padding:9px 14px;border-radius:8px;text-decoration:none;transition:all .15s}
+    .btn-bridge-dl:hover{filter:brightness(1.1)}
+    .btn-bridge-check{background:#111f38;border:1px solid #25395a;color:#cbd5e1;font-size:12px;font-weight:600;padding:9px 12px;border-radius:8px;cursor:pointer}
+    .btn-bridge-check:hover{border-color:var(--cyan);color:#fff}
+    .auth-row-input{display:flex;gap:8px}
+    .auth-row-input .auth-input{margin-bottom:0;flex:1;text-align:left;font-size:13px;padding:10px 12px}
+    .auth-row-input .auth-btn-submit{width:auto;white-space:nowrap;padding:10px 16px;font-size:13px}
     .auth-input{width:100%;border:1px solid #233454;background:#070b18;color:#fff;border-radius:11px;padding:12px 14px;font:inherit;margin-bottom:14px;outline:none;text-align:center;letter-spacing:.04em}
     .auth-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #57e6d922}
     .auth-btn-submit{width:100%;background:linear-gradient(115deg,var(--cyan),#ab91ff);border:none;border-radius:11px;padding:12px;color:#08101d;font-weight:750;cursor:pointer;font-size:14px}
-    .auth-error{margin-top:12px;color:var(--bad);font-size:12.5px;display:none}
+    .auth-error{margin-top:10px;color:var(--bad);font-size:12px;display:none;background:#38121a;border:1px solid var(--bad);padding:8px 10px;border-radius:8px}
     
     @media(max-width:850px){
       .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:10px 0 40px #000c}
@@ -228,13 +316,16 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="user-pill">
-        <span class="user-name" id="userName">Utente Mesh</span>
-        <span class="user-role" id="userRole">MEMBER</span>
+      <div class="user-pill" id="userPillBox" style="cursor:pointer" title="Accesso Libero attivo. Clicca per inserire una Chiave o connettere il plugin GPU.">
+        <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden">
+          <span class="user-name" id="userName">Visitatore Libero</span>
+          <span style="font-size:10.5px;color:var(--cyan)">🔑 Opzioni GPU / Chiave</span>
+        </div>
+        <span class="user-role" id="userRole">LIBERO</span>
       </div>
       <div class="footer-links">
         <a href="./index.html">← Torna al Sito</a>
-        <button id="logoutBtn" class="logout-btn" type="button">Disconnetti</button>
+        <button id="logoutBtn" class="logout-btn" type="button">Esci</button>
       </div>
     </div>
   </aside>
@@ -248,53 +339,78 @@
           <span id="activeChatTitle">Nuova conversazione</span>
         </div>
       </div>
-        <a href="./ai/" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🚀 AI Studio</a>
+      <div class="topbar-actions">
+        <div id="miniCpBadge" class="minicp-badge" title="Mini-CP Autonomo: clicca per visualizzare gli strumenti disponibili">
+          <span>⚡</span>
+          <span>Strumenti & Generative AI</span>
+        </div>
+        <a href="./" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🌐 Home 00MESH</a>
         <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#c084fc;font-weight:600" title="Scarica il Whitepaper Tokenomics in PDF">🪙 $00MESH PDF ↗</a>
-        <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> Mesh Connessa</span>
+        <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> 🔒 Chat Privata</span>
         <button id="clearChatBtn" class="top-action-btn" type="button" title="Pulisci messaggi di questa chat">Pulisci</button>
       </div>
     </header>
 
     <div class="chat-scroll" id="chatScroll">
       <div class="chat-container" id="chatContainer">
-        <!-- Stato Iniziale Vuoto -->
+        <!-- Stato Iniziale Vuoto Caricato Dinamicamente da JS -->
         <div class="empty-state" id="emptyState">
           <div class="empty-icon"></div>
-          <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
-          <div class="chips-grid">
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
-              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
+          <h3>Come posso aiutarti oggi?</h3>
+          <p>La tua intelligenza artificiale libera, privata e sovrana: utile ogni giorno per compiti di famiglia e studio, potente per sviluppatori e appassionati di reverse engineering.</p>
+          <div class="category-tabs" id="categoryTabs">
+            <button type="button" class="category-tab active" data-cat="family">🏡 Famiglia & Vita Quotidiana</button>
+            <button type="button" class="category-tab" data-cat="dev">🔬 Coding & Reverse Engineering</button>
+            <button type="button" class="category-tab" data-cat="tools">✨ Strumenti (PDF / Immagini)</button>
+          </div>
+          <div class="chips-grid" id="chipsGrid">
+            <div class="chip-card" data-prompt="Ho a disposizione pasta, zucchine, pomodorini, uova e parmigiano: suggeriscimi 3 idee veloci e sane per cena, con istruzioni passo-passo.">
+              <b>🍳 Cucina & Ricette Svuotafrigo</b>
+              <span class="chip-desc">3 piatti sfiziosi e sani con quello che hai in casa</span>
             </div>
-            <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
-              <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
+            <div class="chip-card" data-prompt="Spiegami la caduta dell'Impero Romano d'Occidente e le sue cause principali in modo semplice e appassionante, adatto a un ragazzo delle scuole medie.">
+              <b>📚 Aiuto Compiti & Studio</b>
+              <span class="chip-desc">Spiegazioni chiare e coinvolgenti per studenti di ogni età</span>
             </div>
-            <div class="chip-card" data-prompt="Spiega come analizzare file PDF ed estrarre testo strutturato a zero dipendenze nel browser.">
-              <b>📎 AnyDoc Ingestion</b> Analisi istantanea di codice e documenti
+            <div class="chip-card" data-prompt="Scrivi un'email formale ma cordiale da inviare al mio fornitore di energia elettrica per contestare un addebito anomalo sull'ultima bolletta.">
+              <b>✉️ Scrittura & Burocrazia</b>
+              <span class="chip-desc">Bozze di email, lettere formali o contestazione bollette</span>
             </div>
-            <div class="chip-card" data-prompt="Quali sono i vantaggi di eseguire modelli linguistici abliterated su cluster GPU decentralizzati?">
-              <b>🔥 Modelli Abliterated</b> Libertà e privacy del calcolo
+            <div class="chip-card" data-prompt="Crea un itinerario di 2 giorni per un weekend in famiglia con bambini tra borghi storici e natura, con suggerimenti su soste e attività adatte a tutte le età.">
+              <b>🗓️ Pianificazione & Weekend</b>
+              <span class="chip-desc">Gite ed itinerari adatti a genitori e figli con budget contenuto</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Pulsante Flottante Smart Scroll-to-Bottom -->
+    <button id="scrollBottomBtn" class="scroll-bottom-pill" type="button" aria-label="Scorri ai nuovi messaggi">
+      <span class="scroll-bottom-dot"></span>
+      <span>↓ Nuovi messaggi</span>
+    </button>
+
     <footer class="chat-bottom">
       <div class="composer-container" id="composerContainer">
-        <!-- Barra strumenti connettori estesi: AnyDoc e Web Search -->
+        <!-- Barra strumenti connettori estesi: AnyDoc, Generative AI & Mini-CP Tools -->
         <div class="composer-toolbar">
           <input type="file" id="fileAttachmentInput" multiple accept=".txt,.md,.markdown,.json,.csv,.tsv,.py,.js,.ts,.jsx,.tsx,.html,.css,.xml,.yaml,.yml,.sh,.bash,.zsh,.sql,.log,.env,.toml,.ini,.conf,.pdf" style="display:none">
-          <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega codice, documenti o PDF (AnyDoc)">📎 Allega File</button>
-          <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Web Search</button>
+          <button id="attachBtn" class="composer-tool-btn" type="button" title="Allega foto, documenti, PDF o codice da analizzare (AnyDoc)">📎 Allega File</button>
+          <button id="imageQuickBtn" class="composer-tool-btn" type="button" title="Genera immagini ad alta definizione con ComfyUI o Flux">🎨 Crea Immagine</button>
+          <button id="pdfQuickBtn" class="composer-tool-btn" type="button" title="Crea un documento PDF A4 vettoriale scaricabile">📑 Salva PDF A4</button>
+          <button id="webSearchBtn" class="composer-tool-btn" type="button" title="Attiva ricerca web privata in tempo reale tramite SearXNG">🌐 Cerca Web</button>
+          <button id="calcQuickBtn" class="composer-tool-btn" type="button" title="Calcolatrice matematica istantanea client-side">🧮 Calcola</button>
+          <button id="summaryQuickBtn" class="composer-tool-btn" type="button" title="Riassumi un testo lungo o articolo">📄 Riassumi</button>
+          <button id="statusQuickBtn" class="composer-tool-btn" type="button" title="Stato della connessione e nodi GPU attivi">📡 Diagnostica</button>
         </div>
 
         <!-- Vassoio chip documenti allegati -->
         <div id="attachedFilesTray" class="attached-files-tray" style="display:none"></div>
 
-        <textarea id="promptInput" class="composer-text" placeholder="Invia un messaggio alla mesh… (Shift+Invio per a capo, trascina file qui)" rows="1"></textarea>
+        <textarea id="promptInput" class="composer-text" placeholder="Chiedimi qualsiasi cosa (ricette, compiti scolastici, email, codice, reverse engineering, o trascina un file)..." rows="1"></textarea>
         <div class="composer-footer">
-          <span class="composer-hint">Max token sbloccato · AnyDoc, SearXNG & Sandbox Docker attivi</span>
+          <span class="composer-hint">🔒 Chat 100% privata e sovrana · Nessun tracciamento commerciale · Strumenti avanzati inclusi</span>
           <button id="sendBtn" class="send-btn" type="button" disabled>Invia ↗</button>
         </div>
       </div>
@@ -309,29 +425,66 @@
   <p>Supporta codice (Python, JS, TS, HTML, JSON), testo e PDF con estrazione istantanea</p>
 </div>
 
-<!-- Modal di Autenticazione se l'utente non ha la chiave -->
+<!-- Modal di Autenticazione & Opzioni Avanzate Rete -->
 <div id="authModal" class="auth-modal" style="display:none;">
-  <div class="auth-card">
+  <div class="auth-card" style="position:relative">
+    <button id="modalCloseBtn" type="button" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1" title="Chiudi e continua come Visitatore Libero">✕</button>
     <div class="mark" style="margin:0 auto 14px"></div>
-    <h2>Chiave di Rete Richiesta</h2>
-    <p>Inserisci la tua chiave autorizzata per sbloccare l'accesso diretto alla chat e ai modelli della mesh.</p>
-    <input type="password" id="modalKeyInput" class="auth-input" placeholder="es. hs-mesh-nome-xxxx" autocomplete="current-password">
-    <button id="modalSubmitBtn" class="auth-btn-submit" type="button">Entra nella Chat ↗</button>
-    <div id="modalAuthError" class="auth-error">Chiave non valida o scaduta</div>
-    <div style="margin-top:18px;font-size:12.5px">
-      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none">Non hai ancora una chiave? Richiedila qui →</a>
+    <h2>Accesso e Potenza di Calcolo 00MESH</h2>
+    <p>La chat è attiva in <strong>Accesso Libero</strong> per tutti. Puoi collegare la tua scheda video (GPU) o inserire una Chiave di Rete per ottenere priorità massima e sbloccare modelli estesi.</p>
+
+    <div class="auth-methods-grid">
+      <!-- Metodo A: Plugin Chrome Bridge -->
+      <div class="auth-method-card" id="gateBridgeCard">
+        <div class="auth-method-header">
+          <div class="auth-method-title">🔌 Metodo 1: Plugin Chrome Bridge</div>
+          <span class="auth-method-badge" id="gateBridgeBadge">Nessuna Chiave</span>
+        </div>
+        <p>Hai una scheda video con Ollama o LM Studio attivo? Scarica e avvia l'estensione Chrome: rileverà automaticamente la tua GPU e sbloccherà l'accesso immediato!</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <a href="./assets/00mesh-chrome-bridge.zip" download="00mesh-chrome-bridge.zip" class="btn-bridge-dl">⬇️ Scarica Estensione (.zip)</a>
+          <button id="btnCheckBridge" type="button" class="btn-bridge-check">🔄 Rileva Plugin</button>
+          <span id="gateBridgeStatus" style="font-size:11.5px;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <!-- Metodo B: Chiave di Rete -->
+      <div class="auth-method-card">
+        <div class="auth-method-header">
+          <div class="auth-method-title">🔑 Metodo 2: Chiave di Rete Autorizzata</div>
+        </div>
+        <p>Hai già ricevuto una chiave di rete autorizzata (admin o membro)?</p>
+        <div class="auth-row-input">
+          <input type="password" id="modalKeyInput" class="auth-input" placeholder="es. hs-mesh-nome-xxxx" autocomplete="current-password">
+          <button id="modalSubmitBtn" class="auth-btn-submit" type="button">Entra ↗</button>
+        </div>
+        <div id="modalAuthError" class="auth-error">Chiave non valida o scaduta</div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
+      <button id="modalGuestBtn" type="button" class="btn-bridge-check" style="background:#132244;color:#fff;border-color:var(--cyan);font-weight:700">✨ Continua come Visitatore Libero</button>
+      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none;font-size:12.5px">Richiedi una chiave →</a>
     </div>
   </div>
 </div>
 
 <script src="./join-config.js?v=1.05.4"></script>
 <script type="module">
-  import { AuthManager } from "./src/auth.js?v=1.05.4";
-  import { ChatClient } from "./src/chat.js?v=1.05.4";
-  import { renderMarkdown, attachCopyEvents, attachCodeBlockEvents } from "./src/render.js?v=1.05.4";
+  import { AuthManager, detectBridgeStatus } from "./src/auth.js?v=1.05.5";
+  import { ChatClient } from "./src/chat.js?v=1.05.5";
+  import {
+    renderMarkdown,
+    attachCopyEvents,
+    attachCodeBlockEvents,
+    extractUrls,
+    renderLinkPreviewSection
+  } from "./src/render.js?v=1.05.6";
   import { extractTextFromFile, isSupportedFile, formatDocumentsContext } from "./src/documents.js?v=1.05.4";
   import { searchWeb, formatSearchContext, parseSearchSources } from "./src/search.js?v=1.05.4";
   import { runSandboxCode } from "./src/sandbox.js?v=1.05.4";
+  import { MiniControlPlane, evaluateMath, summarizeText } from "./src/minicp.js?v=1.05.7";
+  import { downloadPdfFile } from "./src/pdf.js?v=1.05.7";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -339,6 +492,16 @@
 
   const authManager = new AuthManager({ baseUrl: gatewayUrl });
   let chatClient = null;
+  let miniCp = null;
+
+  function initMiniCp() {
+    const token = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
+    miniCp = new MiniControlPlane({
+      gatewayUrl,
+      token,
+      activeBridge,
+    });
+  }
 
   // Session Management
   let chatSessions = [];
@@ -447,10 +610,141 @@
 
   // Esecutore Python Sandbox
   async function handleRunSandbox(code) {
+    const token = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
     return await runSandboxCode({
       baseUrls: [gatewayUrl],
-      token: authManager.getKey(),
+      token,
       code,
+    });
+  }
+
+  const PROMPT_CATEGORIES = {
+    family: {
+      label: "🏡 Famiglia & Vita Quotidiana",
+      cards: [
+        {
+          title: "🍳 Cucina & Ricette Svuotafrigo",
+          desc: "3 piatti sfiziosi e sani con quello che hai in casa",
+          prompt: "Ho a disposizione pasta, zucchine, pomodorini, uova e parmigiano: suggeriscimi 3 idee veloci e sane per cena, con istruzioni passo-passo."
+        },
+        {
+          title: "📚 Aiuto Compiti & Studio",
+          desc: "Spiegazioni chiare e coinvolgenti per studenti di ogni età",
+          prompt: "Spiegami la caduta dell'Impero Romano d'Occidente e le sue cause principali in modo semplice e appassionante, adatto a un ragazzo delle scuole medie."
+        },
+        {
+          title: "✉️ Scrittura & Burocrazia",
+          desc: "Bozze di email, lettere formali o contestazione bollette",
+          prompt: "Scrivi un'email formale ma cordiale da inviare al mio fornitore di energia elettrica per contestare un addebito anomalo sull'ultima bolletta."
+        },
+        {
+          title: "🗓️ Pianificazione & Weekend",
+          desc: "Gite ed itinerari adatti a genitori e figli con budget contenuto",
+          prompt: "Crea un itinerario di 2 giorni per un weekend in famiglia con bambini tra borghi storici e natura, con suggerimenti su soste e attività adatte a tutte le età."
+        }
+      ]
+    },
+    dev: {
+      label: "🔬 Coding & Reverse Engineering",
+      cards: [
+        {
+          title: "🔍 Metodologia Reverse Engineering",
+          desc: "Come disassemblare e analizzare binari, APK o firmware",
+          prompt: "Spiegami come iniziare a fare reverse engineering su un binario ELF o un'applicazione Android (APK): quali strumenti usare (Ghidra, Jadx, Frida), l'approccio di analisi statica/dinamica e le trappole comuni."
+        },
+        {
+          title: "🛡️ Ispezione Script & Sicurezza",
+          desc: "Analizza codice offuscato e individua chiamate di rete o backdoor",
+          prompt: "Come si analizza uno script JavaScript o Python offuscato per estrarre URL di command & control, payload nascosti e token di autenticazione?"
+        },
+        {
+          title: "🐍 Automazione & Scripting Python",
+          desc: "Script pratici per riordinare file, estrarre dati e PCAP",
+          prompt: "Scrivi uno script Python completo che monitori una cartella, rinomini automaticamente le immagini in base alla data di scatto EXIF e archivi i file in sotto-cartelle ordinate per mese."
+        },
+        {
+          title: "⚡ Esegui in Docker Sandbox",
+          desc: "Scrivi codice ed eseguilo direttamente nel container isolato",
+          prompt: "Scrivi un programma Python che calcola i primi 50 numeri di Fibonacci e misura il tempo di esecuzione con precisione al microsecondo, pronto per essere eseguito nella Sandbox."
+        }
+      ]
+    },
+    tools: {
+      label: "✨ Strumenti (PDF & Immagini)",
+      cards: [
+        {
+          title: "🎨 Crea Immagine Neurale",
+          desc: "Sintesi GPU fotorealistica ComfyUI / Flux ad alta risoluzione",
+          prompt: "/image Un accogliente laboratorio di un inventore pieno di marchingegni ottici e libri antichi, stile Pixar 3D, rendering cinematografico 8k"
+        },
+        {
+          title: "📑 Compila & Scarica PDF A4",
+          desc: "Generatore vettoriale A4 istantaneo pronto al download",
+          prompt: "/pdf Guida alla Sicurezza Informatica in Famiglia | # Sicurezza Digitale per Tutti\\n\\nConsigli essenziali per proteggere computer, smartphone e password domestiche...\\n\\n- Password complesse e gestori di credenziali\\n- Backup su supporti esterni\\n- Come riconoscere i tentativi di phishing"
+        },
+        {
+          title: "🌐 Ricerca Web Privata (SearXNG)",
+          desc: "Interroga il web senza tracciamento o profilazione commerciale",
+          prompt: "/search ultime novità strumenti open-source per reverse engineering e analisi malware"
+        },
+        {
+          title: "🧮 Calcolatrice Intelligente",
+          desc: "Calcoli matematici sicuri con percentuali, radici e potenze",
+          prompt: "/calc (2200 * 12) - 24% imposte + sqrt(256)"
+        }
+      ]
+    }
+  };
+
+  let activeCategory = "family";
+
+  function renderEmptyStateHtml() {
+    const cat = PROMPT_CATEGORIES[activeCategory] || PROMPT_CATEGORIES.family;
+    const tabsHtml = Object.entries(PROMPT_CATEGORIES).map(([key, c]) => `
+      <button type="button" class="category-tab ${key === activeCategory ? "active" : ""}" data-cat="${key}">
+        ${c.label}
+      </button>
+    `).join("");
+
+    const cardsHtml = cat.cards.map(card => {
+      const escapedPrompt = card.prompt.replace(/"/g, "&quot;").replace(/\n/g, "&#10;");
+      return `
+        <div class="chip-card" data-prompt="${escapedPrompt}">
+          <b>${card.title}</b>
+          <span class="chip-desc">${card.desc}</span>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon"></div>
+        <h3>Come posso aiutarti oggi?</h3>
+        <p>La tua intelligenza artificiale libera, privata e sovrana: utile ogni giorno per compiti di famiglia e studio, potente per sviluppatori e appassionati di reverse engineering.</p>
+        <div class="category-tabs" id="categoryTabs">
+          ${tabsHtml}
+        </div>
+        <div class="chips-grid" id="chipsGrid">
+          ${cardsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function setupCategoryListeners() {
+    document.querySelectorAll(".category-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const cat = tab.getAttribute("data-cat");
+        if (cat && PROMPT_CATEGORIES[cat]) {
+          activeCategory = cat;
+          const container = $("chatContainer");
+          if (container && $("emptyState")) {
+            container.innerHTML = renderEmptyStateHtml();
+            setupCategoryListeners();
+            setupChipListeners();
+          }
+        }
+      });
     });
   }
 
@@ -461,27 +755,8 @@
     const msgs = sess ? sess.messages : [];
 
     if (!msgs.length) {
-      container.innerHTML = `
-        <div class="empty-state" id="emptyState">
-          <div class="empty-icon"></div>
-          <h3>Cosa vuoi costruire oggi?</h3>
-          <p>Sei collegato direttamente alla potenza neurale distribuita di Zero Zero Computer con supporto per documenti AnyDoc, ricerca privata SearXNG e Code Sandbox.</p>
-          <div class="chips-grid">
-            <div class="chip-card" data-prompt="Scrivi uno script Python completo che esegue il calcolo dei numeri primi e misuri i tempi di esecuzione.">
-              <b>🐍 Script Python</b> Eseguibile direttamente in Sandbox Docker
-            </div>
-            <div class="chip-card" data-prompt="Cerca e spiega le ultime novità su architettura neuromorfica e sistemi distribuiti.">
-              <b>🌐 Ricerca Web</b> Fonti verificate in tempo reale tramite SearXNG
-            </div>
-            <div class="chip-card" data-prompt="Spiega come analizzare file PDF ed estrarre testo strutturato a zero dipendenze nel browser.">
-              <b>📎 AnyDoc Ingestion</b> Analisi istantanea di codice e documenti
-            </div>
-            <div class="chip-card" data-prompt="Quali sono i vantaggi di eseguire modelli linguistici abliterated su cluster GPU decentralizzati?">
-              <b>🔥 Modelli Abliterated</b> Libertà e privacy del calcolo
-            </div>
-          </div>
-        </div>
-      `;
+      container.innerHTML = renderEmptyStateHtml();
+      setupCategoryListeners();
       setupChipListeners();
       return;
     }
@@ -489,7 +764,7 @@
     for (const msg of msgs) {
       appendBubble(msg.role, msg.content, false, msg.attachments || [], msg.webSources || []);
     }
-    scrollBottom();
+    smartScrollBottom(true);
   }
 
   function appendBubble(role, content, animate = true, attachments = [], webSources = []) {
@@ -499,7 +774,11 @@
     
     const who = document.createElement("span");
     who.className = "msg-who";
-    who.textContent = role === "user" ? "Tu" : "Assistente Mesh";
+    if (role === "user") {
+      who.innerHTML = '<span class="avatar-icon user-icon">👤</span> <span>Tu</span>';
+    } else {
+      who.innerHTML = '<span class="avatar-icon ai-icon">⚡</span> <span>Zero Zero AI</span>';
+    }
     box.appendChild(who);
 
     // Se il messaggio utente contiene documenti allegati, mostrali come pillole
@@ -525,6 +804,20 @@
       body.textContent = content;
     }
     box.appendChild(body);
+
+    // Anteprima Link e Risorse Cliccabili
+    if (role === "assistant" && content) {
+      const urls = extractUrls(content);
+      if (urls.length > 0) {
+        const previewsHtml = renderLinkPreviewSection(urls);
+        if (previewsHtml) {
+          const previewDiv = document.createElement("div");
+          previewDiv.innerHTML = previewsHtml;
+          attachCopyEvents(previewDiv);
+          box.appendChild(previewDiv);
+        }
+      }
+    }
 
     // Accordion fonti web se disponibili
     if (role === "assistant" && webSources && webSources.length > 0) {
@@ -565,19 +858,81 @@
           setTimeout(() => { copyBtn.textContent = "📋 Copia risposta"; }, 2000);
         } catch { copyBtn.textContent = "Errore copia"; }
       });
-      footer.append(copyBtn);
+      const pdfBtn = document.createElement("button");
+      pdfBtn.className = "copy-msg-btn";
+      pdfBtn.type = "button";
+      pdfBtn.textContent = "📑 Scarica PDF";
+      pdfBtn.title = "Esporta questa risposta come documento PDF vettoriale A4";
+      pdfBtn.addEventListener("click", () => {
+        const fullText = body.innerText || body.textContent;
+        const sess = getCurrentSession();
+        const title = (sess && sess.title) ? sess.title : "Documento HyperSpace";
+        try {
+          downloadPdfFile({
+            title,
+            content: fullText,
+            filename: `hyperspace-${Date.now()}.pdf`,
+          });
+          pdfBtn.textContent = "✓ PDF Scaricato!";
+          setTimeout(() => { pdfBtn.textContent = "📑 Scarica PDF"; }, 2500);
+        } catch (pdfErr) {
+          alert("Errore generazione PDF: " + pdfErr.message);
+        }
+      });
+      const regenBtn = document.createElement("button");
+      regenBtn.className = "copy-msg-btn";
+      regenBtn.type = "button";
+      regenBtn.textContent = "🔄 Rigenera";
+      regenBtn.title = "Rigenera questa risposta da zero";
+      regenBtn.addEventListener("click", () => {
+        const sess = getCurrentSession();
+        if (!sess || !sess.messages.length) return;
+        for (let i = sess.messages.length - 1; i >= 0; i--) {
+          if (sess.messages[i].role === "user") {
+            $("promptInput").value = sess.messages[i].content;
+            handleSend();
+            break;
+          }
+        }
+      });
+      footer.append(copyBtn, pdfBtn, regenBtn);
       box.appendChild(footer);
     }
 
     $("chatContainer").append(box);
-    scrollBottom();
+    smartScrollBottom(false);
     return body;
   }
 
-  function scrollBottom() {
-    const scroller = $("chatScroll");
-    scroller.scrollTop = scroller.scrollHeight;
+  // ── Smart Scroll con rilevamento intento utente ───────────────────────────
+  const chatScrollEl = $("chatScroll");
+  const scrollBottomBtn = $("scrollBottomBtn");
+  let isUserScrolledUp = false;
+
+  chatScrollEl?.addEventListener("scroll", () => {
+    const threshold = 70;
+    const distanceToBottom = chatScrollEl.scrollHeight - chatScrollEl.scrollTop - chatScrollEl.clientHeight;
+    isUserScrolledUp = distanceToBottom > threshold;
+    if (!isUserScrolledUp) {
+      scrollBottomBtn?.classList.remove("visible");
+    }
+  });
+
+  function smartScrollBottom(force = false) {
+    if (!chatScrollEl) return;
+    if (force || !isUserScrolledUp) {
+      chatScrollEl.scrollTop = chatScrollEl.scrollHeight;
+      scrollBottomBtn?.classList.remove("visible");
+    } else {
+      scrollBottomBtn?.classList.add("visible");
+    }
   }
+
+  scrollBottomBtn?.addEventListener("click", () => {
+    isUserScrolledUp = false;
+    chatScrollEl?.scrollTo({ top: chatScrollEl.scrollHeight, behavior: "smooth" });
+    scrollBottomBtn?.classList.remove("visible");
+  });
 
   function setupChipListeners() {
     document.querySelectorAll(".chip-card").forEach(chip => {
@@ -692,7 +1047,8 @@
 
   async function loadModels() {
     try {
-      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey: authManager.getKey() });
+      const authKey = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
+      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey });
       const models = await chatClient.listModels();
       const select = $("modelSelect");
       select.innerHTML = "";
@@ -716,6 +1072,8 @@
           label = "🌐 HyperSpace OpenWork (32k Context)";
         } else if (cleanName.startsWith("huihui_ai/gemma-4-abliterated:12b")) {
           label = "🔥 Gemma-4 12B Abliterated";
+        } else if (m.id.includes("OmniRoute") || m.id.includes("omniroute")) {
+          label = "⚡ Cloud OmniRoute / Groq (Ultra Veloce)";
         } else if (isAbliterated) {
           label = `🔥 ${cleanName}`;
         }
@@ -728,8 +1086,10 @@
 
       if (options.length) {
         select.replaceChildren(...options);
-        // Priorità assoluta ai modelli stabili, verificati e pronti all'uso sulla mesh
+        // Priorità assoluta: se c'è OmniRoute/Cloud risponde sub-2s a zero carico Mac; altrimenti i modelli mesh locali
         const priorities = [
+          "OmniRoute",
+          "omniroute",
           "qwen3-8b-abliterated:latest",
           "qwen3-8b-abliterated",
           "qwen3:8b",
@@ -760,6 +1120,16 @@
     if (sess) { sess.model = $("modelSelect").value; saveSessions(); }
   });
 
+  let currentAbortController = null;
+
+  function resetSendButton() {
+    const btn = $("sendBtn");
+    if (!btn) return;
+    btn.textContent = "Invia ↗";
+    btn.classList.remove("stop-btn");
+    updateSendButtonState();
+  }
+
   async function handleSend() {
     let text = $("promptInput").value.trim();
     const currentAttachments = [...attachedFiles];
@@ -767,6 +1137,74 @@
 
     if (!text && currentAttachments.length) {
       text = "Analizza i documenti allegati ed estrai le informazioni e i punti chiave.";
+    }
+
+    // Gestione Slash Commands Mini-CP autonomo (/help, /calc, /search, /summary, /status, /clear)
+    if (text.startsWith("/")) {
+      if (!currentSessionId) {
+        currentSessionId = "sess-" + Date.now();
+        const title = text.length > 28 ? text.slice(0, 28) + "…" : text;
+        $("activeChatTitle").textContent = title;
+        chatSessions.unshift({
+          id: currentSessionId,
+          title,
+          model: $("modelSelect").value,
+          messages: [],
+          updatedAt: Date.now()
+        });
+        saveSessions();
+      }
+      const sess = getCurrentSession();
+      const history = sess ? sess.messages : [];
+
+      $("promptInput").value = "";
+      attachedFiles = [];
+      renderAttachedFiles();
+      $("sendBtn").disabled = true;
+
+      if (text.toLowerCase() === "/clear") {
+        $("clearChatBtn").click();
+        $("sendBtn").disabled = false;
+        return;
+      }
+
+      appendBubble("user", text, true, currentAttachments);
+      history.push({ role: "user", content: text });
+      if (sess) sess.updatedAt = Date.now();
+      saveSessions();
+
+      const target = appendBubble("assistant", "");
+      target.innerHTML = '<span class="cursor-blink">▊</span>';
+
+      try {
+        if (!miniCp) initMiniCp();
+        const cmdRes = await miniCp.handleSlashCommand(text);
+        const replyText = cmdRes.content || "Comando completato.";
+        target.innerHTML = renderMarkdown(replyText);
+        attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+
+        const urls = extractUrls(replyText);
+        if (urls.length > 0) {
+          const previewsHtml = renderLinkPreviewSection(urls);
+          if (previewsHtml) {
+            const previewDiv = document.createElement("div");
+            previewDiv.innerHTML = previewsHtml;
+            attachCopyEvents(previewDiv);
+            target.parentElement.appendChild(previewDiv);
+          }
+        }
+
+        history.push({ role: "assistant", content: replyText });
+        if (sess) sess.updatedAt = Date.now();
+        saveSessions();
+      } catch (cmdErr) {
+        target.textContent = `Errore Mini-CP: ${cmdErr.message}`;
+      } finally {
+        $("sendBtn").disabled = false;
+        $("promptInput").focus();
+        smartScrollBottom(true);
+      }
+      return;
     }
 
     if (!currentSessionId) {
@@ -790,7 +1228,12 @@
     $("promptInput").value = "";
     attachedFiles = [];
     renderAttachedFiles();
-    $("sendBtn").disabled = true;
+
+    currentAbortController = new AbortController();
+    const sendBtn = $("sendBtn");
+    sendBtn.textContent = "⏹ Interrompi";
+    sendBtn.classList.add("stop-btn");
+    sendBtn.disabled = false;
 
     // Disegna bolla utente con badge allegati
     appendBubble("user", text, true, currentAttachments);
@@ -802,8 +1245,9 @@
     if (sess) sess.updatedAt = Date.now();
     saveSessions();
 
+    const authKey = authManager.getKey() || activeBridge?.nodeId || "node-operator-bridge";
     if (!chatClient) {
-      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey: authManager.getKey(), model: $("modelSelect").value });
+      chatClient = new ChatClient({ baseUrls: [gatewayUrl], authKey, model: $("modelSelect").value });
     }
     chatClient.model = $("modelSelect").value;
 
@@ -843,41 +1287,75 @@
         promptPayload[lastIdx].content = [docContext, searchContext, text].filter(Boolean).join("\n\n---\n\n");
       }
 
+      // Istruzioni di sistema versatili: accogliente ed empatico per famiglie e vita quotidiana,
+      // rigoroso ed esaustivo per sviluppatori e appassionati di reverse engineering
+      const SYSTEM_PROMPT = `Sei l'assistente IA ufficiale di Zero Zero Computer / HyperSpace.
+Sei progettato per essere accogliente, chiaro, pratico ed empatico per due perimetri di utilizzo:
+1. Famiglie, studenti e vita quotidiana: compiti scolastici, ricette di cucina, scrittura email e lettere formali, gestione della casa, chiarimenti su burocrazia e bollette, consigli pratici e viaggi. Usa un tono caloroso, incoraggiante e privo di tecnicismi incomprensibili.
+2. Sviluppatori, maker, curiosi di codice e reverse engineering: analisi di script e codice sorgente, decompilazione e reverse engineering (Ghidra, Jadx, Frida, Radare2, ispezione APK/binari), estrazione di chiamate API o protocolli di rete, scrittura di script Python/Bash e test di sicurezza. Fornisci risposte tecniche di massimo livello, rigorose, con spiegazioni del funzionamento "sotto il cofano" e codice pronto per l'esecuzione.
+
+Linee guida di risposta:
+- Rispondi sempre in perfetto italiano naturale, cordiale e ben strutturato.
+- Usa una formattazione Markdown chiara (titoli con ## o ###, elenchi puntati, tabelle e blocchi di codice con linguaggio specificato).
+- Ricorda che l'utente può esportare direttamente la tua risposta in PDF A4 con 1 clic: rendi i documenti, i riassunti, le ricette o le guide completi e ben impaginati.`;
+
+      if (!promptPayload.some(m => m.role === "system")) {
+        promptPayload.unshift({ role: "system", content: SYSTEM_PROMPT });
+      }
+
       target.innerHTML = '<span class="cursor-blink">▊</span>';
 
       let reply;
       try {
         reply = await chatClient.send(promptPayload, {
+          signal: currentAbortController.signal,
           onDelta: (_p, whole) => {
             target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
             attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
-            scrollBottom();
+            smartScrollBottom(false);
           }
         });
       } catch (sendErr) {
-        // Fallback automatico su modello mesh standard se il modello richiesto non è pronto o non risponde
-        const fallbackModel = "🕸️ qwen3-8b-abliterated:latest";
-        if (chatClient.model !== fallbackModel && !sendErr.message?.includes("fetch")) {
-          console.warn(`Modello ${chatClient.model} non pronto (${sendErr.message}), fallback automatico a ${fallbackModel}`);
-          chatClient.model = fallbackModel;
-          $("modelSelect").value = fallbackModel;
-          if (sess) { sess.model = fallbackModel; saveSessions(); }
-          target.innerHTML = '<span class="cursor-blink">▊</span>';
-          reply = await chatClient.send(promptPayload, {
-            onDelta: (_p, whole) => {
-              target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
-              attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
-              scrollBottom();
-            }
-          });
+        if (currentAbortController?.signal?.aborted) {
+          reply = { text: target.textContent.replace(/▊$/, "").trim() };
         } else {
-          throw sendErr;
+          // Fallback automatico su modello mesh standard se il modello richiesto non è pronto o non risponde
+          const fallbackModel = "🕸️ qwen3-8b-abliterated:latest";
+          if (chatClient.model !== fallbackModel && !sendErr.message?.includes("fetch")) {
+            console.warn(`Modello ${chatClient.model} non pronto (${sendErr.message}), fallback automatico a ${fallbackModel}`);
+            chatClient.model = fallbackModel;
+            $("modelSelect").value = fallbackModel;
+            if (sess) { sess.model = fallbackModel; saveSessions(); }
+            target.innerHTML = '<span class="cursor-blink">▊</span>';
+            reply = await chatClient.send(promptPayload, {
+              signal: currentAbortController.signal,
+              onDelta: (_p, whole) => {
+                target.innerHTML = renderMarkdown(whole) + '<span class="cursor-blink">▊</span>';
+                attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+                smartScrollBottom(false);
+              }
+            });
+          } else {
+            throw sendErr;
+          }
         }
       }
 
       const finalText = reply.text || target.textContent;
       target.innerHTML = renderMarkdown(finalText);
       attachCodeBlockEvents(target, { onRunCode: handleRunSandbox });
+
+      // Anteprima Link e Risorse (se presenti URL nel messaggio finale)
+      const urls = extractUrls(finalText);
+      if (urls.length > 0) {
+        const previewsHtml = renderLinkPreviewSection(urls);
+        if (previewsHtml) {
+          const previewDiv = document.createElement("div");
+          previewDiv.innerHTML = previewsHtml;
+          attachCopyEvents(previewDiv);
+          target.parentElement.appendChild(previewDiv);
+        }
+      }
 
       // Se c'erano fonti web, aggiungi accordion
       if (webSources && webSources.length > 0) {
@@ -911,22 +1389,77 @@
       if (sess) sess.updatedAt = Date.now();
       saveSessions();
     } catch(err) {
-      target.parentElement.classList.add("error");
-      target.textContent = `Errore di generazione: ${err.message}`;
-      history.pop();
-      saveSessions();
+      if (currentAbortController?.signal?.aborted) {
+        const partial = target.textContent.replace(/▊$/, "").trim();
+        if (partial) {
+          history.push({ role: "assistant", content: partial });
+          if (sess) sess.updatedAt = Date.now();
+          saveSessions();
+        }
+      } else {
+        target.parentElement.classList.add("error");
+        target.textContent = `Errore di generazione: ${err.message}`;
+        history.pop();
+        saveSessions();
+      }
     } finally {
-      $("sendBtn").disabled = false;
+      currentAbortController = null;
+      resetSendButton();
       $("promptInput").focus();
+      smartScrollBottom(false);
     }
   }
 
-  $("sendBtn").addEventListener("click", handleSend);
+  $("sendBtn").addEventListener("click", () => {
+    if (currentAbortController) {
+      currentAbortController.abort();
+      currentAbortController = null;
+      resetSendButton();
+      return;
+    }
+    handleSend();
+  });
   $("promptInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      if (currentAbortController) return;
       handleSend();
     }
+  });
+
+  // Mini-CP Quick Tool Shortcuts
+  $("imageQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/image ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("pdfQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/pdf ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("calcQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/calc ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("summaryQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/summary ";
+    $("promptInput").focus();
+    updateSendButtonState();
+  });
+
+  $("statusQuickBtn")?.addEventListener("click", () => {
+    $("promptInput").value = "/status";
+    handleSend();
+  });
+
+  $("miniCpBadge")?.addEventListener("click", () => {
+    $("promptInput").value = "/help";
+    handleSend();
   });
 
   $("promptInput").addEventListener("input", () => {
@@ -960,43 +1493,138 @@
     $("sidebar").classList.toggle("open");
   });
 
-  // Autenticazione iniziale
-  async function initAuth() {
+  let activeBridge = null;
+
+  async function checkGate() {
     const urlParams = new URLSearchParams(window.location.search);
     const queryKey = urlParams.get("key");
     if (queryKey && queryKey.trim()) {
       authManager.saveKey(queryKey.trim());
     }
 
+    // 1. Prova prima la chiave salvata / passata via query
     await authManager.init();
-    const state = authManager.getState();
-    if (!state.authenticated) {
-      $("authModal").style.display = "flex";
-    } else {
-      $("userName").textContent = state.label || "Utente Mesh";
-      $("userRole").textContent = (state.role || "member").toUpperCase();
-      await loadModels();
-      loadSessions();
-      if (chatSessions.length > 0) {
-        selectSession(chatSessions[0].id);
-      } else {
-        renderActiveMessages();
-      }
+    const authState = authManager.getState();
+    if (authState.authenticated) {
+      return { authorized: true, via: "key", state: authState };
+    }
 
-      // Se presente un prompt nei parametri URL (es. da form di contatto), avvia subito la chat
-      const initialPrompt = urlParams.get("prompt");
-      if (initialPrompt && initialPrompt.trim()) {
-        const promptText = initialPrompt.trim();
-        window.history.replaceState({}, document.title, window.location.pathname);
-        startNewChat();
-        $("promptInput").value = promptText;
-        updateSendButtonState();
-        setTimeout(() => {
-          handleSend();
-        }, 350);
+    // 2. Prova il rilevamento del plugin bridge Chrome o motore locale
+    const bridge = await detectBridgeStatus({ timeoutMs: 1000 });
+    if (bridge && bridge.active) {
+      activeBridge = bridge;
+      return { authorized: true, via: "bridge", bridge };
+    }
+
+    return { authorized: false };
+  }
+
+  async function updateGateBridgeStatus() {
+    const statusEl = $("gateBridgeStatus");
+    const badgeEl = $("gateBridgeBadge");
+    if (statusEl) {
+      statusEl.style.color = "var(--cyan)";
+      statusEl.textContent = "Controllo plugin in corso…";
+    }
+    const res = await detectBridgeStatus({ timeoutMs: 1200 });
+    if (res && res.active) {
+      activeBridge = res;
+      if (statusEl) {
+        statusEl.style.color = "var(--ok)";
+        statusEl.textContent = `✓ Rilevato: ${res.label}`;
+      }
+      if (badgeEl) {
+        badgeEl.style.background = "#10b98133";
+        badgeEl.style.color = "#34d399";
+        badgeEl.textContent = "ATTIVO";
+      }
+      setTimeout(() => {
+        initAuth();
+      }, 500);
+    } else {
+      if (statusEl) {
+        statusEl.style.color = "var(--muted)";
+        statusEl.textContent = "Plugin non rilevato o motori spenti";
       }
     }
   }
+
+  // Autenticazione & Gate Sovrano: Modalità Libera & Accesso Diretto
+  async function initAuth() {
+    const authResult = await checkGate();
+    $("authModal").style.display = "none";
+
+    if (!authResult.authorized) {
+      // Accesso Libero per tutti: famiglie, studenti e visitatori entrano all'istante
+      $("userName").textContent = "Visitatore Libero";
+      $("userRole").textContent = "LIBERO";
+      $("userRole").style.background = "#57e6d922";
+      $("userRole").style.color = "var(--cyan)";
+      $("userRole").style.borderColor = "#57e6d955";
+      $("activeChatTitle").textContent = "Nuova conversazione";
+    } else {
+      if (authResult.via === "key") {
+        $("userName").textContent = authResult.state.label || "Utente Mesh";
+        $("userRole").textContent = (authResult.state.role || "member").toUpperCase();
+        $("userRole").style.background = "#70e6aa22";
+        $("userRole").style.color = "var(--ok)";
+        $("userRole").style.borderColor = "#70e6aa55";
+      } else {
+        $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
+        $("userRole").textContent = "NODE OPERATOR";
+        $("userRole").style.background = "#9a7cff22";
+        $("userRole").style.color = "var(--violet)";
+        $("userRole").style.borderColor = "#9a7cff55";
+        $("activeChatTitle").textContent = "Chat Sovrana (Bridge GPU Attivo)";
+      }
+    }
+
+    await loadModels();
+    loadSessions();
+    if (chatSessions.length > 0) {
+      selectSession(chatSessions[0].id);
+    } else {
+      renderActiveMessages();
+    }
+
+    // Se presente un prompt nei parametri URL (es. da form di contatto), avvia subito la chat
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialPrompt = urlParams.get("prompt");
+    if (initialPrompt && initialPrompt.trim()) {
+      const promptText = initialPrompt.trim();
+      window.history.replaceState({}, document.title, window.location.pathname);
+      startNewChat();
+      $("promptInput").value = promptText;
+      updateSendButtonState();
+      setTimeout(() => {
+        handleSend();
+      }, 350);
+    }
+  }
+
+  // Gestori apertura/chiusura modale opzioni GPU & Chiavi
+  $("userPillBox")?.addEventListener("click", () => {
+    $("authModal").style.display = "flex";
+    updateGateBridgeStatus();
+  });
+  $("modalCloseBtn")?.addEventListener("click", () => {
+    $("authModal").style.display = "none";
+  });
+  $("modalGuestBtn")?.addEventListener("click", () => {
+    $("authModal").style.display = "none";
+  });
+
+  if ($("btnCheckBridge")) {
+    $("btnCheckBridge").addEventListener("click", updateGateBridgeStatus);
+  }
+
+  // Ascolta messaggi da estensione nel caso arrivino dopo il caricamento
+  window.addEventListener("message", (e) => {
+    if (e.data?.type === "00MESH_BRIDGE_STATUS" && e.data?.active && $("authModal").style.display !== "none") {
+      activeBridge = e.data;
+      initAuth();
+    }
+  });
 
   $("modalSubmitBtn").addEventListener("click", async () => {
     const key = $("modalKeyInput").value.trim();

@@ -194,6 +194,16 @@ OMNIROUTE_API_KEY  = os.getenv("OMNIROUTE_API_KEY", "").strip()
 OMNIROUTE_MODEL    = os.getenv("OMNIROUTE_MODEL", "auto")
 OMNIROUTE_ENABLED  = os.getenv("OMNIROUTE_ENABLED", "true").lower() == "true"
 
+# Smart Economic Fallback ("Mesh-First, API-Second" + tetto giornaliero di spesa)
+# Permette di configurare un endpoint OpenAI-compatible diretto (es. OpenRouter,
+# DeepSeek, Qwen) o di usare OmniRoute con un hard-cap giornaliero in Euro e
+# chiamate, garantendo zero sorprese in bolletta.
+EXTERNAL_FALLBACK_API_URL        = os.getenv("EXTERNAL_FALLBACK_API_URL", "").strip().rstrip("/")
+EXTERNAL_FALLBACK_API_KEY        = os.getenv("EXTERNAL_FALLBACK_API_KEY", "").strip()
+EXTERNAL_FALLBACK_MODEL          = os.getenv("EXTERNAL_FALLBACK_MODEL", "").strip()
+EXTERNAL_FALLBACK_DAILY_EUR_CAP  = float(os.getenv("EXTERNAL_FALLBACK_DAILY_EUR_CAP", "0.50"))
+EXTERNAL_FALLBACK_DAILY_CALLS_CAP = int(os.getenv("EXTERNAL_FALLBACK_DAILY_CALLS_CAP", "500"))
+
 # Prefissi puramente cosmetici per il menu modelli di Open WebUI — 🕸️ per i
 # modelli serviti dalla mesh locale, 🌐 per la voce che instrada esplicitamente
 # a OmniRoute (provider esterni). Vengono aggiunti solo in /v1/models e tolti
