@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
-REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.04}"
+REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.05}"
 KOHYA_DIR="${KOHYA_DIR:-$REPO/data/training/tools/sd-scripts}"
 DATASET_DIR="${DATASET_DIR:-$REPO/data/training/anna}"
 OUTPUT_DIR="${OUTPUT_DIR:-$REPO/data/training/output}"

@@ -4,15 +4,15 @@
   <key>Label</key><string>com.hyperspace.tiktok-editor</string>
   <key>ProgramArguments</key><array>
     <string>/Users/opo/Downloads/tiktok_editor/.venv/bin/python</string>
-    <string>/Users/opo/hyperspace-agi-1.04/scripts/tiktok_editor_service.py</string>
+    <string>/Users/opo/hyperspace-agi-1.05/scripts/tiktok_editor_service.py</string>
   </array>
   <key>EnvironmentVariables</key><dict>
-    <key>TIKTOK_EDITOR_DIR</key><string>/Users/opo/hyperspace-agi-1.04/integrations/tiktok_editor/app</string>
+    <key>TIKTOK_EDITOR_DIR</key><string>/Users/opo/hyperspace-agi-1.05/integrations/tiktok_editor/app</string>
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>
-  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.04/integrations/tiktok_editor/app</string>
+  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.05/integrations/tiktok_editor/app</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><false/>
-  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.04/data/tiktok-editor.log</string>
-  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.04/data/tiktok-editor.err.log</string>
+  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.05/data/tiktok-editor.log</string>
+  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.05/data/tiktok-editor.err.log</string>
 </dict></plist>

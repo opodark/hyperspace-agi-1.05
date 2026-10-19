@@ -10,15 +10,15 @@
   <key>Label</key><string>com.hyperspace.dream-nightly</string>
   <key>ProgramArguments</key><array>
     <string>/usr/bin/python3</string>
-    <string>/Users/opo/hyperspace-agi-1.04/scripts/dream_scheduler.py</string>
+    <string>/Users/opo/hyperspace-agi-1.05/scripts/dream_scheduler.py</string>
     <string>--once</string>
   </array>
   <key>EnvironmentVariables</key><dict>
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>
-  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.04</string>
+  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.05</string>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>1800</integer>
-  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.04/data/dream-nightly.log</string>
-  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.04/data/dream-nightly.err.log</string>
+  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.05/data/dream-nightly.log</string>
+  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.05/data/dream-nightly.err.log</string>
 </dict></plist>

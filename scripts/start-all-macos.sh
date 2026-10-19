@@ -3,7 +3,7 @@
 # Avvio completo HyperSpace su macOS: Docker/CP, ComfyUI, bridge, Telegram e web-node.
 set -euo pipefail
 
-REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.04}"
+REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.05}"
 BUILD=0
 [[ "${1:-}" == "--build" ]] && BUILD=1
 cd "$REPO"

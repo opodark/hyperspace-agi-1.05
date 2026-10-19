@@ -4,16 +4,16 @@
   <key>Label</key><string>com.hyperspace.reel-daily</string>
   <key>ProgramArguments</key><array>
     <string>/usr/bin/python3</string>
-    <string>/Users/opo/hyperspace-agi-1.04/scripts/reel_daily_scheduler.py</string>
+    <string>/Users/opo/hyperspace-agi-1.05/scripts/reel_daily_scheduler.py</string>
   </array>
   <key>EnvironmentVariables</key><dict>
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     <key>HYPERSPACE_SHARE_DIR</key><string>/Users/opo/hyperspace_share</string>
-    <key>TIKTOK_EDITOR_DIR</key><string>/Users/opo/hyperspace-agi-1.04/integrations/tiktok_editor/app</string>
+    <key>TIKTOK_EDITOR_DIR</key><string>/Users/opo/hyperspace-agi-1.05/integrations/tiktok_editor/app</string>
   </dict>
-  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.04</string>
+  <key>WorkingDirectory</key><string>/Users/opo/hyperspace-agi-1.05</string>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>60</integer>
-  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.04/data/reel-daily.log</string>
-  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.04/data/reel-daily.err.log</string>
+  <key>StandardOutPath</key><string>/Users/opo/hyperspace-agi-1.05/data/reel-daily.log</string>
+  <key>StandardErrorPath</key><string>/Users/opo/hyperspace-agi-1.05/data/reel-daily.err.log</string>
 </dict></plist>

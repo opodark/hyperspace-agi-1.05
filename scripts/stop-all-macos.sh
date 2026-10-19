@@ -3,7 +3,7 @@
 # Arresto simmetrico dei componenti avviati da start-all-macos.sh.
 set -euo pipefail
 
-REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.04}"
+REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.05}"
 cd "$REPO"
 
 log() { printf '[stop-tutto] %s\n' "$*"; }
