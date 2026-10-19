@@ -473,7 +473,7 @@ class ImmagineQueue:
             return dict(job)
 
     def concludi(self, job_id: str, ok: bool, *, file: str = "", errore: str = "",
-                 durata_ms: int = 0) -> dict | None:
+                 durata_ms: int = 0, codice: str = "") -> dict | None:
         """Chiude un job. Un id sconosciuto non è un errore: è un doppione."""
         with self._lock:
             job = self._job.get(str(job_id or ""))
@@ -484,7 +484,8 @@ class ImmagineQueue:
             job["stato"] = "done" if ok else "failed"
             job["esito"] = {"file": str(file or ""),
                             "errore": str(errore or "")[:400],
-                            "durata_ms": int(durata_ms or 0), "ts": self.clock()}
+                            "durata_ms": int(durata_ms or 0), "ts": self.clock(),
+                            "codice": str(codice or "")[:64]}
             self._storico.append(dict(job))
             self._storico = self._storico[-20:]
             self._save_locked()

@@ -1072,6 +1072,8 @@
           label = "🌐 HyperSpace OpenWork (32k Context)";
         } else if (cleanName.startsWith("huihui_ai/gemma-4-abliterated:12b")) {
           label = "🔥 Gemma-4 12B Abliterated";
+        } else if (m.id.includes("OmniRoute") || m.id.includes("omniroute")) {
+          label = "⚡ Cloud OmniRoute / Groq (Ultra Veloce)";
         } else if (isAbliterated) {
           label = `🔥 ${cleanName}`;
         }
@@ -1084,8 +1086,10 @@
 
       if (options.length) {
         select.replaceChildren(...options);
-        // Priorità assoluta ai modelli stabili, verificati e pronti all'uso sulla mesh
+        // Priorità assoluta: se c'è OmniRoute/Cloud risponde sub-2s a zero carico Mac; altrimenti i modelli mesh locali
         const priorities = [
+          "OmniRoute",
+          "omniroute",
           "qwen3-8b-abliterated:latest",
           "qwen3-8b-abliterated",
           "qwen3:8b",

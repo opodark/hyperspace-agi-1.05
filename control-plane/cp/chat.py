@@ -164,6 +164,15 @@ def parse_inference_urls(value: str, fallback: str) -> list:
     fallback = str(fallback or "").strip().rstrip("/")
     return urls or ([fallback] if fallback else [])
 
+
+def _should_skip_local_ollama() -> bool:
+    """True se la memoria unificata del Mac è occupata e l'inferenza locale va deviata."""
+    try:
+        from flask import request
+        return bool(request and getattr(request, "environ", {}).get("hyperspace.skip_local_ollama"))
+    except Exception:
+        return False
+
 def _inference_urls() -> list:
     """Gli endpoint diretti attuali: DIRECT_INFERENCE_URLS oppure OLLAMA_URL."""
     return parse_inference_urls(os.getenv("DIRECT_INFERENCE_URLS", ""), OLLAMA_URL)
@@ -425,11 +434,12 @@ def _try_omniroute_fallback(data: dict, timeout: int = 60):
     except Exception:
         record_external_fallback_usage = None
 
-    # Rimuove campi interni del CP non supportati da API OpenAI-compatible
-    # rigorose (es. Groq rifiuta `_hyperspace_surface` e `think` con HTTP 400).
+    # Rimuove campi interni del CP e chiavi specifiche di Ollama non supportate da API OpenAI-compatible
+    # rigorose (es. Groq rifiuta `_hyperspace_surface`, `think` e `options` con HTTP 400).
     _strip_keys = {
         "_hyperspace_surface", "_hyperspace_tools_off", "think",
         "surface", "hyperspace_skills", "tools", "tool_choice",
+        "options", "keep_alive", "format", "template", "raw", "context",
     }
     clean_data = {k: v for k, v in (data or {}).items() if k not in _strip_keys}
 
@@ -883,7 +893,11 @@ def v1_chat_completions():
 
     # Toglie i prefissi cosmetici aggiunti in /v1/models prima di usare il
     # nome per il routing vero — vedi commento su MESH_MODEL_ICON sopra.
-    omniroute_direct = (raw_model == OMNIROUTE_MODEL_ID)
+    omniroute_direct = (raw_model == OMNIROUTE_MODEL_ID
+                        or raw_model in ("🌐 OmniRoute", "OmniRoute", "omniroute")
+                        or raw_model.startswith("🌐 OmniRoute")
+                        or raw_model.startswith("ext:")
+                        or raw_model.startswith("groq:"))
     if omniroute_direct:
         model, pinned_node_id = OMNIROUTE_MODEL, None
     else:
@@ -1012,6 +1026,9 @@ def v1_chat_completions():
     # inline, non ritentati su un altro nodo.
     if stream:
         candidates = [] if omniroute_direct else _rank_candidate_nodes(active, pinned_node_id, model=model)
+        if _should_skip_local_ollama():
+            candidates = [c for c in candidates if "mac" not in (c.get("alias") or "").lower()
+                          and c.get("node_id") != "d7bc05baed5b752aeab6ba2624243b59fc333b9f"]
         stream_data = dict(data)
         if _model_supports_tools(model):
             ct = stream_data.get("tools", [])
@@ -1133,6 +1150,8 @@ def v1_chat_completions():
             task["node"] = "ollama-direct"
             db.update_task(task_id, "assigned", node_id="ollama-direct", endpoint=ollama_base)
             try:
+                if _should_skip_local_ollama():
+                    raise RuntimeError("Il Mac sta completando un'immagine")
                 if _native_direct_enabled(model):
                     # Fallback nativo (/api/chat) per i modelli reasoning
                     # (elenco in _NATIVE_CHAT_FALLBACK_PATTERNS, estendibile via
@@ -1231,6 +1250,9 @@ def v1_chat_completions():
         return jsonify({"error": {"message": task["error"], "type": "server_error"}}), 502
 
     candidates = _rank_candidate_nodes(active, pinned_node_id, model=model)
+    if _should_skip_local_ollama():
+        candidates = [c for c in candidates if "mac" not in (c.get("alias") or "").lower()
+                      and c.get("node_id") != "d7bc05baed5b752aeab6ba2624243b59fc333b9f"]
     for candidate in candidates:
         node_id  = candidate.get("node_id", "cp")
         endpoint = _best_endpoint(candidate)

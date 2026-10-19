@@ -213,7 +213,8 @@ def image_result():
     job_id = str(dati.get("id", ""))
     chiuso = _contesto.image_queue.concludi(job_id, bool(dati.get("ok")),
                                   file=dati.get("file", ""), errore=dati.get("errore", ""),
-                                  durata_ms=dati.get("durata_ms", 0))
+                                  durata_ms=dati.get("durata_ms", 0),
+                                  codice=dati.get("codice", ""))
     if chiuso is None:
         _contesto.image_memory_gate.release_image(job_id)
         return jsonify({"ok": False, "error": "job sconosciuto"}), 404

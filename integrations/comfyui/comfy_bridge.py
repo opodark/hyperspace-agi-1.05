@@ -357,6 +357,40 @@ def _perche_niente_file(nodo: str, nodo_info: dict) -> str:
             "dove il file è già (integrations/comfyui/README.md)")
 
 
+def nodi_mancanti(grafo: dict, comfy_url: str, *, timeout: float = 10.0) -> list[str]:
+    """I nodi che il grafo userà e che ComfyUI non dichiara più, con il rimedio.
+
+    Il preflight (`_verifiche`) controlla i FILE all'avvio, ma un nodo può sparire
+    DOPO: un `custom_nodes` rimosso, una seconda installazione, una versione di
+    ComfyUI diversa. E due nodi che il preflight NON guarda — `DWPreprocessor` e
+    `HyperSpacePosePreset`, che il grafo aggiunge solo quando un job chiede una
+    posa — resterebbero assenti fino a che il job non muore dentro ComfyUI con un
+    dump troncato. Qui si chiede `/object_info/<nodo>` per ogni nodo che il grafo
+    userà davvero: un nodo assente diventa un fallimento che nomina il nodo e lo
+    script da lanciare, non un dump.
+
+    `HyperSpaceSaveJPEG` non compare qui quando manca: in quel caso il grafo è già
+    stato costruito col salvataggio PNG (`esegui_job`), quindi il nodo c'è solo
+    quando è stato appena confermato presente.
+    """
+    nodi = sorted({
+        str(nodo.get("class_type"))
+        for nodo in (grafo or {}).values()
+        if isinstance(nodo, dict) and nodo.get("class_type")
+    })
+    mancanti: list[str] = []
+    for nodo in nodi:
+        stato, info = _richiesta(f"{comfy_url}/object_info/{nodo}", timeout=timeout)
+        if stato == 200 and nodo in (info or {}):
+            continue
+        pacchetto = PACCHETTI_NODI.get(nodo)
+        if pacchetto:
+            mancanti.append(f"{nodo} non installato: serve {pacchetto}")
+        else:
+            mancanti.append(f"{nodo} non disponibile in questa versione di ComfyUI")
+    return mancanti
+
+
 def _verifiche(comfy_url: str, output_dir: str, modello: str = "") -> list:
     """Cosa manca perché una generazione possa riuscire. Vuoto = si può fare."""
     problemi = []
@@ -443,6 +477,38 @@ def motivo_fallimento(messaggi) -> str:
     return f"ComfyUI ha fallito: {' | '.join(dump)}"[:280]
 
 
+# I codici con cui il control-plane distingue «rilancia» da «ripara». L'ordine
+# conta: un messaggio può contenere più di una spia, e la prima che torna vince.
+# La fonte è il testo che `esegui_job` e `motivo_fallimento` producono in questo
+# stesso modulo: qui si legge la causa, non si ricostruisce da un dump.
+CODICI_FALLIMENTO = (
+    ("node_missing", ("nodo mancante", "non installato", "non è installato",
+                      "non disponibile in questa versione")),
+    ("model_missing", ("manca «", "la cartella che legge è vuota",
+                       "non dichiara nessun file")),
+    ("interrupted", ("annullato da fuori",)),
+    ("timeout", ("nessuna immagine entro",)),
+    ("rejected", ("ha rifiutato il grafo", "non ha restituito un prompt_id")),
+    ("cuda_error", ("cuda error", "acceleratorerror", "out of memory")),
+    ("unreachable", ("non raggiungibile", "connessione interrotta", "timeout dopo")),
+)
+
+
+def codice_fallimento(errore: str) -> str:
+    """Il codice macchina di un fallimento, per «rilancia» vs «ripara».
+
+    Un nodo mancante si ripara installando il pacchetto; una connessione caduta si
+    ripara ritentando. Il control-plane non sa leggere il testo libero, quindi il
+    ponte glielo consegna già classificato. ``error`` è il ripiego: vuol dire
+    «non classificato», non «niente da fare».
+    """
+    testo = str(errore or "").lower()
+    for codice, spie in CODICI_FALLIMENTO:
+        if any(spia in testo for spia in spie):
+            return codice
+    return "error"
+
+
 def esegui_job(job: dict, *, comfy_url: str = COMFY_DEFAULT, output_dir: str = "",
                timeout_s: float = 1800.0, prefisso: str = PREFISSO) -> tuple:
     """Esegue UN job su ComfyUI. Ritorna (ok, percorso_file, errore).
@@ -458,6 +524,13 @@ def esegui_job(job: dict, *, comfy_url: str = COMFY_DEFAULT, output_dir: str = "
     grafo = workflow(job, prefisso=prefisso, jpeg=jpeg)
     if not jpeg:
         log("HyperSpaceSaveJPEG assente: uso PNG finché il nodo non è installato")
+    # Il preflight ha visto i file all'avvio; un nodo può essere sparito DOPO, e
+    # due di essi (DWPreprocessor, HyperSpacePosePreset) non li guarda nemmeno:
+    # si verifica qui, prima di mandare il grafo, così il job fallisce con il nome
+    # del nodo e lo script da lanciare invece di morire dentro ComfyUI.
+    nodi_assenti = nodi_mancanti(grafo, comfy_url)
+    if nodi_assenti:
+        return False, "", "nodo mancante: " + "; ".join(nodi_assenti)
     stato, dati = _richiesta(f"{comfy_url}/prompt",
                              payload={"prompt": grafo, "client_id": "hyperspace-bridge"},
                              timeout=30)
@@ -652,6 +725,11 @@ def main(argv=None) -> int:
         durata = int((time.monotonic() - iniziato) * 1000)
         result = {"id": job["id"], "ok": ok, "file": percorso,
                   "errore": errore, "durata_ms": durata}
+        if not ok:
+            # Il codice macchina accanto all'errore: il control-plane non sa
+            # leggere il testo libero, e «ripara» (nodo, peso) e «rilancia»
+            # (timeout, rete) sono due azioni diverse.
+            result["codice"] = codice_fallimento(errore)
         while True:
             reported, reply = _richiesta(f"{base}/image/result", payload=result,
                                          timeout=20, headers=intestazioni)

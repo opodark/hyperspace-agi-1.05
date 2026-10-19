@@ -288,6 +288,66 @@ class OmnirouteSmartFallbackWiringTests(unittest.TestCase):
                 else:
                     os.environ[k] = v
 
+    def test_chat_memory_entry_allows_fallback_when_image_gate_busy(self):
+        from unittest.mock import MagicMock
+        from flask import Flask, request, jsonify
+        from shared.image_memory_gate import ImageMemoryGate
+
+        gate = ImageMemoryGate()
+        gate.reserve_image("img-test-1")  # gate is now owned by an active image render
+
+        app = Flask(__name__)
+        saved_ext = os.environ.get("EXTERNAL_FALLBACK_API_URL")
+        try:
+            os.environ["EXTERNAL_FALLBACK_API_URL"] = "https://api.groq.com/openai/v1"
+
+            @app.before_request
+            def _entry():
+                if request.path != "/v1/chat/completions" or request.method == "OPTIONS":
+                    return None
+                data = request.get_json(silent=True) or {}
+                raw_model = str(data.get("model", "") or "")
+                if ("OmniRoute" in raw_model or raw_model.startswith("ext:")
+                        or raw_model.startswith("groq:") or raw_model == "omniroute"):
+                    return None
+                if not gate.enter_chat(timeout=0.01):
+                    ext_url = os.getenv("EXTERNAL_FALLBACK_API_URL", "").strip()
+                    omni_enabled = os.getenv("OMNIROUTE_ENABLED", "false").strip().lower() == "true"
+                    if ext_url or omni_enabled:
+                        request.environ["hyperspace.skip_local_ollama"] = True
+                        return None
+                    return jsonify({"error": {"type": "image_memory_busy",
+                                              "message": "Il Mac sta completando un'immagine; riprova fra poco"}}), 503
+                request.environ["hyperspace.chat_memory_slot"] = True
+                return None
+
+            @app.route("/v1/chat/completions", methods=["POST"])
+            def _chat():
+                skipped = request.environ.get("hyperspace.skip_local_ollama", False)
+                return jsonify({"ok": True, "skipped_local": skipped})
+
+            with app.test_client() as client:
+                # 1. With fallback configured, gate busy does NOT block: proceeds with skip_local_ollama
+                res = client.post("/v1/chat/completions", json={"model": "qwen3:8b", "messages": []})
+                self.assertEqual(res.status_code, 200)
+                self.assertTrue(res.get_json()["skipped_local"])
+
+                # 2. OmniRoute direct selection does NOT wait on gate at all
+                res_omni = client.post("/v1/chat/completions", json={"model": "🌐 OmniRoute (auto)", "messages": []})
+                self.assertEqual(res_omni.status_code, 200)
+
+                # 3. Without fallback, gate busy returns 503
+                os.environ.pop("EXTERNAL_FALLBACK_API_URL", None)
+                res_no_fb = client.post("/v1/chat/completions", json={"model": "qwen3:8b", "messages": []})
+                self.assertEqual(res_no_fb.status_code, 503)
+                self.assertIn("Il Mac sta completando un'immagine", res_no_fb.get_json()["error"]["message"])
+        finally:
+            gate.release_image("img-test-1")
+            if saved_ext is not None:
+                os.environ["EXTERNAL_FALLBACK_API_URL"] = saved_ext
+            else:
+                os.environ.pop("EXTERNAL_FALLBACK_API_URL", None)
+
 
 if __name__ == "__main__":
     unittest.main()

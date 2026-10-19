@@ -673,7 +673,23 @@ configure_activity(_webui_activity)
 def _chat_memory_entry():
     if request.path != "/v1/chat/completions" or request.method == "OPTIONS":
         return None
-    if not image_memory_gate.enter_chat():
+    data = request.get_json(silent=True) or {}
+    raw_model = str(data.get("model", "") or "")
+    # Se il client ha selezionato esplicitamente un provider esterno (OmniRoute / Groq),
+    # non tocca la memoria unificata del Mac: nessun blocco sul memory gate.
+    if ("OmniRoute" in raw_model or raw_model.startswith("ext:")
+            or raw_model.startswith("groq:") or raw_model == "omniroute"):
+        return None
+    if not image_memory_gate.enter_chat(timeout=1.0):
+        # Il Mac è occupato a renderizzare un'immagine (ComfyUI).
+        # Se abbiamo un fallback esterno configurato (Groq / OmniRoute),
+        # non blocchiamo l'utente per 120s né rispondiamo con 503: facciamo procedere
+        # la richiesta verso v1_chat_completions marcando il salto di Ollama locale.
+        ext_url = os.getenv("EXTERNAL_FALLBACK_API_URL", "").strip()
+        omni_enabled = os.getenv("OMNIROUTE_ENABLED", "false").strip().lower() == "true"
+        if ext_url or omni_enabled:
+            request.environ["hyperspace.skip_local_ollama"] = True
+            return None
         return jsonify({"error": {"type": "image_memory_busy",
                                   "message": "Il Mac sta completando un'immagine; riprova fra poco"}}), 503
     request.environ["hyperspace.chat_memory_slot"] = True
@@ -2515,7 +2531,7 @@ def v1_models():
         }
         for e in agg["per_node"]
     ]
-    if OMNIROUTE_ENABLED:
+    if OMNIROUTE_ENABLED or os.getenv("EXTERNAL_FALLBACK_API_URL"):
         models_out.append({"id": OMNIROUTE_MODEL_ID, "object": "model", "created": 0, "owned_by": "omniroute"})
     return jsonify({"object": "list", "data": models_out})
 

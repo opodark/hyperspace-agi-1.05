@@ -48,7 +48,7 @@ class Queue:
         self.job = job
         self.consegnati = []
 
-    def concludi(self, job_id, ok, file="", errore="", durata_ms=0):
+    def concludi(self, job_id, ok, file="", errore="", durata_ms=0, codice=""):
         return self.job
 
     def consegnato(self, job_id):

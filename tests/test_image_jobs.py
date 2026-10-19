@@ -222,6 +222,14 @@ class CodaTests(unittest.TestCase):
         self.assertEqual(chiuso["esito"]["file"], "HyperSpace/x.png")
         self.assertIsNone(self.coda.concludi("non-esiste", True))
 
+    def test_concludere_conserva_il_codice_del_fallimento(self):
+        job = self._job()
+        chiuso = self.coda.concludi(job["id"], False, errore="nodo mancante",
+                                    codice="node_missing")
+        self.assertEqual(chiuso["stato"], "failed")
+        self.assertEqual(chiuso["esito"]["codice"], "node_missing")
+        self.assertEqual(chiuso["esito"]["errore"], "nodo mancante")
+
     def test_un_risultato_ripetuto_non_cambia_il_job(self):
         job = self._job()
         self.coda.concludi(job["id"], True, file="HyperSpace/x.png")

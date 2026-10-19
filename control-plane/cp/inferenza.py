@@ -91,7 +91,7 @@ class NodeBusyError(Exception):
 
 def _local_model_post(url: str, **kwargs):
     """Count background Ollama calls too, including dream and post loops."""
-    if not _gate_memoria.enter_chat():
+    if not _gate_memoria.enter_chat(timeout=1.0):
         raise RuntimeError("Il Mac sta completando un'immagine")
     try:
         return requests.post(url, **kwargs)
