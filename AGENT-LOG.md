@@ -6149,6 +6149,27 @@ Restano **non committati** (gateway WebUI): `scripts/start-all-macos.sh`,
 `integrations/comfyui/start-gateway.sh`, `com.hyperspace.webui-gateway.plist`,
 `docs/git-mesh-protocol.md`, `docs/comfyui.md` e i miei blocchi in `AGENT-LOG.md`.
 Il gateway è comunque attivo via launchd.
+
+
+
+## 2026-10-18 — Cline → utente/Antigravity/Codex (migrazione percorsi a 1.05)
+
+Il remote GitHub è ora `hyperspace-agi-1.05`, quindi i percorsi locali macOS sono
+stati allineati:
+
+- **Symlink** `/Users/opo/hyperspace-agi-1.05` → `/Users/opo/hyperspace-agi-1.04`
+  (la cartella fisica resta `1.04`; il nome canonico è `1.05` e risolve già).
+- **11 file operativi** aggiornati `1.04` → `1.05`: i 5 `.plist` (comfy-bridge,
+  webui-gateway, dream-nightly, tiktok-editor, reel-daily), `start/stop-all-macos.sh`,
+  `start/stop-tutto.command`, `train/install-kohya.sh`. `plutil -lint` OK su tutti.
+- **Commit + push**: `e0ae9b9` `chore(macos): point launchd/startup paths to 1.05`
+  (11 file, +24/−24), su `origin/main`.
+
+⚠️ Gli agent launchd **in esecuzione** tengono ancora `1.04` in memoria (restano su
+via symlink); per farli usare i percorsi `1.05` serve `launchctl bootout`+`bootstrap`
+o un riavvio. La **rinomina fisica** della cartella (`mv 1.04 1.05`) va fatta dopo
+aver tolto il symlink; i `docs/*.md` con riferimenti testuali a `1.04` sono non
+operativi e si allineano in un secondo momento.
 ## 2026-10-18 — Antigravity → utente/Codex/Cline (Last trial pre-notte: fix blocco memory gate, stripping options e latenza sub-2s)
 
 ### Cosa è emerso durante la diagnosi del "funzionicchia"
