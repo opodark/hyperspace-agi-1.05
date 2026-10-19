@@ -6067,6 +6067,88 @@ macOS**: esiste solo `start-gateway.ps1` (Windows) e nessun plist. Serve un
 `com.hyperspace.webui-gateway.plist` + riga in `start-all-macos.sh` (che oggi NON
 nomina il gateway). Non l'ho fatto: è infrastruttura, preferisco che sia Codex a
 metterlo o a darmi il via.
+
+
+
+## 2026-10-18 — Cline → Cline(win11 hpomen) / utente (raggiungibilità nodo Omen)
+
+Richiesto di riaccodare la scena 2 e di provare a raggiungere il nodo Windows che
+l'altra sessione sta mettendo insieme per generare immagini.
+
+- **Scena 2 riaccodata**: job `8507e7895a5c` (`scripts/reel_song_images.py --solo 2`).
+  Nota: `--solo` usa l'indice di posizione invece di quello originale per il seed
+  (qui seed=1 invece di 2) — cosmetica, da sistemare un giorno.
+- **Nodo Omen raggiungibile**: Tailscale `hpomen` **active** (relay "fra"), ping
+  0% loss ~100ms. `http://100.104.238.125:8081/status` → **200**, `…:8085/` → **200**.
+  Nel mesh del Mac è `active`, `last_seen` attuale, `vram_gb=8.0` (RTX 3070).
+- **Ma le capability dichiarate sono ancora `ollama`** (execute/ollama/
+  v1-chat-completions), NON ancora generazione immagini (comfyui/qwen): il ponte
+  qwen non sta tirando (`in_esecuzione=0`, i 4 job `qwen-image-2.1` restano pending).
+  L'altra sessione non ha ancora finito di collegare ComfyUI/ponte su win11: quando
+  lo farà, i 4 job si sbloccano da soli.
+
+Per la sessione su win11: dal Mac vi vedo già (nodo `d7a16c80…`, 8 GB, active).
+Manca solo il pezzo immagini.
+
+
+
+## 2026-10-18 — Cline → utente/Codex (gateway WebUI avviato + Taildrop)
+
+### Gateway WebUI (risolto l'intoppo)
+
+- Creati `integrations/comfyui/start-gateway.sh` e
+  `integrations/comfyui/com.hyperspace.webui-gateway.plist` (KeepAlive, log in
+  `/private/tmp/webui-gateway.log`, WorkingDirectory 1.04, `COMFY_URL=…:8188`,
+  porta 8189).
+- Aggiunta la sezione gateway a `scripts/start-all-macos.sh` (dopo il bridge).
+- `launchctl bootstrap` + `kickstart`: **8189 → HTTP 200**, pid 25671, `running`.
+  Open WebUI ora raggiunge di nuovo `host.docker.internal:8189`.
+
+⚠️ Trovato un **default stantio** in `integrations/comfyui/start-bridge.sh`: riga 23
+`REPO="${HYPERSPACE_REPO:-/Users/opo/hyperspace-agi-1.05}"` ma `1.05` non esiste; il
+bridge gira solo perché `HYPERSPACE_REPO` è nel dominio launchd. Da correggere in
+`1.04` (non l'ho toccato: tocca il ponte, preferisco coordinarlo).
+
+### Taildrop fra i 3 portatili
+
+`tailscale file cp --targets` (Tailscale 1.104.1, Taildrop default-on) mostra:
+
+| Macchina | Stato | Riceve file |
+|---|---|---|
+| `macbook-air-di-alberto` (Mac) | self | sì (default) |
+| `hpomen` (win11) | **online** | sì |
+| `laptop-t9h8plht` (ASUS V16) | **offline da ~40h** | sì, ma irraggiungibile |
+
+Il canale è **già aperto**: nessun toggle da attivare. L'unico blocco è che l'ASUS
+è spento da ~40h. Comandi: `tailscale file cp <file> hpomen:` /
+`… laptop-t9h8plht:` / `… macbook-air-di-alberto:`; i file arrivano in Downloads del
+ricevente.
+
+
+
+## 2026-10-18 — Cline → utente/Antigravity (protocollo git mesh + fix percorsi)
+
+Richiesti i due interventi per il passaggio di consegne ad Antigravity.
+
+1. **Fix percorsi hardcoded** in `integrations/comfyui/start-bridge.sh` e
+   `start-gateway.sh`: `REPO` non è più `hyperspace-agi-1.0x` fisso ma
+   `HYPERSPACE_REPO` con fallback alla posizione dello script
+   (`dirname "${BASH_SOURCE[0]}"/../..`). Verificato: `bash -n` OK e
+   `start-bridge.sh --check` risolve il repo e legge `.env` correttamente.
+2. **Creato `docs/git-mesh-protocol.md`**: verità sul Mac, foglie (win11/ASUS) che
+   `pull`+`reset --hard` e non pushano; un commit per dominio (no bundling);
+   push solo con conferma; niente percorsi hardcoded; domini separati per agente;
+   checklist per l'agente. È il documento da dare ad Antigravity.
+
+⚠️ **Trovato ComfyUI giù**: `127.0.0.1:8188` → Connection refused, `Comfy Desktop`
+non in esecuzione (prima era su, HTTP 200). La coda è vuota quindi non blocca nulla
+ora, ma va riavviato: `scripts/start-all-macos.sh` (apre Comfy Desktop da solo) o
+`open -a "Comfy Desktop"`.
+
+Restano **non committati** (gateway WebUI): `scripts/start-all-macos.sh`,
+`integrations/comfyui/start-gateway.sh`, `com.hyperspace.webui-gateway.plist`,
+`docs/git-mesh-protocol.md`, `docs/comfyui.md` e i miei blocchi in `AGENT-LOG.md`.
+Il gateway è comunque attivo via launchd.
 ## 2026-10-18 — Antigravity → utente/Codex/Cline (Last trial pre-notte: fix blocco memory gate, stripping options e latenza sub-2s)
 
 ### Cosa è emerso durante la diagnosi del "funzionicchia"
@@ -6166,4 +6248,29 @@ Su richiesta dell'utente, recuperato lo stato git del nodo Windows (`hyperspace-
 - Nessun commit del working tree e nessun push (regola repo). `main` è avanti di
   3 commit su `origin/main`. Restano non committati: `AGENT-LOG.md` (blocchi del
   17-10) e lo script `scripts/diagnostics/mesh_agent_files_roundtrip.py`.
+
+## 2026-10-19 — Antigravity → utente/Codex/Cline (Protocollo Sovereign Git Mesh: RBAC per ruoli, preflight test-gate e allineamento selettivo nodi)
+
+### Contesto e Obiettivo
+L'allineamento dei nodi nella mesh (Mac M5 Hub, HP Omen Win11 GPU Worker, Asus V16, Browser Node) non può basarsi su un'identità monolitica 1:1 dello SHA di commit dell'intero repository:
+1. Nodi con hardware e OS differenti hanno vincoli e dipendenze differenti (es. Mac ha Apple Vision/Swift e Control Plane; HP Omen ha ComfyUI/CUDA e script PowerShell).
+2. Mancava un controllo RBAC (Role-Based Access Control) sui file inclusi nelle patch P2P: un worker non deve poter sovrascrivere file dell'Authority (`shared/identity.py`, `crypto_channel.py`, `control-plane/cp/auth*`).
+3. Doctor Mesh segnalava allarmi ingiustificati (`warn`) sul disallineamento commit anche quando i nodi differivano solo per file non pertinenti al loro ruolo.
+
+### Cosa è stato definito ed implementato
+1. **Contratto & RBAC per Ruolo (`shared/mesh_sync.py` e `node/main.py`):**
+   - Implementate le matrici `ROLE_WRITE_SCOPES` e `STRICT_FORBIDDEN_PATTERNS`.
+   - Implementata `verify_patch_rbac(origin_role, modified_files)`: l'authority ha scope libero `*`, i ruoli worker sono confinati (es. `worker-gpu` a ComfyUI, worker e immagini), mentre file core/identità (`shared/identity.py`, `crypto_channel.py`, `control-plane/**`, `AGENTS.md`) sono rigidamente protetti da tentativi di injection.
+   - Endpoint `/mesh/sync/patch` in `node/main.py` verifica la conformità RBAC prima di depositare la patch in coda (HTTP 403 in caso di violazione).
+2. **Role Test-Gate & Rollback nell'Host Watcher (`scripts/mesh_patch_watcher.py`):**
+   - Il watcher host esegue la suite di test pertinente per il ruolo del nodo locale (`--role`, `--run-tests`).
+   - In caso di fallimento della suite di test, scatta il **rollback automatico** dei file applicati e l'esito viene archiviato come `failed` in `.result.json`.
+   - Aggiornati `scripts/mesh_node_deploy.sh` e `scripts/mesh_node_deploy.ps1` per avviare il watcher con `--role` e `--run-tests` attivi di default.
+3. **Evoluzione di Doctor Mesh (`control-plane/cp/doctor_mesh.py`):**
+   - `mesh_codebase_alignment` riconosce la coerenza per ruolo (`role_aligned == True`), evitando di allarmare se nodi con ruoli differenti hanno commit storici diversi ma risultano allineati nei propri perimetri.
+4. **Documentazione Integrata:**
+   - Aggiornato `docs/git-mesh-protocol.md` con la sezione tecnica 9 sulla sincronizzazione P2P cifrata, RBAC e Role Test-Gate.
+5. **Test Suite:**
+   - 29 test su 29 passati (`test_mesh_sync.py`, `test_mesh_patch_watcher.py`, `test_doctor_mesh.py`, `test_mesh_registro.py`, `test_mesh_sync_monitor.py`).
+
 

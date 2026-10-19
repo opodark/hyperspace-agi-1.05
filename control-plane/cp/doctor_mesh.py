@@ -243,14 +243,32 @@ def run_mesh_codebase_and_health_checks(
     # Escludi unknown dai calcoli di drift se nessun commit valido è stato letto
     valid_commits = [k for k in commits_map.keys() if k not in ("unknown", "unknown (legacy /status)")]
     if len(valid_commits) > 1:
-        diff_desc = "; ".join(f"commit {c}: {', '.join(nodes)}" for c, nodes in commits_map.items())
-        checks.append({
-            "id": "mesh_codebase_alignment",
-            "name": "Allineamento Codebase Git Mesh",
-            "status": "warn",
-            "detail": f"Disallineamento commit rilevato tra i nodi: {diff_desc}",
-            "fix_hint": "Esegui 'git pull' sui nodi con commit precedente per allinearli alla versione più recente.",
-        })
+        remote_reachable = [t for t in telemetries if not t.get("is_local") and t.get("channel") != "unreachable"]
+        all_role_aligned = bool(remote_reachable) and all(
+            t.get("codebase", {}).get("role_aligned", False)
+            for t in remote_reachable
+        )
+        if all_role_aligned:
+            roles_desc = "; ".join(
+                f"{t.get('alias') or t.get('node_id', '?')[:8]} ({t.get('tier', 'worker')}: {t.get('codebase', {}).get('git_commit', '?')})"
+                for t in telemetries
+            )
+            checks.append({
+                "id": "mesh_codebase_alignment",
+                "name": "Allineamento Codebase Git Mesh",
+                "status": "ok",
+                "detail": f"Nodi coerenti per ruolo (allineati ai rispettivi ambiti di competenza: {roles_desc})",
+                "fix_hint": "",
+            })
+        else:
+            diff_desc = "; ".join(f"commit {c}: {', '.join(nodes)}" for c, nodes in commits_map.items())
+            checks.append({
+                "id": "mesh_codebase_alignment",
+                "name": "Allineamento Codebase Git Mesh",
+                "status": "warn",
+                "detail": f"Disallineamento commit rilevato tra i nodi: {diff_desc}",
+                "fix_hint": "Esegui 'git pull' o distribuisci la patch per allineare il nodo al proprio ruolo.",
+            })
     elif len(valid_commits) == 1:
         c_hash = valid_commits[0]
         nodes_count = len(telemetries)

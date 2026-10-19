@@ -132,6 +132,19 @@ class DoctorMeshTests(unittest.TestCase):
             self.assertEqual(align_warn["status"], "warn")
             self.assertIn("Disallineamento", align_warn["detail"])
 
+            # Caso 3: commit disallineato ma role_aligned == True (coerenza di ruolo)
+            mock_poll.return_value = {
+                "channel": "encrypted_ecdh_aes_gcm",
+                "tier": "worker-gpu",
+                "codebase": {"git_commit": "3a12b01c", "git_branch": "main", "git_dirty": False, "role_aligned": True},
+                "services": {"ollama": {"online": True}},
+            }
+            checks_role, _ = run_mesh_codebase_and_health_checks(active_nodes, self.cp_id, local_repo_hint=str(ROOT))
+            align_role = next(c for c in checks_role if c["id"] == "mesh_codebase_alignment")
+            self.assertEqual(align_role["status"], "ok")
+            self.assertIn("Nodi coerenti per ruolo", align_role["detail"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

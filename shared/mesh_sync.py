@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import fnmatch
 import requests
 
 from shared.crypto_channel import (
@@ -30,6 +31,138 @@ from shared.identity import sign_message, verify_message
 from shared.node_telemetry import get_codebase_status
 
 
+# ── MATRICE RBAC E AMBITI DI SCRITTURA PER RUOLO ──────────────────────────────
+
+ROLE_WRITE_SCOPES: Dict[str, List[str]] = {
+    "authority": ["*"],
+    "hub": ["*"],
+    "root": ["*"],
+    "worker-gpu": [
+        "integrations/comfyui/**",
+        "worker/**",
+        "node/**",
+        "shared/image_jobs.py",
+        "scripts/reel_*.py",
+        "scripts/mesh_node_deploy.ps1",
+        "tests/test_comfyui*.py",
+        "tests/test_image_jobs.py",
+        "tests/fixtures/immagini*.json",
+        "docs/comfyui.md",
+        "docs/windows-node-handoff.md",
+    ],
+    "worker-leaf": [
+        "worker/**",
+        "node/**",
+        "shared/power_sense.py",
+        "tests/test_node*.py",
+        "tests/test_mesh*.py",
+    ],
+    "worker-cpu": [
+        "worker/**",
+        "node/**",
+        "shared/power_sense.py",
+        "tests/test_node*.py",
+        "tests/test_mesh*.py",
+    ],
+    "leaf": [
+        "worker/**",
+        "node/**",
+        "shared/power_sense.py",
+        "tests/test_node*.py",
+        "tests/test_mesh*.py",
+    ],
+    "edge-web": [
+        "web-node/**",
+        "chat.html",
+        "presentation_assets/**",
+    ],
+}
+
+STRICT_FORBIDDEN_PATTERNS: List[str] = [
+    "shared/identity.py",
+    "shared/crypto_channel.py",
+    "control-plane/**",
+    "authority/**",
+    "AGENTS.md",
+    "docs/licensing.md",
+    ".env*",
+    "*.pem",
+    "*.key",
+    "data/persona-*.json",
+]
+
+
+def extract_modified_files_from_diff(diff_text: str) -> List[str]:
+    """Estrae l'elenco dei percorsi relativi dei file modificati da una diff unificata Git."""
+    files = set()
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git "):
+            parts = line.split()
+            if len(parts) >= 4:
+                path_b = parts[3]
+                if path_b.startswith("b/"):
+                    path_b = path_b[2:]
+                files.add(path_b)
+        elif line.startswith("+++ b/"):
+            files.add(line[6:].strip())
+        elif line.startswith("--- a/") and not line.startswith("--- a/dev/null"):
+            files.add(line[6:].strip())
+    return sorted(list(files))
+
+
+def extract_modified_files_from_payload(payload: Dict[str, Any]) -> List[str]:
+    """Raccoglie tutti i file modificati (diff git + file diretti + manifest) da un payload di patch."""
+    files = set()
+    direct_files = payload.get("direct_files", {})
+    files.update(direct_files.keys())
+
+    diff_b64 = payload.get("patch_diff_gz_b64", "")
+    if diff_b64:
+        try:
+            diff_text = gzip.decompress(base64.b64decode(diff_b64)).decode("utf-8", errors="replace")
+            files.update(extract_modified_files_from_diff(diff_text))
+        except Exception:
+            pass
+
+    scope_manifest = payload.get("scope_manifest", [])
+    if isinstance(scope_manifest, list):
+        files.update(scope_manifest)
+
+    return sorted(list(files))
+
+
+def verify_patch_rbac(
+    origin_role: str,
+    modified_files: List[str],
+) -> Tuple[bool, List[str]]:
+    """Verifica se il ruolo mittente ha i privilegi necessari per modificare i file indicati.
+
+    Restituisce una tupla: (consentito: bool, violazioni: List[str]).
+    """
+    role = (origin_role or "").lower().strip()
+    if role in ("authority", "hub", "root"):
+        return True, []
+
+    violations = []
+    allowed_patterns = ROLE_WRITE_SCOPES.get(role, [])
+
+    for f_path in modified_files:
+        norm_path = f_path.replace("\\", "/").lstrip("/")
+
+        # 1. Controllo rigido file protetti
+        is_forbidden = any(fnmatch.fnmatch(norm_path, pat) for pat in STRICT_FORBIDDEN_PATTERNS)
+        if is_forbidden:
+            violations.append(f"{norm_path} (file core/identità protetto)")
+            continue
+
+        # 2. Controllo allowlist per il ruolo
+        is_allowed = any(fnmatch.fnmatch(norm_path, pat) for pat in allowed_patterns)
+        if not is_allowed:
+            violations.append(f"{norm_path} (fuori dall'ambito consentito per ruolo '{role}')")
+
+    return len(violations) == 0, violations
+
+
 # ── 1. CREAZIONE PATCH & BUNDLE ──────────────────────────────────────────────
 
 def create_git_patch_payload(
@@ -37,6 +170,8 @@ def create_git_patch_payload(
     target_commit: str = "HEAD",
     repo_dir: Optional[str] = None,
     include_files: Optional[List[str]] = None,
+    origin_role: str = "authority",
+    origin_node_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Genera un pacchetto di aggiornamento contenente diff git unificata e metadati.
 
@@ -100,6 +235,12 @@ def create_git_patch_payload(
                 except Exception:
                     pass
 
+    payload["origin"] = {
+        "role": origin_role,
+        "node_id": origin_node_id or "",
+    }
+    payload["scope_manifest"] = extract_modified_files_from_payload(payload)
+
     return payload
 
 
@@ -139,6 +280,7 @@ def apply_mesh_update(
     update_payload: Dict[str, Any],
     repo_dir: Optional[str] = None,
     backup: bool = True,
+    enforce_rbac: bool = True,
 ) -> Dict[str, Any]:
     """Riceve ed applica atomica una patch di codice o artefatto Graphify.
 
@@ -153,6 +295,20 @@ def apply_mesh_update(
         "applied_files": [],
         "errors": [],
     }
+
+    # 0. Verifica RBAC se presente origin
+    origin_info = update_payload.get("origin", {})
+    origin_role = origin_info.get("role") if isinstance(origin_info, dict) else update_payload.get("origin_role")
+    if enforce_rbac and origin_role:
+        modified_files = extract_modified_files_from_payload(update_payload)
+        allowed, violations = verify_patch_rbac(origin_role, modified_files)
+        if not allowed:
+            result["errors"].append(
+                f"RBAC Scope Violation per ruolo '{origin_role}': {', '.join(violations)}"
+            )
+            result["success"] = False
+            result["codebase"] = get_codebase_status(str(root))
+            return result
 
     # 1. Applicazione file diretti
     direct_files = update_payload.get("direct_files", {})

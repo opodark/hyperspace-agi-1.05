@@ -68,6 +68,7 @@ def main() -> int:
     parser.add_argument("--files", type=str, help="Elenco separato da virgola di file specifici da includere direttamente")
     parser.add_argument("--personas", action="store_true", help="Distribuisce le persone (persona-anna.json, persona-aurora.json) a tutti i nodi")
     parser.add_argument("--sync-graphify", action="store_true", help="Invia il Knowledge Graph (graph.json e .graphify_analysis.json)")
+    parser.add_argument("--role", default=os.getenv("NODE_ROLE", os.getenv("NODE_TIER", "authority")), help="Ruolo del nodo mittente (default: %(default)s)")
     parser.add_argument("--cp-url", default=os.getenv("CONTROL_PLANE_URL", "http://127.0.0.1:8085"), help="URL Control Plane locale")
     args = parser.parse_args()
 
@@ -77,7 +78,7 @@ def main() -> int:
     identity = generate_or_load_identity()
     sender_id = identity["node_id"]
     sender_pub = identity["public_key"]
-    _log("IDENTITY", f"Mittente: {sender_id[:16]}... (Pubkey: {sender_pub[:16]}...)", "cyan")
+    _log("IDENTITY", f"Mittente: {sender_id[:16]}... (Pubkey: {sender_pub[:16]}..., Ruolo: {args.role})", "cyan")
 
     # 2. Prepara il payload di aggiornamento
     if args.sync_graphify:
@@ -93,7 +94,10 @@ def main() -> int:
         payload = create_git_patch_payload(
             base_commit=args.base, target_commit=args.target_commit,
             repo_dir=str(ROOT),
-            include_files=["data/persona-anna.json", "data/persona-aurora.json"])
+            include_files=["data/persona-anna.json", "data/persona-aurora.json"],
+            origin_role=args.role,
+            origin_node_id=sender_id,
+        )
         n_persone = len(payload.get("direct_files", {}))
         _log("PACK", f"Persone incluse: {n_persone}", "green")
     else:
@@ -104,6 +108,8 @@ def main() -> int:
             target_commit=args.target_commit,
             repo_dir=str(ROOT),
             include_files=files_list,
+            origin_role=args.role,
+            origin_node_id=sender_id,
         )
         meta = payload.get("commit_metadata", {})
         if meta.get("short_sha"):

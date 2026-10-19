@@ -140,13 +140,58 @@ class MeshSyncTests(unittest.TestCase):
         self.assertTrue(res["success"])
         self.assertEqual(res["ack"]["status"], "applied")
 
-        # Verifica che i dati inviati via POST siano cifrati in un envelope
         called_args, called_kwargs = mock_post.call_args
         sent_body = called_kwargs["json"]
         self.assertTrue(sent_body.get("encrypted"))
         self.assertIn("envelope", sent_body)
         self.assertEqual(sent_body["envelope"]["sender_node_id"], self.sender["node_id"])
 
+    def test_verify_patch_rbac_authority_and_scopes(self):
+        """Verifica che l'authority possa modificare tutto, mentre i ruoli worker siano vincolati."""
+        from shared.mesh_sync import verify_patch_rbac
+
+        # Authority can touch everything
+        ok, violations = verify_patch_rbac("authority", ["shared/identity.py", "control-plane/cp/auth.py", "worker/main.py"])
+        self.assertTrue(ok)
+        self.assertEqual(violations, [])
+
+        # Worker GPU can touch its scope
+        ok_gpu, viol_gpu = verify_patch_rbac("worker-gpu", ["integrations/comfyui/start-gateway.sh", "shared/image_jobs.py"])
+        self.assertTrue(ok_gpu)
+        self.assertEqual(viol_gpu, [])
+
+        # Worker GPU cannot touch identity or control plane
+        bad_gpu, viol_bad = verify_patch_rbac("worker-gpu", ["control-plane/cp/auth.py", "shared/identity.py"])
+        self.assertFalse(bad_gpu)
+        self.assertEqual(len(viol_bad), 2)
+
+    def test_apply_mesh_update_blocks_unauthorized_scope(self):
+        """apply_mesh_update con enforce_rbac=True blocca file non autorizzati per il ruolo specificato."""
+        with tempfile.TemporaryDirectory() as dst_dir:
+            dst_path = Path(dst_dir)
+            target_file = dst_path / "control-plane" / "cp" / "auth.py"
+            target_file.parent.mkdir(parents=True)
+            target_file.write_text("# original authority code")
+
+            payload = {
+                "type": "git_patch",
+                "origin": {"role": "worker-gpu", "node_id": "fake_gpu"},
+                "direct_files": {
+                    "control-plane/cp/auth.py": {
+                        "content_gz_b64": base64.b64encode(gzip.compress(b"# injected hacker code")).decode("ascii"),
+                        "size": 22,
+                        "sha256": hashlib.sha256(b"# injected hacker code").hexdigest(),
+                    }
+                }
+            }
+
+            res = apply_mesh_update(payload, repo_dir=str(dst_path), enforce_rbac=True)
+            self.assertFalse(res["success"])
+            self.assertIn("RBAC Scope Violation", res["errors"][0])
+            # Il file originale non deve essere stato modificato
+            self.assertEqual(target_file.read_text(), "# original authority code")
+
 
 if __name__ == "__main__":
     unittest.main()
+

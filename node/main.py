@@ -54,7 +54,11 @@ from qos_monitor import QoSMonitor
 from dreaming import DreamJournal
 from shared.crypto_channel import encrypt_envelope, decrypt_envelope
 from shared.node_telemetry import collect_full_node_telemetry
-from shared.mesh_sync import apply_mesh_update
+from shared.mesh_sync import (
+    apply_mesh_update,
+    extract_modified_files_from_payload,
+    verify_patch_rbac,
+)
 from shared.power_sense import detect_host_power
 from shared import ollama_native
 from datetime import datetime, timezone
@@ -948,6 +952,17 @@ async def mesh_sync_patch_post(request: Request):
             raise HTTPException(status_code=401, detail="Firma del messaggio mancante o non valida")
         update_payload = data
         sender_pubkey = data.get("pubkey")
+
+    # 1. Verifica di sicurezza RBAC per ruolo
+    origin_info = update_payload.get("origin", {})
+    origin_role = origin_info.get("role") if isinstance(origin_info, dict) else update_payload.get("origin_role", "authority")
+    modified_files = extract_modified_files_from_payload(update_payload)
+    is_allowed, violations = verify_patch_rbac(origin_role, modified_files)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=403,
+            detail=f"RBAC Scope Violation per ruolo '{origin_role}': {', '.join(violations)}",
+        )
 
     # Il repository nel container è montato in SOLA LETTURA (:ro) per la telemetria:
     # il nodo riceve e VERIFICA la patch ma NON la applica — la deposita in una

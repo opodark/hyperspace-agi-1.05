@@ -33,12 +33,15 @@ $running = Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorActio
 if ($running) {
   Write-Host "[deploy] watcher già attivo"
 } else {
+  $role = if ($env:NODE_ROLE) { $env:NODE_ROLE } else { "worker-gpu" }
   Start-Process -FilePath "python" -WindowStyle Hidden -ArgumentList @(
     "scripts/mesh_patch_watcher.py",
     "--patches", "data/node-1/mesh-patches",
-    "--repo", "."
+    "--repo", ".",
+    "--role", $role,
+    "--run-tests"
   )
-  Write-Host "[deploy] watcher avviato"
+  Write-Host "[deploy] watcher avviato (role: $role)"
 }
 
 if ($Test) {

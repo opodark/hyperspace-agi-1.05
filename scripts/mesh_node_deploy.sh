@@ -37,9 +37,10 @@ docker compose up -d --build control-plane node-1
 if pgrep -f 'mesh_patch_watcher.py' >/dev/null; then
   echo "[deploy] watcher già attivo"
 else
+  ROLE="${NODE_ROLE:-authority}"
   nohup .venv/bin/python scripts/mesh_patch_watcher.py \
-    --patches data/node-1/mesh-patches --repo . > /tmp/mesh-watcher.log 2>&1 &
-  echo "[deploy] watcher avviato (pid=$!)"
+    --patches data/node-1/mesh-patches --repo . --role "$ROLE" --run-tests > /tmp/mesh-watcher.log 2>&1 &
+  echo "[deploy] watcher avviato (pid=$!, role=$ROLE)"
 fi
 
 if $TEST; then

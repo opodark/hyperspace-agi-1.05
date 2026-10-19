@@ -92,6 +92,52 @@ class WatcherTests(unittest.TestCase):
             # seconda passata: il .result.json c'è già, non si riapplica
             self.assertEqual(processa(patches, repo), {"applied": 0, "failed": 0})
 
+    def test_processa_con_test_gate_successo(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            patches = root / "mesh-patches"
+            patches.mkdir(parents=True, exist_ok=True)
+            repo = root / "repo"
+            repo.mkdir()
+            (repo / "worker.py").write_text("old")
+
+            patch = _patch_diretto("worker.py", "new = 2\n")
+            (patches / "d1.json").write_text(
+                json.dumps({"patch_id": "d1", "update": patch}), encoding="utf-8")
+
+            from unittest.mock import patch as mock_patch
+            with mock_patch.object(_watcher, "run_role_test_gate", return_value=(True, "Role test-gate superato")):
+                res = processa(patches, repo, node_role="worker-gpu", run_tests=True)
+                self.assertEqual(res["applied"], 1)
+                risultato = json.loads((patches / "d1.result.json").read_text(encoding="utf-8"))
+                self.assertEqual(risultato["status"], "applied")
+                self.assertEqual(risultato["role"], "worker-gpu")
+
+    def test_processa_con_test_gate_fallito_esegue_rollback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            patches = root / "mesh-patches"
+            patches.mkdir(parents=True, exist_ok=True)
+            repo = root / "repo"
+            repo.mkdir()
+            (repo / "worker.py").write_text("safe_original")
+
+            patch = _patch_diretto("worker.py", "breaking_change = True\n")
+            (patches / "e1.json").write_text(
+                json.dumps({"patch_id": "e1", "update": patch}), encoding="utf-8")
+
+            from unittest.mock import patch as mock_patch
+            with mock_patch.object(_watcher, "run_role_test_gate", return_value=(False, "Regression in test_image_jobs")):
+                with mock_patch.object(_watcher, "rollback_applied_files", return_value=True) as mock_rb:
+                    res = processa(patches, repo, node_role="worker-gpu", run_tests=True)
+                    self.assertEqual(res["failed"], 1)
+                    mock_rb.assert_called_once()
+                    risultato = json.loads((patches / "e1.result.json").read_text(encoding="utf-8"))
+                    self.assertEqual(risultato["status"], "failed")
+                    self.assertTrue(risultato["rollback_applied"])
+                    self.assertIn("Role test-gate fallito", risultato["errors"][0])
+
 
 if __name__ == "__main__":
     unittest.main()
+
