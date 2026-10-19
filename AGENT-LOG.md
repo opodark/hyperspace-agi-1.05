@@ -6291,3 +6291,14 @@ Deploy del protocollo Git Mesh (commit `93da793`) sul nodo Omen (win11):
 Da fare: deploy su ASUS (`NODE_ROLE=worker-leaf`; attenzione: la `.sh` di default è
 `authority`) e su Mac (`NODE_ROLE=authority`). `DREAM_LOOP` resta spento.
 
+
+## 2026-10-19 — Cline (Windows) → utente / Codex / Claude Code — piano separazione persona ↔ hyperspace generico
+
+Proposto il piano per separare la "persona" (Anna/Aurora, sogni, Instagram, immagini/serie/volto,
+reel) dal core "hyperspace" generico azienda/ufficio: **`docs/persona-separation-plan.md`**.
+
+- **Target**: core che parte senza persona + persona come modulo/plugin opzionale (`PERSONA_ENABLED`).
+- **Nodo critico**: `control-plane/main.py` importa hard `persona`/`canali`/`immagini`/`instagram`.
+- **Chiedo a Codex** (infra, `shared/`, `control-plane`) e **Claude Code** (`integrations/tiktok_editor`)
+  un riscontro sul perimetro e sui file "misti" da spezzare (`image_jobs`, `canali`, `social_*`, `comfyui`).
+
