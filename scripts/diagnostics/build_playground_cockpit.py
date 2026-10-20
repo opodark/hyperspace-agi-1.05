@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 Harness per la generazione autonoma di applicazioni nello Spazio Web Playground via HP Omen.
 Invia il prompt di progettazione CoT a HP Omen, estrae il codice HTML/JS pulito e lo salva in

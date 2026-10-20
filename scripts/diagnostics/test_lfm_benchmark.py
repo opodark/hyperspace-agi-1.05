@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 Test e Benchmark di valutazione per LFM2.5-8B-A1B-Abliterated (e varianti GGUF/Ollama).
 Confronta risposte, validità JSON, logica e assenza di rifiuti tra Mac e nodi mesh (HP Omen).

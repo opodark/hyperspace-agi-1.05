@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 Stress Test Notturno per HP OMEN 16 (LFM2.5 24B/8B Ibrido su Rete AC).
 Valuta la Chain-of-Thought (CoT), la generazione di pagine/servizi sotto le regole di AGENTS.md,

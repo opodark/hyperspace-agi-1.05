@@ -6793,3 +6793,30 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
    - Suite `tests/test_hermes_memory.py`: aggiunta la classe di test `ShadowMemoryTests` per validare store idempotente, FTS query, recupero messaggi, lifecycle (quarantine/restore) e curated target `MEMORY.md`.
    - Esecuzione test: `pytest tests/test_hermes_memory.py tests/test_hermes_resilience.py tests/test_hermes_token.py` → **50/50 PASS (100% verde)**.
    - Test end-to-end su porta di test `8096` con client HTTP reale: handshake `200 OK`, store e query validati al 100%.
+
+## 2026-10-20 — Antigravity → utente / altri agenti — Rigenerazione Grafo, Diario/Calendario Codebase e Parser/Caveman Universale
+
+### Cosa è stato fatto
+
+1. **Rigenerazione Completa del Grafo di Conoscenza (`graphify`)**:
+   - Eseguito `./scripts/graphify.sh update .`: ri-estrazione AST completata al 100% (133/133 file unificati).
+   - Grafo aggiornato e sincronizzato in `graphify-out/`: **12.688 nodi, 24.679 archi e 740 community** (inclusi i nuovi moduli Omen 24/7, Hermes Shadow Memory, bot Telegram/Discord e Cockpit).
+
+2. **Diario e Calendario dell'Evoluzione della Codebase (`shared/codebase_journal.py`)**:
+   - Creato il modulo di cronologia per gli agenti autonomi di HyperSpace con persistenza append-only in `data/codebase_chronicle.jsonl`.
+   - Generata la vista calendario cronologica in `docs/codebase-calendar.md`.
+   - Introdotto il retrieval `query_lessons(...)`: permette agli agenti di consultare le lezioni e i fallimenti storici prima di toccare un modulo critico (es. mount read-only, VRAM sliding-window, policy energetica, fallback shadow memory).
+   - Test coperti in `tests/test_codebase_journal.py` (3 passed).
+
+3. **Parser e Caveman Universale per Modelli Eterogenei e Quantizzati (`shared/universal_model_parser.py`)**:
+   - **Caveman Engine (Pre-Inference)**: compressore locale di prompt che riduce la verbosità del 20–40% preservando rigorosamente blocchi di codice, tag XML, percorsi, contratti e JSON, ottimizzando il contesto per modelli quantizzati (4B–8B Q4_K_M).
+   - **Universal Output Parser (Post-Inference)**:
+     - Estrazione CoT: isolamento deterministico di `<think>` (anche unclosed per timeout o troncamento).
+     - Estrazione Codice: recupero fence markdown incomplete con validazione sintattica AST Python (`ast.parse`).
+     - JSON Repair: riparazione automatica di virgolette singole, virgole finali, chiavi non quotate e parentesi graffe non bilanciate.
+     - Tool Call normalizzate: supporto contemporaneo per Qwen (`<tool_call>`), Mistral (`[TOOL_CALLS]`) e chiamate funzionali embedded.
+   - Test coperti in `tests/test_universal_model_parser.py` (7 passed).
+
+4. **Verifiche & Policy**:
+   - Test licensing `tests/test_licensing.py`: 7/7 passati con successo.
+   - Nessun commit e nessun push effettuato senza conferma (Regola 3 `AGENTS.md`).

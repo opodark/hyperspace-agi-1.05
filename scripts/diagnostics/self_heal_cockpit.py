@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 Harness per il Self-Healing Loop su HP OMEN 16.
 Invia all'Omen il codice generato precedentemente e i report di errore del browser/linter,

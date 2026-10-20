@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * 00MESH Sovereign AI Telegram Webhook Worker v4.1 — "Gruppo 00MESH Ready"
  *
