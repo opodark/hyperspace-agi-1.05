@@ -6820,3 +6820,20 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
 4. **Verifiche & Policy**:
    - Test licensing `tests/test_licensing.py`: 7/7 passati con successo.
    - Nessun commit e nessun push effettuato senza conferma (Regola 3 `AGENTS.md`).
+
+## 2026-10-20 — Antigravity → utente / altri agenti — Worker di Sviluppo Continuo 24/7 per HP OMEN (`omen_dev_loop_247.py`)
+
+### Cosa è stato fatto
+
+1. **Creazione del Worker di Sviluppo Continuo H24 (`scripts/omen_dev_loop_247.py`)**:
+   - Definito e implementato il ciclo di lavoro autonomo a rotazione continua per l'HP OMEN 16:
+     - **QA & Invarianti**: verifica automatica periodica di test suite e licensing SPDX.
+     - **Hermes Memory & Sogni**: query di salute e trigger consolidamento memorie su porta 8098.
+     - **Knowledge Graph**: scansione incrementale AST Graphify per tenere aggiornato il grafo a 12.688 nodi.
+     - **Distillazione Neurale CoT (PoUW)**: generazione automatica di coppie sintetiche CoT (`<think>` -> codice AST Python valido) da memorizzare in `data/synthetic_cot_dataset.jsonl` per il training continuo dei modelli edge.
+     - **Diario e Calendario Codebase**: integrazione con `shared/codebase_journal.py`.
+     - **Guardia Termica**: interruzione automatica dei compiti intensivi in presenza di `data/thermal_pause.flag` (>82°C).
+
+2. **Verifiche & Policy**:
+   - Esecuzione di `scripts/omen_dev_loop_247.py --task qa`: superata in 0.69s (30/30 test verdi).
+   - Test licensing `tests/test_licensing.py`: 7/7 passati.
