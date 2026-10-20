@@ -216,3 +216,54 @@ class HermesBridgeTests(TestCase):
         self.assertEqual(result["stored"], 1)
         self.assertEqual(result["failed"], 1)
         self.assertFalse(result["ok"])
+
+
+class ShadowMemoryTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.bridge = load_bridge_module()
+
+    def test_shadow_session_db_and_store_roundtrip(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            shadow_db = self.bridge.ShadowSessionDB(tmp_path / "shadow_state.db")
+            shadow_store = self.bridge.ShadowOnDiskStore(tmp_path)
+
+            memory = self.bridge.HermesMemory(shadow_db)
+
+            # Store normal memory
+            entry = {"id": "omen-1", "content": "HP OMEN 16 running as shadow memory", "source": "omen-node"}
+            res = memory.store(entry)
+            self.assertTrue(res["stored"])
+            self.assertEqual(res["id"], "omen-1")
+
+            # Duplicate store returns duplicate: True
+            dup = memory.store(entry)
+            self.assertTrue(dup["duplicate"])
+
+            # Verify entries
+            entries = memory.entries()
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0]["id"], "omen-1")
+            self.assertEqual(entries[0]["content"], "HP OMEN 16 running as shadow memory")
+
+            # Search query
+            found = memory.query("shadow memory", 10)
+            self.assertEqual(len(found), 1)
+            self.assertEqual(found[0]["id"], "omen-1")
+
+            # Curated add to memory.md
+            res_curated = shadow_store.add("memory", "Prefer balanced fan profile on OMEN 16")
+            self.assertTrue(res_curated["success"])
+            self.assertEqual(len(shadow_store.memory_entries), 1)
+            self.assertIn("OMEN 16", shadow_store.memory_entries[0])
+
+            # Lifecycle
+            quarantine = memory.lifecycle(["omen-1"], "quarantine", "testing quarantine")
+            self.assertEqual(quarantine["changed"], ["omen-1"])
+            self.assertEqual(memory.entries()[0]["status"], "quarantined")
+
+            restore = memory.lifecycle(["omen-1"], "restore", "restore active")
+            self.assertEqual(restore["changed"], ["omen-1"])
+            self.assertEqual(memory.entries()[0]["status"], "active")

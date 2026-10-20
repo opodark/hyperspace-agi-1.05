@@ -139,9 +139,35 @@ try {
     Warn "Impossibile applicare tutti i comandi powercfg (richiede privilegi standard o admin): $_"
 }
 
-# 3. Creazione Collegamenti Startup
-Log "3. Registrazione Servizi di Autostart..."
+# 3. Creazione Collegamenti Startup & Hermes Shadow Memory
+Log "3. Configurazione Hermes Shadow Memory e Registrazione Servizi di Autostart..."
 $wscript = New-Object -ComObject WScript.Shell
+$hermesBridgeScript = Join-Path $Root "scripts\start_hermes_memory_bridge.ps1"
+$tokenFile = Join-Path $Root "data\hermes-memory.token"
+
+# Generazione token di memoria se non presente
+if (-not (Test-Path $tokenFile)) {
+    $bytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $hexToken = -join ($bytes | ForEach-Object { "{0:x2}" -f $_ })
+    $tokenDir = Split-Path -Parent $tokenFile
+    if (-not (Test-Path $tokenDir)) { New-Item -ItemType Directory -Path $tokenDir -Force | Out-Null }
+    Set-Content -Path $tokenFile -Value $hexToken -NoNewline -Encoding Ascii
+    Log "Generato token crittografico Hermes in $tokenFile"
+}
+$shadowDir = Join-Path $Root "data\hermes_shadow"
+if (-not (Test-Path $shadowDir)) { New-Item -ItemType Directory -Path $shadowDir -Force | Out-Null }
+
+# Shortcut Hermes Shadow Memory Bridge
+$hLnkPath = Join-Path $startupDir "HyperSpace Hermes Shadow Bridge.lnk"
+$hLnk = $wscript.CreateShortcut($hLnkPath)
+$hLnk.TargetPath = "powershell.exe"
+$hLnk.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$hermesBridgeScript`""
+$hLnk.WorkingDirectory = $Root
+$hLnk.WindowStyle = 7
+$hLnk.Description = "HyperSpace Hermes Shadow Memory Bridge (porta 8098)"
+$hLnk.Save()
+Log "Creato collegamento di avvio: $hLnkPath"
 
 # Shortcut Watchdog
 $wLnk = $wscript.CreateShortcut($watchdogLnk)
@@ -172,6 +198,14 @@ Write-Host "3. COPERCHIO: Lascia il display leggermente socchiuso a 30° per far
 # 5. Avvio Immediato se richiesto
 if ($Start) {
     Head "Avvio Immediato dei Servizi"
+    # Avvio Hermes Shadow Bridge se non in ascolto
+    $hermesOpen = [bool](Get-NetTCPConnection -LocalPort 8098 -State Listen -ErrorAction SilentlyContinue)
+    if (-not $hermesOpen) {
+        Log "Avvio Hermes Shadow Memory Bridge (porta 8098)..."
+        Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$hermesBridgeScript`"" -WorkingDirectory $Root -WindowStyle Hidden
+    } else {
+        Log "Hermes Shadow Memory Bridge gia' attivo (porta 8098)"
+    }
     Log "Avvio del Watchdog..."
     Start-Process -FilePath $python -ArgumentList "`"$watchdogScript`" --daemon --interval 30" -WorkingDirectory $Root -WindowStyle Hidden
     Log "Avvio dello stack HyperSpace Start-Tutto..."

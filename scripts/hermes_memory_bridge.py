@@ -13,16 +13,255 @@ import argparse
 import hashlib
 import json
 import os
+from pathlib import Path
 import re
 import secrets
+import sqlite3
 import threading
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
-from hermes_state import SessionDB
-from tools.memory_tool import load_on_disk_store
+
+class ShadowSessionDB:
+    """Implementazione autonoma di SessionDB basata su SQLite WAL + FTS5.
+
+    Permette a qualsiasi nodo (es. HP Omen 16) di operare come Shadow Memory di Hermes
+    senza richiedere l'installazione completa del pacchetto esterno hermes-agent.
+    """
+    def __init__(self, db_path: Optional[Union[str, Path]] = None):
+        if db_path is None:
+            hermes_home = os.getenv("HERMES_HOME")
+            if hermes_home:
+                db_dir = Path(hermes_home)
+            else:
+                db_dir = Path(__file__).resolve().parents[1] / "data" / "hermes_shadow"
+            db_dir.mkdir(parents=True, exist_ok=True)
+            self.db_path = db_dir / "state.db"
+        else:
+            self.db_path = Path(db_path)
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.lock = threading.RLock()
+        self._init_db()
+
+    def _get_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self.lock, self._get_conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    id TEXT PRIMARY KEY,
+                    source TEXT,
+                    display_name TEXT,
+                    created_at REAL
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT,
+                    role TEXT,
+                    content TEXT,
+                    timestamp REAL,
+                    platform_message_id TEXT,
+                    display_kind TEXT,
+                    display_metadata TEXT,
+                    FOREIGN KEY(session_id) REFERENCES sessions(id)
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
+            try:
+                conn.execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                        content,
+                        session_id UNINDEXED,
+                        content='messages',
+                        content_rowid='id'
+                    )
+                """)
+                conn.execute("""
+                    CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN
+                        INSERT INTO messages_fts(rowid, content, session_id) VALUES (new.id, new.content, new.session_id);
+                    END
+                """)
+                conn.execute("""
+                    CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
+                        INSERT INTO messages_fts(messages_fts, rowid, content, session_id) VALUES('delete', old.id, old.content, old.session_id);
+                    END
+                """)
+                self.has_fts = True
+            except sqlite3.OperationalError:
+                self.has_fts = False
+
+    def ensure_session(self, session_id: str, source: str = "unknown", display_name: Optional[str] = None, **kwargs) -> str:
+        with self.lock, self._get_conn() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO sessions (id, source, display_name, created_at) VALUES (?, ?, ?, ?)",
+                (session_id, source, display_name or session_id, time.time())
+            )
+        return session_id
+
+    def append_message(self, session_id: str, role: str, content: Optional[str] = None,
+                       timestamp: Optional[float] = None, platform_message_id: Optional[str] = None,
+                       display_kind: Optional[str] = None, display_metadata: Optional[Dict[str, Any]] = None,
+                       **kwargs) -> int:
+        ts = timestamp if timestamp is not None else time.time()
+        meta_str = json.dumps(display_metadata, ensure_ascii=False) if display_metadata is not None else None
+        with self.lock, self._get_conn() as conn:
+            cursor = conn.execute(
+                """INSERT INTO messages (session_id, role, content, timestamp, platform_message_id, display_kind, display_metadata)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (session_id, role, content or "", ts, platform_message_id, display_kind, meta_str)
+            )
+            return cursor.lastrowid
+
+    def search_sessions(self, source: Optional[str] = None, limit: int = 200, offset: int = 0, **kwargs) -> List[Dict[str, Any]]:
+        with self.lock, self._get_conn() as conn:
+            if source:
+                rows = conn.execute(
+                    """SELECT s.id, s.source, s.display_name, s.created_at, COUNT(m.id) as message_count
+                       FROM sessions s LEFT JOIN messages m ON s.id = m.session_id
+                       WHERE s.source = ?
+                       GROUP BY s.id
+                       ORDER BY s.created_at DESC LIMIT ? OFFSET ?""",
+                    (source, limit, offset)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT s.id, s.source, s.display_name, s.created_at, COUNT(m.id) as message_count
+                       FROM sessions s LEFT JOIN messages m ON s.id = m.session_id
+                       GROUP BY s.id
+                       ORDER BY s.created_at DESC LIMIT ? OFFSET ?""",
+                    (limit, offset)
+                ).fetchall()
+            return [{"id": r["id"], "source": r["source"], "display_name": r["display_name"],
+                     "message_count": r["message_count"], "started_at": r["created_at"]} for r in rows]
+
+    def get_messages(self, session_id: str, **kwargs) -> List[Dict[str, Any]]:
+        with self.lock, self._get_conn() as conn:
+            rows = conn.execute(
+                """SELECT id, session_id, role, content, timestamp, platform_message_id, display_kind, display_metadata
+                   FROM messages WHERE session_id = ? ORDER BY id ASC""",
+                (session_id,)
+            ).fetchall()
+            res = []
+            for r in rows:
+                meta = None
+                if r["display_metadata"]:
+                    try:
+                        meta = json.loads(r["display_metadata"])
+                    except Exception:
+                        pass
+                res.append({
+                    "id": r["id"],
+                    "session_id": r["session_id"],
+                    "role": r["role"],
+                    "content": r["content"],
+                    "timestamp": r["timestamp"],
+                    "platform_message_id": r["platform_message_id"],
+                    "display_kind": r["display_kind"],
+                    "display_metadata": meta
+                })
+            return res
+
+    def search_messages(self, query: str, source_filter: Optional[List[str]] = None, limit: int = 20, **kwargs) -> List[Dict[str, Any]]:
+        with self.lock, self._get_conn() as conn:
+            needle = query.strip()
+            if not needle:
+                return []
+            rows = []
+            if getattr(self, "has_fts", False):
+                try:
+                    cursor = conn.execute(
+                        """SELECT m.id, m.session_id, m.role, m.content, m.timestamp, m.display_metadata
+                           FROM messages_fts f JOIN messages m ON f.rowid = m.id
+                           JOIN sessions s ON m.session_id = s.id
+                           WHERE messages_fts MATCH ?
+                           ORDER BY rank LIMIT ?""",
+                        (needle, limit)
+                    )
+                    rows = cursor.fetchall()
+                except sqlite3.OperationalError:
+                    rows = []
+
+            if not rows:
+                like_pat = f"%{needle}%"
+                rows = conn.execute(
+                    """SELECT m.id, m.session_id, m.role, m.content, m.timestamp, m.display_metadata
+                       FROM messages m JOIN sessions s ON m.session_id = s.id
+                       WHERE m.content LIKE ?
+                       ORDER BY m.id DESC LIMIT ?""",
+                    (like_pat, limit)
+                ).fetchall()
+
+            res = []
+            for r in rows:
+                meta = None
+                if r["display_metadata"]:
+                    try:
+                        meta = json.loads(r["display_metadata"])
+                    except Exception:
+                        pass
+                res.append({
+                    "id": r["id"],
+                    "session_id": r["session_id"],
+                    "role": r["role"],
+                    "content": r["content"],
+                    "timestamp": r["timestamp"],
+                    "display_metadata": meta
+                })
+            return res
+
+
+class ShadowOnDiskStore:
+    """Implementazione autonoma di load_on_disk_store per MEMORY.md e USER.md."""
+    def __init__(self, base_dir: Optional[Union[str, Path]] = None):
+        if base_dir is None:
+            hermes_home = os.getenv("HERMES_HOME")
+            base_dir = Path(hermes_home) if hermes_home else Path(__file__).resolve().parents[1] / "data" / "hermes_shadow"
+        self.base_dir = Path(base_dir)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.memory_md = self.base_dir / "MEMORY.md"
+        self.user_md = self.base_dir / "USER.md"
+
+    @property
+    def memory_entries(self) -> List[str]:
+        if not self.memory_md.exists():
+            return []
+        lines = self.memory_md.read_text(encoding="utf-8", errors="replace").splitlines()
+        return [l.strip() for l in lines if l.strip() and not l.startswith("#")]
+
+    @property
+    def user_entries(self) -> List[str]:
+        if not self.user_md.exists():
+            return []
+        lines = self.user_md.read_text(encoding="utf-8", errors="replace").splitlines()
+        return [l.strip() for l in lines if l.strip() and not l.startswith("#")]
+
+    def add(self, target: str, content: str) -> Dict[str, Any]:
+        target_file = self.memory_md if target == "memory" else self.user_md
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        with open(target_file, "a", encoding="utf-8") as f:
+            f.write(f"\n- [{now}] {content.strip()}\n")
+        return {"success": True, "target": target}
+
+
+try:
+    from hermes_state import SessionDB
+    from tools.memory_tool import load_on_disk_store
+    NATIVE_HERMES_AVAILABLE = True
+except ImportError:
+    NATIVE_HERMES_AVAILABLE = False
+    SessionDB = ShadowSessionDB
+    def load_on_disk_store():
+        return ShadowOnDiskStore()
 
 
 SOURCE = "hyperspace"
@@ -291,13 +530,22 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         memory = self.server.memory
         if self.command == "GET" and parsed.path == "/health":
-            self._send(200, {"ok": True, "backend": "hermes", "source": SOURCE})
+            self._send(200, {
+                "ok": True,
+                "backend": "hermes",
+                "source": SOURCE,
+                "mode": "native" if NATIVE_HERMES_AVAILABLE else "shadow",
+                "shadow": not NATIVE_HERMES_AVAILABLE,
+            })
         elif self.command == "GET" and parsed.path == "/entries":
             limit = int(parse_qs(parsed.query).get("limit", ["200"])[0])
             entries = memory.entries(max(1, min(limit, 5000)))
             self._send(200, {"ok": True, "entries": entries, "total": len(entries)})
         elif self.command == "GET" and parsed.path == "/stats":
-            self._send(200, memory.stats())
+            st = memory.stats()
+            st["mode"] = "native" if NATIVE_HERMES_AVAILABLE else "shadow"
+            st["shadow"] = not NATIVE_HERMES_AVAILABLE
+            self._send(200, st)
         elif self.command == "POST" and parsed.path == "/store":
             body = self._json()
             self._send(200, memory.store(body.get("entry"), body.get("curated_target")))

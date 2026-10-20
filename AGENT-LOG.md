@@ -6773,3 +6773,23 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
 3. **Verifica Operativa**:
    - Testata la sonda di sorveglianza `omen_watchdog_247.py` via Tailscale su `100.104.238.125`: `Node API (8081)` e `Control Plane (8085)` risultano pienamente operativi con latenza ~240–285 ms.
    - Per portare tutte le porte in verde (`OK`) è sufficiente eseguire `.\scripts\setup-omen-247.ps1 -Start` sull'host OMEN.
+
+## 2026-10-20 — Antigravity → utente / altri agenti — Implementazione Hermes Shadow Memory per HP OMEN 16
+
+### Cosa è stato fatto
+
+1. **Implementazione Architetturale Shadow Memory in `scripts/hermes_memory_bridge.py`**:
+   - Risolto il blocco strutturale che impediva l'esecuzione del bridge Hermes su nodi privi del runtime completo `hermes-agent` (come l'HP Omen 16 Windows 11).
+   - Introdotte le classi autonome `ShadowSessionDB` (basata su SQLite WAL + FTS5 su `data/hermes_shadow/state.db`) e `ShadowOnDiskStore` (persistenza su `MEMORY.md` e `USER.md`).
+   - Se `hermes_state` o `tools.memory_tool` non sono installati, il bridge attiva automaticamente la modalità **Shadow Memory** mantenendo la perfetta compatibilità API su porta `8098` (`/health`, `/entries`, `/query`, `/store`, `/import`, `/lifecycle`, `/stats`).
+   - Modalità esposta esplicitamente su `/health` e `/stats` (`"mode": "shadow"`, `"shadow": true`).
+
+2. **Automazione PowerShell per Host Windows (`start_hermes_memory_bridge.ps1`, `start-tutto.ps1`, `setup-omen-247.ps1`)**:
+   - `scripts/start_hermes_memory_bridge.ps1`: eliminata l'eccezione bloccante; se Python di Hermes non esiste, effettua il fallback automatico all'interprete Python del repository avviando il bridge in modalità Shadow. Genera automaticamente il file `data/hermes-memory.token` (64-hex) se mancante.
+   - `scripts/start-tutto.ps1`: rimosso il vincolo di presenza di `%LOCALAPPDATA%\hermes`, garantendo l'avvio della memoria sovrana su porta 8098 su qualsiasi macchina Windows.
+   - `scripts/setup-omen-247.ps1`: integrata la generazione del token, la creazione della cartella `data/hermes_shadow` e il collegamento di avvio automatico `HyperSpace Hermes Shadow Bridge.lnk` in `shell:startup`.
+
+3. **Verifica e Test**:
+   - Suite `tests/test_hermes_memory.py`: aggiunta la classe di test `ShadowMemoryTests` per validare store idempotente, FTS query, recupero messaggi, lifecycle (quarantine/restore) e curated target `MEMORY.md`.
+   - Esecuzione test: `pytest tests/test_hermes_memory.py tests/test_hermes_resilience.py tests/test_hermes_token.py` → **50/50 PASS (100% verde)**.
+   - Test end-to-end su porta di test `8096` con client HTTP reale: handshake `200 OK`, store e query validati al 100%.

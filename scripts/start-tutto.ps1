@@ -113,22 +113,18 @@ Log "stack Docker avviato (verifica: .\scripts\start.ps1 -Check)"
 Log "avvio superfici host"
 & powershell -NoProfile -ExecutionPolicy Bypass -File $superfici
 
-# 3. Hermes Memory Bridge (opzionale, memoria sovrana)
-$data         = Join-Path $Root 'data'
+# 3. Hermes Memory Bridge (Nativo o Shadow Memory, porta 8098)
+$data = Join-Path $Root 'data'
 if (-not (Test-Path $data)) { New-Item -ItemType Directory -Path $data -Force | Out-Null }
-$hermesPython = Join-Path $env:LOCALAPPDATA 'hermes\hermes-agent\venv\Scripts\python.exe'
-$hermesToken  = Join-Path $data 'hermes-memory.token'
 if (Test-Porta 8098) {
     Log "Hermes Memory Bridge gia' attivo (porta 8098)"
-} elseif (Test-Path $hermesPython -and Test-Path $hermesToken) {
+} else {
     $logHermes = Join-Path $data 'hermes-memory-bridge.log'
     $cmdHermes = "& '$hermes' *> '$logHermes'"
     Start-Process -FilePath 'powershell.exe' `
         -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"$cmdHermes`"" `
         -WorkingDirectory $Root -WindowStyle Hidden | Out-Null
-    Log "Hermes Memory Bridge avviato (porta 8098, log: data\hermes-memory-bridge.log)"
-} else {
-    Log "Hermes Memory Bridge non avviato: Hermes Agent non installato o token assente (opzionale)"
+    Log "Hermes Memory Bridge in avvio (porta 8098, log: data\hermes-memory-bridge.log)"
 }
 
 # 4. Superficie REA (opzionale, serve rea-agents nel PATH)
