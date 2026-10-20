@@ -14,13 +14,15 @@
         }
 
         const isSharing = Boolean(response.sharing_enabled);
-        const hasEngines = Boolean(response.engines?.ollama?.online || response.engines?.lmstudio?.online);
+        const hasComfy = Boolean(response.engines?.comfyui?.online);
+        const hasEngines = Boolean(response.engines?.ollama?.online || response.engines?.lmstudio?.online || hasComfy);
         const active = isSharing && hasEngines;
 
         const detail = {
           installed: true,
           active,
           sharing_enabled: isSharing,
+          comfyui_active: hasComfy,
           node_id: response.node_id,
           engines: response.engines || {},
           stats: response.stats || {}
@@ -29,6 +31,7 @@
         // Marca l'elemento radice del documento
         document.documentElement.dataset.meshBridgeInstalled = "true";
         document.documentElement.dataset.meshBridgeActive = active ? "true" : "false";
+        document.documentElement.dataset.meshComfyuiActive = hasComfy ? "true" : "false";
 
         // Emette evento DOM per listener locali
         window.dispatchEvent(new CustomEvent("00mesh:bridge-status", { detail }));

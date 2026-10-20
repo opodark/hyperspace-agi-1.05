@@ -32,9 +32,9 @@ def fetch_json(url: str, *, token: str = "", timeout: float = 5.0) -> Any:
         return json.loads(response.read().decode("utf-8"))
 
 
-def report(label: str, url: str, *, token: str = "") -> Any | None:
+def report(label: str, url: str, *, token: str = "", timeout: float = 5.0) -> Any | None:
     try:
-        data = fetch_json(url, token=token)
+        data = fetch_json(url, token=token, timeout=timeout)
     except (OSError, ValueError, urllib.error.URLError) as exc:
         print(f"{label}: NON RAGGIUNGIBILE ({exc})")
         return None

@@ -424,7 +424,7 @@ def _signed_headers(body: bytes = b"") -> dict:
 async def ollama_generate(prompt: str, model: str = DEFAULT_MODEL) -> str:
     payload = {"model": model, "prompt": prompt, "stream": False}
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=NODE_INFERENCE_TIMEOUT_S) as client:
             r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
             r.raise_for_status()
             return r.json().get("response", "").strip()

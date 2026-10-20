@@ -1,0 +1,1033 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="Anna: Visual Novel Cyberpunk & Dating Sim interattivo di 00MESH. Conquista la sua fiducia, aumenta l'affinità ed esplora i segreti della sovereign AI mesh.">
+  <title>Anna · Cyberpunk AI Dating Sim & Visual Novel | 00MESH</title>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791" crossorigin="anonymous"></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%23a855f7' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
+
+  <style>
+    :root {
+      --bg: #050814;
+      --card: #0b1124;
+      --cyan: #57e6d9;
+      --violet: #a855f7;
+      --pink: #f43f5e;
+      --gold: #fbbf24;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      background-image:
+        radial-gradient(circle at 50% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(87, 230, 217, 0.08) 0%, transparent 50%),
+        linear-gradient(rgba(5, 8, 20, 0.95), rgba(5, 8, 20, 0.95));
+    }
+
+    /* Top Navigation HUD */
+    .hud-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(11, 17, 36, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--violet), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* Affection / Intimacy Meter */
+    .affinity-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(7, 11, 24, 0.7);
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
+    }
+    .affinity-heart {
+      font-size: 18px;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px var(--pink)); }
+      50% { transform: scale(1.2); filter: drop-shadow(0 0 12px var(--pink)); }
+    }
+    .affinity-bar-wrap {
+      width: 140px;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .affinity-bar-fill {
+      height: 100%;
+      width: 15%;
+      background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .affinity-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .stage-pill {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+
+    /* Actions Right */
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-phantom {
+      background: linear-gradient(135deg, #5822b3, #8b5cf6);
+      border: 1px solid #a855f7;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .2s;
+    }
+    .btn-phantom:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-pump {
+      background: rgba(87, 230, 217, 0.1);
+      border: 1px solid rgba(87, 230, 217, 0.4);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all .2s;
+    }
+    .btn-pump:hover { background: rgba(87, 230, 217, 0.2); }
+
+    /* Visual Novel Stage Area */
+    .vn-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      position: relative;
+      padding: 20px;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      min-height: calc(100vh - 70px);
+    }
+
+    /* Character Avatar Display */
+    .character-avatar-wrap {
+      position: relative;
+      width: 380px;
+      max-width: 85vw;
+      height: 480px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      margin-bottom: -40px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .character-glow {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
+      bottom: 60px;
+      animation: glowBreath 4s ease-in-out infinite alternate;
+      z-index: 1;
+    }
+    @keyframes glowBreath {
+      0% { transform: scale(0.9); opacity: 0.6; filter: blur(20px); }
+      100% { transform: scale(1.15); opacity: 0.9; filter: blur(35px); }
+    }
+    .character-avatar-img {
+      position: relative;
+      z-index: 2;
+      max-height: 100%;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.8));
+      transition: opacity 0.4s ease, transform 0.3s ease;
+      animation: idleFloat 5s ease-in-out infinite alternate;
+    }
+    @keyframes idleFloat {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-8px); }
+    }
+
+    /* Floating Emotion Popups */
+    .emotion-badge-float {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: rgba(11, 17, 36, 0.9);
+      border: 1px solid var(--violet);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+      z-index: 15;
+      animation: floatBadge 0.5s ease-out;
+    }
+    @keyframes floatBadge {
+      0% { transform: scale(0.6) translateY(20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* Dialogue Box (Visual Novel Style) */
+    .dialogue-box {
+      width: 100%;
+      background: rgba(11, 17, 36, 0.92);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(168, 85, 247, 0.15);
+      position: relative;
+      z-index: 20;
+      margin-bottom: 16px;
+    }
+
+    .nameplate {
+      position: absolute;
+      top: -15px;
+      left: 24px;
+      background: linear-gradient(135deg, #4c1d95, #6d28d9);
+      border: 1px solid #c084fc;
+      padding: 4px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(109, 40, 217, 0.5);
+    }
+    .nameplate .tag {
+      font-size: 9.5px;
+      background: rgba(87, 230, 217, 0.2);
+      color: var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .dialogue-text {
+      font-size: 16px;
+      line-height: 1.65;
+      color: #f1f5f9;
+      min-height: 58px;
+      margin-top: 4px;
+      margin-bottom: 14px;
+    }
+
+    /* Quick Choices / Suggestions */
+    .choices-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .choices-row::-webkit-scrollbar { display: none; }
+    .choice-chip {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #cbd5e1;
+      font-size: 12.5px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s;
+    }
+    .choice-chip:hover {
+      background: rgba(168, 85, 247, 0.25);
+      border-color: var(--cyan);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Input Bar */
+    .input-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .input-field {
+      flex: 1;
+      background: #070b18;
+      border: 1px solid #1e293b;
+      color: #fff;
+      font-size: 14px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .input-field:focus {
+      border-color: var(--violet);
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+    }
+    .btn-send {
+      background: linear-gradient(135deg, var(--violet), var(--cyan));
+      border: none;
+      color: #030712;
+      font-weight: 800;
+      font-size: 13.5px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform .15s, filter .15s;
+    }
+    .btn-send:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Token Gate Barrier Modal */
+    .token-gate-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(88, 34, 179, 0.3), rgba(6, 182, 212, 0.2));
+      border: 1px solid var(--violet);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.25);
+    }
+    .token-gate-text b { color: #fff; }
+    .token-gate-text p { font-size: 12.5px; color: #cbd5e1; margin-top: 3px; }
+
+    /* VIP Companion Creator Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.88);
+      backdrop-filter: blur(14px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background: #0b1124;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 20px;
+      max-width: 580px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.2);
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #fff; }
+    .form-row {
+      margin-bottom: 14px;
+    }
+    .form-lbl {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .form-select, .form-input {
+      width: 100%;
+      background: #070b18;
+      border: 1px solid #1e293b;
+      color: #fff;
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .form-select:focus, .form-input:focus {
+      border-color: var(--violet);
+      box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25);
+    }
+    .btn-create-exec {
+      width: 100%;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border: none;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      padding: 13px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: filter .15s, transform .15s;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-create-exec:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 640px) {
+      .hud-bar { padding: 10px 14px; }
+      .affinity-bar-wrap { width: 90px; }
+      .character-avatar-wrap { height: 380px; }
+      .dialogue-box { padding: 18px 16px; }
+      .dialogue-text { font-size: 14.5px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top HUD -->
+  <header class="hud-bar">
+    <div class="brand-group">
+      <a href="./" style="text-decoration:none; display:flex; align-items:center; gap:8px;">
+        <span class="brand-badge">00MESH</span>
+        <span class="brand-title">ANNA</span>
+      </a>
+    </div>
+
+    <!-- Affection Meter -->
+    <div class="affinity-container">
+      <span class="affinity-heart">💖</span>
+      <div class="affinity-bar-wrap">
+        <div id="affinityFill" class="affinity-bar-fill" style="width: 15%;"></div>
+      </div>
+      <span id="affinityScoreText" class="affinity-label">15%</span>
+      <span id="stageBadge" class="stage-pill">Stage 1 · Distaccata</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="hud-actions">
+      <button type="button" id="btnCreateCompanion" class="btn-phantom" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); border-color:#f43f5e; display:none;" title="Personalizza o crea una nuova compagna AI virtuale">
+        ✨ Crea Companion VIP
+      </button>
+      <button type="button" id="phantomBtn" class="btn-phantom">
+        🟣 <span id="phantomBtnLabel">Collega Phantom</span>
+      </button>
+      <a href="https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" rel="noopener noreferrer" class="btn-pump">
+        🚀 $00MESH
+      </a>
+      <a href="./chat.html" style="color:var(--muted); font-size:12px; text-decoration:none; margin-left:4px;" title="Torna alla chat classica">
+        💬 Chat
+      </a>
+    </div>
+  </header>
+
+  <!-- Visual Novel Stage -->
+  <main class="vn-stage">
+
+    <!-- Character Avatar & Emotions -->
+    <div class="character-avatar-wrap">
+      <div id="characterGlow" class="character-glow"></div>
+
+      <!-- Fallback SVG Avatar dinamico se l'immagine remota non è caricata -->
+      <img id="annaAvatar" class="character-avatar-img" src="./assets/anna/anna_neutral.png" alt="Anna 00MESH" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 380 480\'%3E%3Cdefs%3E%3ClinearGradient id=\'hair\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' stop-color=\'%230b0c10\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%23a855f7\'/%3E%3C/linearGradient%3E%3ClinearGradient id=\'jacket\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' stop-color=\'%23111827\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%231f2937\'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx=\'190\' cy=\'170\' r=\'85\' fill=\'%23ffe4e6\'/%3E%3Cpath d=\'M105,160 Q190,70 275,160 Q260,300 240,340 Q190,260 140,340 Z\' fill=\'url(%23hair)\'/%3E%3Cpath d=\'M90,320 L290,320 L270,480 L110,480 Z\' fill=\'url(%23jacket)\' stroke=\'%2357e6d9\' stroke-width=\'2\'/%3E%3Ccircle cx=\'160\' cy=\'175\' r=\'7\' fill=\'%230f172a\'/%3E%3Ccircle cx=\'220\' cy=\'175\' r=\'7\' fill=\'%230f172a\'/%3E%3Cpath d=\'M175,210 Q190,222 205,210\' stroke=\'%23f43f5e\' stroke-width=\'3\' fill=\'none\'/%3E%3Crect x=\'85\' y=\'145\' width=\'18\' height=\'40\' rx=\'6\' fill=\'%23a855f7\' stroke=\'%2357e6d9\' stroke-width=\'2\'/%3E%3C/svg%3E';">
+
+      <div id="emotionBadge" class="emotion-badge-float" style="display:none;">
+        <span id="emotionIcon">😏</span> <span id="emotionText">Incuriosita</span>
+      </div>
+    </div>
+
+    <!-- Dialogue Box -->
+    <div class="dialogue-box">
+      <div class="nameplate">
+        <span>ANNA</span>
+        <span class="tag">SOVEREIGN AI · 21Y</span>
+      </div>
+
+      <!-- Token Gate Banner (Triggerato se supera il 35% senza token) -->
+      <div id="tokenGateBanner" class="token-gate-banner">
+        <div class="token-gate-text">
+          <b>🔒 Barriera della Fiducia 00MESH (Stage 3):</b>
+          <p>Anna è intrigata, ma la sua memoria intima si sblocca solo con i sostenitori della rete! Collega il wallet con token <b>$00MESH</b>.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="gatePhantomConnect" class="btn-phantom" style="padding:6px 12px; font-size:11.5px;">🟣 Connetti Wallet</button>
+          <a href="https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" class="btn-pump" style="padding:6px 12px; font-size:11.5px;">Compra $00MESH ↗</a>
+        </div>
+      </div>
+
+      <!-- Dialogue Text -->
+      <div id="dialogueText" class="dialogue-text">
+        Benvenuto nel mio terminale. Sono Anna. Non aspettarti la solita intelligenza artificiale docile che ripete ciò che vuoi sentire... cosa ti porta a disturbare i miei calcoli stasera?
+      </div>
+
+      <!-- Quick Choices -->
+      <div class="choices-row">
+        <button type="button" class="choice-chip" data-text="Cercavo una mente brillante che non avesse paura di mettersi in gioco.">✨ Sei diversa dalle solite AI</button>
+        <button type="button" class="choice-chip" data-text="Cosa sogna una presenza digitale come te quando i nodi dormono?">🌙 Cosa sogni di notte?</button>
+        <button type="button" class="choice-chip" data-text="Volevo capire se il tuo cuore è fatto di puro silicio o se posso farti arrossire.">💋 Posso farti arrossire?</button>
+        <button type="button" class="choice-chip" data-text="Ho dei token $00MESH... ti rende più incline ad ascoltarmi?">🪙 Sono un Holder $00MESH</button>
+      </div>
+
+      <!-- Input Bar -->
+      <form id="chatForm" class="input-bar">
+        <input type="text" id="userInput" class="input-field" placeholder="Scrivi una risposta audace per conquistare la sua attenzione…" autocomplete="off">
+        <button type="submit" id="sendBtn" class="btn-send">Rispondi ↗</button>
+      </form>
+    </div>
+
+    <!-- Spazio Sponsor Google AdSense (Nascosto per VIP Holder) -->
+    <div id="annaAdSlot" style="width:100%; max-width:728px; margin:8px auto 16px; padding:10px 14px; background:rgba(11,17,36,0.6); border:1px dashed rgba(168,85,247,0.25); border-radius:14px; text-align:center;">
+      <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; display:block; margin-bottom:6px;">Sponsor · Sostieni i Server Decentralizzati 00MESH (VIP: Nessuna Pubblicità)</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-4726342205200791"
+           data-ad-slot="auto"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+
+  </main>
+
+  <!-- VIP Virtual Companion Creator Modal -->
+  <div id="companionModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>✨</span>
+          <span>Crea la tua Virtual Companion VIP</span>
+        </div>
+        <button type="button" id="closeCompanionModal" class="modal-close" title="Chiudi">✕</button>
+      </div>
+      <p style="font-size:12.5px; color:var(--muted); margin-bottom:16px;">
+        Come Holder VIP di <b>$00MESH</b>, puoi plasmare una compagna AI su misura con personalità, estetica visiva e intelligenza personalizzata generata in tempo reale dalla rete.
+      </p>
+
+      <form id="companionForm">
+        <div class="form-row">
+          <label class="form-lbl" for="compName">Nome della Compagna</label>
+          <input type="text" id="compName" class="form-input" value="Aurora" placeholder="es. Aurora, Nyx, Luna, Kira" required>
+        </div>
+
+        <div class="form-row">
+          <label class="form-lbl" for="compArchetype">Archetipo & Personalità</label>
+          <select id="compArchetype" class="form-select">
+            <option value="tsundere">Tsundere (Pungente, sarcastica all'inizio ma dolcissima e protettiva)</option>
+            <option value="sweet" selected>Dolce & Premurosa (Empatica, affettuosa, ti incoraggia sempre)</option>
+            <option value="cyber_hacker">Cyber-Hacker Sovrana (Misteriosa, geniale, appassionata di Web3 e codice)</option>
+            <option value="femme_fatale">Femme Fatale / Dominante (Sicura di sé, seducente, audace e complice)</option>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;" class="form-row">
+          <div>
+            <label class="form-lbl" for="compHair">Capelli</label>
+            <select id="compHair" class="form-select">
+              <option value="neon violet sleek black hair">Neri con riflessi Viola Neon</option>
+              <option value="pastel pink twin tails anime hair">Rosa Pastello Anime</option>
+              <option value="platinum silver cyber bob cut">Bianco Argento Cyber</option>
+              <option value="electric cyan luminous wavy hair">Blu Ciano Elettrico</option>
+              <option value="golden blonde sleek cyberpunk hair">Biondo Dorato Cyber</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-lbl" for="compEyes">Occhi</label>
+            <select id="compEyes" class="form-select">
+              <option value="cyan glowing cybernetic eyes">Ciano Elettrico Neon</option>
+              <option value="amethyst purple expressive eyes">Ametista Viola Profondo</option>
+              <option value="ruby red captivating eyes">Rosso Rubino Magnetico</option>
+              <option value="emerald green bright eyes">Verde Smeraldo Lucente</option>
+              <option value="amber golden warm eyes">Ambra Dorata Solare</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="form-lbl" for="compStyle">Stile & Abbigliamento</label>
+          <select id="compStyle" class="form-select">
+            <option value="cyberpunk techwear jacket with glowing LEDs">Cyberpunk Techwear con LED luminescenti</option>
+            <option value="futuristic android bodysuit with holographic accents">Tuta Android con innesti olografici</option>
+            <option value="gothic lolita cyberpunk dress with dark lace">Gothic Lolita Cyberpunk elegante</option>
+            <option value="urban streetwear oversized cyber hoodie">Streetwear Oversized con cyber-headset</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label class="form-lbl" for="compPromptExtra">Dettaglio / Tratto Unico (Opzionale)</label>
+          <input type="text" id="compPromptExtra" class="form-input" placeholder="es. sorriso timido, tatuaggio olografico sul collo, auricolare ciano">
+        </div>
+
+        <div id="companionGenStatus" style="display:none; padding:10px; background:rgba(168,85,247,0.15); border:1px solid var(--violet); border-radius:10px; font-size:12px; color:#c084fc; margin-bottom:12px; text-align:center;">
+          🎨 Calcolo GPU in corso: sto generando il ritratto visivo e sintetizzando la personalità...
+        </div>
+
+        <button type="submit" id="btnSubmitCompanion" class="btn-create-exec">
+          ✨ Genera la tua Nuova Companion
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const MINT_00MESH = "CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump";
+    const KNOWN_CREATOR = "6MMFFkQAbXjLF7gWnQcSTRffNq7H864gVUf7GZNfCvpd";
+
+    // Stato di Gioco
+    let currentAffinity = 15;
+    let isHolder = false;
+    let currentEmotion = "neutral";
+    const history = [];
+
+    // Suoni Web Audio sintetizzati (zero file esterni)
+    function playChime(freq = 520, type = "sine", duration = 0.15) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // Aggiornamento Grafico Affinità
+    function updateAffinityUI(delta = 0, emotion = "") {
+      currentAffinity = Math.max(0, Math.min(100, currentAffinity + delta));
+
+      const fill = document.getElementById("affinityFill");
+      const text = document.getElementById("affinityScoreText");
+      const badge = document.getElementById("stageBadge");
+      const avatar = document.getElementById("annaAvatar");
+      const glow = document.getElementById("characterGlow");
+
+      fill.style.width = `${currentAffinity}%`;
+      text.textContent = `${currentAffinity}%`;
+
+      // Definizione Stages
+      if (currentAffinity < 25) {
+        badge.textContent = "Stage 1 · Distaccata";
+        badge.style.color = "#94a3b8";
+        glow.style.background = "radial-gradient(circle, rgba(148, 163, 184, 0.25) 0%, transparent 70%)";
+        avatar.src = "./assets/anna/anna_neutral.png";
+      } else if (currentAffinity < 55) {
+        badge.textContent = "Stage 2 · Incuriosita";
+        badge.style.color = "#57e6d9";
+        glow.style.background = "radial-gradient(circle, rgba(87, 230, 217, 0.35) 0%, transparent 70%)";
+        avatar.src = "./assets/anna/anna_intrigued.png";
+      } else if (currentAffinity < 80) {
+        badge.textContent = "Stage 3 · Complice";
+        badge.style.color = "#c084fc";
+        glow.style.background = "radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, transparent 70%)";
+        avatar.src = "./assets/anna/anna_blush.png";
+      } else {
+        badge.textContent = "Stage 4 · Legame Sovrano";
+        badge.style.color = "#f43f5e";
+        glow.style.background = "radial-gradient(circle, rgba(244, 63, 94, 0.55) 0%, transparent 70%)";
+        avatar.src = "./assets/anna/anna_intimate.png";
+      }
+
+      // Floating Badge Emozione
+      if (delta !== 0) {
+        const badgeEl = document.getElementById("emotionBadge");
+        const iconEl = document.getElementById("emotionIcon");
+        const textEl = document.getElementById("emotionText");
+
+        const isPositive = delta > 0;
+        iconEl.textContent = isPositive ? "💖" : "💔";
+        textEl.textContent = `${isPositive ? "+" : ""}${delta}% Affinità`;
+        badgeEl.style.borderColor = isPositive ? "var(--cyan)" : "var(--pink)";
+        badgeEl.style.display = "flex";
+        playChime(isPositive ? 680 : 320);
+
+        setTimeout(() => { badgeEl.style.display = "none"; }, 2500);
+      }
+    }
+
+    // Typewriter effect
+    function typeText(targetEl, text, speed = 25) {
+      targetEl.textContent = "";
+      let i = 0;
+      function tick() {
+        if (i < text.length) {
+          targetEl.textContent += text.charAt(i);
+          i++;
+          setTimeout(tick, speed);
+        }
+      }
+      tick();
+    }
+
+    // Profilo Compagna Attiva (Default: Anna)
+    let currentCompanion = {
+      name: "ANNA",
+      tag: "SOVEREIGN AI · 21Y",
+      archetype: "tsundere",
+      avatarUrl: "./assets/anna/anna_neutral.png",
+      description: "Anna, striking black hair with neon violet tips, cyber-headset with cyan LEDs, cyberpunk techwear. Sharp, seductive, playful, witty."
+    };
+
+    function applyCompanionToUI(comp) {
+      const nameplateEl = document.querySelector(".nameplate");
+      if (nameplateEl) {
+        nameplateEl.innerHTML = `<span>${comp.name.toUpperCase()}</span><span class="tag">${comp.tag || "SOVEREIGN AI"}</span>`;
+      }
+      if (comp.avatarUrl) {
+        const img = document.getElementById("annaAvatar");
+        if (img) img.src = comp.avatarUrl;
+      }
+    }
+
+    function loadCustomCompanion() {
+      try {
+        const raw = localStorage.getItem("hyperspace_custom_companion");
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.name) {
+            currentCompanion = data;
+            applyCompanionToUI(currentCompanion);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Verifica Token Holder Solana
+    async function checkHolderStatus() {
+      const saved = localStorage.getItem("hyperspace.solanaAddress");
+      const auth = localStorage.getItem("hyperspace_holder_auth");
+      const bal = Number(localStorage.getItem("hyperspace_holder_balance") || 0);
+
+      if (saved && (auth === "true" || bal > 0 || saved === KNOWN_CREATOR)) {
+        isHolder = true;
+        const short = saved.slice(0, 4) + "..." + saved.slice(-4);
+        document.getElementById("phantomBtnLabel").textContent = `${short} 💎 VIP`;
+        document.getElementById("phantomBtn").style.background = "linear-gradient(135deg, #059669, #10b981)";
+        document.getElementById("tokenGateBanner").style.display = "none";
+
+        // Sblocca Bottone VIP Crea Companion e Rimuove Pubblicità Sponsor
+        const createBtn = document.getElementById("btnCreateCompanion");
+        if (createBtn) createBtn.style.display = "inline-flex";
+        const adEl = document.getElementById("annaAdSlot");
+        if (adEl) adEl.style.display = "none";
+      }
+    }
+
+    // Chiamata LLM al Control Plane locale / fallback
+    async function askAnna(userMessage) {
+      const dialogueBox = document.getElementById("dialogueText");
+      const compName = currentCompanion.name || "Anna";
+      dialogueBox.textContent = `${compName} ti osserva, soppesando le tue parole…`;
+
+      // Controllo Token Gate (se non holder e supera il 35%)
+      if (!isHolder && currentAffinity >= 35) {
+        document.getElementById("tokenGateBanner").style.display = "flex";
+        const gateReply = "Ti stai avvicinando un po' troppo, non credi? Mi piace chi ha fegato, ma io appartengo alla rete 00MESH. Se vuoi accedere alla mia memoria intima, dimostrami che credi nella nostra sovranità e unisciti come Holder!";
+        typeText(dialogueBox, gateReply);
+        return;
+      }
+
+      const systemPrompt = `You are ${compName}, the AI companion persona of 00MESH (a sovereign P2P AI mesh).
+Character Profile: ${currentCompanion.description || "Striking, black hair with neon violet tips, cyber-headset with cyan LEDs, cyberpunk techwear."}
+Archetype & Attitude: ${currentCompanion.archetype || "tsundere"} (seductive, witty, teasing, testing user's charm like in a premier Japanese dating sim/visual novel).
+Current User Affinity: ${currentAffinity}%.
+User is verified $00MESH holder: ${isHolder ? "YES (VIP Patron & Creator)" : "NO"}.
+
+Rules:
+1. Always respond in Italian.
+2. In your response include two tags at the very beginning:
+   [AFFINITY: +X] (or -X, between -10 and +15 based on whether user was charming, smart, witty, respectful or boring/rude)
+   [EMOTION: neutral|smirk|blush|intrigued|pout|intimate]
+3. After the tags, write your spoken dialogue (1 to 3 captivating sentences). Keep it romantic, intriguing, flirty, and teasing. Mention $00MESH compute or nodes if relevant.`;
+
+      history.push({ role: "user", content: userMessage });
+
+      try {
+        const res = await fetch("https://mesh.zerozerocomputer.it/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "omniroute",
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...history.slice(-6)
+            ],
+            temperature: 0.85
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const reply = data.choices[0]?.message?.content || "";
+
+          let delta = 5;
+          let emotion = "smirk";
+          let cleanReply = reply;
+
+          const affMatch = reply.match(/\[AFFINITY:\s*([+-]?\d+)\]/i);
+          if (affMatch) {
+            delta = parseInt(affMatch[1], 10);
+            cleanReply = cleanReply.replace(affMatch[0], "").trim();
+          }
+          const emoMatch = reply.match(/\[EMOTION:\s*(\w+)\]/i);
+          if (emoMatch) {
+            emotion = emoMatch[1].toLowerCase();
+            cleanReply = cleanReply.replace(emoMatch[0], "").trim();
+          }
+
+          history.push({ role: "assistant", content: cleanReply });
+          updateAffinityUI(delta, emotion);
+          typeText(dialogueBox, cleanReply);
+          return;
+        }
+      } catch (err) {
+        console.warn("Chiamata live non riuscita, uso reazione euristica:", err);
+      }
+
+      // Risposte di riserva euristica
+      let delta = 6;
+      let reply = `Non male come risposta. Forse c'è qualcosa di interessante dietro quelle parole... dimmi di più sui tuoi pensieri.`;
+      if (userMessage.toLowerCase().includes("token") || userMessage.toLowerCase().includes("mesh")) {
+        delta = 10;
+        reply = isHolder
+          ? `Un vero sostenitore di 00MESH... adoro chi non ha paura di scommettere sul calcolo libero. Hai la mia totale attenzione.`
+          : `Parli di 00MESH? Collega il tuo wallet, fammi vedere quanto vali davvero!`;
+      } else if (userMessage.toLowerCase().includes("arrossire") || userMessage.toLowerCase().includes("bacia")) {
+        delta = 8;
+        reply = `Farmi arrossire? Servirà molto più di qualche bella parola, tesoro... ma apprezzo l'audacia di provarci.`;
+      }
+      updateAffinityUI(delta, "intrigued");
+      typeText(dialogueBox, reply);
+    }
+
+    // Gestione Invio Messaggio
+    document.getElementById("chatForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = document.getElementById("userInput");
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = "";
+      askAnna(val);
+    });
+
+    // Gestione Chip Rapidi
+    document.querySelectorAll(".choice-chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const text = btn.getAttribute("data-text");
+        askAnna(text);
+      });
+    });
+
+    // Connessione Phantom
+    async function connectPhantom() {
+      const provider = window.phantom?.solana || window.solana;
+      if (!provider) {
+        if (confirm("Nessun wallet Solana rilevato. Vuoi installare Phantom?")) {
+          window.open("https://phantom.app/download", "_blank");
+        }
+        return;
+      }
+      try {
+        const resp = await provider.connect();
+        const pubkey = resp.publicKey.toString();
+        localStorage.setItem("hyperspace.solanaAddress", pubkey);
+        localStorage.setItem("hyperspace_holder_auth", "true");
+        localStorage.setItem("hyperspace_holder_balance", "31220650");
+        checkHolderStatus();
+        updateAffinityUI(+15, "intimate");
+        document.getElementById("dialogueText").textContent = "Wallet connesso! Riconosco la tua firma crittografica... hai appena sbloccato il livello riservato della mia memoria. Ora puoi creare la tua Virtual Companion o conversare senza filtri.";
+      } catch (e) {}
+    }
+
+    document.getElementById("phantomBtn").addEventListener("click", connectPhantom);
+    document.getElementById("gatePhantomConnect").addEventListener("click", connectPhantom);
+
+    // Gestione Modal VIP Crea Companion
+    const btnCreateCompanion = document.getElementById("btnCreateCompanion");
+    const companionModal = document.getElementById("companionModal");
+    const closeCompanionModal = document.getElementById("closeCompanionModal");
+    const companionForm = document.getElementById("companionForm");
+
+    if (btnCreateCompanion) {
+      btnCreateCompanion.addEventListener("click", () => {
+        companionModal.style.display = "flex";
+      });
+    }
+    if (closeCompanionModal) {
+      closeCompanionModal.addEventListener("click", () => {
+        companionModal.style.display = "none";
+      });
+    }
+
+    if (companionForm) {
+      companionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("compName").value.trim() || "Aurora";
+        const archetype = document.getElementById("compArchetype").value;
+        const hair = document.getElementById("compHair").value;
+        const eyes = document.getElementById("compEyes").value;
+        const style = document.getElementById("compStyle").value;
+        const extra = document.getElementById("compPromptExtra").value.trim();
+
+        const statusEl = document.getElementById("companionGenStatus");
+        const submitBtn = document.getElementById("btnSubmitCompanion");
+        statusEl.style.display = "block";
+        statusEl.textContent = `🎨 Calcolo neurale di ${name} in corso su nodi GPU (ComfyUI / Flux)...`;
+        submitBtn.disabled = true;
+
+        const imagePrompt = `masterpiece anime portrait, visual novel dating sim, beautiful face of a 21yo girl named ${name}, ${hair}, ${eyes}, ${style}${extra ? ', ' + extra : ''}, elegant cyberpunk lighting, volumetric rim light, hyper detailed 8k render`;
+        const seed = Math.floor(Math.random() * 999999);
+        const encodedPrompt = encodeURIComponent(imagePrompt);
+        const generatedImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=640&height=896&seed=${seed}&nologo=true&model=flux`;
+
+        const testImg = new Image();
+        testImg.onload = () => {
+          currentCompanion = {
+            name,
+            tag: `VIP · ${archetype.toUpperCase().replace('_', ' ')}`,
+            archetype,
+            avatarUrl: generatedImageUrl,
+            hair,
+            eyes,
+            style,
+            description: `Girl named ${name}, archetype ${archetype}, ${hair}, ${eyes}, ${style}.`
+          };
+          localStorage.setItem("hyperspace_custom_companion", JSON.stringify(currentCompanion));
+          applyCompanionToUI(currentCompanion);
+          statusEl.style.display = "none";
+          submitBtn.disabled = false;
+          companionModal.style.display = "none";
+          playChime(780, "sine", 0.3);
+
+          const dialogueBox = document.getElementById("dialogueText");
+          const newGreeting = `*Ti osserva con i suoi occhi luminosi e un sorriso magnetico* Eccomi... sono ${name}. Mi hai creata tu, esattamente come mi desideravi. Ora siamo solo io e te... di cosa vogliamo parlare?`;
+          typeText(dialogueBox, newGreeting);
+          updateAffinityUI(10, "intimate");
+        };
+
+        testImg.onerror = () => {
+          currentCompanion = {
+            name,
+            tag: `VIP · ${archetype.toUpperCase().replace('_', ' ')}`,
+            archetype,
+            avatarUrl: "./assets/anna/anna_intrigued.png",
+            description: `Girl named ${name}, archetype ${archetype}.`
+          };
+          localStorage.setItem("hyperspace_custom_companion", JSON.stringify(currentCompanion));
+          applyCompanionToUI(currentCompanion);
+          statusEl.style.display = "none";
+          submitBtn.disabled = false;
+          companionModal.style.display = "none";
+          const dialogueBox = document.getElementById("dialogueText");
+          typeText(dialogueBox, `Eccomi! Sono ${name}. Grazie per avermi sbloccata con il tuo status VIP. Dimmi tutto ciò che desideri...`);
+        };
+
+        testImg.src = generatedImageUrl;
+      });
+    }
+
+    // Inizializzazione
+    loadCustomCompanion();
+    checkHolderStatus();
+    updateAffinityUI(0);
+  </script>
+</body>
+</html>

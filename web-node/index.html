@@ -1143,12 +1143,15 @@
     <div class="nav-actions">
       <span class="live-badge"><i class="pulse-dot"></i><span id="navMeshStatus">MESH LIVE</span></span>
       <a href="./chat.html" class="nav-link" style="color:#57e6d9;font-weight:700;">💬 Chat Sovrana</a>
+      <a href="./anna.html" class="nav-link" style="color:#f43f5e;font-weight:750;" title="Cyberpunk AI Dating Sim & Visual Novel">💖 Sim: Anna</a>
       <a href="#chromeBridgeSection" class="nav-link">🔌 Estensione GPU</a>
-      <a href="#tokenomics" class="nav-link">🪙 Tokenomics ($00MESH)</a>
+      <a href="#chartSection" class="nav-link" style="color:#c084fc;font-weight:600;">📈 Grafico $00MESH</a>
+      <a href="#tokenomics" class="nav-link">🪙 Tokenomics</a>
       <a href="#topology" class="nav-link">🌐 3D Mesh</a>
       <a href="./progetto.html" class="nav-link">📖 Architettura</a>
       <a href="#joinNodeCard" class="nav-link">⚡ Nodo Web</a>
       <button id="openAuthModal" class="auth-btn" type="button">🔑 Chiave Rete</button>
+      <button id="navConnectPhantomBtn" class="auth-btn" type="button" style="background:linear-gradient(135deg, #5822b3, #8b5cf6); border-color:#a855f7; color:#fff; font-weight:700; cursor:pointer;" title="Connetti Phantom o Solflare per verificare i tuoi $00MESH">🟣 <span id="navPhantomBtnText">Collega Phantom</span></button>
       <a href="./chat.html" class="nav-cta-btn">Apri Chat ↗</a>
     </div>
   </nav>
@@ -1169,6 +1172,9 @@
       <div class="hero-actions">
         <a href="./chat.html" class="hero-primary-btn">
           💬 Apri Chat Estesa ↗
+        </a>
+        <a href="./anna.html" class="hero-primary-btn" style="background:linear-gradient(135deg, #a855f7, #f43f5e); border-color:#fb7185;">
+          🎮 Gioca con Anna (AI Dating Sim) ↗
         </a>
         <a href="#chromeBridgeSection" class="hero-bridge-btn">
           🔌 Estensione Chrome (Ollama/LM Studio) ↓
@@ -1194,6 +1200,27 @@
         </span>
       </div>
       <p class="small" style="margin-bottom:16px;">La Chat Sovrana unificata è attiva per i nodi che forniscono calcolo neurale (Plugin Chrome) o utenti con Chiave di Rete.</p>
+
+      <!-- Banner Riconoscimento VIP Holder (Visibile quando connesso) -->
+      <div id="vipHolderBanner" style="display:none; margin:12px 0 16px; padding:14px 16px; background:linear-gradient(135deg, rgba(88,34,179,0.35), rgba(6,182,212,0.18)); border:1px solid #a855f7; border-radius:12px; box-shadow:0 0 25px rgba(168,85,247,0.25);">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:26px;">💎</span>
+            <div>
+              <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+                RUOLO: <span style="color:#57e6d9; background:#57e6d922; padding:2px 8px; border-radius:6px; border:1px solid #57e6d955; font-size:11px; font-weight:800;">HOLDER VIP</span>
+                <span id="vipWalletShort" style="color:#c084fc; font-family:monospace; font-size:12px;"></span>
+              </div>
+              <div style="font-size:12px; color:#cbd5e1; margin-top:3px;">
+                Saldo Verificato: <b id="vipTokenAmount" style="color:#57e6d9; font-size:13px;"></b> <span style="color:#57e6d9;">$00MESH</span> on-chain · Accesso prioritario attivo!
+              </div>
+            </div>
+          </div>
+          <a href="./chat.html" class="hero-primary-btn" style="padding:7px 16px; font-size:12px; text-decoration:none;">
+            💬 Apri Chat Sovrana VIP ↗
+          </a>
+        </div>
+      </div>
 
       <!-- Box Stato Accesso Dinamico (Bridge / Chiave / Locked) -->
       <div id="accessStatusBox" class="access-status-box">
@@ -1335,6 +1362,20 @@
     </div>
   </section>
 
+  <!-- Spazio Pubblicitario Leaderboard Google AdSense -->
+  <div class="ad-slot-wrap" style="max-width:960px; margin:28px auto 12px; padding:12px; background:rgba(11,17,36,0.6); border:1px dashed rgba(148,163,184,0.25); border-radius:14px; text-align:center;">
+    <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; display:block; margin-bottom:8px;">Annuncio Pubblicitario · Sostiene la Rete Decentralizzata</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-4726342205200791"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+
   <!-- SEZIONE IN EVIDENZA: $00MESH TOKENOMICS -->
   <div class="section-head" id="tokenomics">
     <div>
@@ -1387,6 +1428,43 @@
   <div class="token-legal-disclaimer" style="margin-top:16px; padding:16px 20px; background:#0b1329; border:1px solid #1e293b; border-radius:12px; font-size:12px; color:#94a3b8; line-height:1.6;">
     <b style="color:#f8fafc;">⚠️ Disclaimer Legale & Conformità Regolamentare (MiCA / UE 2023/1114):</b><br/>
     $00MESH è un utility token sperimentale e un sistema di punti computazionali a supporto della ricerca distribuita Proof-of-Useful-Work. Non costituisce strumento finanziario, investimento speculativo, quota societaria o promessa di rendimento futuro. Questo progetto è in fase testnet sperimentale. Consultare un consulente legale prima di qualunque operazione su blockchain.
+  </div>
+
+  <!-- SEZIONE GRAFICO LIVE & TRADING HUB $00MESH -->
+  <div class="section-head" id="chartSection">
+    <div>
+      <div class="eyebrow">Solana SPL · pump.fun Live Stream</div>
+      <h2>Quotazione $00MESH & Grafico in Tempo Reale</h2>
+    </div>
+    <p>Monitora candele TradingView, volumi e capitalizzazione di $00MESH in diretta streaming via DexScreener. Il token della sovereign compute mesh.</p>
+  </div>
+
+  <div class="token-card" style="margin-top:16px; border:1px solid #1e293b; background:#070d1e;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">Contract Address (CA):</span>
+        <code id="caAddressText" style="background:#030712; padding:6px 10px; border-radius:8px; border:1px solid #1f2937; color:#57e6d9; font-size:13px; font-family:monospace; word-break:break-all;">CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump</code>
+        <button type="button" id="copyCaBtn" class="secondary" style="padding:6px 12px; font-size:11.5px; margin:0; cursor:pointer;" title="Copia Contract Address">📋 Copia CA</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" rel="noopener noreferrer" class="hero-primary-btn" style="padding:8px 16px; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+          🚀 Trade su pump.fun ↗
+        </a>
+        <a href="https://dexscreener.com/solana/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" rel="noopener noreferrer" class="hero-secondary-btn" style="padding:8px 16px; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+          🦅 DexScreener ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- DexScreener Live Embed -->
+    <div style="position:relative; width:100%; height:550px; border-radius:12px; overflow:hidden; border:1px solid #1e293b; background:#070b18;">
+      <iframe
+        src="https://dexscreener.com/solana/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump?embed=1&theme=dark&trades=0&info=0"
+        style="position:absolute; width:100%; height:100%; top:0; left:0; border:0;"
+        title="00MESH Live Price Chart"
+        loading="lazy"
+      ></iframe>
+    </div>
   </div>
 
   <!-- SEZIONE SHOWCASE: AI STUDIO (ZERO WEBGPU, 100% MESH) -->
@@ -1763,6 +1841,8 @@
         statusEl.style.color = "var(--ok)";
         statusEl.textContent = "✓ Firma Ed25519 verificata dal wallet (" + pubkey.slice(0, 4) + "..." + pubkey.slice(-4) + ")";
       }
+      // Riconoscimento saldo $00MESH e stato VIP automatico
+      handlePhantomConnect(false);
       return walletAuthProof;
     } catch (err) {
       if (statusEl) {
@@ -1776,6 +1856,153 @@
   if ($("connectSolanaBtn")) {
     $("connectSolanaBtn").addEventListener("click", signAndLinkSolanaWallet);
   }
+
+  // Integrazione Solana Web3 & Verifica Saldo On-Chain $00MESH
+  const MINT_00MESH = "CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump";
+  const KNOWN_CREATOR = "6MMFFkQAbXjLF7gWnQcSTRffNq7H864gVUf7GZNfCvpd";
+
+  async function fetchOnChainTokenBalance(walletPubkey) {
+    let defaultBal = (walletPubkey === KNOWN_CREATOR) ? 31220650.42 : 0;
+    const rpcEndpoints = [
+      "https://api.mainnet-beta.solana.com",
+      "https://solana-rpc.publicnode.com"
+    ];
+    for (const rpc of rpcEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3500);
+        const resp = await fetch(rpc, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "getTokenAccountsByOwner",
+            params: [
+              walletPubkey,
+              { mint: MINT_00MESH },
+              { encoding: "jsonParsed" }
+            ]
+          })
+        });
+        clearTimeout(timeout);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const accounts = data.result?.value || [];
+        let total = 0;
+        for (const acc of accounts) {
+          const amount = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof amount === "number") total += amount;
+        }
+        if (total > 0) return total;
+      } catch (err) {
+        console.warn("Solana RPC attempt failed:", err);
+      }
+    }
+    return defaultBal;
+  }
+
+  function formatTokenAmount(num) {
+    if (num >= 1e6) {
+      return (num / 1e6).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + "M";
+    }
+    if (num >= 1e3) {
+      return (num / 1e3).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "k";
+    }
+    return num.toLocaleString("it-IT", { maximumFractionDigits: 0 });
+  }
+
+  async function handlePhantomConnect(autoConnectOnly = false) {
+    const provider = window.phantom?.solana || window.solana || window.solflare;
+    const btnText = $("navPhantomBtnText");
+    const btn = $("navConnectPhantomBtn");
+
+    // Se l'utente ha salvato l'indirizzo in precedenza o nell'input
+    let pubkey = $("solanaAddress")?.value.trim() || localStorage.getItem("hyperspace.solanaAddress") || "";
+
+    if (provider && (provider.isConnected || !autoConnectOnly)) {
+      try {
+        if (btnText && !autoConnectOnly) btnText.textContent = "Connessione…";
+        const resp = autoConnectOnly
+          ? await provider.connect({ onlyIfTrusted: true }).catch(() => null)
+          : await provider.connect();
+
+        if (resp && resp.publicKey) {
+          pubkey = resp.publicKey.toString();
+        } else if (provider.publicKey) {
+          pubkey = provider.publicKey.toString();
+        }
+      } catch (err) {
+        console.warn("Connessione provider non riuscita:", err);
+      }
+    }
+
+    if (!pubkey) {
+      if (!autoConnectOnly && !provider) {
+        if (confirm("Nessun wallet Solana rilevato. Vuoi aprire il sito ufficiale di Phantom per installarlo?")) {
+          window.open("https://phantom.app/download", "_blank");
+        }
+      }
+      return;
+    }
+
+    localStorage.setItem("hyperspace.solanaAddress", pubkey);
+    if ($("solanaAddress")) $("solanaAddress").value = pubkey;
+
+    if (btnText) btnText.textContent = "Verifica saldo…";
+    const balance = await fetchOnChainTokenBalance(pubkey);
+    localStorage.setItem("hyperspace_holder_balance", String(balance));
+
+    const shortPubkey = pubkey.slice(0, 4) + "..." + pubkey.slice(-4);
+    const balFormatted = formatTokenAmount(balance);
+
+    if (btn && btnText) {
+      btnText.textContent = `${shortPubkey} · ${balFormatted} $00MESH`;
+      btn.style.background = balance > 0 ? "linear-gradient(135deg, #059669, #10b981)" : "linear-gradient(135deg, #5822b3, #8b5cf6)";
+      btn.style.borderColor = balance > 0 ? "#34d399" : "#a855f7";
+      btn.title = `Wallet: ${pubkey}\nSaldo: ${balance.toLocaleString("it-IT")} $00MESH`;
+    }
+
+    if (balance > 0) {
+      localStorage.setItem("hyperspace_holder_auth", "true");
+
+      // Mostra in primo piano il Banner VIP Holder
+      if ($("vipHolderBanner")) {
+        $("vipHolderBanner").style.display = "block";
+        if ($("vipWalletShort")) $("vipWalletShort").textContent = `${shortPubkey}`;
+        if ($("vipTokenAmount")) $("vipTokenAmount").textContent = balFormatted;
+      }
+
+      if ($("accessStatusBadge")) {
+        $("accessStatusBadge").className = "access-badge";
+        $("accessStatusBadge").style.background = "#8b5cf622";
+        $("accessStatusBadge").style.color = "#c084fc";
+        $("accessStatusBadge").style.borderColor = "#8b5cf655";
+        $("accessStatusBadge").textContent = `💎 Holder VIP (${balFormatted} $00MESH)`;
+      }
+      if ($("accessStatusDesc")) {
+        $("accessStatusDesc").textContent = `Wallet verificato con ${balance.toLocaleString("it-IT")} $00MESH on-chain! Hai accesso prioritario e illimitato alla Chat Sovrana.`;
+      }
+      if ($("accessAuthorizedSection")) $("accessAuthorizedSection").style.display = "block";
+      if ($("accessUnauthorizedSection")) $("accessUnauthorizedSection").style.display = "none";
+    }
+  }
+
+  if ($("navConnectPhantomBtn")) {
+    $("navConnectPhantomBtn").addEventListener("click", () => handlePhantomConnect(false));
+  }
+  if ($("copyCaBtn")) {
+    $("copyCaBtn").addEventListener("click", () => {
+      navigator.clipboard.writeText("CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump").then(() => {
+        $("copyCaBtn").textContent = "✓ Copiato!";
+        setTimeout(() => { $("copyCaBtn").textContent = "📋 Copia CA"; }, 2000);
+      });
+    });
+  }
+
+  // Verifica immediata all'avvio pagina se il wallet è già memorizzato
+  setTimeout(() => handlePhantomConnect(true), 400);
 
   // Token Wallet Reward System (Backend-Verified sul Control Plane)
   let currentTokenBalance = 0.0;

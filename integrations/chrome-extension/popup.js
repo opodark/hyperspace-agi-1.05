@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const badgeOllama = document.getElementById("badge-ollama");
   const dotLmstudio = document.getElementById("dot-lmstudio");
   const badgeLmstudio = document.getElementById("badge-lmstudio");
+  const dotComfyui = document.getElementById("dot-comfyui");
+  const badgeComfyui = document.getElementById("badge-comfyui");
   const modelsPreview = document.getElementById("models-preview");
   const statTasks = document.getElementById("stat-tasks");
   const statTokens = document.getElementById("stat-tokens");
@@ -36,7 +38,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         statusDot.className = "status-dot inactive";
         statusText.textContent = "Sospeso";
       } else {
-        const hasEngines = (state.engines?.ollama?.online || state.engines?.lmstudio?.online);
+        const hasEngines = Boolean(state.engines?.ollama?.online || state.engines?.lmstudio?.online || state.engines?.comfyui?.online);
         if (hasEngines) {
           statusDot.className = "status-dot active";
           statusText.textContent = "Connesso & In Ascolto";
@@ -69,11 +71,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         badgeLmstudio.textContent = "Offline";
       }
 
-      const allModels = [...(o.models || []), ...(lm.models || [])];
+      const cm = state.engines?.comfyui || {};
+      if (cm.online) {
+        dotComfyui.className = "engine-dot online";
+        badgeComfyui.className = "badge success";
+        badgeComfyui.textContent = cm.vram_free ? `Online · ${cm.vram_free}` : "Online (GPU)";
+      } else {
+        dotComfyui.className = "engine-dot";
+        badgeComfyui.className = "badge";
+        badgeComfyui.textContent = "Offline";
+      }
+
+      const allModels = [
+        ...(o.models || []),
+        ...(lm.models || []),
+        ...(cm.online ? ["ComfyUI (Image Gen)"] : [])
+      ];
       if (allModels.length > 0) {
         modelsPreview.textContent = `Condivisi: ${allModels.slice(0, 4).join(", ")}${allModels.length > 4 ? ` (+${allModels.length - 4} altri)` : ""}`;
       } else {
-        modelsPreview.textContent = "Nessun modello trovato su Ollama/LM Studio.";
+        modelsPreview.textContent = "Nessun motore locale rilevato (avvia Ollama, LM Studio o ComfyUI).";
       }
 
       // Metriche

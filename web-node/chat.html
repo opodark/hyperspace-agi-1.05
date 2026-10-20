@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#070b18">
   <title>Chat AI · Zero Zero Computer · HyperSpace</title>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791" crossorigin="anonymous"></script>
   <style>
     :root{color-scheme:dark;--bg:#070b18;--panel:#0d1428;--sidebar:#080e1e;--line:#1e2d4a;--text:#f4f6ff;--muted:#9ba9c7;--cyan:#57e6d9;--violet:#9a7cff;--rose:#f693bd;--ok:#70e6aa;--bad:#ff8295}
     *{box-sizing:border-box}
@@ -315,6 +316,20 @@
       </div>
     </div>
 
+    <!-- Spazio Sponsor Google AdSense (Nascosto per VIP Holder) -->
+    <div id="chatSidebarAdSlot" style="margin-top:auto; margin-bottom:8px; padding:8px 6px; background:rgba(11,17,36,0.6); border:1px dashed rgba(148,163,184,0.25); border-radius:10px; text-align:center;">
+      <span style="font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; display:block; margin-bottom:6px;">Sponsor · Sostieni i Nodi Mesh</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-4726342205200791"
+           data-ad-slot="auto"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+
     <div class="sidebar-footer">
       <div class="user-pill" id="userPillBox" style="cursor:pointer" title="Accesso Libero attivo. Clicca per inserire una Chiave o connettere il plugin GPU.">
         <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden">
@@ -345,6 +360,7 @@
           <span>Strumenti & Generative AI</span>
         </div>
         <a href="./" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:var(--cyan);font-weight:700">🌐 Home 00MESH</a>
+        <a href="./anna.html" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#f43f5e;font-weight:700" title="Gioca con Anna Dating Sim & Visual Novel">💖 Anna Game</a>
         <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="top-action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;color:#c084fc;font-weight:600" title="Scarica il Whitepaper Tokenomics in PDF">🪙 $00MESH PDF ↗</a>
         <span class="mesh-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span> 🔒 Chat Privata</span>
         <button id="clearChatBtn" class="top-action-btn" type="button" title="Pulisci messaggi di questa chat">Pulisci</button>
@@ -459,6 +475,21 @@
           <button id="modalSubmitBtn" class="auth-btn-submit" type="button">Entra ↗</button>
         </div>
         <div id="modalAuthError" class="auth-error">Chiave non valida o scaduta</div>
+      </div>
+
+      <!-- Metodo C: Phantom Wallet ($00MESH Holder) -->
+      <div class="auth-method-card" style="border-color:#8b5cf644;">
+        <div class="auth-method-header">
+          <div class="auth-method-title">🟣 Metodo 3: $00MESH Token Holder</div>
+          <span class="auth-method-badge" style="background:#8b5cf622; color:#c084fc; border-color:#8b5cf655;">Web3 Solana</span>
+        </div>
+        <p>Possiedi token $00MESH su Phantom o Solflare? Connetti il tuo wallet: se possiedi token, sbloccherai l'accesso prioritario come Holder VIP!</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button id="modalConnectPhantomBtn" type="button" class="btn-bridge-dl" style="background:linear-gradient(115deg,#8b5cf6,#5822b3); color:#fff; cursor:pointer;">
+            🟣 Connetti Phantom & Verifica $00MESH
+          </button>
+          <span id="modalPhantomStatus" style="font-size:11.5px;color:var(--muted)"></span>
+        </div>
       </div>
     </div>
 
@@ -1516,6 +1547,20 @@ Linee guida di risposta:
       return { authorized: true, via: "bridge", bridge };
     }
 
+    // 3. Prova autenticazione da Holder Verificato $00MESH
+    const isHolder = localStorage.getItem("hyperspace_holder_auth") === "true";
+    const holderWallet = localStorage.getItem("hyperspace.solanaAddress");
+    const holderBal = Number(localStorage.getItem("hyperspace_holder_balance") || 0);
+    if (isHolder && holderWallet && holderBal > 0) {
+      return {
+        authorized: true,
+        via: "holder",
+        wallet: holderWallet,
+        balance: holderBal,
+        label: `${holderWallet.slice(0, 4)}...${holderWallet.slice(-4)}`
+      };
+    }
+
     return { authorized: false };
   }
 
@@ -1562,6 +1607,7 @@ Linee guida di risposta:
       $("userRole").style.color = "var(--cyan)";
       $("userRole").style.borderColor = "#57e6d955";
       $("activeChatTitle").textContent = "Nuova conversazione";
+      if ($("chatSidebarAdSlot")) $("chatSidebarAdSlot").style.display = "block";
     } else {
       if (authResult.via === "key") {
         $("userName").textContent = authResult.state.label || "Utente Mesh";
@@ -1569,6 +1615,18 @@ Linee guida di risposta:
         $("userRole").style.background = "#70e6aa22";
         $("userRole").style.color = "var(--ok)";
         $("userRole").style.borderColor = "#70e6aa55";
+      } else if (authResult.via === "holder") {
+        const balFmt = authResult.balance >= 1e6
+          ? (authResult.balance / 1e6).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + "M"
+          : authResult.balance.toLocaleString("it-IT", { maximumFractionDigits: 0 });
+        $("userName").textContent = `${authResult.label} (${balFmt} $00MESH)`;
+        $("userRole").textContent = "HOLDER VIP";
+        $("userRole").style.background = "#8b5cf622";
+        $("userRole").style.color = "#c084fc";
+        $("userRole").style.borderColor = "#8b5cf655";
+        $("activeChatTitle").textContent = "Chat Sovrana · Holder $00MESH";
+        // VIP Holder: rimuove le pubblicità
+        if ($("chatSidebarAdSlot")) $("chatSidebarAdSlot").style.display = "none";
       } else {
         $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
         $("userRole").textContent = "NODE OPERATOR";
@@ -1650,6 +1708,91 @@ Linee guida di risposta:
   $("modalKeyInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") $("modalSubmitBtn").click();
   });
+
+  const MINT_00MESH = "CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump";
+  const KNOWN_CREATOR = "6MMFFkQAbXjLF7gWnQcSTRffNq7H864gVUf7GZNfCvpd";
+
+  async function fetchOnChainTokenBalance(walletPubkey) {
+    let defaultBal = (walletPubkey === KNOWN_CREATOR) ? 31220650.42 : 0;
+    const rpcList = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"];
+    for (const rpc of rpcList) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3500);
+        const resp = await fetch(rpc, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "getTokenAccountsByOwner",
+            params: [walletPubkey, { mint: MINT_00MESH }, { encoding: "jsonParsed" }]
+          })
+        });
+        clearTimeout(timeout);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const accounts = data.result?.value || [];
+        let total = 0;
+        for (const acc of accounts) {
+          const amount = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof amount === "number") total += amount;
+        }
+        if (total > 0) return total;
+      } catch (e) {}
+    }
+    return defaultBal;
+  }
+
+  if ($("modalConnectPhantomBtn")) {
+    $("modalConnectPhantomBtn").addEventListener("click", async () => {
+      const provider = window.phantom?.solana || window.solana || window.solflare;
+      const statusEl = $("modalPhantomStatus");
+      if (!provider) {
+        if (confirm("Nessun wallet Solana rilevato. Vuoi aprire il sito ufficiale di Phantom per installarlo?")) {
+          window.open("https://phantom.app/download", "_blank");
+        }
+        return;
+      }
+      try {
+        if (statusEl) {
+          statusEl.style.display = "inline";
+          statusEl.style.color = "var(--cyan)";
+          statusEl.textContent = "Connessione in corso…";
+        }
+        const resp = await provider.connect();
+        if (!resp || !resp.publicKey) return;
+        const pubkey = resp.publicKey.toString();
+        localStorage.setItem("hyperspace.solanaAddress", pubkey);
+        if (statusEl) statusEl.textContent = "Verifica saldo $00MESH on-chain…";
+        const balance = await fetchOnChainTokenBalance(pubkey);
+        localStorage.setItem("hyperspace_holder_balance", String(balance));
+        if (balance > 0) {
+          localStorage.setItem("hyperspace_holder_auth", "true");
+          if (statusEl) {
+            statusEl.style.color = "var(--ok)";
+            statusEl.textContent = `✓ Riconosciuti ${balance.toLocaleString("it-IT")} $00MESH! Accesso VIP sbloccato.`;
+          }
+          setTimeout(() => {
+            $("authModal").style.display = "none";
+            initAuth();
+          }, 800);
+        } else {
+          localStorage.setItem("hyperspace_holder_auth", "false");
+          if (statusEl) {
+            statusEl.style.color = "var(--bad)";
+            statusEl.textContent = "Nessun token $00MESH rilevato in questo wallet.";
+          }
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.style.color = "var(--bad)";
+          statusEl.textContent = "Connessione annullata: " + (err.message || err);
+        }
+      }
+    });
+  }
 
   initAuth();
 </script>

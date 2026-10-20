@@ -58,7 +58,7 @@ REQUEST_DEADLINE_S = max(
 # una patch. deepseek-v4/glm-5/qwen3.8 sono gli alias che usa ds4.
 _REASONING_OVERRIDE = os.getenv("REASONING_MODELS", "")
 _REASONING_PATTERNS = ["qwen3", "deepseek-r1", "deepseek-v4", "deepseek-r1-pro",
-                       "magistral", "glm-5", "qwen3.8"]
+                       "magistral", "glm-5", "qwen3.8", "lfm2"]
 
 def _is_reasoning_model(model_name: str) -> bool:
     override = _REASONING_OVERRIDE.strip()

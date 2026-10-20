@@ -69,6 +69,7 @@ if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
 from shared.single_instance import AlreadyRunning, SingleInstance  # noqa: E402
+from shared.crypto_intel import handle_crypto_command  # noqa: E402
 
 LOCK_FILE = (os.getenv("TELEGRAM_LOCK_FILE", "").strip()
              or str(_REPO / "data" / "telegram-driver.lock"))
@@ -618,6 +619,17 @@ def main():
             entry["surface"] = surface_of(chat)
             author = author_of(msg)
             text = testo_senza_menzione(msg["text"], username, nome)
+            # Intercettazione comandi crypto & tokenomics istantanei (<50ms)
+            crypto_resp = handle_crypto_command(text)
+            if crypto_resp:
+                try:
+                    tg("sendMessage", chat_id=chat_id, text=crypto_resp, parse_mode="Markdown")
+                except Exception:
+                    tg("sendMessage", chat_id=chat_id, text=crypto_resp)
+                entry["ultima_risposta_ts"] = time.time()
+                print(f"[telegram] comando crypto eseguito per {chat_id}: {text[:30]}", flush=True)
+                continue
+
             if rivolta_a_noi(msg, username, bot_id, nome):
                 entry["addressed"] = True
                 # Chi ci chiama per nome e dice "presentati" sta chiedendo

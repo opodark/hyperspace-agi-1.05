@@ -14,7 +14,8 @@ param(
     [switch]$Check,
     [string]$Url = "",
     [string]$Comfy = "",
-    [string]$Model = ""
+    [string]$Model = "",
+    [string]$Token = ""
 )
 
 $ErrorActionPreference = 'Continue'
@@ -51,10 +52,16 @@ function Get-ChannelToken {
     return ""
 }
 
-$envDati = Read-EnvFile (Join-Path $Root '.env')
-$token = Get-ChannelToken -Elenco $envDati['CHANNEL_CLIENTS'] -Nome 'comfy'
-if (-not $token) {
-    Warn "nessun token 'comfy' in CHANNEL_CLIENTS: generane uno con"
+if (-not $Token) {
+    if ($env:CHANNEL_TOKEN) {
+        $Token = $env:CHANNEL_TOKEN
+    } else {
+        $envDati = Read-EnvFile (Join-Path $Root '.env')
+        $Token = Get-ChannelToken -Elenco $envDati['CHANNEL_CLIENTS'] -Nome 'comfy'
+    }
+}
+if (-not $Token) {
+    Warn "nessun token 'comfy' in CHANNEL_CLIENTS o -Token: generane uno con"
     Warn "  python scripts\channel_token.py comfy --write"
 }
 if (-not $Url) { $Url = 'http://127.0.0.1:8085' }
@@ -66,7 +73,7 @@ if (-not $Model) {
     $Model = if ($env:BRIDGE_MODEL) { $env:BRIDGE_MODEL } else { 'qwen-image-2.1' }
 }
 
-$argomenti = @($ponte, '--url', $Url, '--token', $token)
+$argomenti = @($ponte, '--url', $Url, '--token', $Token)
 if ($Comfy) { $argomenti += @('--comfy', $Comfy) }
 if ($Model) { $argomenti += @('--model', $Model) }
 if ($Once) { $argomenti += '--once' }

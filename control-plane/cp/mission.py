@@ -118,6 +118,8 @@ def _mission_json(text):
     """Estrae il primo oggetto JSON da una risposta del modello (anche in fence)."""
     if not text:
         return {}
+    if "</think>" in text:
+        text = text.split("</think>")[-1].strip()
     fenced = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
     candidate = fenced.group(1) if fenced else text
     decoder = json.JSONDecoder()
@@ -197,6 +199,9 @@ def _mission_num_ctx() -> int:
 
 def _mission_reasoning(model, data, messages, tools):
     """(flag `think`, prefisso per il system) di una chiamata della missione."""
+    planner_model = globals().get("MISSION_PLANNER_MODEL", "")
+    if planner_model and model == planner_model and not tools:
+        return True, ""
     think = _decide_thinking(model, data, messages, tools)
     prefix = "/no_think\n" if (think is False and _is_reasoning_model(model)) else ""
     return think, prefix
