@@ -103,6 +103,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_ping()
         elif self.path.startswith("/api/missions"):
             self.handle_api_missions()
+        elif self.path.startswith("/api/devloop"):
+            self.handle_api_devloop()
         else:
             super().do_GET()
 
@@ -373,6 +375,63 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.send_json({"error": f"HTTP {he.code}: {err_body}"}, status=he.code)
         except Exception as exc:
             self.send_json({"error": str(exc)}, status=502)
+
+    def handle_api_devloop(self):
+        dev_loop_file = REPO_ROOT / "data" / "omen_dev_loop.jsonl"
+        recent_cycles = []
+        if dev_loop_file.exists():
+            try:
+                for line in dev_loop_file.read_text(encoding="utf-8", errors="replace").splitlines()[-20:]:
+                    if line.strip():
+                        recent_cycles.append(json.loads(line))
+            except Exception:
+                pass
+
+        dataset_file = REPO_ROOT / "data" / "synthetic_cot_dataset.jsonl"
+        cot_samples_count = 0
+        latest_sample = None
+        if dataset_file.exists():
+            try:
+                lines = [l for l in dataset_file.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+                cot_samples_count = len(lines)
+                if lines:
+                    latest_sample = json.loads(lines[-1])
+            except Exception:
+                pass
+
+        chronicle_file = REPO_ROOT / "data" / "codebase_chronicle.jsonl"
+        recent_chronicles = []
+        if chronicle_file.exists():
+            try:
+                for line in chronicle_file.read_text(encoding="utf-8", errors="replace").splitlines()[-10:]:
+                    if line.strip():
+                        recent_chronicles.append(json.loads(line))
+            except Exception:
+                pass
+
+        telemetry_file = REPO_ROOT / "data" / "omen_247_telemetry.jsonl"
+        thermal_status = {"temp_c": None, "alert": False}
+        if telemetry_file.exists():
+            try:
+                lines = [l for l in telemetry_file.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+                if lines:
+                    last_t = json.loads(lines[-1])
+                    if last_t.get("gpu"):
+                        thermal_status["temp_c"] = last_t["gpu"].get("temp_c")
+                    thermal_status["alert"] = last_t.get("thermal_alert", False)
+            except Exception:
+                pass
+
+        self.send_json({
+            "status": "ok",
+            "timestamp": time.time(),
+            "total_cycles": len(recent_cycles),
+            "recent_cycles": recent_cycles[-5:],
+            "cot_samples_count": cot_samples_count,
+            "latest_sample": latest_sample,
+            "recent_chronicles": recent_chronicles[-5:],
+            "thermal": thermal_status,
+        })
 
     def _split_thought(self, text: str) -> tuple[str, str]:
         if "</think>" in text:

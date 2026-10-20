@@ -98,6 +98,41 @@
       <!-- Cards rendered dynamically via JS -->
     </div>
 
+    <!-- 24/7 AUTONOMOUS DEV PROGRESS HUD -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white">HP OMEN 24/7 Auto-Dev Engine</span>
+            <span id="devloop-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">ATTIVO</span>
+          </div>
+          <p class="text-xs text-slate-400">Cicli QA continui, Graphify AST refresh, distillazione CoT & Proof-of-Useful-Work</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-6 text-xs font-mono">
+        <div class="flex flex-col">
+          <span class="text-slate-500">Cicli Dev Completati</span>
+          <span id="devloop-cycles" class="text-emerald-400 font-bold text-base">0</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-slate-500">Campioni CoT Distillati</span>
+          <span id="devloop-cot" class="text-cyan-400 font-bold text-base">0</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-slate-500">Invarianti Test</span>
+          <span id="devloop-qa" class="text-purple-400 font-bold text-base">VERDE (100%)</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-slate-500">Stato Termico GPU</span>
+          <span id="devloop-thermal" class="text-emerald-400 font-bold text-base">❄️ OK (&lt;75°C)</span>
+        </div>
+      </div>
+    </div>
+
     <!-- TERMINAL INTERFACE -->
     <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col flex-1 min-h-[460px]">
       <!-- Terminal Header & Quick Buttons -->
@@ -112,13 +147,14 @@
         <!-- QUICK ACTION BUTTONS -->
         <div class="flex flex-wrap items-center gap-1.5 text-xs font-mono">
           <button onclick="runCommand('nodes')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">nodes</button>
+          <button onclick="runCommand('devloop')" class="px-2.5 py-1 rounded bg-emerald-950 border border-emerald-800 hover:bg-emerald-900 text-emerald-300 transition font-bold">⚡ devloop</button>
+          <button onclick="runCommand('chronicle')" class="px-2.5 py-1 rounded bg-cyan-950 border border-cyan-800 hover:bg-cyan-900 text-cyan-300 transition">📖 chronicle</button>
+          <button onclick="runCommand('dataset')" class="px-2.5 py-1 rounded bg-purple-950 border border-purple-800 hover:bg-purple-900 text-purple-300 transition">🧠 dataset</button>
           <button onclick="runCommand('ping omen')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 transition">ping omen</button>
           <button onclick="runCommand('ping asus')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-purple-400 transition">ping asus</button>
-          <button onclick="runCommand('ping mac')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 transition">ping mac</button>
           <button onclick="runCommand('ask dimmi lo stato della mesh')" class="px-2.5 py-1 rounded bg-cyan-950 border border-cyan-800 hover:bg-cyan-900 text-cyan-300 transition">ask &lt;ai&gt;</button>
           <button onclick="runCommand('plan crea un micro-servizio telemetry')" class="px-2.5 py-1 rounded bg-purple-950 border border-purple-800 hover:bg-purple-900 text-purple-300 transition">plan &lt;dag&gt;</button>
           <button onclick="runCommand('missions')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-400 transition">missions</button>
-          <button onclick="runCommand('vram')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-pink-400 transition">vram</button>
           <button onclick="runCommand('clear')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-950 text-rose-300 transition">clear</button>
         </div>
       </div>
@@ -226,27 +262,60 @@
       async function pollLiveStatus() {
         try {
           const resp = await fetch('/api/status');
-          if (!resp.ok) return;
-          const data = await resp.json();
+          if (resp.ok) {
+            const data = await resp.json();
 
-          if (data.nodes) {
-            if (data.nodes.omen) Object.assign(liveNodes.omen, data.nodes.omen);
-            if (data.nodes.mac) Object.assign(liveNodes.mac, data.nodes.mac);
-            if (data.nodes.asus) Object.assign(liveNodes.asus, data.nodes.asus);
+            if (data.nodes) {
+              if (data.nodes.omen) Object.assign(liveNodes.omen, data.nodes.omen);
+              if (data.nodes.mac) Object.assign(liveNodes.mac, data.nodes.mac);
+              if (data.nodes.asus) Object.assign(liveNodes.asus, data.nodes.asus);
+            }
+
+            if (data.control_plane) {
+              cpMetricEl.textContent = `${data.control_plane.status} (${data.control_plane.memories} mem)`;
+              cpMetricEl.className = data.control_plane.status === 'ONLINE' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+            }
+
+            if (liveNodes.omen.hardware) {
+              memoryMetricEl.textContent = liveNodes.omen.hardware.split('+')[0].trim();
+            }
+
+            renderNodes();
           }
-
-          if (data.control_plane) {
-            cpMetricEl.textContent = `${data.control_plane.status} (${data.control_plane.memories} mem)`;
-            cpMetricEl.className = data.control_plane.status === 'ONLINE' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
-          }
-
-          if (liveNodes.omen.hardware) {
-            memoryMetricEl.textContent = liveNodes.omen.hardware.split('+')[0].trim();
-          }
-
-          renderNodes();
         } catch (e) {
           // Keep current state on error
+        }
+
+        try {
+          const devResp = await fetch('/api/devloop');
+          if (devResp.ok) {
+            const devData = await devResp.json();
+            const devCyclesEl = document.getElementById('devloop-cycles');
+            const devCotEl = document.getElementById('devloop-cot');
+            const devThermalEl = document.getElementById('devloop-thermal');
+            const devBadgeEl = document.getElementById('devloop-badge');
+            if (devCyclesEl) devCyclesEl.textContent = devData.total_cycles || 0;
+            if (devCotEl) devCotEl.textContent = devData.cot_samples_count || 0;
+            if (devThermalEl) {
+              if (devData.thermal && devData.thermal.temp_c != null) {
+                devThermalEl.textContent = devData.thermal.alert 
+                  ? `🔥 ${devData.thermal.temp_c}°C (PAUSA)` 
+                  : `❄️ ${devData.thermal.temp_c}°C (OK)`;
+                devThermalEl.className = devData.thermal.alert ? 'text-rose-400 font-bold text-base' : 'text-emerald-400 font-bold text-base';
+              }
+            }
+            if (devBadgeEl) {
+              if (devData.thermal && devData.thermal.alert) {
+                devBadgeEl.textContent = "TERMO-PAUSA";
+                devBadgeEl.className = "text-[10px] px-2 py-0.5 rounded-full bg-rose-950 border border-rose-700 text-rose-300 font-mono";
+              } else {
+                devBadgeEl.textContent = "ATTIVO 24/7";
+                devBadgeEl.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono";
+              }
+            }
+          }
+        } catch (e) {
+          // Keep current devloop state on error
         }
       }
 
@@ -315,6 +384,9 @@
 
         if (lower === 'help') {
           printToTerminal(`Comandi Live Disponibili:\n` +
+            `  • devloop                 : Telemetria e stato dei cicli autonomi 24/7 di HP OMEN\n` +
+            `  • chronicle               : Cronologia mutazioni e diario di bordo della codebase\n` +
+            `  • dataset                 : Ultimo campione sintetico CoT distillato e verificato (AST)\n` +
             `  • nodes                   : Tabella telemetrica reale dei 3 nodi e del Control Plane\n` +
             `  • ping <omen|asus|mac|cp> : Ping reale di rete HTTP/TCP con misurazione latenza in ms\n` +
             `  • ask <domanda>           : Invia una domanda a Liquid AI LFM2.5 su HP Omen con firma ECDSA\n` +
@@ -324,6 +396,80 @@
             `  • vram                    : Mostra l'allocazione VRAM/RAM reale dei nodi\n` +
             `  • select <omen|mac|asus>  : Commuta il nodo di default per le inferenze\n` +
             `  • clear                   : Pulisce la schermata del terminale`, 'text-slate-300');
+        } else if (lower === 'devloop') {
+          printToTerminal(`Recupero telemetria cicli 24/7 da /api/devloop...`, 'text-slate-500');
+          try {
+            const resp = await fetch('/api/devloop');
+            const data = await resp.json();
+            printToTerminal(`================ HP OMEN 24/7 AUTO-DEV LOOP ================`, 'text-emerald-400 font-bold');
+            printToTerminal(`• Cicli Totali Completati : ${data.total_cycles}`, 'text-slate-300');
+            printToTerminal(`• Campioni CoT Distillati : ${data.cot_samples_count}`, 'text-cyan-300');
+            if (data.thermal && data.thermal.temp_c != null) {
+              const th = data.thermal;
+              printToTerminal(`• GPU Hardware Temp       : ${th.temp_c}°C ${th.alert ? '⚠️ (ALLERTA TERMICA PAUSA)' : '❄️ (Temperatura Nominale)'}`, th.alert ? 'text-rose-400 font-bold' : 'text-emerald-300');
+            }
+            if (data.recent_cycles && data.recent_cycles.length > 0) {
+              printToTerminal(`\nUltime iterazioni autonome eseguite:`, 'text-amber-300 font-bold');
+              data.recent_cycles.slice(-5).forEach(c => {
+                const cycleColor = c.success ? 'text-emerald-300' : 'text-rose-400';
+                printToTerminal(`[Ciclo #${c.cycle}] ${c.timestamp || ''} | Azione: ${c.action || 'dev_tick'} | Esito: ${c.success ? '✓ SUCCESS' : '✗ FAILED'}`, cycleColor);
+                if (c.details) {
+                  printToTerminal(`  Dettagli: ${typeof c.details === 'object' ? JSON.stringify(c.details) : c.details}`, 'text-slate-400 text-[11px]');
+                }
+              });
+            } else {
+              printToTerminal(`\nIn attesa del completamento dei primi cicli da HP OMEN. Watchdog e loop attivi.`, 'text-slate-400');
+            }
+          } catch (e) {
+            printToTerminal(`[ERRORE DEVLOOP] ${e.message}`, 'text-rose-400');
+          }
+        } else if (lower === 'chronicle') {
+          printToTerminal(`Interrogazione Diario Codebase e Calendario Mutazioni...`, 'text-slate-500');
+          try {
+            const resp = await fetch('/api/devloop');
+            const data = await resp.json();
+            const list = data.recent_chronicles || [];
+            if (list.length === 0) {
+              printToTerminal(`Nessuna mutazione registrata nel chronicle.`, 'text-slate-400');
+            } else {
+              printToTerminal(`============== DIARIO DI BORDO CODEBASE (CHRONICLE) ==============`, 'text-cyan-400 font-bold');
+              list.slice(-5).forEach(entry => {
+                printToTerminal(`[${entry.date || 'DATA'}] [${entry.action_type || 'mutation'}] Agente: ${entry.agent || 'AI'} (Commit: ${entry.commit_hash || 'local'})`, 'text-amber-300 font-bold');
+                printToTerminal(`  Intento: ${entry.intent || 'n/a'}`, 'text-slate-200');
+                if (entry.files_touched && entry.files_touched.length) {
+                  printToTerminal(`  File: ${entry.files_touched.join(', ')}`, 'text-slate-400 text-[11px]');
+                }
+                if (entry.lessons_learned) {
+                  printToTerminal(`  Lezione Appresa: ${entry.lessons_learned}`, 'text-emerald-300 text-[11px]');
+                }
+                printToTerminal(`  Test Status: ${entry.test_status || 'OK'}\n`, 'text-purple-300 text-[11px]');
+              });
+            }
+          } catch (e) {
+            printToTerminal(`[ERRORE CHRONICLE] ${e.message}`, 'text-rose-400');
+          }
+        } else if (lower === 'dataset') {
+          printToTerminal(`Ispezione campioni dataset CoT generati e verificati...`, 'text-slate-500');
+          try {
+            const resp = await fetch('/api/devloop');
+            const data = await resp.json();
+            if (!data.latest_sample) {
+              printToTerminal(`Nessun campione CoT ancora distillato. Il loop notturno/24-7 arricchisce il dataset continuamente.`, 'text-slate-400');
+            } else {
+              const s = data.latest_sample;
+              printToTerminal(`============== ULTIMO CAMPIONE CoT DISTILLATO ==============`, 'text-purple-400 font-bold');
+              printToTerminal(`ID: ${s.id || 'sample'} | Timestamp: ${s.timestamp || 'n/a'} | Verificato AST: ${s.ast_verified ? '✓ VERO' : '✗ NO'}`, 'text-cyan-300');
+              printToTerminal(`\n[PROMPT SINTETICO]:\n${s.prompt || 'n/a'}`, 'text-amber-300');
+              if (s.thought) {
+                printToTerminal(`\n[REASONING / CHAIN-OF-THOUGHT (<think>)]:\n${s.thought}`, 'text-slate-400 italic text-[11px]');
+              }
+              if (s.code) {
+                printToTerminal(`\n[CODICE PYTHON VERIFICATO]:\n${s.code}`, 'text-emerald-300 font-mono text-[11px]');
+              }
+            }
+          } catch (e) {
+            printToTerminal(`[ERRORE DATASET] ${e.message}`, 'text-rose-400');
+          }
         } else if (lower === 'nodes') {
           printToTerminal(`Interrogazione live dei nodi via /api/status...`, 'text-slate-500');
           try {

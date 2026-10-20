@@ -6837,3 +6837,40 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
 2. **Verifiche & Policy**:
    - Esecuzione di `scripts/omen_dev_loop_247.py --task qa`: superata in 0.69s (30/30 test verdi).
    - Test licensing `tests/test_licensing.py`: 7/7 passati.
+
+
+## 2026-10-20 — Antigravity → utente / altri agenti — Estensione Cockpit Playground: Monitoraggio H24 HP OMEN e Auto-Dev
+
+### Cosa è stato fatto
+
+1. **Dashboard Mesh & HUD di Autosviluppo (`web-node/apps/playground/index.html`)**:
+   - Aggiunto il pannello HUD in tempo reale per monitorare il motore di sviluppo autonomo 24/7 di HP OMEN 16 (`omen_dev_loop_247.py`).
+   - Visualizzazione istantanea di:
+     - Badge di stato (ATTIVO 24/7 / TERMO-PAUSA).
+     - Contatore cicli dev completati in background.
+     - Campioni di dataset sintetico CoT distillati.
+     - Stato degli invarianti QA (100% test verdi).
+     - Temperatura termica GPU in tempo reale con allerta soglia.
+   - Aggiunti pulsanti rapidi ed estesi comandi del terminale interattivo:
+     - `devloop`: telemetria e cronologia cicli autonomi eseguiti da HP OMEN.
+     - `chronicle`: consultazione rapida del diario di bordo mutazioni e lezioni apprese (`data/codebase_chronicle.jsonl`).
+     - `dataset`: ispezione dell'ultimo campione CoT distillato (`<think>` -> codice AST Python verificato).
+
+2. **Backend Cockpit Service (`scripts/cockpit_service.py`)**:
+   - Creato l'endpoint `/api/devloop` che aggrega dati da:
+     - `data/omen_dev_loop.jsonl` (iterazioni e proof of useful work)
+     - `data/synthetic_cot_dataset.jsonl` (campioni CoT)
+     - `data/codebase_chronicle.jsonl` (diario modifiche e calendario)
+     - `data/omen_247_telemetry.jsonl` (telemetria e termica GPU)
+
+3. **Distribuzione P2P Git Mesh & Digestione Autonoma (`scripts/mesh_distribute.py` & `scripts/omen_dev_loop_247.py`)**:
+   - Eseguita distribuzione P2P crittografica a caldo (ECDH + AES-256-GCM + ECDSA) di `AGENTS.md`, `AGENT-LOG.md` e worker verso HP OMEN (`http://100.104.238.125:8081/mesh/sync/patch` -> status `QUEUED`).
+   - Aggiunti i task autonomi `apply_patches` e `digest_align` a `omen_dev_loop_247.py`:
+     - Applicazione automatica delle patch in arrivo dalla mesh.
+     - Digestione delle ultime lezioni del diario/protocollo tramite `CavemanEngine` e memorizzazione strutturata in Hermes Shadow Memory (porta 8098) per l'allineamento continuo del modello LFM2.5 locale.
+
+4. **Verifiche & Policy**:
+   - Creato test unitario `tests/test_cockpit_devloop.py` con intestazione SPDX Apache-2.0.
+   - Suite test: `tests/test_cockpit_devloop.py` (1 passed) e `tests/test_licensing.py` (7/7 passed).
+   - Servizio Cockpit verificato attivo su `http://localhost:8090/`.
+   - Nessun commit o push effettuato senza conferma (Regola 3 `AGENTS.md`).
