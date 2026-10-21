@@ -1133,6 +1133,62 @@
       .bridge-header { flex-direction: column; }
       .footer-bottom { flex-direction: column; align-items: flex-start; }
     }
+
+    /* Banner Trasparenza Mayhem Mode */
+    .mayhem-alert-strip {
+      background: linear-gradient(90deg, rgba(88, 28, 135, 0.45) 0%, rgba(15, 23, 42, 0.9) 50%, rgba(13, 148, 136, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin: 0 0 28px;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.35);
+    }
+    .mayhem-alert-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .mayhem-alert-tag {
+      background: linear-gradient(135deg, #7c3aed, #db2777);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .mayhem-alert-text {
+      flex: 1;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #e2e8f0;
+      min-width: 260px;
+    }
+    .mayhem-alert-text strong {
+      color: #57e6d9;
+    }
+    .mayhem-alert-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #7c3aed;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .mayhem-alert-cta:hover {
+      background: #9333ea;
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
@@ -1145,7 +1201,8 @@
       <a href="./chat.html" class="nav-link" style="color:#57e6d9;font-weight:700;">💬 Chat Sovrana</a>
       <a href="./anna.html" class="nav-link" style="color:#f43f5e;font-weight:750;" title="Cyberpunk AI Dating Sim & Visual Novel">💖 Sim: Anna</a>
       <a href="#chromeBridgeSection" class="nav-link">🔌 Estensione GPU</a>
-      <a href="#chartSection" class="nav-link" style="color:#c084fc;font-weight:600;">📈 Grafico $00MESH</a>
+      <a href="./token.html" class="nav-link" style="color:#c084fc;font-weight:700;">🪙 $00MESH Token</a>
+      <a href="#chartSection" class="nav-link" style="color:#94a3b8;font-size:12px;">📈 Grafico</a>
       <a href="#tokenomics" class="nav-link">🪙 Tokenomics</a>
       <a href="#topology" class="nav-link">🌐 3D Mesh</a>
       <a href="./progetto.html" class="nav-link">📖 Architettura</a>
@@ -1155,6 +1212,17 @@
       <a href="./chat.html" class="nav-cta-btn">Apri Chat ↗</a>
     </div>
   </nav>
+
+  <!-- BANNER DI TRASPARENZA MAYHEM MODE (PUMP.FUN) -->
+  <div class="mayhem-alert-strip">
+    <div class="mayhem-alert-inner">
+      <span class="mayhem-alert-tag">⚠️ Trasparenza Lancio Pump.fun</span>
+      <div class="mayhem-alert-text">
+        <strong>$00MESH è stato lanciato in Mayhem Mode:</strong> nelle prime 24 ore il volume e la volatilità del grafico riflettono anche l'attività casuale del bot promozionale di Pump.fun. 00MESH non è un memecoin speculativo, ma un utility token sperimentale per la mesh AI P2P sovrana e Proof-of-Useful-Work. La priorità sono i nodi e l'inferenza AI reale.
+      </div>
+      <a href="./token.html" class="mayhem-alert-cta">Scopri $00MESH & Roadmap ↗</a>
+    </div>
+  </div>
 
   <!-- Hero Section -->
   <div class="hero">
@@ -1440,6 +1508,15 @@
   </div>
 
   <div class="token-card" style="margin-top:16px; border:1px solid #1e293b; background:#070d1e;">
+    <!-- Nota Trasparenza Mayhem Mode sopra il Grafico -->
+    <div style="background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+        <span style="background:#7c3aed; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; text-transform:uppercase;">Nota Mayhem Mode (Prime 24h)</span>
+        <strong style="color:#57e6d9;">Volume Bot vs Domanda Reale</strong>
+      </div>
+      Il lancio in Mayhem Mode prevede un bot di Pump.fun che compra e vende nelle prime 24 ore gonfiando volatilità e volume iniziale: questo crea rumore e candele erratiche nel grafico sottostante. Non valutare $00MESH come un memecoin da speculazione rapida: la misura reale di $00MESH sono i nodi computazionali collegati e i task AI completati. <a href="./token.html" style="color:#57e6d9; text-decoration:underline; font-weight:700;">Leggi la pagina trasparenza token & roadmap ↗</a>
+    </div>
+
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:14px;">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <span style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">Contract Address (CA):</span>
@@ -1665,6 +1742,7 @@
       <div class="footer-col links-col">
         <h4>Navigazione & Risorse</h4>
         <ul>
+          <li><a href="./token.html" style="color:#c084fc;font-weight:700;">🪙 $00MESH Token & Trasparenza Mayhem</a></li>
           <li><a href="./chat.html">💬 Chat Sovrana Estesa (Multi-Modello)</a></li>
           <li><a href="./docs/00mesh-guida-rapida.pdf" target="_blank">📘 Guida Rapida & Tool (PDF Illustrato)</a></li>
           <li><a href="./docs/hyperspace-tokenomics.pdf" target="_blank">📜 Whitepaper Tokenomics ($00MESH PDF)</a></li>

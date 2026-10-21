@@ -49,9 +49,10 @@ if [[ -d "$REPO_ROOT/web-node/assets" ]]; then
   cp -R "$REPO_ROOT/web-node/assets/." "$TARGET/assets/"
 fi
 
-# Copia PDF pubblici (tokenomics, presentazione) per il download
+# Copia PDF pubblici (tokenomics, presentazione, guida rapida) per il download
 mkdir -p "$TARGET/docs"
 cp "$REPO_ROOT/docs/"*.pdf "$TARGET/docs/" 2>/dev/null || true
+cp "$REPO_ROOT/web-node/docs/"*.pdf "$TARGET/docs/" 2>/dev/null || true
 
 # Genera join-config.js
 ESCAPED_URL="${GATEWAY_URL%/}"
@@ -64,8 +65,8 @@ window.HYPERSPACE_JOIN = Object.freeze({
 });
 EOF
 
-# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /cookie-policy/, /terms/, /deletion/, /chat/, /ai/, /join/, /anna/)
-for ep in privacy-policy privacy cookie-policy terms deletion data-deletion chat ai join anna; do
+# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /cookie-policy/, /terms/, /deletion/, /chat/, /ai/, /join/, /anna/, /token/)
+for ep in privacy-policy privacy cookie-policy terms deletion data-deletion chat ai join anna token; do
   if [[ -f "$TARGET/$ep.html" ]]; then
     mkdir -p "$TARGET/$ep"
     cp "$TARGET/$ep.html" "$TARGET/$ep/index.html"

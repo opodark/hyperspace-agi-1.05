@@ -9,8 +9,10 @@
   "urls": {
     "portal": "https://www.zerozerocomputer.it/",
     "ai_studio": "https://www.zerozerocomputer.it/ai/",
+    "token_transparency": "https://www.zerozerocomputer.it/token.html",
     "architecture": "https://www.zerozerocomputer.it/progetto.html",
     "whitepaper_pdf": "https://www.zerozerocomputer.it/docs/hyperspace-tokenomics.pdf",
+    "quick_guide_pdf": "https://www.zerozerocomputer.it/docs/00mesh-guida-rapida.pdf",
     "llms_txt": "https://www.zerozerocomputer.it/llms.txt",
     "repository": "https://github.com/opodark/hyperspace-agi-1.05"
   },

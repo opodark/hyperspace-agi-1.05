@@ -97,6 +97,16 @@ class CockpitHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        if self.path == "/lite" or self.path == "/lite.html":
+            lite_file = REPO_ROOT / "web-node" / "apps" / "playground" / "lite.html"
+            if lite_file.exists():
+                content = lite_file.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
         if self.path.startswith("/api/status"):
             self.handle_api_status()
         elif self.path.startswith("/api/ping"):

@@ -29,9 +29,11 @@ If you have `fetch`, `curl`, `read_url`, or HTTP tools available, you can query 
 
 - **Main Portal & Browser Web-Node (WebGPU):** [https://www.zerozerocomputer.it/](https://www.zerozerocomputer.it/)
 - **00MESH AI Studio (Uncensored Chat, Live SearXNG Web Search, ComfyUI Image Synthesis, Document Analysis):** [https://www.zerozerocomputer.it/ai/](https://www.zerozerocomputer.it/ai/)
+- **$00MESH Token & Mayhem Mode Transparency:** [https://www.zerozerocomputer.it/token.html](https://www.zerozerocomputer.it/token.html) (Contract: `CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump`)
 - **Full-Screen Mesh Console:** [https://www.zerozerocomputer.it/chat.html](https://www.zerozerocomputer.it/chat.html)
 - **Architecture & 1.05 Project Presentation:** [https://www.zerozerocomputer.it/progetto.html](https://www.zerozerocomputer.it/progetto.html)
 - **Tokenomics Whitepaper (PDF):** [https://www.zerozerocomputer.it/docs/hyperspace-tokenomics.pdf](https://www.zerozerocomputer.it/docs/hyperspace-tokenomics.pdf)
+- **Quick Guide & Mesh Tools (PDF):** [https://www.zerozerocomputer.it/docs/00mesh-guida-rapida.pdf](https://www.zerozerocomputer.it/docs/00mesh-guida-rapida.pdf)
 - **Open-Source Repository:** `https://github.com/opodark/hyperspace-agi-1.05`
 
 ---

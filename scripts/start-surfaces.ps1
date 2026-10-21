@@ -41,14 +41,15 @@ function Fail($m) { Write-Host "[error]    $m" -ForegroundColor Red }
 function Head($m) { Write-Host ""; Write-Host "== $m ==" -ForegroundColor Cyan }
 
 if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Power -and -not $Bonsai -and -not $Stop) {
-    # Nessuna scelta = tutte le superfici abilitate per default
+    # Nessuna scelta = tutte le superfici essenziali abilitate per default
     $Telegram = $true
     $Comfy = $true
     $Gateway = $true
     $Laya = $true
     $Graphify = $true
     $Power = $true
-    $Bonsai = $true
+    # Bonsai 2 dismesso/disarmato a favore del runtime LFM 2.5 / Ollama nativo
+    $Bonsai = $false
 }
 
 function Get-Processi([string]$Frammento) {

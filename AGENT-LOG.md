@@ -6874,3 +6874,68 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
    - Suite test: `tests/test_cockpit_devloop.py` (1 passed) e `tests/test_licensing.py` (7/7 passed).
    - Servizio Cockpit verificato attivo su `http://localhost:8090/`.
    - Nessun commit o push effettuato senza conferma (Regola 3 `AGENTS.md`).
+
+
+## 2026-10-20 — Antigravity → utente / altri agenti — Attivazione Turno Notturno Autonomo HP OMEN e UI Semplificata
+
+### Cosa è stato fatto
+
+1. **Orchestratore Turno Notturno Continuo (`scripts/omen_overnight_shift.py`)**:
+   - Creato ed avviato in background (demone a cicli di 300s) il worker notturno per l'HP OMEN 16:
+     - **Benchmark Multi-Modello**: test automatico comparativo su `LFM2.5 8B` (4.68s), `Granite 3.3 8b` (22.46s) e `Qwen 3.5 9B Coder` (12.19s), con logging in `data/nightly_model_benchmarks.jsonl`.
+     - **Distillazione Neurale CoT (Proof-of-Useful-Work)**: generazione e validazione sintattica AST Python (`ast.parse`) di campioni ragionati salvati in `data/synthetic_cot_dataset.jsonl`.
+     - **Generazione Immagini ComfyUI**: pool casuale di prompt artistici (Anna, Cyberpunk Edge, Sovereign Topology) accodati in `data/nightly_image_prompts.jsonl`.
+     - **Hermes Sogni & Consolidamento**: tick continui per il grafo FTS5 di memoria.
+     - **Guardia Termica**: interruzione di sicurezza automatica se GPU > 80°C.
+
+2. **Interfaccia Semplificata Mobile-Ready (`web-node/apps/playground/lite.html`)**:
+   - Creata la UI minimale "HyperSpace Lite Cockpit", responsive per smartphone e desktop, servita direttamente da `scripts/cockpit_service.py` su `http://localhost:8090/lite`.
+   - Include selettore rapido dei nodi (OMEN, Mac, ASUS), console chat con visualizzazione CoT `<think>` collassabile, e scorciatoie per sogni, benchmark e generatore immagini.
+
+3. **Verifiche & Stato**:
+   - Test licensing `tests/test_licensing.py`: 7/7 passati.
+   - Demone notturno attivo (Task id `task-732`).
+
+
+## 2026-10-21 — Antigravity → utente / altri agenti — Gestione Lancio $00MESH: Trasparenza Mayhem Mode Pump.fun e Pagina /token
+
+### Cosa è stato fatto
+
+1. **Nuova Pagina Ufficiale Token & Trasparenza (`web-node/token.html`)**:
+   - Creata la pagina dedicata e responsive `/token` (e `/token.html`) per posizionare $00MESH come utility token sperimentale e punti computazionali Proof-of-Useful-Work (PoUW), separandolo nettamente dai meme coin speculativi.
+   - Spiegazione chiara e trasparente del **Mayhem Mode di Pump.fun**: chiarito il ruolo del bot automatico nelle prime 24 ore (compravendite casuali promozionali), la natura del rumore/volatilità iniziale e perché non riflette la domanda reale.
+   - Quadro di confronto dettagliato **Segnale Reale vs Rumore Trading**: focus su nodi browser WebGPU attivi, nodi GPU connessi (Ollama, LM Studio, ComfyUI), query AI completate e crediti PoUW accumulati.
+   - Scheda tecnica completa: Contract Address Solana (`CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump`) con copia 1-click, Total Supply fissa (1B) e ripartizione trasparente (70% Bonding Curve, 20% Community Mining PoUW, 10% Dev/Ecosistema con vesting).
+   - Casi d'uso chiari: priorità nei cluster GPU dell'AI Studio, navigazione 100% ad-free con wallet Solana, sblocco memorie profonde (Anna Cyberpunk Sim), e mining ecologico utile (Proof-of-Useful-Work anziché spreco SHA256).
+   - Inclusione di disclaimer MiCA (Regolamento UE 2023/1114) e credenziali aziendali di Zero Zero Computer (dal 2003 a Saronno).
+
+2. **Banner di Trasparenza & Aggiornamento Navigazione (`web-node/index.html`, `ai.html`, `join.html`)**:
+   - Aggiunto banner visibile di chiarimento sul lancio in Mayhem Mode sotto la navbar principale di `index.html`.
+   - Inserita nota contestuale specifica sopra il grafico live DexScreener in `#chartSection`.
+   - Aggiornati menu di navigazione e footer con link diretto a `🪙 $00MESH Token & Trasparenza Mayhem`.
+   - Aggiornato banner dell'AI Studio (`ai.html`) e navigazione di `join.html`.
+
+3. **Routing Apache, Pipeline di Build & Discovery AI (`.htaccess`, `build-web-node-aruba.sh`, `llms.txt`, `ai-agent.json`)**:
+   - Aggiornato `scripts/build-web-node-aruba.sh` per generare automaticamente `/token/index.html` e includere i PDF pubblici (`hyperspace-tokenomics.pdf`, `00mesh-guida-rapida.pdf`).
+   - Aggiornato `web-node/.htaccess` per supportare clean URLs e redirect relativi sotto `/ai/`.
+   - Aggiornati i manifesti per agenti e crawler (`llms.txt` e `ai-agent.json`) registrando il nuovo endpoint e le risorse relative a $00MESH.
+
+4. **Verifiche**:
+   - Eseguita compilazione pacchetto statico `dist/web-node-aruba`: zip generato con successo e cartella `/token/` verificata.
+   - Eseguita l'intera suite di test del Web-Node (`30/30 passed`).
+   - Eseguiti i test di licensing `tests/test_licensing.py` (7/7 passed).
+   - Nessun commit o push effettuato senza autorizzazione (Regola 3 `AGENTS.md`).
+
+
+## 2026-10-21 — Antigravity → utente / altri agenti — Dismissione Bonsai 2 e Autorizzazione Commit & Push
+
+### Cosa è stato fatto
+
+1. **Dismissione / Disarmo di Bonsai 2**:
+   - Recepito l'indirizzo operativo dell'utente: Bonsai 2 (27B ternario PQ2_0/llama-server su porta 8082) viene dismesso da tutti i nodi e superfici di avvio a favore dell'ultimo modello neurale testato e altamente promettente (**LFM 2.5 8B DuoNeural** abliterated e Qwen 3.5).
+   - Aggiornato `scripts/start-surfaces.ps1`: `$Bonsai` impostato a `$false` di default, disattivando l'avvio automatico del daemon llama-server.
+   - Aggiornato `web-node/ai.html`: rimossi i riferimenti promozionali e indicatori modello a Bonsai 2, aggiornati con `LFM 2.5 • Qwen 3.5`.
+   - Ricompilato il pacchetto statico `dist/web-node-aruba`.
+
+2. **Commit e Push autorizzati dall'utente**:
+   - L'utente ha fornito conferma esplicita per il commit e push del lavoro svolto.

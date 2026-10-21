@@ -8,7 +8,7 @@ RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # Reindirizza link relativi erroneamente richiesti sotto /ai/ verso la radice
-RewriteRule ^ai/(join(\.html)?|chat(\.html)?|privacy(\.html)?|privacy-policy(\.html)?|deletion(\.html)?|data-deletion(\.html)?|progetto(\.html)?|docs/(.*)|src/(.*)|assets/(.*))$ /$1 [R=301,L]
+RewriteRule ^ai/(token(\.html)?|join(\.html)?|chat(\.html)?|privacy(\.html)?|privacy-policy(\.html)?|deletion(\.html)?|data-deletion(\.html)?|progetto(\.html)?|docs/(.*)|src/(.*)|assets/(.*))$ /$1 [R=301,L]
 
 # Supporto manifesto AI Agent in /.well-known/ai-agent.json
 RewriteRule ^\.well-known/ai-agent\.json$ /ai-agent.json [L]
