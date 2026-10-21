@@ -269,6 +269,11 @@ class MissionController:
         finally:
             try:
                 self.store.record_runtime(mission_id, max(0, self.clock() - start))
+                try:
+                    from shared.harness_reflector import HarnessReflector
+                    HarnessReflector().reflect_on_mission(mission_id, store=self.store)
+                except Exception:
+                    pass
             finally:
                 self.running = False
 

@@ -52,6 +52,23 @@ _bp = Blueprint("forge", __name__)
 _FORGE_TYPES = {"tool", "skill", "patch"}
 _FORGE_STATES = {"draft", "review", "approved", "disabled"}
 
+# Tassonomia a 8 componenti di Google Research Harness² (Recursive Agent Harnessing).
+# Mappatura sui formati fisici di storage e validazione del Forge:
+# - skill (.md): system_prompt, guardrail, memory, tool_guidance, subagent, skill
+# - tool (.py): script, tool
+# - patch (.diff): plugin, patch
+_HARNESS_COMPONENTS = {
+    "system_prompt": {"base_type": "skill", "ext": ".md", "desc": "Linee guida comportamentali, persona e istruzioni di sistema"},
+    "guardrail": {"base_type": "skill", "ext": ".md", "desc": "Regole di sicurezza, vincoli operativi e confini invalicabili"},
+    "memory": {"base_type": "skill", "ext": ".md", "desc": "Schemi di memoria persistente, scratchpad e contesto cognitivo"},
+    "tool_guidance": {"base_type": "skill", "ext": ".md", "desc": "Istruzioni d'uso, schemi parametri e guardie sintattiche per i tool"},
+    "subagent": {"base_type": "skill", "ext": ".md", "desc": "Definizione ruoli delegati, manifest e contratti di interfaccia"},
+    "skill": {"base_type": "skill", "ext": ".md", "desc": "Capacità modulari, procedure e workflow operativi riutilizzabili"},
+    "script": {"base_type": "tool", "ext": ".py", "desc": "Snippet Python eseguibili o tool deterministici per il modello"},
+    "plugin": {"base_type": "patch", "ext": ".diff", "desc": "Middleware, hook di intercettazione o patch di codice"},
+}
+_ALL_FORGE_TYPES = _FORGE_TYPES | set(_HARNESS_COMPONENTS.keys())
+
 # Il lock del negozio. Le rotte girano su più thread e il forge è su disco: due
 # scritture sullo stesso artefatto senza lock lasciano un file a metà.
 _forge_lock = threading.Lock()
@@ -128,7 +145,7 @@ def _forge_authorized():
 
 # ── la validazione, che e' cio' che distingue un artefatto usabile ────────
 
-def _forge_validate(kind, source):
+def _forge_validate(kind, source, component=None):
     issues, warnings = [], []
     source = source or ""
     if not source.strip():
@@ -165,13 +182,32 @@ def _forge_validate(kind, source):
             issues.append("patch must be a unified text diff with file headers and a hunk")
         if "Binary files differ:" in source:
             issues.append("binary changes cannot be represented by this Forge patch")
+
+    # Controlli opzionali specifici per componente Harness²
+    if component == "guardrail" and source.strip():
+        lower = source.lower()
+        if not any(w in lower for w in ("non", "mai", "never", "do not", "vietato", "must", "boundary", "constraint", "invariant")):
+            warnings.append("guardrail should declare explicit safety boundaries or constraints (e.g. NEVER, MUST NOT)")
+    elif component == "tool_guidance" and source.strip():
+        lower = source.lower()
+        if not any(w in lower for w in ("tool", "param", "arg", "chiamat", "schema", "api", "usage", "input")):
+            warnings.append("tool_guidance should reference tool names, expected parameters, or invocation syntax")
+    elif component == "system_prompt" and source.strip():
+        lower = source.lower()
+        if not any(w in lower for w in ("ruolo", "sei", "you are", "role", "persona", "objective", "obiettivo")):
+            warnings.append("system_prompt should define the agent persona, role, or high-level behavioral directives")
+
     return {"valid": not issues, "issues": issues, "warnings": warnings}
 
 # ── le rotte: leggere e scrivere ──────────────────────────────────────────
 
 @_bp.route('/forge/artifacts')
 def forge_list():
-    return jsonify({"artifacts": _forge_read_all(), "approval_configured": bool(FORGE_ADMIN_TOKEN)})
+    return jsonify({
+        "artifacts": _forge_read_all(),
+        "approval_configured": bool(FORGE_ADMIN_TOKEN),
+        "harness_components": _HARNESS_COMPONENTS,
+    })
 
 
 @_bp.route('/forge/config')
@@ -183,9 +219,20 @@ def forge_config():
 @_bp.route('/forge/artifacts', methods=['POST'])
 def forge_create():
     data = request.get_json(force=True, silent=True) or {}
-    kind = str(data.get("type", "skill")).lower()
-    if kind not in _FORGE_TYPES:
+    harness_comps = globals().get("_HARNESS_COMPONENTS", {})
+    all_types = _FORGE_TYPES | set(harness_comps.keys())
+    raw_kind = str(data.get("type", "skill")).lower()
+    if raw_kind not in all_types:
         return jsonify({"error": "type must be tool, skill, or patch"}), 400
+    if raw_kind in harness_comps:
+        kind = harness_comps[raw_kind]["base_type"]
+        harness_component = raw_kind
+    else:
+        kind = raw_kind
+        harness_component = str(data.get("harness_component", "")).lower()
+        if harness_component not in harness_comps:
+            harness_component = {"tool": "script", "patch": "plugin", "skill": "skill"}.get(kind, "skill")
+
     name = str(data.get("name", "")).strip()
     if not name:
         return jsonify({"error": "name is required"}), 400
@@ -193,10 +240,13 @@ def forge_create():
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     item = {
         "id": _forge_slug(name) + "-" + uuid.uuid4().hex[:6],
-        "name": name[:120], "type": kind, "description": str(data.get("description", ""))[:1000],
+        "name": name[:120], "type": kind,
+        "harness_component": harness_component,
+        "description": str(data.get("description", ""))[:1000],
         "source": source, "permissions": list(data.get("permissions") or []),
         "status": "draft", "version": 1, "created_at": now, "updated_at": now,
-        "validation": _forge_validate(kind, source), "generator": data.get("generator") or "human",
+        "validation": _forge_validate(kind, source, component=harness_component),
+        "generator": data.get("generator") or "human",
     }
     with _forge_lock:
         _forge_write(item)
@@ -212,9 +262,20 @@ def forge_update(artifact_id):
         with _forge_lock:
             with open(path, "r", encoding="utf-8") as handle:
                 item = json.load(handle)
-            kind = str(data.get("type", item.get("type", "skill"))).lower()
-            if kind not in _FORGE_TYPES:
+            harness_comps = globals().get("_HARNESS_COMPONENTS", {})
+            all_types = _FORGE_TYPES | set(harness_comps.keys())
+            raw_kind = str(data.get("type", item.get("type", "skill"))).lower()
+            if raw_kind not in all_types:
                 return jsonify({"error": "type must be tool, skill, or patch"}), 400
+            if raw_kind in harness_comps:
+                kind = harness_comps[raw_kind]["base_type"]
+                harness_component = raw_kind
+            else:
+                kind = raw_kind
+                harness_component = str(data.get("harness_component", item.get("harness_component", ""))).lower()
+                if harness_component not in harness_comps:
+                    harness_component = {"tool": "script", "patch": "plugin", "skill": "skill"}.get(kind, "skill")
+
             name = str(data.get("name", item.get("name", ""))).strip()
             if not name:
                 return jsonify({"error": "name is required"}), 400
@@ -222,13 +283,14 @@ def forge_update(artifact_id):
             item.update({
                 "name": name[:120],
                 "type": kind,
+                "harness_component": harness_component,
                 "description": str(data.get("description", item.get("description", "")))[:1000],
                 "source": source,
                 "permissions": list(data.get("permissions", item.get("permissions", [])) or []),
                 "status": "draft",
                 "version": int(item.get("version", 1)) + 1,
                 "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "validation": _forge_validate(kind, source),
+                "validation": _forge_validate(kind, source, component=harness_component),
                 "generator": data.get("generator") or item.get("generator") or "human",
             })
             item.pop("approved_source_sha256", None)
@@ -252,7 +314,7 @@ def forge_status(artifact_id):
         with _forge_lock:
             with open(path, "r", encoding="utf-8") as handle:
                 item = json.load(handle)
-            validation = _forge_validate(item["type"], item.get("source", ""))
+            validation = _forge_validate(item["type"], item.get("source", ""), component=item.get("harness_component"))
             if state == "approved" and not validation["valid"]:
                 return jsonify({"error": "artifact is not valid", "validation": validation}), 409
             item.update({"status": state, "validation": validation,

@@ -187,3 +187,27 @@ URL e codice all'utente; non attiva heartbeat né pubblica contenuti. Per il
 runtime Mac il Compose monta `~/.config/moltbook/credentials.json`; dopo aver
 aggiunto il mount o aggiornato il CP, ricreare il solo servizio
 `control-plane`.
+
+## Tassonomia a 8 componenti Harness² e Riflessore Ricorsivo
+
+Ispirandosi al framework di ricerca **Harness²** (*Google Research: Recursive Agent Harnessing in an Open World*), HyperSpace non modifica i pesi dei modelli, ma fa evolvere ricorsivamente l'**ambiente d'esecuzione (Harness)** attorno al modello.
+
+La Forge mappa gli 8 componenti dell'Harness sui propri formati di archiviazione e validazione:
+
+| Componente Harness² | Ruolo Architetturale | Formato / Tipo Base Forge | Estensione |
+|---|---|---|---|
+| `system_prompt` | Linee guida comportamentali, persona e direttive di alto livello | `skill` | `.md` |
+| `guardrail` | Regole di sicurezza, vincoli operativi e confini invalicabili (NEVER/MUST NOT) | `skill` | `.md` |
+| `memory` | Schemi di memoria persistente, scratchpad e contesto cognitivo | `skill` | `.md` |
+| `tool_guidance` | Istruzioni d'uso, schemi parametri e guardie sintattiche per i tool | `skill` | `.md` |
+| `subagent` | Definizione ruoli delegati, manifest e contratti di interfaccia | `skill` | `.md` |
+| `skill` | Capacità modulari, procedure e workflow operativi riutilizzabili | `skill` | `.md` |
+| `script` | Snippet Python eseguibili o tool deterministici per il modello | `tool` | `.py` |
+| `plugin` | Middleware, hook di intercettazione o patch di codice | `patch` | `.diff` |
+
+### Harness Reflector (`shared/harness_reflector.py`)
+Il modulo `HarnessReflector` implementa il livello di riflessione dell'Harness (*Harness-Level Recursion*):
+1. **Analisi esecuzioni**: al termine di ogni missione in [Mission Control](mission-control.md) o ciclo dev 24/7 su HP OMEN ([scripts/omen_dev_loop_247.py](file:///Users/opo/hyperspace-agi-1.04/scripts/omen_dev_loop_247.py)), il riflessore analizza i fallimenti, gli errori dei tool e i successi.
+2. **Draft inerte nella Forge**: in caso di anomalia (es. parametri errati di un tool o budget esaurito), il riflessore sintetizza automaticamente una proposta mirata (`tool_guidance`, `guardrail` o `skill`) e la salva come **draft inerte** (`status: draft`) nella cartella Forge.
+3. **Nessuna esecuzione automatica**: coerentemente con le regole di sicurezza di HyperSpace, nessun artefatto generato viene applicato automaticamente. L'operatore può visualizzarlo dal browser nella dashboard della Forge, verificarlo e approvarlo con token amministrativo.
+4. **Diario dell'esperienza**: ogni lezione appresa viene registrata in `data/harness_experience.jsonl` e visualizzata cronologicamente in [docs/harness-experience.md](harness-experience.md).

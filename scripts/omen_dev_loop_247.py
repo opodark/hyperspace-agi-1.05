@@ -36,6 +36,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from shared.codebase_journal import CodebaseJournal
+from shared.harness_reflector import HarnessReflector
 from shared.universal_model_parser import CavemanEngine, UniversalModelParser
 
 DATA_DIR = ROOT / "data"
@@ -279,6 +280,21 @@ def task_synthetic_cot_distillation(node_url: str = "http://127.0.0.1:8081", cyc
     return {"task": "cot_distillation", "samples_created": samples_created}
 
 
+def task_harness_reflection(cycle_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Task 6: Riflessione Ricorsiva Harness² per auto-miglioramento continuo."""
+    _log("HARNESS", "Valutazione riflessiva Harness² (Harness-Level Reflection)...")
+    try:
+        reflector = HarnessReflector()
+        draft = reflector.reflect_on_dev_cycle(cycle_data or {})
+        if draft:
+            _log("HARNESS", f"Generato draft inerte Forge: {draft['id']} ({draft['harness_component']})")
+            return {"task": "harness_reflection", "draft_generated": True, "draft_id": draft["id"], "component": draft["harness_component"]}
+        return {"task": "harness_reflection", "draft_generated": False}
+    except Exception as e:
+        _log("HARNESS", f"Errore riflessione Harness: {e}")
+        return {"task": "harness_reflection", "error": str(e)}
+
+
 # -----------------------------------------------------------------------------
 # MAIN CYCLE RUNNER
 # -----------------------------------------------------------------------------
@@ -310,6 +326,9 @@ def run_dev_cycle(node_url: str, bridge_url: str, cycles_distill: int = 1) -> Di
     # 5. Distillazione CoT & PoUW
     results["tasks"]["distillation"] = task_synthetic_cot_distillation(node_url, cycles=cycles_distill)
 
+    # 6. Riflessione Cognitiva Harness² (Self-Improvement Forge)
+    results["tasks"]["harness_reflection"] = task_harness_reflection(results)
+
     results["elapsed_total_s"] = round(time.perf_counter() - cycle_start, 2)
 
     # Registra nel log locale
@@ -325,7 +344,7 @@ def main():
     parser = argparse.ArgumentParser(description="Worker di Sviluppo Continuo 24/7 per HP OMEN")
     parser.add_argument("--node-url", default="http://127.0.0.1:8081", help="URL del nodo OMEN")
     parser.add_argument("--bridge-url", default="http://127.0.0.1:8098", help="URL Hermes Bridge")
-    parser.add_argument("--task", choices=["all", "qa", "hermes", "graphify", "cot", "digest", "patch"], default="all")
+    parser.add_argument("--task", choices=["all", "qa", "hermes", "graphify", "cot", "digest", "patch", "reflection"], default="all")
     parser.add_argument("--cycles", type=int, default=1, help="Cicli CoT da distillare")
     parser.add_argument("--daemon", action="store_true", help="Esegui in loop continuo 24/7")
     parser.add_argument("--interval", type=int, default=300, help="Intervallo fra cicli in secondi (default: 300s / 5 min)")
@@ -346,6 +365,8 @@ def main():
             print(json.dumps(task_graphify_incremental(), indent=2))
         elif args.task == "cot":
             print(json.dumps(task_synthetic_cot_distillation(args.node_url, cycles=args.cycles), indent=2))
+        elif args.task == "reflection":
+            print(json.dumps(task_harness_reflection(), indent=2))
 
         if args.daemon:
             _log("DAEMON", f"Attesa di {args.interval}s prima del prossimo ciclo...")

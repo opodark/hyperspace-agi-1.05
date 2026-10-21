@@ -6939,3 +6939,44 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
 
 2. **Commit e Push autorizzati dall'utente**:
    - L'utente ha fornito conferma esplicita per il commit e push del lavoro svolto.
+
+
+## 2026-10-21 — Antigravity → utente / altri agenti — Adozione Tassonomia a 8 componenti Harness² e Riflessore Ricorsivo Forge
+
+### Cosa è stato fatto
+
+1. **Tassonomia a 8 componenti Harness² nella Tool & Skill Forge (`control-plane/cp/forge.py` e `control-plane/dashboard.html`)**:
+   - Recepiti i principi di auto-miglioramento di Google Research Harness² (*Recursive Agent Harnessing for an Open World*): ottimizzazione dell'ambiente circostante senza toccare i pesi dei modelli frozen.
+   - Formalizzati gli 8 componenti dell'Harness:
+     - `system_prompt`: persona, direttive di alto livello (`skill` / `.md`).
+     - `guardrail`: confini invalicabili, regole di sicurezza e vincoli NEVER/MUST NOT (`skill` / `.md`).
+     - `memory`: schemi di memoria persistente, scratchpad e contesto cognitivo (`skill` / `.md`).
+     - `tool_guidance`: istruzioni d'uso, schemi parametri e guardie sintattiche per i tool (`skill` / `.md`).
+     - `subagent`: definizione ruoli delegati e contratti di interfaccia (`skill` / `.md`).
+     - `skill`: capacità modulari e workflow operativi riutilizzabili (`skill` / `.md`).
+     - `script`: snippet deterministici eseguibili o tool Python (`tool` / `.py`).
+     - `plugin`: middleware, hook di intercettazione o patch di codice (`patch` / `.diff`).
+   - Mantenuta retrocompatibilità al 100% con i tipi fisici del Forge (`tool`, `skill`, `patch`).
+   - Aggiunta validazione statica dedicata per componente (es. presenza di vincoli negativi per `guardrail`, riferimenti espliciti a parametri per `tool_guidance`, definizione del ruolo per `system_prompt`).
+   - Aggiornato `control-plane/dashboard.html`: selettore a due livelli per tipi base e componenti Harness², e badge visivo colorato nelle card degli artefatti.
+
+2. **Riflessore Ricorsivo Harness² (`shared/harness_reflector.py`)**:
+   - Creato il motore di *Harness-Level Reflection* per distillare l'esperienza sul campo:
+     - Rilevazione automatica di errori di sintassi o parametri nei tool -> generazione automatica di draft `tool_guidance`.
+     - Rilevazione di esaurimento budget o task bloccati -> generazione automatica di draft `guardrail` anti-loop.
+     - Rilevazione di missioni complesse riuscite -> distillazione di draft `skill` riutilizzabile.
+     - Rispetto rigoroso del principio di sicurezza HyperSpace: ogni proposta viene generata come **draft inerte** (`status: draft`) nella Forge e necessita di approvazione esplicita prima di essere usata.
+   - Agganciato a **Mission Control** (`shared/mission_controller.py`): invocazione automatica post-missione in `run()` per analizzare esito, task e verdetto.
+   - Agganciato al worker continuo 24/7 di **HP OMEN** (`scripts/omen_dev_loop_247.py`): introdotto il task autonomo `harness_reflection` (Task 6) per analizzare regressioni QA o distillazioni.
+   - Esposta interfaccia CLI completa: `python shared/harness_reflector.py --mission <id>`, `--dev-cycle`, `--sync-md`.
+
+3. **Memoria e Documentazione Esperienza (`data/harness_experience.jsonl` & `docs/harness-experience.md`)**:
+   - Creato il registro cronologico immutabile `data/harness_experience.jsonl`.
+   - Generato il diario visuale `docs/harness-experience.md` con collegamenti 1-click agli artefatti generati nel Forge.
+   - Documentata l'architettura in `docs/tool-skill-forge.md`.
+
+4. **Verifiche & Policy**:
+   - Creata suite di test completa `tests/test_harness_forge.py` (6/6 passati).
+   - Eseguiti i test di licensing SPDX `tests/test_licensing.py` (7/7 passati).
+   - Eseguita l'intera suite dei test Forge e Mission Control: 70 passati, 20 subtest passati.
+   - Nessun commit o push effettuato senza conferma esplicita dell'utente (Regola 3 `AGENTS.md`).

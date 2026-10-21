@@ -821,7 +821,7 @@ a.dev-card:hover{border-color:var(--primary);background:var(--surface2)}
       </div>
       <div class="setup-grid">
         <label class="fg">Nome artefatto<input id="forgeName" class="inp" placeholder="es. GitHub issue triage"/></label>
-        <label class="fg" title="Il tipo determina la validazione statica applicata">Tipo di artefatto<select id="forgeType" class="inp" title="skill = istruzioni Markdown riutilizzabili · tool = classe Python (Tools) per Open WebUI · patch = diff unificato dal sandbox"><option value="skill">Skill Markdown</option><option value="tool">Tool Python</option><option value="patch">Patch sandbox</option></select></label>
+        <label class="fg" title="Il tipo determina la validazione statica applicata">Tipo di artefatto<select id="forgeType" class="inp" title="skill = istruzioni Markdown riutilizzabili · tool = classe Python (Tools) per Open WebUI · patch = diff unificato dal sandbox · Tassonomia Harness²"><optgroup label="Tipi Base"><option value="skill">Skill Markdown</option><option value="tool">Tool Python</option><option value="patch">Patch sandbox</option></optgroup><optgroup label="Harness² (Google Research)"><option value="system_prompt">Harness: System Prompt</option><option value="guardrail">Harness: Guardrail &amp; Vincoli</option><option value="memory">Harness: Memory Schema</option><option value="tool_guidance">Harness: Tool Guidance</option><option value="subagent">Harness: Subagent Profile</option><option value="script">Harness: Script Eseguibile</option><option value="plugin">Harness: Plugin / Middleware</option></optgroup></select></label>
       </div>
       <label class="fg" style="margin-top:8px">Descrizione (cosa deve fare — usata anche dall'AI se premi &ldquo;Genera draft&rdquo;)<textarea id="forgeDescription" class="inp" rows="3" placeholder="Spiega con parole semplici cosa deve fare, quali input riceve e cosa deve restituire..."></textarea></label>
       <label class="fg" style="margin-top:8px">Codice / Testo Sorgente (modificabile liberamente)<textarea id="forgeSource" class="inp forge-editor" placeholder="Clicca un Modello Pronto qui sopra, premi '✨ Genera draft' per farlo scrivere all'AI, oppure incolla il tuo codice qui..."></textarea></label>
@@ -1611,7 +1611,8 @@ async function forgeLoad(){
     if(!items.length){host.innerHTML='<div class="hint">Nessun artefatto. Crea il primo draft.</div>';return;}
     host.innerHTML=items.map(function(item){
       var v=item.validation||{},notes=(v.issues||[]).concat(v.warnings||[]);
-      return '<div class="forge-item"><div class="forge-item-head"><b>'+forgeEsc(item.name)+'</b><span class="forge-badge '+forgeEsc(item.status)+'">'+forgeEsc(item.status)+'</span></div>'
+      var compBadge=item.harness_component?' <span class="forge-badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)">'+forgeEsc(item.harness_component)+'</span>':'';
+      return '<div class="forge-item"><div class="forge-item-head"><b>'+forgeEsc(item.name)+'</b><span class="forge-badge '+forgeEsc(item.status)+'">'+forgeEsc(item.status)+'</span>'+compBadge+'</div>'
         +'<div class="forge-meta">'+forgeEsc(item.type)+' · v'+forgeEsc(item.version)+' · '+forgeEsc(item.generator)+'</div>'
         +'<div class="forge-meta">ID: '+forgeEsc(item.id)+(item.provenance?' · '+forgeEsc(String(item.provenance.repository||'').split('/').pop())+' '+forgeEsc(item.provenance.commit)+' · '+forgeEsc(item.provenance.license):'')+'</div>'
         +'<div class="forge-validation">'+(v.valid?'VALIDO':'NON VALIDO')+(notes.length?'\n'+forgeEsc(notes.join('\n')):'')+'</div>'
@@ -1671,7 +1672,7 @@ async function forgeImportAgencyAgents(){
 function forgeEdit(id){
   var item=(window.forgeArtifacts||[]).find(function(x){return x.id===id;});if(!item)return;
   window.forgeEditingId=item.id;
-  document.getElementById('forgeName').value=item.name||'';document.getElementById('forgeType').value=item.type;
+  document.getElementById('forgeName').value=item.name||'';document.getElementById('forgeType').value=item.harness_component||item.type;
   document.getElementById('forgeDescription').value=item.description||'';document.getElementById('forgeSource').value=item.source||'';
   document.getElementById('forgeOutput').textContent='Modifica '+item.id+' · v'+item.version;
 }
