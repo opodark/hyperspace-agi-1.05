@@ -10,6 +10,7 @@ owned by Hermes itself.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -46,10 +47,18 @@ class ShadowSessionDB:
         self.lock = threading.RLock()
         self._init_db()
 
-    def _get_conn(self) -> sqlite3.Connection:
+    @contextlib.contextmanager
+    def _get_conn(self):
         conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
+    def close(self) -> None:
+        pass
 
     def _init_db(self) -> None:
         with self.lock, self._get_conn() as conn:

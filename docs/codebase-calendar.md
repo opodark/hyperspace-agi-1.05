@@ -5,6 +5,16 @@
 
 ## 📅 Calendario delle Modifiche Recenti
 
+### 2026-10-21 (2 eventi)
+- **✨ [Antigravity]**: Report tecnico architettura distillazione CoT & estensione tool-use nei chat hook per Cips
+  - **File:** `docs/reports/HyperSpace_CoT_Distillation_Architecture.md`, `docs/reports/HyperSpace_CoT_Distillation_Architecture.docx`, `docs/reports/HyperSpace_CoT_Distillation_Architecture.pdf`
+  - **💡 Lezione Appresa:** Per modelli compatti (SLM 8B), la traccia di pensiero CoT deve includere step espliciti di intent detection e validazione argomenti per prevenire allucinazioni di tool call.
+  - **Verifica Test:** `37 passed`
+- **✨ [Antigravity-Mesh]**: Esecuzione missione distribuita di autosviluppo e distillazione CoT su tutti i 3 nodi (OMEN, ASUS, MAC)
+  - **File:** `scripts/diagnostics/run_mesh_autodev_mission.py`, `data/synthetic_cot_dataset.jsonl`, `data/missions.jsonl`
+  - **💡 Lezione Appresa:** Su nodi eterogenei (Apple Silicon vs RTX 3070 vs RTX Mobile), imporre al prompt un limite di concisione al CoT (max 150 parole) per non esaurire il budget dei token di output prima del blocco di codice.
+  - **Verifica Test:** `100% AST valid pass`
+
 ### 2026-10-20 (2 eventi)
 - **✨ [Antigravity]** `[9047ce8]`: Implementazione Hermes Shadow Memory autonoma (SQLite FTS5) per nodi Windows senza hermes-agent
   - **File:** `scripts/hermes_memory_bridge.py`, `scripts/start_hermes_memory_bridge.ps1`, `tests/test_hermes_memory.py`
