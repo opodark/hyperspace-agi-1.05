@@ -511,6 +511,35 @@
     .message-row.user .message-sender-tag { color: #c4b5fd; }
     .message-row.assistant .message-sender-tag { color: var(--cyan); }
 
+    .msg-action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .msg-action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .msg-action-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
     /* Immagini Generate */
     .image-gen-box {
       margin-top: 10px;
@@ -977,6 +1006,8 @@
           <div class="mode-toggles">
             <span class="toggle-chip active" id="chipText">💬 Chat</span>
             <span class="toggle-chip" id="chipImage">🎨 Immagine</span>
+            <span class="toggle-chip" id="chipVideo">🎬 Video</span>
+            <span class="toggle-chip" id="chipMusic">🎵 Musica</span>
             <span class="toggle-chip" id="chipSearch">🌐 Cerca Web</span>
           </div>
           <span id="modelIndicator" style="color:var(--muted); font-size:11px;">Rete: LFM 2.5 • Qwen 3.5 • Zero Cloud Costs</span>
@@ -1045,6 +1076,8 @@
   // Toggles Modalità
   $("chipText").addEventListener("click", () => setMode("text"));
   $("chipImage").addEventListener("click", () => setMode("image"));
+  $("chipVideo").addEventListener("click", () => setMode("video"));
+  $("chipMusic").addEventListener("click", () => setMode("music"));
   $("chipSearch").addEventListener("click", () => setMode("search"));
 
   document.querySelectorAll(".tool-btn").forEach(btn => {
@@ -1062,6 +1095,8 @@
     currentMode = mode;
     $("chipText").classList.toggle("active", mode === "text");
     $("chipImage").classList.toggle("active", mode === "image");
+    $("chipVideo").classList.toggle("active", mode === "video");
+    $("chipMusic").classList.toggle("active", mode === "music");
     $("chipSearch").classList.toggle("active", mode === "search");
 
     document.querySelectorAll(".tool-btn").forEach(b => {
@@ -1071,10 +1106,14 @@
     const textarea = $("composerInput");
     if (mode === "image") {
       textarea.placeholder = "Descrivi l'immagine che desideri generare… (es. Un ritratto cyberpunk al neon)";
+    } else if (mode === "video") {
+      textarea.placeholder = "Descrivi la scena video da generare… (es. Drone che sorvola una città al tramonto)";
+    } else if (mode === "music") {
+      textarea.placeholder = "Descrivi la musica da comporre… (es. Synthwave rilassante anni 80 con basso profondo)";
     } else if (mode === "search") {
       textarea.placeholder = "Cosa vuoi cercare sul web in tempo reale?…";
     } else {
-      textarea.placeholder = "Scrivi un prompt, chiedi un'immagine (/image ...) o trascina un file…";
+      textarea.placeholder = "Scrivi un prompt, chiedi un'immagine (/image ...), video (/video ...), musica (/music ...) o allega un file…";
     }
     textarea.focus();
   }
@@ -1195,12 +1234,18 @@
     appendMessage("user", userDisplay);
 
     const isImageRequest = currentMode === "image" || rawText.startsWith("/image ") || rawText.startsWith("/imagine ");
+    const isVideoRequest = currentMode === "video" || rawText.startsWith("/video ");
+    const isMusicRequest = currentMode === "music" || rawText.startsWith("/music ") || rawText.startsWith("/audio ");
     const isSearchRequest = currentMode === "search" || rawText.startsWith("/search ");
 
-    let cleanPrompt = rawText.replace(/^\/(image|imagine|search)\s+/, "");
+    let cleanPrompt = rawText.replace(/^\/(image|imagine|video|music|audio|search)\s+/, "");
 
     if (isImageRequest) {
       await handleImageGeneration(cleanPrompt || "Una bellissima visuale cyberpunk futuristica");
+    } else if (isVideoRequest) {
+      await handleVideoGeneration(cleanPrompt || "Drone che vola su un paesaggio al tramonto");
+    } else if (isMusicRequest) {
+      await handleMusicGeneration(cleanPrompt || "Beat elettronico lo-fi rilassante con synth");
     } else if (isSearchRequest) {
       await handleSearchGeneration(cleanPrompt);
     } else {
@@ -1453,18 +1498,247 @@
     }
   }
 
+  // 4. GENERAZIONE VIDEO CON CLUSTER GPU COMFYUI (LTX-Video / Wan2.1)
+  async function handleVideoGeneration(prompt) {
+    isGenerating = true;
+    $("sendBtn").disabled = true;
+
+    const botMsgRow = appendMessage("assistant", `🎬 Invio prompt al cluster GPU Video di HyperSpace: <i>"${prompt}"</i>…`);
+    const contentEl = botMsgRow.querySelector(".message-bubble-content");
+
+    try {
+      contentEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+          <span class="cursor-blink" style="background:#a855f7;width:8px;height:8px;border-radius:50%;"></span>
+          <span>Generazione video in corso (rendering sequenza fotogrammi su nodo GPU ComfyUI)…</span>
+        </div>
+      `;
+
+      const genResp = await fetch(`${gatewayUrl}/web/video/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt, duration: 4.0, fps: 24 })
+      });
+
+      const genData = await genResp.json();
+      if (!genResp.ok || !genData.ok) {
+        throw new Error(genData.error || "Errore accodamento job video");
+      }
+
+      const jobId = genData.job_id;
+      let finished = false;
+      let attempts = 0;
+
+      while (!finished && attempts < 90) {
+        attempts++;
+        await new Promise(r => setTimeout(r, 2000));
+        const stResp = await fetch(`${gatewayUrl}/web/image/status?id=${jobId}`);
+        if (!stResp.ok) continue;
+        const stData = await stResp.json();
+
+        if (stData.status === "done") {
+          finished = true;
+          const videoUrl = `${gatewayUrl}/web/image/file?name=${encodeURIComponent(stData.file)}`;
+          contentEl.innerHTML = `
+            <div style="margin-top:4px;">
+              <div style="margin-bottom:8px;font-size:12px;color:var(--muted);">
+                🎬 Video generato con successo su nodo GPU HyperSpace in ${(stData.duration_ms / 1000).toFixed(1)}s
+              </div>
+              <video src="${videoUrl}" controls autoplay loop playsinline style="max-width:100%;border-radius:12px;border:1px solid var(--line);box-shadow:0 8px 30px #00000060;display:block;"></video>
+              <div style="margin-top:8px;">
+                <a href="${videoUrl}" download="video-${jobId}.mp4" class="msg-action-btn" style="text-decoration:none;">⬇️ Scarica MP4</a>
+              </div>
+            </div>
+          `;
+          break;
+        } else if (stData.status === "failed") {
+          throw new Error(stData.error || "Generazione video fallita");
+        }
+      }
+
+      if (!finished) {
+        contentEl.innerHTML = `⚠️ Tempo di attesa superato. Il job video (ID: <code>${jobId}</code>) è ancora in elaborazione sul cluster.`;
+      }
+    } catch (err) {
+      contentEl.innerHTML = `<span style="color:var(--err);">❌ Errore Video: ${err.message}</span>`;
+    } finally {
+      isGenerating = false;
+      $("sendBtn").disabled = false;
+      scrollToBottom();
+    }
+  }
+
+  // 5. GENERAZIONE MUSICA CON CLUSTER GPU COMFYUI (Stable Audio / MusicGen)
+  async function handleMusicGeneration(prompt) {
+    isGenerating = true;
+    $("sendBtn").disabled = true;
+
+    const botMsgRow = appendMessage("assistant", `🎵 Invio prompt musicale a Stable Audio: <i>"${prompt}"</i>…`);
+    const contentEl = botMsgRow.querySelector(".message-bubble-content");
+
+    try {
+      contentEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+          <span class="cursor-blink" style="background:var(--ok);width:8px;height:8px;border-radius:50%;"></span>
+          <span>Composizione traccia audio in corso su nodo GPU…</span>
+        </div>
+      `;
+
+      const genResp = await fetch(`${gatewayUrl}/web/music/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt, duration: 15.0 })
+      });
+
+      const genData = await genResp.json();
+      if (!genResp.ok || !genData.ok) {
+        throw new Error(genData.error || "Errore accodamento musica");
+      }
+
+      const jobId = genData.job_id;
+      let finished = false;
+      let attempts = 0;
+
+      while (!finished && attempts < 60) {
+        attempts++;
+        await new Promise(r => setTimeout(r, 2000));
+        const stResp = await fetch(`${gatewayUrl}/web/image/status?id=${jobId}`);
+        if (!stResp.ok) continue;
+        const stData = await stResp.json();
+
+        if (stData.status === "done") {
+          finished = true;
+          const audioUrl = `${gatewayUrl}/web/image/file?name=${encodeURIComponent(stData.file)}`;
+          contentEl.innerHTML = `
+            <div style="margin-top:4px;">
+              <div style="margin-bottom:8px;font-size:12px;color:var(--muted);">
+                🎵 Traccia musicale sintetizzata con successo su nodo GPU in ${(stData.duration_ms / 1000).toFixed(1)}s
+              </div>
+              <audio src="${audioUrl}" controls autoplay style="width:100%;margin-top:4px;"></audio>
+              <div style="margin-top:8px;">
+                <a href="${audioUrl}" download="audio-${jobId}.wav" class="msg-action-btn" style="text-decoration:none;">⬇️ Scarica Traccia Audio</a>
+              </div>
+            </div>
+          `;
+          break;
+        } else if (stData.status === "failed") {
+          throw new Error(stData.error || "Composizione audio fallita");
+        }
+      }
+
+      if (!finished) {
+        contentEl.innerHTML = `⚠️ Tempo di attesa superato. Il job audio (ID: <code>${jobId}</code>) è ancora in elaborazione.`;
+      }
+    } catch (err) {
+      contentEl.innerHTML = `<span style="color:var(--err);">❌ Errore Audio: ${err.message}</span>`;
+    } finally {
+      isGenerating = false;
+      $("sendBtn").disabled = false;
+      scrollToBottom();
+    }
+  }
+
   function appendMessage(role, text) {
     const chatInner = $("chatInner");
     const row = document.createElement("div");
     row.className = `message-row ${role}`;
+
+    let actionButtons = "";
+    if (role === "assistant") {
+      actionButtons = `
+        <div class="msg-action-bar">
+          <button class="msg-action-btn pdf-btn" type="button" title="Scarica questa risposta come documento PDF vettoriale A4">📑 Scarica PDF</button>
+          <button class="msg-action-btn tts-btn" type="button" title="Ascolta con sintesi vocale Kokoro TTS">🎙️ Ascolta</button>
+          <button class="msg-action-btn copy-btn" type="button" title="Copia negli appunti">📋 Copia</button>
+          <span class="tts-audio-slot" style="margin-left:6px;display:inline-flex;align-items:center;"></span>
+        </div>
+      `;
+    }
+
     row.innerHTML = `
       <div class="message-bubble">
         <div class="message-sender-tag">
           ${role === "user" ? "👤 Tu" : "✨ 00MESH AI Studio"}
         </div>
         <div class="message-bubble-content">${formatMarkdown(text)}</div>
+        ${actionButtons}
       </div>
     `;
+
+    if (role === "assistant") {
+      // PDF Button handler
+      const pdfBtn = row.querySelector(".pdf-btn");
+      if (pdfBtn) {
+        pdfBtn.addEventListener("click", async () => {
+          pdfBtn.textContent = "⏳ Generazione PDF…";
+          try {
+            const rawContent = row.querySelector(".message-bubble-content").innerText || text;
+            const resp = await fetch(`${gatewayUrl}/web/export/pdf`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: rawContent, title: "Report 00MESH AI Studio" })
+            });
+            if (resp.ok) {
+              const blob = await resp.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `00mesh-report-${Date.now()}.pdf`;
+              a.click();
+              URL.revokeObjectURL(url);
+              pdfBtn.textContent = "✓ PDF Scaricato!";
+              setTimeout(() => { pdfBtn.textContent = "📑 Scarica PDF"; }, 2500);
+            } else {
+              throw new Error("HTTP " + resp.status);
+            }
+          } catch (e) {
+            alert("Errore generazione PDF: " + e.message);
+            pdfBtn.textContent = "📑 Scarica PDF";
+          }
+        });
+      }
+
+      // TTS Voce Button handler (Kokoro)
+      const ttsBtn = row.querySelector(".tts-btn");
+      if (ttsBtn) {
+        ttsBtn.addEventListener("click", async () => {
+          ttsBtn.textContent = "⏳ Generazione Voce…";
+          try {
+            const rawContent = (row.querySelector(".message-bubble-content").innerText || text).slice(0, 1000);
+            const resp = await fetch(`${gatewayUrl}/web/audio/speech`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ input: rawContent, voice: "af_heart" })
+            });
+            if (resp.ok) {
+              const blob = await resp.blob();
+              const url = URL.createObjectURL(blob);
+              const slot = row.querySelector(".tts-audio-slot");
+              slot.innerHTML = `<audio controls autoplay src="${url}" style="height:26px;vertical-align:middle;"></audio>`;
+              ttsBtn.textContent = "🔊 Voce Pronta";
+            } else {
+              throw new Error("HTTP " + resp.status);
+            }
+          } catch (e) {
+            ttsBtn.textContent = "❌ Voce non disponibile";
+            setTimeout(() => { ttsBtn.textContent = "🎙️ Ascolta"; }, 2500);
+          }
+        });
+      }
+
+      // Copy Button handler
+      const copyBtn = row.querySelector(".copy-btn");
+      if (copyBtn) {
+        copyBtn.addEventListener("click", () => {
+          const rawContent = row.querySelector(".message-bubble-content").innerText || text;
+          navigator.clipboard.writeText(rawContent).then(() => {
+            copyBtn.textContent = "✓ Copiato!";
+            setTimeout(() => { copyBtn.textContent = "📋 Copia"; }, 2000);
+          });
+        });
+      }
+    }
+
     chatInner.appendChild(row);
     scrollToBottom();
     return row;

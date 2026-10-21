@@ -20,6 +20,9 @@ fi
 log "fermo il web-node"
 pkill -TERM -f 'node serve.mjs' 2>/dev/null || true
 
+log "fermo Kokoro TTS"
+pkill -TERM -f 'kokoro_tts_service.py' 2>/dev/null || true
+
 editor_domain="gui/$(id -u)/com.hyperspace.tiktok-editor"
 if launchctl print "$editor_domain" >/dev/null 2>&1; then
   log "fermo TikTok editor"

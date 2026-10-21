@@ -84,7 +84,19 @@ FAMIGLIA_SD15 = "sd15"
 # (UNet + CLIP + VAE insieme): cambiano i numeri, non i nodi. Qwen-Image invece è
 # GGUF + text encoder + VAE separati.
 FAMIGLIE_CHECKPOINT = (FAMIGLIA_SDXL, FAMIGLIA_SD15)
-FAMIGLIE = (FAMIGLIA_DEFAULT, *FAMIGLIE_CHECKPOINT)
+
+# Famiglie Multimodali (Video e Musica) per ComfyUI ed HP OMEN
+FAMIGLIA_VIDEO_LTX = "video:ltx"
+FAMIGLIA_VIDEO_WAN = "video:wan2"
+FAMIGLIA_VIDEO_ANIMATEDIFF = "video:animatediff"
+FAMIGLIA_MUSICA_STABLE = "music:stable-audio"
+FAMIGLIA_MUSICA_MUSICGEN = "music:musicgen"
+
+FAMIGLIE_VIDEO = (FAMIGLIA_VIDEO_LTX, FAMIGLIA_VIDEO_WAN, FAMIGLIA_VIDEO_ANIMATEDIFF, "ltx-video", "wan2.1", "animatediff")
+FAMIGLIE_MUSICA = (FAMIGLIA_MUSICA_STABLE, FAMIGLIA_MUSICA_MUSICGEN, "stable-audio", "musicgen")
+FAMIGLIE_MULTIMODALI = (*FAMIGLIE_VIDEO, *FAMIGLIE_MUSICA)
+
+FAMIGLIE = (FAMIGLIA_DEFAULT, *FAMIGLIE_CHECKPOINT, *FAMIGLIE_MULTIMODALI)
 
 
 def usa_checkpoint(famiglia: str) -> bool:
@@ -114,6 +126,30 @@ def famiglie_capaci(capace_di) -> tuple[str, ...]:
         return ()
     pezzi = capace_di.split(",") if isinstance(capace_di, str) else capace_di
     return tuple(str(p).strip().lower() for p in pezzi if str(p).strip())
+
+
+def determina_tipo(famiglia_o_tipo: str) -> str:
+    """Restituisce 'video', 'music' o 'image' a partire da tipo o famiglia."""
+    s = str(famiglia_o_tipo or "").strip().lower()
+    if s in ("video", "clip") or s.startswith("video:") or s in ("ltx-video", "wan2.1", "animatediff"):
+        return "video"
+    if s in ("music", "audio") or s.startswith("music:") or s in ("stable-audio", "musicgen"):
+        return "music"
+    return "image"
+
+
+def determina_famiglia(modello: str) -> str:
+    """Restituisce la famiglia corrispondente al nome modello o stringa."""
+    m = str(modello or "").strip().lower()
+    if any(k in m for k in ("ltx", "wan", "animatediff", "video")):
+        return FAMIGLIA_VIDEO_LTX if "ltx" in m else FAMIGLIA_VIDEO_WAN
+    if any(k in m for k in ("stable-audio", "musicgen", "audio", "music")):
+        return FAMIGLIA_MUSICA_STABLE if "stable" in m else FAMIGLIA_MUSICA_MUSICGEN
+    if "pony" in m or "turbo" in m or "sdxl" in m:
+        return FAMIGLIA_SDXL
+    if "sd15" in m or "chick" in m or "anna" in m:
+        return FAMIGLIA_SD15
+    return FAMIGLIA_DEFAULT
 
 
 def _modello_famiglia(famiglia: str) -> str:
@@ -224,7 +260,8 @@ def nuovo_job(prompt: str, *, negativo: str = "", larghezza: int = 768,
               altezza: int = 768, passi: int = 25, seed: int = 0,
               fix: int = 0,
               richiedente: str = "", canale: str = "", modello: str = "",
-              destinazione: str = "", famiglia: str = "",
+              destinazione: str = "", famiglia: str = "", tipo: str = "",
+              duration_seconds: float = 4.0, fps: int = 24, frames: int = 0,
               pose_image: str = "", pose_preset: str = "", pose_strength: float = 1.0,
               reference_image: str = "", reference_strength: float = RIFERIMENTO_FORZA_DEFAULT,
               lora_name: str = "", lora_strength: float = 0.8,
@@ -312,6 +349,10 @@ def nuovo_job(prompt: str, *, negativo: str = "", larghezza: int = 768,
         "lora_name": lora_name[:240],
         "lora_strength": max(-2.0, min(float(lora_strength), 2.0)),
         "destinazione": str(destinazione or "")[:64],
+        "tipo": (str(tipo or "").strip().lower() if tipo and str(tipo).strip().lower() != "image" else determina_tipo(famiglia)),
+        "duration_seconds": float(duration_seconds or 4.0),
+        "fps": int(fps or 24),
+        "frames": int(frames or 0),
         "consegnato": False,
         "stato": "pending",
         "creato_ts": float(adesso if adesso is not None else time.time()),
@@ -917,6 +958,13 @@ def workflow(job: dict, *, modello: dict | None = None, prefisso: str = "HyperSp
     ha un IP-Adapter, quindi il volto uscirebbe qualunque — e il job riuscirebbe.
     Qui si solleva, come fa ``workflow_checkpoint`` per le famiglie senza adattatore.
     """
+    tipo = (job or {}).get("tipo", "image")
+    famiglia = str((job or {}).get("famiglia", "")).lower()
+    if tipo == "video" or famiglia in FAMIGLIE_VIDEO:
+        return workflow_video(job, prefisso=prefisso)
+    if tipo in ("music", "audio") or famiglia in FAMIGLIE_MUSICA:
+        return workflow_music(job, prefisso=prefisso)
+
     if usa_checkpoint((job or {}).get("famiglia")):
         return workflow_checkpoint(job, modello=modello, prefisso=prefisso, jpeg=jpeg)
     # Il riferimento è per famiglia come la posa: Qwen-Image non ha un IP-Adapter,
@@ -1151,18 +1199,65 @@ def workflow_sd15(job: dict, *, modello: dict | None = None,
                                famiglia=FAMIGLIA_SD15)
 
 
-def immagini_da_history(run: dict) -> list:
-    """I file prodotti da una run di ComfyUI, letti dal suo blocco `history`.
+def workflow_video(job: dict, *, prefisso: str = "HyperSpace/video") -> dict:
+    """Grafo ComfyUI per generazione Video (LTX-Video o Wan2.1)."""
+    frames = max(17, min(97, int(job.get("fps", 24) * job.get("duration_seconds", 4.0))))
+    return {
+        "501": {"class_type": "LTXVideoLoader", "inputs": {"model_name": "ltx-video-2b-v0.9.safetensors"}},
+        "502": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["501", 1], "text": job["prompt"]}},
+        "503": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["501", 1], "text": job.get("negativo", "low quality, blurry, static")}},
+        "504": {"class_type": "EmptyLTXLatentVideo", "inputs": {
+            "width": int(job.get("larghezza", 768)), "height": int(job.get("altezza", 512)),
+            "length": frames, "batch_size": 1
+        }},
+        "505": {"class_type": "KSampler", "inputs": {
+            "model": ["501", 0], "positive": ["502", 0], "negative": ["503", 0],
+            "latent_image": ["504", 0], "seed": int(job.get("seed", 0)), "steps": int(job.get("passi", 25)),
+            "cfg": 3.0, "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0
+        }},
+        "506": {"class_type": "VAEDecode", "inputs": {"samples": ["505", 0], "vae": ["501", 2]}},
+        "507": {"class_type": "VHS_VideoCombine", "inputs": {
+            "images": ["506", 0], "frame_rate": int(job.get("fps", 24)),
+            "loop_count": 0, "filename_prefix": str(prefisso), "format": "video/h264-mp4"
+        }},
+    }
 
-    La forma è annidata (`outputs -> <nodo> -> images -> [...]`) e cambia fra
-    versioni: si legge quello che c'è invece di assumere una struttura.
-    """
+
+def workflow_music(job: dict, *, prefisso: str = "HyperSpace/audio") -> dict:
+    """Grafo ComfyUI per generazione Musica / Audio (Stable Audio o MusicGen)."""
+    seconds = float(job.get("duration_seconds", 15.0))
+    return {
+        "601": {"class_type": "StableAudioLoader", "inputs": {"model_name": "stable-audio-open-1.0.safetensors"}},
+        "602": {"class_type": "StableAudioTextEncode", "inputs": {"clip": ["601", 1], "prompt": job["prompt"]}},
+        "603": {"class_type": "StableAudioSampler", "inputs": {
+            "model": ["601", 0], "conditioning": ["602", 0],
+            "seconds": seconds, "steps": int(job.get("passi", 30)), "cfg": 6.0, "seed": int(job.get("seed", 0))
+        }},
+        "604": {"class_type": "SaveAudio", "inputs": {
+            "audio": ["603", 0], "filename_prefix": str(prefisso)
+        }},
+    }
+
+
+def immagini_da_history(run: dict) -> list:
+    """I file prodotti da una run di ComfyUI (immagini .jpg/.png, video .mp4/.webp, audio .wav/.mp3)."""
     file = []
-    for uscite in (run.get("outputs") or {}).values():
-        for immagine in (uscite or {}).get("images") or []:
-            nome = str(immagine.get("filename") or "").strip()
+    outputs = run.get("outputs") or {}
+    for uscite in outputs.values():
+        if not isinstance(uscite, dict):
+            continue
+        collezioni = (
+            (uscite.get("images") or []) +
+            (uscite.get("gifs") or []) +
+            (uscite.get("videos") or []) +
+            (uscite.get("audio") or [])
+        )
+        for item in collezioni:
+            if not isinstance(item, dict):
+                continue
+            nome = str(item.get("filename") or "").strip()
             if not nome:
                 continue
-            cartella = str(immagine.get("subfolder") or "").strip("/")
+            cartella = str(item.get("subfolder") or "").strip("/")
             file.append(f"{cartella}/{nome}".lstrip("/"))
     return file

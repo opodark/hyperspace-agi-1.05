@@ -7022,5 +7022,42 @@ In accordo con la direttiva dell'utente ("lasciamo stare sta spazzatura di X pen
    - `pytest tests/test_licensing.py` -> 7/7 passed.
    - Nessun commit e nessun push effettuato senza conferma esplicita (Regola 3 `AGENTS.md`).
 
+## 2026-10-21 — Antigravity → utente, Cips/Cline, Codex — Esportazione PDF deterministica, Kokoro TTS (Open WebUI) e Multimodalità Video/Musica ComfyUI
+
+### Cosa è stato fatto
+
+1. **Risoluzione Routing Code Immagini & Chiarimento Job**:
+   - Identificato nel registro code (`data/control-plane/image-jobs.json`) il job `8f2f8e52cf8f` ("my grranmother in wheelchair...").
+   - Il routing della coda pull-based è guidato da `famiglia`: la rotta `/web/image/generate` assegna di default `sdxl-turbo`. Sul Mac il LaunchAgent `com.hyperspace.comfy-bridge.plist` era attivo in ascolto su `sdxl-turbo,sd15`: ha fatto il claim in 280ms ed eseguito il rendering con CyberRealistic Pony. Per far elaborare i job su HP OMEN con GPU RTX 3070, il bridge ComfyUI dell'OMEN deve girare tramite `start-surfaces.ps1 -Comfy` (specificando le famiglie abilitate o lasciando wildcard).
+
+2. **Punto 1 — Generazione PDF Deterministica e Istantanea nel Web Node**:
+   - Creato modulo nativo `shared/pdf_generator.py` basato su ReportLab (già presente nell'ambiente del repository).
+   - Genera layout editoriale A4 con numerazione "Pagina X di Y", header istituzionale HyperSpace, gestione tabelle, blocchi codice tipografici e Markdown in <50ms, superando i loop instabili delle pipeline basate su planner LLM.
+   - Aggiunta rotta `POST /web/export/pdf` in `control-plane/cp/webnode.py`.
+   - Aggiunto pulsante `📑 Scarica PDF` sotto ogni messaggio assistant in `web-node/ai.html`.
+
+3. **Punto 2 — Servizio Kokoro TTS (82M) Compatibile OpenAI per Open WebUI**:
+   - Creato microservizio `scripts/kokoro_tts_service.py` su porta 8880 con endpoint standard `POST /v1/audio/speech`, `GET /v1/models` e `GET /health`.
+   - Compatibile nativamente con Open WebUI: basta configurare il TTS Engine di Open WebUI su `OpenAI`, URL `http://localhost:8880/v1` (o proxy del control-plane `http://localhost:8085/v1`) e voce `af_heart`.
+   - Supporta sia l'inferenza ad alta efficienza ONNX (`kokoro-onnx`) che fallback automatico su sintesi di sistema (es. macOS `say` o standard library WAV generator).
+   - Integrato avvio/stop in `scripts/start-surfaces.ps1`, `scripts/start-all-macos.sh` e `scripts/stop-all-macos.sh`.
+   - Aggiunta rotta proxy `POST /web/audio/speech` nel control-plane e pulsante `🎙️ Ascolta` nei messaggi del web-node.
+
+4. **Punto 3 — Generazione Multimodale Video e Musica su Mesh ComfyUI**:
+   - Aggiornato `shared/image_jobs.py` con supporto esteso ai job non-statici:
+     - Tipi aggiunti: `video`, `music`, `audio`.
+     - Famiglie supportate: `video:ltx`, `video:wan2`, `video:animatediff`, `music:stable-audio`, `music:musicgen`.
+     - Costruttori di grafo dedicati: `workflow_video` (LTX-Video / Wan2.1 con VHS_VideoCombine) e `workflow_music` (Stable Audio Open / MusicGen).
+     - Riconoscimento ed estrazione artefatti multiformato (.mp4, .webp animati, .mp3, .wav) da `immagini_da_history`.
+   - Aggiunte rotte dedicate in `control-plane/cp/webnode.py`: `POST /web/video/generate` e `POST /web/music/generate`.
+   - Aggiunti controlli dedicati in `web-node/ai.html`: bottoni chip `🎬 Video` e `🎵 Musica` con dialoghi modali per parametri (durata, fps, passi, prompt).
+   - Pacchetto statico web-node ricompilato tramite `scripts/build-web-node-aruba.sh`.
+
+5. **Test & Verifiche**:
+   - `tests/test_multimodal_jobs.py`: 8 passed (routing tipo, job video/music, grafi ComfyUI, estrazione output, ReportLab PDF).
+   - `tests/test_image_jobs.py`: 81 passed, 23 subtests passed (zero regressioni sulla coda immagini e prompt esistenti).
+   - `tests/test_licensing.py`: 7 passed (header Apache 2.0 verificati).
+   - Nessun commit e nessun push effettuato senza conferma esplicita dell'utente (Regola 3 `AGENTS.md`).
+
 
 

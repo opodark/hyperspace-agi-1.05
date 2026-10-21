@@ -679,6 +679,166 @@ def web_image_generate():
         return jsonify({"ok": False, "error": f"Impossibile accodare il job: {exc}"}), 500
 
 
+@_bp.route('/web/export/pdf', methods=['POST', 'OPTIONS'])
+def web_export_pdf():
+    """Compilazione deterministica A4 di un testo Markdown in PDF con ReportLab."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    data = request.get_json(force=True, silent=True) or {}
+    content = str(data.get("content", "")).strip()
+    title = str(data.get("title", "Documento HyperSpace")).strip() or "Documento HyperSpace"
+    subtitle = str(data.get("subtitle", "")).strip()
+    author = str(data.get("author", "HyperSpace AGI")).strip()
+
+    if not content:
+        return jsonify({"ok": False, "error": "Contenuto markdown mancante"}), 400
+
+    try:
+        from shared.pdf_generator import generate_pdf_from_markdown
+        from flask import Response
+        pdf_bytes = generate_pdf_from_markdown(content, title=title, subtitle=subtitle, author=author)
+        safe_fn = re.sub(r'[^a-zA-Z0-9_\-]+', '_', title.lower()).strip('_')[:50] or "documento"
+        resp = Response(pdf_bytes, mimetype="application/pdf")
+        resp.headers["Content-Disposition"] = f'attachment; filename="{safe_fn}.pdf"'
+        return resp
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Errore generazione PDF: {exc}"}), 500
+
+
+@_bp.route('/web/audio/speech', methods=['POST', 'OPTIONS'])
+@_bp.route('/v1/audio/speech', methods=['POST', 'OPTIONS'])
+def web_audio_speech():
+    """Sintesi vocale compatibile OpenAI (Kokoro TTS / Open WebUI)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    data = request.get_json(force=True, silent=True) or {}
+    text = str(data.get("input", "")).strip()
+    if not text:
+        return jsonify({"error": "Parametro 'input' mancante"}), 400
+
+    voice = str(data.get("voice", "af_heart")).strip()
+    speed = float(data.get("speed", 1.0))
+    fmt = str(data.get("response_format", "wav")).strip().lower()
+
+    # 1. Tenta chiamata al servizio Kokoro locale su porta 8880 se attivo
+    kokoro_url = os.getenv("KOKORO_URL", "http://127.0.0.1:8880")
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            f"{kokoro_url}/v1/audio/speech",
+            data=json.dumps({"input": text, "voice": voice, "speed": speed, "response_format": fmt}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=15) as res:
+            audio_bytes = res.read()
+            from flask import Response
+            return Response(audio_bytes, mimetype=f"audio/{fmt}")
+    except Exception:
+        pass
+
+    # 2. Fallback sintetico locale (senza dipendenze esterne)
+    from scripts.kokoro_tts_service import _generate_fallback_wav
+    from flask import Response
+    wav_bytes = _generate_fallback_wav(text)
+    return Response(wav_bytes, mimetype="audio/wav")
+
+
+@_bp.route('/web/video/generate', methods=['POST', 'OPTIONS'])
+def web_video_generate():
+    """Accoda una richiesta di generazione video (LTX-Video / Wan2.1)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    data = request.get_json(force=True, silent=True) or {}
+    prompt = str(data.get("prompt", "")).strip()
+    if not prompt:
+        return jsonify({"ok": False, "error": "Prompt video mancante"}), 400
+
+    q = _get_image_queue()
+    if q is None:
+        return jsonify({"ok": False, "error": "Coda media ComfyUI non disponibile"}), 503
+
+    duration = min(8.0, max(1.0, float(data.get("duration", 4.0))))
+    fps = min(30, max(12, int(data.get("fps", 24))))
+    family = str(data.get("family", "video:ltx")).strip().lower()
+    negative = str(data.get("negative", "low quality, blurry, static, jittery")).strip()
+
+    from shared.image_jobs import nuovo_job
+    try:
+        job = q.accoda(nuovo_job(
+            prompt,
+            negativo=negative,
+            larghezza=int(data.get("width", 768)),
+            altezza=int(data.get("height", 512)),
+            passi=int(data.get("steps", 25)),
+            richiedente=str(data.get("requester", "ai-studio-video")),
+            canale="web",
+            famiglia=family,
+            tipo="video",
+            duration_seconds=duration,
+            fps=fps,
+            destinazione="web-ai-studio"
+        ))
+        push_log('channel', 'Job Video accodato per GPU ComfyUI',
+                 detail=f"id={job['id']} family={family} {duration}s",
+                 status='info')
+        return jsonify({
+            "ok": True,
+            "job_id": job["id"],
+            "status": "queued",
+            "type": "video",
+            "family": family,
+            "duration": duration
+        }), 201
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@_bp.route('/web/music/generate', methods=['POST', 'OPTIONS'])
+def web_music_generate():
+    """Accoda una richiesta di generazione musica / audio (Stable Audio / MusicGen)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    data = request.get_json(force=True, silent=True) or {}
+    prompt = str(data.get("prompt", "")).strip()
+    if not prompt:
+        return jsonify({"ok": False, "error": "Prompt musicale mancante"}), 400
+
+    q = _get_image_queue()
+    if q is None:
+        return jsonify({"ok": False, "error": "Coda media ComfyUI non disponibile"}), 503
+
+    duration = min(47.0, max(5.0, float(data.get("duration", 15.0))))
+    family = str(data.get("family", "music:stable-audio")).strip().lower()
+
+    from shared.image_jobs import nuovo_job
+    try:
+        job = q.accoda(nuovo_job(
+            prompt,
+            negativo=str(data.get("negative", "low quality, noisy, distorted")),
+            passi=int(data.get("steps", 30)),
+            richiedente=str(data.get("requester", "ai-studio-music")),
+            canale="web",
+            famiglia=family,
+            tipo="music",
+            duration_seconds=duration,
+            destinazione="web-ai-studio"
+        ))
+        push_log('channel', 'Job Musica accodato per GPU ComfyUI',
+                 detail=f"id={job['id']} family={family} {duration}s",
+                 status='info')
+        return jsonify({
+            "ok": True,
+            "job_id": job["id"],
+            "status": "queued",
+            "type": "music",
+            "family": family,
+            "duration": duration
+        }), 201
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @_bp.route('/web/image/status', methods=['GET', 'OPTIONS'])
 def web_image_status():
     """Verifica lo stato di avanzamento di un job ComfyUI."""

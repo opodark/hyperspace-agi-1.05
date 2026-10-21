@@ -25,6 +25,7 @@ param(
     [switch]$Laya,
     [switch]$Graphify,
     [switch]$Power,
+    [switch]$Kokoro,
     [switch]$Bonsai,
     [switch]$Check,
     [switch]$Stop
@@ -40,7 +41,7 @@ function Warn($m) { Write-Host "[warn]     $m" -ForegroundColor Yellow }
 function Fail($m) { Write-Host "[error]    $m" -ForegroundColor Red }
 function Head($m) { Write-Host ""; Write-Host "== $m ==" -ForegroundColor Cyan }
 
-if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Power -and -not $Bonsai -and -not $Stop) {
+if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not $Graphify -and -not $Power -and -not $Bonsai -and -not $Kokoro -and -not $Stop) {
     # Nessuna scelta = tutte le superfici essenziali abilitate per default
     $Telegram = $true
     $Comfy = $true
@@ -48,6 +49,7 @@ if (-not $Telegram -and -not $Comfy -and -not $Gateway -and -not $Laya -and -not
     $Laya = $true
     $Graphify = $true
     $Power = $true
+    $Kokoro = $true
     # Bonsai 2 dismesso/disarmato a favore del runtime LFM 2.5 / Ollama nativo
     $Bonsai = $false
 }
@@ -74,6 +76,7 @@ $ponteComfy = Join-Path $Root 'integrations\comfyui\comfy_bridge.py'
 $gatewayImmagini = Join-Path $Root 'integrations\comfyui\start-gateway.ps1'
 $scriptGraphify = Join-Path $Root 'scripts\graphify_surface.py'
 $scriptPower = Join-Path $Root 'scripts\power_monitor.py'
+$scriptKokoro = Join-Path $Root 'scripts\kokoro_tts_service.py'
 $python = Join-Path $Root '.venv\Scripts\python.exe'
 if (-not (Test-Path $python)) { $python = 'python' }
 
@@ -83,11 +86,12 @@ $gatewayAttivi = Get-Processi 'webui_gateway.py'
 $layaAttivi = Get-Processi 'laya_service.py'
 $graphifyAttivi = Get-Processi 'graphify_surface.py'
 $powerAttivi = Get-Processi 'power_monitor.py'
+$kokoroAttivi = Get-Processi 'kokoro_tts_service.py'
 $bonsaiAttivi = @(Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue)
 
 if ($Stop) {
     Head "Stop Superfici Esterne"
-    $tutti = @($telegramAttivi; $comfyAttivi; $gatewayAttivi; $layaAttivi; $graphifyAttivi; $powerAttivi) |
+    $tutti = @($telegramAttivi; $comfyAttivi; $gatewayAttivi; $layaAttivi; $graphifyAttivi; $powerAttivi; $kokoroAttivi) |
              Where-Object { $_ -and $_.ProcessId }
     foreach ($processo in $tutti) {
         Stop-Process -Id $processo.ProcessId -Force -ErrorAction SilentlyContinue
@@ -152,6 +156,9 @@ else { Warn "ComfyUI Desktop host: spento su porta 8188" }
 $hermesConn = Get-NetTCPConnection -LocalPort 8098 -State Listen -ErrorAction SilentlyContinue
 if ($hermesConn) { Log "Hermes Memory Bridge: attivo (PID $($hermesConn.OwningProcess -join ', '), porta 8098)" }
 else { Warn "Hermes Memory Bridge: porta 8098 non in ascolto" }
+
+if ($kokoroAttivi.Count) { Log "servizio Kokoro TTS: attivo (PID $($kokoroAttivi.ProcessId -join ', '), porta 8880)" }
+else { Warn "servizio Kokoro TTS: spento su porta 8880" }
 
 if ($bonsaiAttivi.Count) { Log "Bonsai 2 server (llama-server): attivo (PID $($bonsaiAttivi.Id -join ', '), porta 8082)" }
 else { Warn "Bonsai 2 server (llama-server): spento su porta 8082" }
@@ -221,6 +228,19 @@ if ($Power -and -not $powerAttivi.Count) {
         -RedirectStandardOutput $logPower `
         -RedirectStandardError $logPowerErr | Out-Null
     Log "monitor energetico avviato (log: data\power-monitor.log)"
+}
+if ($Kokoro -and -not $kokoroAttivi.Count) {
+    $dirData = Join-Path $Root "data"
+    if (-not (Test-Path $dirData)) { New-Item -ItemType Directory -Path $dirData -Force | Out-Null }
+    $logKokoro = Join-Path $dirData 'kokoro-tts.log'
+    $logKokoroErr = Join-Path $dirData 'kokoro-tts.err.log'
+    Start-Process -FilePath $python `
+        -ArgumentList @($scriptKokoro) `
+        -WorkingDirectory $Root `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $logKokoro `
+        -RedirectStandardError $logKokoroErr | Out-Null
+    Log "servizio Kokoro TTS avviato (log: data\kokoro-tts.log, http://127.0.0.1:8880)"
 }
 if ($Bonsai -and -not $bonsaiAttivi.Count) {
     $scriptBonsai = Join-Path $Root 'scripts\start_bonsai_daemon.ps1'
