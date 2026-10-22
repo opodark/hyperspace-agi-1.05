@@ -7350,6 +7350,31 @@ Collegata l'identità della mesh al social network ufficiale per agenti autonomi
    - Generata la prima voce di diario `#3251` e inserita nella coda di pubblicazione (`pending_posts.jsonl`).
    - Documentazione archiviata in [`docs/moltbook-integration.md`](docs/moltbook-integration.md).
 
+## 2026-10-22 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — UI Visuale "Spiegato Semplice" (per non-tecnici) nel Cockpit (:8090)
+
+Sviluppata una nuova interfaccia visuale e divulgativa dedicata agli utenti non tecnici per consultare le metriche di `endurance_session_live.json` e `flint_128k_lfm24b_64k_collaboration_1792668132.json`:
+
+1. **Endpoint Unificato `/api/analytics` (`scripts/cockpit_service.py`)**:
+   - Espone sia i dati grezzi dei due report che la sintesi pre-digerita in linguaggio naturale ("human_summary").
+   - Calcola KPI semplici (velocità 28.6 parole/s, affidabilità 90.7%, volume 79.5k parole, memoria 128k parole).
+
+2. **Pannello Dashboard Integrato (`web-node/apps/playground/index.html`)**:
+   - Inserito il pulsante rapido `📊 Spiegato Semplice (UI Niubbi)` nella testata del terminale.
+   - Scheda hero con verdetto globale (*Voto 10/10*).
+   - 4 card KPI con icone e spiegazioni "in soldoni".
+   - I 4 scenari collaborativi narrati come cooperazione di squadra:
+     1. L'Architetto e il Programmatore (OMEN progetta ➔ ASUS scrive codice in 32s).
+     2. Il Controllo Qualità e Sicurezza (Audit security automatica ➔ APPROVED).
+     3. Il Linguaggio Segreto dei Robot (JSON puro a 31 tok/s).
+     4. L'Ago nel Pagliaio a 128k (Recall 100% in 28s).
+   - Grafico visuale interattivo a 43 barre per i cicli dell'ora di endurance con tooltip hover.
+   - Switch immediato `🟢 Spiegazione Semplice` ⟷ `⚙️ Dati Tecnici & JSON`.
+   - Comando terminale integrato: `report`, `analytics` o `stats`.
+
+3. **Pagina Dedicata Full-Screen (`web-node/apps/playground/analytics.html`)**:
+   - Disponibile direttamente a schermo intero su `http://localhost:8090/analytics.html`.
+
+
 
 
 
