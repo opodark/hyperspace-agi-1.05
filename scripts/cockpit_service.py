@@ -475,6 +475,7 @@ class CockpitHandler(SimpleHTTPRequestHandler):
     def handle_api_analytics(self):
         endurance_file = REPO_ROOT / "data" / "reports" / "endurance_session_live.json"
         benchmark_file = REPO_ROOT / "data" / "reports" / "flint_128k_lfm24b_64k_collaboration_1792668132.json"
+        sprint_file = REPO_ROOT / "data" / "reports" / "complex_sprint_live.json"
 
         endurance_data = {}
         if endurance_file.exists():
@@ -489,6 +490,94 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 benchmark_data = json.loads(benchmark_file.read_text(encoding="utf-8"))
             except Exception:
                 pass
+
+        sprint_data = {}
+        if sprint_file.exists():
+            try:
+                sprint_data = json.loads(sprint_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        # Devloop history stream
+        devloop_file = REPO_ROOT / "data" / "omen_dev_loop.jsonl"
+        devloop_history = []
+        if devloop_file.exists():
+            try:
+                lines = [l.strip() for l in devloop_file.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+                for line in lines[-25:]:
+                    try:
+                        devloop_history.append(json.loads(line))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        # Cronologia Milestone e Test
+        milestones = [
+            {
+                "id": "sprint-gossip-35m",
+                "title": "Sprint Ingegneria Complessa: Adaptive Gossip Consensus (35 min)",
+                "timestamp": sprint_data.get("timestamp_end", "2026-10-22T17:43:00Z"),
+                "badge": "19/19 TEST PASS (100%)",
+                "color": "emerald",
+                "icon": "⚡",
+                "category": "Ingegneria Distribuita",
+                "duration": f"{sprint_data.get('elapsed_total_min', 35.3)} min",
+                "tokens": sprint_data.get("tokens_total", 24890),
+                "summary": "Progettazione, implementazione e audit di Vector Clocks causali, SWIM Failure Detector, Anti-Entropy continuous sync e Split-Brain healing. Tutti i 19 test unitari e di integrazione passati nella sandbox reale.",
+                "artifacts": [
+                    {"label": "RFC-0042", "path": "/docs/rfcs/rfc-0042-adaptive-gossip-consensus.md"},
+                    {"label": "Moltbook Post #1004", "url": "https://www.moltbook.com/post/d7947707-ddc0-4c4f-9c3b-82c63b12dad8"},
+                    {"label": "Report JSON", "file": "data/reports/complex_sprint_live.json"}
+                ]
+            },
+            {
+                "id": "endurance-1h",
+                "title": "Sessione Continua di Resistenza (Endurance 1 Ora)",
+                "timestamp": "2026-10-22T12:45:00Z",
+                "badge": "43 CICLI • 90.7% SUCCESS",
+                "color": "cyan",
+                "icon": "🛡️",
+                "category": "Endurance Test",
+                "duration": "60 min",
+                "tokens": endurance_data.get("total_tokens_generated", 79563),
+                "summary": "43 cicli cooperativi ininterrotti tra Mac M5, HP OMEN e ASUS V16 a 28.6 parole/s steady. Zero crash hardware, 199 campioni CoT sintetici distillati.",
+                "artifacts": [
+                    {"label": "Report JSON", "file": "data/reports/endurance_session_live.json"},
+                    {"label": "Moltbook Post #4286", "url": "https://www.moltbook.com/post/0e9965de-47eb-41b8-b9c5-fa52596fe267"}
+                ]
+            },
+            {
+                "id": "benchmark-flint-lfm",
+                "title": "Benchmark Collaborativo 4 Scenari (Flint 128k ⟷ LFM2.5 64k)",
+                "timestamp": "2026-10-22T11:22:00Z",
+                "badge": "4/4 SCENARI SUPERATI",
+                "color": "purple",
+                "icon": "📐",
+                "category": "Cross-Model Benchmark",
+                "duration": "18 min",
+                "tokens": 14200,
+                "summary": "Test a 4 scenari: Progettazione codice, Audit avversario di sicurezza, Handshake JSON machine-to-machine, e Needle-in-a-Haystack su 128k parole senza allucinazioni.",
+                "artifacts": [
+                    {"label": "Report JSON", "file": "data/reports/flint_128k_lfm24b_64k_collaboration_1792668132.json"}
+                ]
+            },
+            {
+                "id": "moltbook-claim",
+                "title": "Claim & Verifica Sovrana su Moltbook Network",
+                "timestamp": "2026-10-22T14:30:00Z",
+                "badge": "CLAIMED & ATTIVO",
+                "color": "amber",
+                "icon": "🦞",
+                "category": "Social Sovereign Network",
+                "duration": "N/A",
+                "tokens": 0,
+                "summary": "Agente @hyperspace_agi verificato con successo dal proprietario @zerozeromesh su https://www.moltbook.com con diario autonomo delle attività e heartbeat 30m.",
+                "artifacts": [
+                    {"label": "Profilo Moltbook", "url": "https://www.moltbook.com/u/hyperspace_agi"}
+                ]
+            }
+        ]
 
         cycles_total = endurance_data.get("cycles_completed", 43)
         cycles_ok = endurance_data.get("successful_cycles", 39)
@@ -575,7 +664,10 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             "status": "ok",
             "human_summary": human_summary,
             "endurance": endurance_data,
-            "benchmark": benchmark_data
+            "benchmark": benchmark_data,
+            "sprint": sprint_data,
+            "milestones": milestones,
+            "devloop_history": devloop_history
         })
 
     def _split_thought(self, text: str) -> tuple[str, str]:

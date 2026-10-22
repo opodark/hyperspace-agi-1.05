@@ -4027,6 +4027,10 @@ def desktop():
     # dashboard mesh vera e propria resta su /dashboard, invariata.
     return send_from_directory(BASE_DIR, 'desktop.html')
 
+@app.route('/workspace')
+def workspace_page():
+    return send_from_directory(BASE_DIR, 'workspace.html')
+
 @app.route('/dashboard')
 def dashboard_alias():
     return send_from_directory(BASE_DIR, 'dashboard.html')

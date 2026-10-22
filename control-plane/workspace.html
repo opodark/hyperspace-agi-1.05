@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HyperSpace AGI — Agentic Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #090a0f;
+  --panel: #11131a;
+  --panel-alt: #161922;
+  --panel-hover: #1c202c;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(0, 217, 192, 0.4);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --text: #e6e9f0;
+  --text-muted: #8b92a5;
+  --text-faint: #596175;
+  --primary: #00d9c0;
+  --primary-glow: rgba(0, 217, 192, 0.2);
+  --primary-bg: rgba(0, 217, 192, 0.08);
+  --accent: #8b7cf6;
+  --accent-bg: rgba(139, 124, 246, 0.12);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.12);
+  --info: #38bdf8;
+  --info-bg: rgba(56, 189, 248, 0.12);
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-sm: 5px;
+  --tr: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); overflow: hidden; }
+
+/* Scrollbar minimale */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* Layout Principale */
+.app-container {
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  height: 100vh;
+  width: 100vw;
+  background: 
+    radial-gradient(circle at 10% 0%, rgba(0, 217, 192, 0.04), transparent 35%),
+    radial-gradient(circle at 90% 0%, rgba(139, 124, 246, 0.04), transparent 35%),
+    var(--bg);
+}
+
+/* Header */
+header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 50;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.brand-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.badge-v {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: 1px solid rgba(0, 217, 192, 0.3);
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+.nav-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+}
+.nav-link {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  transition: all var(--tr);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-link:hover {
+  background: var(--panel-alt);
+  color: var(--text);
+}
+.nav-link.active {
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.hdr-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 11px;
+  font-size: 0.74rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: border-color var(--tr);
+}
+.status-pill:hover { border-color: var(--primary); }
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+.status-dot.ok { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-dot.warn { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.status-dot.err { background: var(--error); box-shadow: 0 0 6px var(--error); }
+.status-dot.pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* Workspace Split-Screen: 3 Colonne */
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 310px 450px 1fr;
+  height: calc(100vh - 52px);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Colonna 1: Missioni & Filtri */
+.col-missions {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.missions-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.missions-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.section-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.btn-new-mission {
+  background: var(--primary);
+  color: #0b0c10;
+  font-weight: 600;
+  font-size: 0.76rem;
+  border: none;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--tr);
+}
+.btn-new-mission:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--panel-alt);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.filter-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--tr);
+}
+.filter-tab.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 600;
+}
+.missions-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mission-card {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: pointer;
+  transition: all var(--tr);
+  position: relative;
+  overflow: hidden;
+}
+.mission-card:hover {
+  background: var(--panel-hover);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+.mission-card.active {
+  border-color: var(--primary);
+  background: rgba(0, 217, 192, 0.04);
+  box-shadow: 0 0 14px rgba(0, 217, 192, 0.08);
+}
+.mission-card.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary);
+}
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.card-id {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.badge-status {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-running { background: var(--primary-bg); color: var(--primary); border: 1px solid rgba(0, 217, 192, 0.25); }
+.badge-done { background: var(--success-bg); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.25); }
+.badge-planned { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(139, 124, 246, 0.25); }
+.badge-blocked { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.25); }
+.badge-failed { background: var(--error-bg); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.25); }
+.card-obj {
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+/* Colonna 2: Stream & DAG Timeline */
+.col-stream {
+  background: #0d0f14;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.stream-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.stream-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.stream-mission-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #fff;
+}
+.stream-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.btn-sm-action {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--tr);
+}
+.btn-sm-action:hover {
+  background: var(--panel-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.stream-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+.pill-info {
+  background: var(--panel-alt);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.pill-info b { color: var(--text); }
+
+/* DAG Task Flow Bar */
+.dag-section {
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dag-heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.dag-nodes-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.dag-node {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all var(--tr);
+}
+.dag-node:hover {
+  border-color: var(--primary);
+  background: var(--panel-hover);
+}
+.dag-node.active-task {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+.dag-arrow {
+  color: var(--text-faint);
+  font-size: 0.75rem;
+}
+
+/* Stream Messages Feed */
+.stream-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.event-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  animation: fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+}
+.event-role {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.event-role.planner { color: var(--accent); }
+.event-role.coder { color: var(--primary); }
+.event-role.verifier { color: var(--warning); }
+.event-role.system { color: var(--info); }
+.event-time { color: var(--text-faint); font-family: var(--font-mono); }
+.event-body { color: var(--text); }
+.event-tool-call {
+  margin-top: 8px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.event-tool-title {
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Prompt Box inferiore */
+.stream-input-wrap {
+  padding: 12px 18px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
+.prompt-form {
+  display: flex;
+  gap: 8px;
+}
+.prompt-inp {
+  flex: 1;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  transition: border-color var(--tr);
+}
+.prompt-inp:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+.btn-send {
+  background: var(--primary);
+  color: #0b0c10;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all var(--tr);
+}
+.btn-send:hover { filter: brightness(1.15); }
+
+/* Colonna 3: Artifact Canvas & Review */
+.col-canvas {
+  background: #090a0f;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+.canvas-header {
+  padding: 0 20px;
+  height: 52px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.canvas-tabs {
+  display: flex;
+  gap: 8px;
+  height: 100%;
+}
+.canvas-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 2px solid transparent;
+  transition: all var(--tr);
+}
+.canvas-tab:hover { color: var(--text); }
+.canvas-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+.canvas-meta {
+  font-size: 0.74rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.canvas-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Diff Viewer */
+.diff-container {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.diff-header {
+  background: var(--panel-alt);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.diff-content {
+  padding: 10px 0;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.diff-line {
+  padding: 1px 16px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.diff-line.add {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+.diff-line.del {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+.diff-line.info {
+  color: var(--text-faint);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Web Preview iframe */
+.web-preview-frame {
+  width: 100%;
+  flex: 1;
+  min-height: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+/* Document & Markdown Render */
+.doc-render {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  line-height: 1.6;
+  font-size: 0.88rem;
+}
+.doc-render h1, .doc-render h2, .doc-render h3 {
+  color: #fff;
+  margin: 16px 0 10px;
+}
+.doc-render h1:first-child { margin-top: 0; }
+.doc-render p { margin-bottom: 12px; }
+.doc-render pre {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+/* Verifier Gate Card */
+.gate-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gate-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.gate-verdict {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+}
+.checklist-item:first-child { border-top: none; }
+.check-icon { font-size: 0.95rem; }
+
+/* Sticky Human-In-The-Loop Action Bar */
+.hitl-bar {
+  background: #141720;
+  border-top: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 40;
+}
+.hitl-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hitl-icon { font-size: 1.4rem; }
+.hitl-text b { display: block; font-size: 0.84rem; color: #fff; margin-bottom: 2px; }
+.hitl-text span { font-size: 0.74rem; color: var(--text-muted); }
+.hitl-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-hitl {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--tr);
+}
+.btn-hitl-approve {
+  background: var(--success);
+  color: #0b0c10;
+}
+.btn-hitl-approve:hover { filter: brightness(1.15); box-shadow: 0 0 12px rgba(34, 197, 94, 0.3); }
+.btn-hitl-replan {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+.btn-hitl-replan:hover { background: var(--warning); color: #0b0c10; }
+.btn-hitl-reject {
+  background: var(--error-bg);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+.btn-hitl-reject:hover { background: var(--error); color: #fff; }
+
+/* Modali */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 540px;
+  max-width: 90vw;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.modal-close:hover { color: #fff; }
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.form-inp, .form-textarea {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-inp:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.recipes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.btn-recipe {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--tr);
+}
+.btn-recipe:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 40px;
+  gap: 12px;
+}
+.empty-icon { font-size: 2.8rem; opacity: 0.6; }
+.empty-title { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); }
+.empty-desc { font-size: 0.8rem; max-width: 320px; line-height: 1.4; }
+
+@media (max-width: 1024px) {
+  .workspace-grid { grid-template-columns: 280px 1fr; }
+  .col-canvas { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Header -->
+  <header>
+    <a href="/" class="brand">
+      <span class="brand-icon">🪐</span>
+      <span>HyperSpace</span>
+      <span class="badge-v">Workspace v1.05</span>
+    </a>
+
+    <nav class="nav-pills">
+      <a href="/workspace" class="nav-link active">⚡ Agent Workspace</a>
+      <a href="/dashboard" class="nav-link">📊 Mesh &amp; Telemetria</a>
+      <a href="/activity" class="nav-link">📟 Batch Anna</a>
+      <a href="/" class="nav-link">🚀 Launchpad</a>
+    </nav>
+
+    <div class="hdr-right">
+      <div class="status-pill" id="meshPill" title="Stato del cluster mesh">
+        <span class="status-dot ok" id="meshDot"></span>
+        <span id="meshLabel">Mesh Online</span>
+      </div>
+      <div class="status-pill" id="tokenPill" onclick="openTokenModal()" title="Token Operatore (DREAM_REVIEW_TOKEN)">
+        <span class="status-dot warn" id="tokenDot"></span>
+        <span id="tokenLabel">🔒 Inserisci Token</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Workspace Grid a 3 Colonne -->
+  <div class="workspace-grid">
+    
+    <!-- Colonna 1: Missioni & Filtri -->
+    <aside class="col-missions">
+      <div class="missions-header">
+        <div class="missions-top">
+          <span class="section-heading">Missioni Autonome</span>
+          <button class="btn-new-mission" onclick="openNewMissionModal()">
+            <span>+</span> Nuova Missione
+          </button>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setFilter('all', this)">Tutte</button>
+          <button class="filter-tab" onclick="setFilter('running', this)">In corso</button>
+          <button class="filter-tab" onclick="setFilter('review', this)">Review</button>
+          <button class="filter-tab" onclick="setFilter('done', this)">Concluse</button>
+        </div>
+      </div>
+
+      <div class="missions-list" id="missionsList">
+        <div class="empty-state">
+          <div class="empty-icon">⏳</div>
+          <div class="empty-title">Caricamento missioni...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Colonna 2: Stream & Timeline -->
+    <main class="col-stream">
+      <div class="stream-header" id="streamHeader">
+        <div class="stream-title-row">
+          <div class="stream-mission-title" id="streamTitle">Seleziona una missione per iniziare</div>
+          <div class="stream-actions" id="streamActions" style="display:none;">
+            <button class="btn-sm-action" id="btnStartMission" onclick="runCurrentMission()">Avvia</button>
+            <button class="btn-sm-action" id="btnCancelMission" onclick="cancelCurrentMission()">Annulla</button>
+          </div>
+        </div>
+        <div class="stream-pills-row" id="streamMetaRow">
+          <span class="pill-info" id="metaStatus">Stato: <b>—</b></span>
+          <span class="pill-info" id="metaBudget">Budget passi: <b>—</b></span>
+          <span class="pill-info" id="metaTasks">Task: <b>—</b></span>
+        </div>
+      </div>
+
+      <!-- DAG Task Timeline -->
+      <div class="dag-section" id="dagSection" style="display:none;">
+        <div class="dag-heading">
+          <span>DAG Avanzamento Task</span>
+          <span id="dagSummaryText">0/0 completati</span>
+        </div>
+        <div class="dag-nodes-wrap" id="dagNodesWrap"></div>
+      </div>
+
+      <!-- Event Feed -->
+      <div class="stream-feed" id="streamFeed">
+        <div class="empty-state">
+          <div class="empty-icon">🪐</div>
+          <div class="empty-title">Nessuna missione attiva</div>
+          <div class="empty-desc">Scegli una missione dalla colonna di sinistra oppure premi "Nuova Missione" per assegnare un obiettivo al team di agenti.</div>
+        </div>
+      </div>
+
+      <!-- Input Bar per istruzioni dirette -->
+      <div class="stream-input-wrap">
+        <form class="prompt-form" onsubmit="handleSendPrompt(event)">
+          <input type="text" class="prompt-inp" id="promptInput" placeholder="Invia un chiarimento, istruzione o rettifica all'agente..." autocomplete="off"/>
+          <button type="submit" class="btn-send">Invia</button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Colonna 3: Canvas Artefatto & Human-In-The-Loop -->
+    <section class="col-canvas">
+      <div class="canvas-header">
+        <div class="canvas-tabs">
+          <button class="canvas-tab active" onclick="switchCanvasTab('diff', this)">📝 Diff Sandbox</button>
+          <button class="canvas-tab" onclick="switchCanvasTab('web', this)">🌐 Web Preview</button>
+          <button class="canvas-tab" onclick="switchCanvasTab('doc', this)">📄 Report &amp; Output</button>
+          <button class="canvas-tab" onclick="switchCanvasTab('gate', this)">🛡️ Verifier Gate</button>
+          <button class="canvas-tab" onclick="switchCanvasTab('raw', this)">📜 Raw DAG</button>
+        </div>
+        <div class="canvas-meta" id="canvasMeta">Sandbox: isolata</div>
+      </div>
+
+      <div class="canvas-body" id="canvasBody">
+        <div class="empty-state">
+          <div class="empty-icon">📂</div>
+          <div class="empty-title">Canvas in attesa</div>
+          <div class="empty-desc">Quando l'agente genererà codice, documenti o modifiche, appariranno qui per essere ispezionati riga per riga prima dell'approvazione.</div>
+        </div>
+      </div>
+
+      <!-- Sticky Human-In-The-Loop Bar -->
+      <div class="hitl-bar" id="hitlBar" style="display:none;">
+        <div class="hitl-info">
+          <div class="hitl-icon">🛡️</div>
+          <div class="hitl-text">
+            <b>Revisione Operatore Richiesta</b>
+            <span>Le modifiche sono confinate nella sandbox. Nessun file reale è stato toccato.</span>
+          </div>
+        </div>
+        <div class="hitl-actions">
+          <button class="btn-hitl btn-hitl-approve" onclick="handleReview('approve')">✓ Approva &amp; Registra</button>
+          <button class="btn-hitl btn-hitl-replan" onclick="handleReview('replan')">✎ Modifiche (Replan)</button>
+          <button class="btn-hitl btn-hitl-reject" onclick="handleReview('reject')">✕ Rifiuta</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- Modal: Nuova Missione -->
+<div class="modal-overlay" id="newMissionModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span>Nuova Missione Autonoma Multi-Agente</span>
+      <button class="modal-close" onclick="closeNewMissionModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Ricette Pronte (1-Clic)</label>
+        <div class="recipes-row">
+          <button type="button" class="btn-recipe" onclick="fillRecipe('website')">🌐 Sito Web da zero</button>
+          <button type="button" class="btn-recipe" onclick="fillRecipe('audit')">🔍 Audit Architettura &amp; Dipendenze</button>
+          <button type="button" class="btn-recipe" onclick="fillRecipe('pdf')">📄 Presentazione &amp; Report PDF</button>
+          <button type="button" class="btn-recipe" onclick="fillRecipe('test')">⚡ Refactoring &amp; Pytest</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Obiettivo Principale</label>
+        <textarea class="form-textarea" id="newMissionObjective" placeholder="Cosa deve realizzare il team di agenti? (Es. Crea una landing page per HyperSpace con tema scuro e form di contatto)"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Criteri di Accettazione (uno per riga)</label>
+        <textarea class="form-textarea" id="newMissionCriteria" rows="3" placeholder="Es. Nessun errore di console&#10;Codice pulito in index.html&#10;Verifica superata con verdetto pass"></textarea>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.8rem;cursor:pointer;">
+          <input type="checkbox" id="newMissionStart" checked/>
+          <span>Avvia immediatamente la pianificazione ed esecuzione</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm-action" onclick="closeNewMissionModal()">Annulla</button>
+      <button class="btn-new-mission" onclick="submitCreateMission()">🚀 Pianifica ed Avvia</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Token Operatore -->
+<div class="modal-overlay" id="tokenModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span>Token Operatore HyperSpace</span>
+      <button class="modal-close" onclick="closeTokenModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.4;">
+        Tutte le rotte <code>/missions*</code> richiedono il token operatore (<code>DREAM_REVIEW_TOKEN</code>, almeno 32 caratteri). Il token viene salvato nel tuo browser e condiviso con la dashboard.
+      </p>
+      <div class="form-group">
+        <label class="form-label">DREAM_REVIEW_TOKEN</label>
+        <input type="password" class="form-inp" id="tokenInput" placeholder="Incolla il token segreto..."/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm-action" onclick="closeTokenModal()">Chiudi</button>
+      <button class="btn-new-mission" onclick="saveToken()">Salva Token</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Stato dell'applicazione
+let allMissions = [];
+let currentFilter = 'all';
+let currentMissionId = null;
+let currentMissionData = null;
+let currentCanvasTab = 'diff';
+let pollInterval = null;
+
+// Gestione Token Operatore
+function getOperatorToken() {
+  try {
+    return sessionStorage.getItem('hyperspaceDreamReviewToken') || 
+           localStorage.getItem('hyperspaceDreamReviewToken') || '';
+  } catch(e) {
+    return '';
+  }
+}
+
+function setOperatorToken(tok) {
+  const clean = String(tok || '').trim();
+  try {
+    if (clean) {
+      sessionStorage.setItem('hyperspaceDreamReviewToken', clean);
+      localStorage.setItem('hyperspaceDreamReviewToken', clean);
+    } else {
+      sessionStorage.removeItem('hyperspaceDreamReviewToken');
+      localStorage.removeItem('hyperspaceDreamReviewToken');
+    }
+  } catch(e) {}
+  updateTokenUI();
+}
+
+function updateTokenUI() {
+  const tok = getOperatorToken();
+  const dot = document.getElementById('tokenDot');
+  const label = document.getElementById('tokenLabel');
+  if (tok && tok.length >= 8) {
+    dot.className = 'status-dot ok';
+    label.textContent = '🔓 Token Attivo';
+  } else {
+    dot.className = 'status-dot warn';
+    label.textContent = '🔒 Inserisci Token';
+  }
+}
+
+function apiHeaders(json = false) {
+  const tok = getOperatorToken();
+  const h = {};
+  if (tok) h['Authorization'] = 'Bearer ' + tok;
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+
+// Inizializzazione
+window.addEventListener('DOMContentLoaded', async () => {
+  updateTokenUI();
+  await checkHealth();
+  await loadMissions();
+  pollInterval = setInterval(refreshCycle, 5000);
+});
+
+async function checkHealth() {
+  try {
+    const res = await fetch('/missions/status', { headers: apiHeaders() });
+    const dot = document.getElementById('meshDot');
+    const label = document.getElementById('meshLabel');
+    if (res.ok) {
+      const data = await res.json();
+      dot.className = 'status-dot ok';
+      label.textContent = data.loop ? 'Mesh Loop OK' : 'Mesh Online';
+    } else if (res.status === 401 || res.status === 503) {
+      dot.className = 'status-dot warn';
+      label.textContent = 'Token Richiesto';
+    } else {
+      dot.className = 'status-dot warn';
+      label.textContent = 'Control Plane ' + res.status;
+    }
+  } catch(e) {
+    document.getElementById('meshDot').className = 'status-dot err';
+    document.getElementById('meshLabel').textContent = 'Disconnesso';
+  }
+}
+
+async function refreshCycle() {
+  await loadMissions(true);
+  if (currentMissionId) {
+    await loadMissionDetail(currentMissionId, true);
+  }
+}
+
+// Caricamento elenco missioni
+async function loadMissions(silent = false) {
+  const listEl = document.getElementById('missionsList');
+  if (!getOperatorToken()) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔒</div>
+        <div class="empty-title">Token Operatore Assente</div>
+        <div class="empty-desc">Clicca su "Inserisci Token" in alto a destra per autenticare il workspace con il Control Plane.</div>
+      </div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch('/missions', { headers: apiHeaders() });
+    if (!res.ok) {
+      if (res.status === 401) {
+        listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Token non valido</div></div>`;
+        return;
+      }
+      throw new Error('HTTP ' + res.status);
+    }
+    const data = await res.json();
+    allMissions = data.missions || [];
+    renderMissionsList();
+
+    // Se non abbiamo nessuna missione selezionata, seleziona la prima attiva
+    if (!currentMissionId && allMissions.length > 0) {
+      selectMission(allMissions[0].id);
+    }
+  } catch(err) {
+    if (!silent) {
+      listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><div class="empty-title">Errore caricamento</div><div class="empty-desc">${err.message}</div></div>`;
+    }
+  }
+}
+
+function setFilter(filt, btn) {
+  currentFilter = filt;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMissionsList();
+}
+
+function renderMissionsList() {
+  const listEl = document.getElementById('missionsList');
+  let filtered = allMissions.slice();
+
+  if (currentFilter === 'running') {
+    filtered = filtered.filter(m => m.status === 'running');
+  } else if (currentFilter === 'review') {
+    filtered = filtered.filter(m => (m.pending_review && m.pending_review.length > 0) || m.status === 'blocked');
+  } else if (currentFilter === 'done') {
+    filtered = filtered.filter(m => m.status === 'done' || m.status === 'failed');
+  }
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <div class="empty-title">Nessuna missione trovata</div>
+        <div class="empty-desc">Nessun elemento per il filtro selezionato.</div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(m => {
+    const isAct = m.id === currentMissionId ? 'active' : '';
+    const badgeCls = 'badge-' + (m.status || 'planned');
+    const tasksCount = (m.tasks || []).length;
+    const tasksDone = (m.tasks || []).filter(t => t.status === 'done').length;
+
+    return `
+      <div class="mission-card ${isAct}" onclick="selectMission('${m.id}')">
+        <div class="card-top">
+          <span class="card-id">${m.id.slice(0, 14)}</span>
+          <span class="badge-status ${badgeCls}">${m.status}</span>
+        </div>
+        <div class="card-obj">${escapeHtml(m.objective || 'Nessun obiettivo')}</div>
+        <div class="card-meta">
+          <span>Task: ${tasksDone}/${tasksCount}</span>
+          <span>${m.status === 'running' ? '⚡ In esecuzione' : (m.created_at || '').slice(11, 16)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Selezione e Dettaglio Missione
+async function selectMission(id) {
+  currentMissionId = id;
+  renderMissionsList();
+  await loadMissionDetail(id);
+}
+
+async function loadMissionDetail(id, silent = false) {
+  try {
+    const res = await fetch('/missions/' + encodeURIComponent(id), { headers: apiHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    currentMissionData = data.mission || null;
+    if (currentMissionData) {
+      renderMissionView(currentMissionData);
+    }
+  } catch(e) {
+    if (!silent) console.error('Errore dettaglio missione', e);
+  }
+}
+
+function renderMissionView(m) {
+  // Stream Header
+  document.getElementById('streamTitle').textContent = m.objective || 'Missione ' + m.id;
+  document.getElementById('streamActions').style.display = 'flex';
+  
+  const btnStart = document.getElementById('btnStartMission');
+  const btnCancel = document.getElementById('btnCancelMission');
+  btnStart.style.display = m.status === 'planned' ? 'inline-block' : 'none';
+  btnCancel.style.display = (m.status === 'planned' || m.status === 'running') ? 'inline-block' : 'none';
+
+  const budget = m.budget || {};
+  const counters = m.counters || {};
+  document.getElementById('metaStatus').innerHTML = `Stato: <b>${m.status}</b>`;
+  document.getElementById('metaBudget').innerHTML = `Passi: <b>${counters.steps || 0}/${budget.max_steps || '—'}</b>`;
+  
+  const tasks = m.tasks || [];
+  const doneTasks = tasks.filter(t => t.status === 'done').length;
+  document.getElementById('metaTasks').innerHTML = `Task: <b>${doneTasks}/${tasks.length}</b>`;
+
+  // DAG Flow Bar
+  const dagSec = document.getElementById('dagSection');
+  const dagWrap = document.getElementById('dagNodesWrap');
+  if (tasks.length > 0) {
+    dagSec.style.display = 'block';
+    document.getElementById('dagSummaryText').textContent = `${doneTasks}/${tasks.length} completati`;
+    
+    dagWrap.innerHTML = tasks.map((t, idx) => {
+      const isDone = t.status === 'done';
+      const isRun = t.status === 'running';
+      const roleIcon = t.role === 'planner' ? '🧠' : t.role === 'coder' ? '💻' : t.role === 'verifier' ? '🔍' : '⚙️';
+      const arrow = idx < tasks.length - 1 ? '<span class="dag-arrow">➔</span>' : '';
+
+      return `
+        <div class="dag-node ${isRun ? 'active-task' : ''}" title="${escapeHtml(t.title || t.key)}" onclick="inspectTask('${t.key}')">
+          <span>${roleIcon}</span>
+          <span><b>${escapeHtml(t.key)}</b> (${t.status})</span>
+        </div>
+        ${arrow}
+      `;
+    }).join('');
+  } else {
+    dagSec.style.display = 'none';
+  }
+
+  // Stream Messages Feed
+  renderStreamFeed(m);
+
+  // Canvas View
+  renderCanvas(m);
+
+  // Human-In-The-Loop Sticky Bar
+  const hitlBar = document.getElementById('hitlBar');
+  const pendingReviews = m.pending_review || [];
+  if (pendingReviews.length > 0 || m.status === 'blocked' || (m.status === 'done' && tasks.some(t => (t.artifacts || []).length > 0))) {
+    hitlBar.style.display = 'flex';
+  } else {
+    hitlBar.style.display = 'none';
+  }
+}
+
+function renderStreamFeed(m) {
+  const feed = document.getElementById('streamFeed');
+  const events = [];
+
+  // Evento Creazione
+  events.push({
+    role: 'system',
+    roleLabel: '🪐 Mission Control',
+    time: (m.created_at || '').slice(11, 19),
+    body: `Missione creata con ${((m.criteria || []).length)} criteri di accettazione.`,
+    tool: null
+  });
+
+  // Task Events
+  (m.tasks || []).forEach(t => {
+    let roleName = t.role || 'worker';
+    let roleIcon = roleName === 'planner' ? '🧠' : roleName === 'coder' ? '💻' : roleName === 'verifier' ? '🔍' : '⚙️';
+    
+    events.push({
+      role: roleName,
+      roleLabel: `${roleIcon} ${roleName.toUpperCase()} · ${t.key}`,
+      time: (t.completed_at || t.started_at || '').slice(11, 19),
+      body: t.title || t.output || 'Task in esecuzione...',
+      tool: t.output ? `Output: ${t.output.slice(0, 300)}...` : null
+    });
+
+    if (t.verification && t.verification.verdict) {
+      events.push({
+        role: 'verifier',
+        roleLabel: `🔍 VERIFIER · Esito ${t.key}`,
+        time: '',
+        body: `Verdetto: <b>${t.verification.verdict.toUpperCase()}</b> — ${(t.verification.rationale || 'Verifica completata.')}`,
+        tool: null
+      });
+    }
+  });
+
+  if (m.error) {
+    events.push({
+      role: 'system',
+      roleLabel: '❌ Errore Missione',
+      time: '',
+      body: `<span style="color:var(--error);">${escapeHtml(m.error)}</span>`,
+      tool: null
+    });
+  }
+
+  feed.innerHTML = events.map(ev => `
+    <div class="event-card">
+      <div class="event-header">
+        <span class="event-role ${ev.role}">${ev.roleLabel}</span>
+        <span class="event-time">${ev.time}</span>
+      </div>
+      <div class="event-body">${ev.body}</div>
+      ${ev.tool ? `<div class="event-tool-call">${escapeHtml(ev.tool)}</div>` : ''}
+    </div>
+  `).join('');
+
+  feed.scrollTop = feed.scrollHeight;
+}
+
+// Canvas Rendering
+function switchCanvasTab(tab, btn) {
+  currentCanvasTab = tab;
+  document.querySelectorAll('.canvas-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (currentMissionData) renderCanvas(currentMissionData);
+}
+
+function renderCanvas(m) {
+  const body = document.getElementById('canvasBody');
+  const tasks = m.tasks || [];
+  
+  // Raccogli artefatti
+  const artifacts = [];
+  tasks.forEach(t => {
+    (t.artifacts || []).forEach(art => artifacts.push({ task: t.key, ...art }));
+  });
+
+  if (currentCanvasTab === 'diff') {
+    renderDiffCanvas(body, artifacts, m);
+  } else if (currentCanvasTab === 'web') {
+    renderWebCanvas(body, artifacts, m);
+  } else if (currentCanvasTab === 'doc') {
+    renderDocCanvas(body, m);
+  } else if (currentCanvasTab === 'gate') {
+    renderGateCanvas(body, m);
+  } else if (currentCanvasTab === 'raw') {
+    body.innerHTML = `
+      <div class="doc-render">
+        <h3>JSON Strutturato della Missione</h3>
+        <pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre>
+      </div>`;
+  }
+}
+
+function renderDiffCanvas(body, artifacts, m) {
+  if (artifacts.length === 0) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">Nessuna modifica diff registrata</div>
+        <div class="empty-desc">Quando il coder apporterà modifiche a file o progetti nella sandbox, il diff unificato riga per riga apparirà qui.</div>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = artifacts.map(art => {
+    const diffText = art.diff || art.summary || 'Nessun diff esplicito.';
+    const lines = diffText.split('\n').map(line => {
+      let cls = 'diff-line';
+      if (line.startsWith('+') && !line.startsWith('+++')) cls += ' add';
+      else if (line.startsWith('-') && !line.startsWith('---')) cls += ' del';
+      else if (line.startsWith('@')) cls += ' info';
+      return `<div class="${cls}">${escapeHtml(line)}</div>`;
+    }).join('');
+
+    return `
+      <div class="diff-container" style="margin-bottom:16px;">
+        <div class="diff-header">
+          <span>📦 Task: ${art.task} · File: <b>${escapeHtml(art.path || art.type || 'sandbox')}</b></span>
+          <span style="font-size:0.7rem;color:var(--warning);">applied: false (in sandbox)</span>
+        </div>
+        <div class="diff-content">${lines}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderWebCanvas(body, artifacts, m) {
+  const webArt = artifacts.find(a => a.type === 'website-project' || (a.path && a.path.endsWith('.html')));
+  if (webArt) {
+    const previewUrl = webArt.preview_url || '/sites';
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:100%;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;">
+          <span>Anteprima Live Web: <b>${escapeHtml(webArt.path || 'Sito Generato')}</b></span>
+          <a href="${previewUrl}" target="_blank" class="btn-sm-action" style="text-decoration:none;">Apri a schermo intero ↗</a>
+        </div>
+        <iframe class="web-preview-frame" src="${previewUrl}"></iframe>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🌐</div>
+        <div class="empty-title">Nessun artefatto Web attivo</div>
+        <div class="empty-desc">Se la missione include la ricetta "Sito Web da zero", l'anteprima HTML reattiva apparirà qui in tempo reale.</div>
+      </div>`;
+  }
+}
+
+function renderDocCanvas(body, m) {
+  let docContent = `# Obiettivo della Missione\n${m.objective}\n\n`;
+  docContent += `### Criteri di Accettazione\n`;
+  (m.criteria || []).forEach(c => { docContent += `- ${c}\n`; });
+  docContent += `\n### Risultati Task Eseguiti\n`;
+  (m.tasks || []).forEach(t => {
+    docContent += `#### Task: ${t.key} [${t.role} / ${t.status}]\n${t.output || 'Nessun output.'}\n\n`;
+  });
+
+  body.innerHTML = `
+    <div class="doc-render">
+      <h1>Report Missione ${escapeHtml(m.id)}</h1>
+      <pre>${escapeHtml(docContent)}</pre>
+    </div>`;
+}
+
+function renderGateCanvas(body, m) {
+  const tasks = m.tasks || [];
+  const checklist = (m.criteria || []).map(crit => `
+    <div class="checklist-item">
+      <span class="check-icon">🛡️</span>
+      <div><b>Criterio Operatore:</b> ${escapeHtml(crit)}</div>
+    </div>
+  `).join('');
+
+  const verifierCards = tasks.filter(t => t.verification).map(t => {
+    const v = t.verification || {};
+    const pass = v.verdict === 'pass';
+    return `
+      <div class="gate-card" style="margin-top:12px;">
+        <div class="gate-top">
+          <span class="gate-verdict" style="color:${pass ? 'var(--success)' : 'var(--warning)'};">
+            ${pass ? '✓' : '⚠️'} Verdetto Task ${t.key}: ${String(v.verdict || 'none').toUpperCase()}
+          </span>
+          <span class="pill-info">Ruolo: ${t.role}</span>
+        </div>
+        <div style="font-size:0.82rem;line-height:1.45;color:var(--text);">${escapeHtml(v.rationale || 'Nessun commento.')}</div>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="gate-card">
+      <div class="gate-top">
+        <span class="gate-verdict">🛡️ Gate di Accettazione &amp; Verifica Criteri</span>
+        <span class="badge-status badge-${m.status}">${m.status}</span>
+      </div>
+      <div>${checklist || '<div class="hint">Nessun criterio specifico dichiarato.</div>'}</div>
+    </div>
+    ${verifierCards}
+  `;
+}
+
+function inspectTask(taskKey) {
+  if (!currentMissionData) return;
+  const t = (currentMissionData.tasks || []).find(item => item.key === taskKey);
+  if (!t) return;
+  currentCanvasTab = 'diff';
+  document.querySelectorAll('.canvas-tab').forEach((b, idx) => b.classList.toggle('active', idx === 0));
+  renderCanvas(currentMissionData);
+}
+
+// Azioni Human-In-The-Loop
+async function handleReview(action) {
+  if (!currentMissionId) return;
+  const rationale = window.prompt(`Registra la motivazione per la decisione '${action.toUpperCase()}':`, `Review operatore: ${action}`);
+  if (rationale === null) return;
+
+  try {
+    const res = await fetch(`/missions/${encodeURIComponent(currentMissionId)}/review`, {
+      method: 'POST',
+      headers: apiHeaders(true),
+      body: JSON.stringify({ action: action, reviewer: 'operator', rationale: rationale.trim() })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Errore nella review');
+    window.alert('Decisione registrata con successo nel Control Plane.');
+    await refreshCycle();
+  } catch(e) {
+    window.alert('Errore: ' + e.message);
+  }
+}
+
+async function runCurrentMission() {
+  if (!currentMissionId) return;
+  try {
+    const res = await fetch(`/missions/${encodeURIComponent(currentMissionId)}/run`, {
+      method: 'POST',
+      headers: apiHeaders(true),
+      body: JSON.stringify({})
+    });
+    if (!res.ok) throw new Error('Impossibile avviare la missione');
+    await refreshCycle();
+  } catch(e) {
+    window.alert('Errore: ' + e.message);
+  }
+}
+
+async function cancelCurrentMission() {
+  if (!currentMissionId) return;
+  const reason = window.prompt('Motivo dell\'annullamento:', 'Annullato da operatore');
+  if (reason === null) return;
+  try {
+    const res = await fetch(`/missions/${encodeURIComponent(currentMissionId)}/cancel`, {
+      method: 'POST',
+      headers: apiHeaders(true),
+      body: JSON.stringify({ reason })
+    });
+    if (!res.ok) throw new Error('Annullamento fallito');
+    await refreshCycle();
+  } catch(e) {
+    window.alert('Errore: ' + e.message);
+  }
+}
+
+async function handleSendPrompt(e) {
+  e.preventDefault();
+  const inp = document.getElementById('promptInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  // Se una missione è aperta, la aggiungiamo visivamente al feed o la inoltriamo
+  window.alert(`Istruzione inviata al dispatcher di Mission Control: "${txt}"`);
+}
+
+// Gestione Nuova Missione
+function openNewMissionModal() {
+  document.getElementById('newMissionModal').classList.add('open');
+}
+function closeNewMissionModal() {
+  document.getElementById('newMissionModal').classList.remove('open');
+}
+
+function fillRecipe(type) {
+  const obj = document.getElementById('newMissionObjective');
+  const crit = document.getElementById('newMissionCriteria');
+  if (type === 'website') {
+    obj.value = 'Costruisci un sito web interattivo per HyperSpace AGI con visualizzatore nodi e design dark neon';
+    crit.value = 'Design responsive con CSS moderno\nNessun errore di console\nStruttura semantica pulita';
+  } else if (type === 'audit') {
+    obj.value = 'Esegui un audit del codice e dell\'architettura dei moduli di memoria e missioni per identificare regressioni o colli di bottiglia';
+    crit.value = 'Report esaustivo dei moduli critici\nVerifica delle dipendenze e licenze\nRaccomandazioni prioritarie';
+  } else if (type === 'pdf') {
+    obj.value = 'Genera una presentazione tecnica formale in PDF sull\'architettura di consenso P2P e Vector Clocks di HyperSpace';
+    crit.value = 'Documento ben impaginato\nDiagrammi architetturali inclusi\nCitazioni e fonti verificabili';
+  } else if (type === 'test') {
+    obj.value = 'Effettua il refactoring dei test del mesh per velocizzare l\'esecuzione del test suite e isolare gli ambienti di prova';
+    crit.value = 'Tutti i test pytest 100% verdi\nNessuna regressione introdotta\nIsolamento completo delle sandbox';
+  }
+}
+
+async function submitCreateMission() {
+  const objective = document.getElementById('newMissionObjective').value.trim();
+  const criteria = document.getElementById('newMissionCriteria').value.split('\n').map(l => l.trim()).filter(Boolean);
+  const start = document.getElementById('newMissionStart').checked;
+
+  if (!objective) {
+    window.alert('Inserisci un obiettivo.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/missions', {
+      method: 'POST',
+      headers: apiHeaders(true),
+      body: JSON.stringify({ objective, criteria, start })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Creazione fallita');
+    
+    closeNewMissionModal();
+    document.getElementById('newMissionObjective').value = '';
+    document.getElementById('newMissionCriteria').value = '';
+    
+    await loadMissions();
+    if (data.mission && data.mission.id) {
+      selectMission(data.mission.id);
+    }
+  } catch(e) {
+    window.alert('Errore: ' + e.message);
+  }
+}
+
+// Gestione Token Modal
+function openTokenModal() {
+  document.getElementById('tokenInput').value = getOperatorToken();
+  document.getElementById('tokenModal').classList.add('open');
+}
+function closeTokenModal() {
+  document.getElementById('tokenModal').classList.remove('open');
+}
+function saveToken() {
+  const tok = document.getElementById('tokenInput').value.trim();
+  setOperatorToken(tok);
+  closeTokenModal();
+  refreshCycle();
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+
+</body>
+</html>

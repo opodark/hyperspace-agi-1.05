@@ -121,6 +121,7 @@ const HOST = window.location.hostname;
 const CORE_PORT = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
 const SERVICES = {
   use: [
+    {icon:'🪐', title:'Agentic Workspace', port:CORE_PORT, path:'/workspace', desc:'Il workspace di lavoro centrale: chat, DAG multi-agente, canvas per artefatti live e review Human-In-The-Loop.'},
     {icon:'💬', title:'Chat', port:3000, path:'/', desc:'Open WebUI — chatta con la mesh, scegli modelli locali o OmniRoute dal menu.'},
     {icon:'🔀', title:'OmniRoute', port:20128, path:'/', desc:'Gateway verso 278+ provider esterni — fallback e dashboard provider/costi.'},
   ],

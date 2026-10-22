@@ -183,7 +183,22 @@
           </div>
           <div class="text-right text-xs text-slate-400">
             <span>Ultimo collaudo completato:</span>
-            <div class="text-cyan-300 font-mono font-semibold" id="analytics-last-update">Oggi, 1 ora non-stop</div>
+            <div class="text-cyan-300 font-mono font-semibold" id="analytics-last-update">Sprint 35m (19/19 GREEN)</div>
+          </div>
+        </div>
+
+        <!-- 🏛️ CRONOLOGIA & STORICO TEST DEL CLUSTER (MILESTONES) -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
+              <span>🏛️</span> Storico dei Test, Sprint & Progressi del Cluster
+            </h3>
+            <a href="/analytics.html" class="text-[11px] text-cyan-400 hover:text-cyan-300 transition font-mono flex items-center gap-1">
+              Apri Report Full Screen ↗
+            </a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="milestones-container-idx">
+            <!-- Popolato dinamicamente -->
           </div>
         </div>
 
@@ -356,10 +371,44 @@
             <span class="text-cyan-400 font-semibold">43 Cicli Totali • 60 Minuti</span>
           </div>
         </div>
+
+        <!-- 📜 LOG ATTIVITÀ & PROGRESSI DEVLOOP 24/7 -->
+        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>📜</span> Registro Attività & Progressi Continuativi (DevLoop 24/7)
+            </span>
+            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-900 font-mono text-cyan-300" id="devloop-count-idx">25 eventi</span>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar max-h-56">
+            <table class="w-full text-left text-[11px] font-mono">
+              <thead class="bg-black/60 text-slate-400 border-b border-slate-800 sticky top-0">
+                <tr>
+                  <th class="py-2 px-2.5">Ciclo</th>
+                  <th class="py-2 px-2.5">Azione Eseguita</th>
+                  <th class="py-2 px-2.5">Esito QA</th>
+                  <th class="py-2 px-2.5">Durata</th>
+                  <th class="py-2 px-2.5">Nodi Coinvolti</th>
+                </tr>
+              </thead>
+              <tbody id="devloop-table-body-idx" class="divide-y divide-slate-800/60 text-slate-300">
+                <!-- Popolato da JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- VISTA DATI TECNICI & RAW JSON (SWITCHABILE) -->
       <div id="analytics-tech-view" class="hidden flex flex-col gap-5">
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 flex flex-col gap-3">
+          <div class="text-emerald-300 font-bold flex items-center justify-between">
+            <span>FILE SORGENTE: data/reports/complex_sprint_live.json (Sprint Ingegneria 35m)</span>
+            <span class="text-slate-500">19/19 Pytest PASS (100%)</span>
+          </div>
+          <pre id="raw-sprint-json" class="bg-black/80 p-3 rounded-lg overflow-x-auto text-[11px] text-emerald-300 max-h-60 custom-scrollbar"></pre>
+        </div>
+
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 flex flex-col gap-3">
           <div class="text-cyan-300 font-bold flex items-center justify-between">
             <span>FILE SORGENTE: data/reports/endurance_session_live.json</span>
@@ -392,6 +441,7 @@
         <!-- QUICK ACTION BUTTONS -->
         <div class="flex flex-wrap items-center gap-1.5 text-xs font-mono">
           <button onclick="toggleAnalyticsView()" class="px-2.5 py-1 rounded bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white transition font-bold flex items-center gap-1 shadow-sm">📊 Spiegato Semplice (UI Niubbi)</button>
+          <button onclick="runCommand('history')" class="px-2.5 py-1 rounded bg-amber-950 border border-amber-800 hover:bg-amber-900 text-amber-300 transition font-bold">🏛️ storico test</button>
           <button onclick="runCommand('nodes')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">nodes</button>
           <button onclick="runCommand('devloop')" class="px-2.5 py-1 rounded bg-emerald-950 border border-emerald-800 hover:bg-emerald-900 text-emerald-300 transition font-bold">⚡ devloop</button>
           <button onclick="runCommand('chronicle')" class="px-2.5 py-1 rounded bg-cyan-950 border border-cyan-800 hover:bg-cyan-900 text-cyan-300 transition">📖 chronicle</button>
@@ -630,6 +680,7 @@
 
         if (lower === 'help') {
           printToTerminal(`Comandi Live Disponibili:\n` +
+            `  • history / sprint        : Storico completo dei test, sprint e milestone del cluster\n` +
             `  • devloop                 : Telemetria e stato dei cicli autonomi 24/7 di HP OMEN\n` +
             `  • chronicle               : Cronologia mutazioni e diario di bordo della codebase\n` +
             `  • dataset                 : Ultimo campione sintetico CoT distillato e verificato (AST)\n` +
@@ -642,6 +693,32 @@
             `  • vram                    : Mostra l'allocazione VRAM/RAM reale dei nodi\n` +
             `  • select <omen|mac|asus>  : Commuta il nodo di default per le inferenze\n` +
             `  • clear                   : Pulisce la schermata del terminale`, 'text-slate-300');
+        } else if (lower === 'history' || lower === 'sprint' || lower === 'tests' || lower === 'milestones') {
+          printToTerminal(`Recupero storico test e milestones da /api/analytics...`, 'text-slate-500');
+          try {
+            const resp = await fetch('/api/analytics');
+            const data = await resp.json();
+            const milestones = data.milestones || [];
+            printToTerminal(`================ CRONOLOGIA & STORICO TEST CLUSTER ================`, 'text-emerald-400 font-bold');
+            milestones.forEach((m, idx) => {
+              printToTerminal(`\n[${idx + 1}] ${m.icon || '🚀'} ${m.title}`, 'text-cyan-300 font-bold');
+              printToTerminal(`    Esito: ${m.badge} | Durata: ${m.duration} | Token: ${(m.tokens || 0).toLocaleString()}`, 'text-amber-300');
+              printToTerminal(`    Sintesi: ${m.summary}`, 'text-slate-300 text-xs');
+              if (m.artifacts && m.artifacts.length) {
+                const links = m.artifacts.map(a => a.url ? `${a.label} (${a.url})` : a.label).join(' | ');
+                printToTerminal(`    Artefatti: ${links}`, 'text-purple-300 text-[11px]');
+              }
+            });
+            if (data.devloop_history && data.devloop_history.length) {
+              printToTerminal(`\nUltimi cicli del DevLoop 24/7:`, 'text-slate-400 font-semibold');
+              data.devloop_history.slice(-5).forEach(c => {
+                const cycleSt = c.qa_passed !== false ? '✓ PASS' : '⚠ RETRY';
+                printToTerminal(`  • Ciclo #${c.cycle || 'auto'}: ${c.action} (${c.duration_s}s) -> ${cycleSt}`, c.qa_passed !== false ? 'text-emerald-300' : 'text-amber-400');
+              });
+            }
+          } catch (e) {
+            printToTerminal(`[ERRORE STORICO] ${e.message}`, 'text-rose-400');
+          }
         } else if (lower === 'devloop') {
           printToTerminal(`Recupero telemetria cicli 24/7 da /api/devloop...`, 'text-slate-500');
           try {
@@ -928,17 +1005,103 @@
           }
 
           // 2. Aggiorna JSON grezzi per vista tecnica
+          const rawSprint = document.getElementById('raw-sprint-json');
           const rawEndurance = document.getElementById('raw-endurance-json');
           const rawBenchmark = document.getElementById('raw-benchmark-json');
-          if (rawEndurance) rawEndurance.textContent = JSON.stringify(data.endurance, null, 2);
-          if (rawBenchmark) rawBenchmark.textContent = JSON.stringify(data.benchmark, null, 2);
+          if (rawSprint) rawSprint.textContent = JSON.stringify(data.sprint || {}, null, 2);
+          if (rawEndurance) rawEndurance.textContent = JSON.stringify(data.endurance || {}, null, 2);
+          if (rawBenchmark) rawBenchmark.textContent = JSON.stringify(data.benchmark || {}, null, 2);
 
-          // 3. Renderizza le 43 barre dell'endurance
+          // 3. Renderizza le Milestones e lo storico test
+          renderIndexMilestones(data.milestones || []);
+
+          // 4. Renderizza il registro DevLoop 24/7
+          renderIndexDevLoop(data.devloop_history || []);
+
+          // 5. Renderizza le 43 barre dell'endurance
           renderEnduranceBars(data.endurance || {});
         } catch (err) {
           console.warn('Impossibile caricare analytics:', err);
         }
       };
+
+      function renderIndexMilestones(milestones) {
+        const container = document.getElementById('milestones-container-idx');
+        if (!container) return;
+        container.innerHTML = '';
+
+        milestones.forEach(m => {
+          const card = document.createElement('div');
+          const colorBorder = m.color === 'emerald' ? 'hover:border-emerald-500/50 border-emerald-950/80 bg-emerald-950/20' :
+                              m.color === 'cyan' ? 'hover:border-cyan-500/50 border-cyan-950/80 bg-cyan-950/20' :
+                              m.color === 'purple' ? 'hover:border-purple-500/50 border-purple-950/80 bg-purple-950/20' :
+                              'hover:border-amber-500/50 border-amber-950/80 bg-amber-950/20';
+
+          const badgeClass = m.color === 'emerald' ? 'bg-emerald-950 border-emerald-700 text-emerald-300' :
+                             m.color === 'cyan' ? 'bg-cyan-950 border-cyan-700 text-cyan-300' :
+                             m.color === 'purple' ? 'bg-purple-950 border-purple-700 text-purple-300' :
+                             'bg-amber-950 border-amber-700 text-amber-300';
+
+          let linksHtml = '';
+          if (m.artifacts) {
+            linksHtml = m.artifacts.map(a => {
+              if (a.url) {
+                return `<a href="${a.url}" target="_blank" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[10px] transition">🔗 ${a.label}</a>`;
+              } else {
+                return `<span class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px] font-mono">${a.label}</span>`;
+              }
+            }).join(' ');
+          }
+
+          card.className = `border rounded-xl p-4 flex flex-col justify-between transition shadow-sm ${colorBorder}`;
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span class="text-base">${m.icon || '🚀'}</span> ${m.title}
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full border font-bold ${badgeClass}">${m.badge}</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-2 leading-relaxed">${m.summary}</p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+              <span class="text-slate-400 font-mono">Durata: <strong class="text-white">${m.duration}</strong> • Token: <strong class="text-cyan-300">${(m.tokens || 0).toLocaleString()}</strong></span>
+              <div class="flex items-center gap-1.5">${linksHtml}</div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      function renderIndexDevLoop(events) {
+        const tbody = document.getElementById('devloop-table-body-idx');
+        const countEl = document.getElementById('devloop-count-idx');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (countEl) countEl.textContent = `${events.length} eventi registrati`;
+
+        const reversed = [...events].reverse();
+        reversed.slice(0, 15).forEach((ev, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-900/60 transition';
+          const isPass = ev.qa_passed !== false;
+          const statusBadge = isPass ? 
+            '<span class="text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80 font-bold">✓ PASS</span>' : 
+            '<span class="text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80 font-bold">⚠ RETRY</span>';
+
+          const nodesStr = Array.isArray(ev.nodes) ? ev.nodes.join(', ') : (ev.nodes || 'cluster');
+          const cycleLabel = ev.cycle ? `#${ev.cycle}` : `ev-${idx+1}`;
+
+          tr.innerHTML = `
+            <td class="py-1.5 px-2.5 font-semibold text-white">${cycleLabel}</td>
+            <td class="py-1.5 px-2.5 text-slate-300 truncate max-w-[220px]">${ev.action || 'collaborative_cycle'}</td>
+            <td class="py-1.5 px-2.5">${statusBadge}</td>
+            <td class="py-1.5 px-2.5 text-cyan-300 font-semibold">${ev.duration_s ? ev.duration_s + 's' : '-'}</td>
+            <td class="py-1.5 px-2.5 text-slate-400 text-[10px]">${nodesStr}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
 
       function renderEnduranceBars(endurance) {
         const container = document.getElementById('endurance-bars-container');

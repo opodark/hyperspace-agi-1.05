@@ -9,6 +9,7 @@ COPY control-plane/main.py .
 COPY control-plane/routing.py .
 COPY control-plane/dashboard.html .
 COPY control-plane/desktop.html .
+COPY control-plane/workspace.html .
 COPY control-plane/activity.html .
 COPY control-plane/conversations.html .
 COPY control-plane/diario.html .

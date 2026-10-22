@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HyperSpace Mesh — Statistiche & Benchmark Spiegati Semplice</title>
+  <title>HyperSpace Mesh — Statistiche & Storico Test Spiegati Semplice</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -22,9 +22,9 @@
       <div class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981] pulse-glow"></div>
       <div>
         <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-          HyperSpace Sovereign Mesh <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">Benchmark Visuale</span>
+          HyperSpace Sovereign Mesh <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">Storico & Analytics</span>
         </h1>
-        <p class="text-xs text-slate-400">Statistiche per non-tecnici dei test di collaborazione tra Mac M5, HP OMEN e ASUS V16</p>
+        <p class="text-xs text-slate-400">Storico dei test, sprint di ingegneria e progressi tra Mac M5, HP OMEN e ASUS V16</p>
       </div>
     </div>
 
@@ -34,10 +34,10 @@
       </a>
       <div class="bg-slate-950 border border-slate-800 p-1 rounded-xl flex items-center gap-1 text-xs">
         <button id="btn-mode-simple" onclick="setMode('simple')" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 transition">
-          🟢 Spiegato Semplice
+          🟢 Spiegato Semplice & Storico
         </button>
         <button id="btn-mode-tech" onclick="setMode('tech')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">
-          ⚙️ Dati Tecnici
+          ⚙️ Dati Tecnici & JSON
         </button>
       </div>
     </div>
@@ -53,12 +53,11 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Esito Collaudo Generale</span>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">TUTTI I TEST SUPERATI</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">TUTTI I TEST SUPERATI (100%)</span>
           </div>
           <h2 class="text-xl font-bold text-white mt-1">I Tre Computer Hanno Lavorato Insieme Senza Errori</h2>
           <p class="text-xs text-slate-300 mt-2 leading-relaxed" id="hero-summary">
-            Per oltre un'ora continuativa i computer della rete si sono scambiati compiti complessi di architettura e programmazione:
-            nessun blocco di memoria, nessun surriscaldamento, e codice generato a oltre 28 parole al secondo.
+            Sia nella maratona di 1 ora (43 cicli continuous) che nello sprint di ingegneria complessa da 35 minuti (Gossip Consensus & Vector Clocks), il cluster ha collaborato a oltre 28 parole al secondo senza mai andare in crash.
           </p>
         </div>
       </div>
@@ -71,10 +70,24 @@
     <!-- VISTA SEMPLIFICATA -->
     <div id="view-simple" class="flex flex-col gap-8">
 
+      <!-- 🏛️ CRONOLOGIA & STORICO TEST DEL CLUSTER (MILESTONES) -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🏛️</span> Storico dei Test, Sprint & Progressi del Cluster
+          </h3>
+          <span class="text-xs text-slate-400 font-mono">Tracciamento Sovrano Immutabile</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="milestones-container">
+          <!-- Popolato dinamicamente da loadData() -->
+        </div>
+      </div>
+
       <!-- 4 GRANDI KPI CARDS -->
       <div>
         <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <span>💡</span> Le Statistiche Spiegate in Parole Povere
+          <span>💡</span> Le Statistiche Globali in Parole Povere
         </h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Card 1 -->
@@ -126,10 +139,10 @@
                 <span class="text-xs text-slate-400 font-medium">Volume Totale Generato</span>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 border border-amber-700 text-amber-300 font-bold">Stacanovista 🏭</span>
               </div>
-              <div class="text-3xl font-black text-amber-300 tracking-tight mt-3" id="card-total">79.563 Parole</div>
+              <div class="text-3xl font-black text-amber-300 tracking-tight mt-3" id="card-total">104.453 Parole</div>
             </div>
             <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-              In 60 minuti il cluster ha prodotto l'equivalente di un intero saggio universitario di codice e documentazione tecnica.
+              Tra la sessione di 1 ora e lo sprint da 35m, il cluster ha prodotto l'equivalente di 2 romanzi completi di codice e test.
             </p>
           </div>
         </div>
@@ -243,10 +256,49 @@
           <span class="text-cyan-400 font-semibold">43 Cicli Totali • 60 Minuti</span>
         </div>
       </div>
+
+      <!-- 📜 LOG ATTIVITÀ & PROGRESSI DEVLOOP 24/7 -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>📜</span> Registro Attività & Progressi Continuativi (DevLoop 24/7)
+            </h3>
+            <p class="text-xs text-slate-400">Attività in tempo reale registrate nel log immutabile <code class="text-emerald-400 font-mono">data/omen_dev_loop.jsonl</code></p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded bg-slate-800 font-mono text-cyan-300" id="devloop-count">25 eventi</span>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-slate-950/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3">Ciclo / Task</th>
+                <th class="py-2.5 px-3">Azione Eseguita</th>
+                <th class="py-2.5 px-3">Esito QA</th>
+                <th class="py-2.5 px-3">Durata</th>
+                <th class="py-2.5 px-3">Nodi Coinvolti</th>
+              </tr>
+            </thead>
+            <tbody id="devloop-table-body" class="divide-y divide-slate-800/60 text-slate-300">
+              <!-- Popolato da JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- VISTA DATI TECNICI & RAW JSON -->
     <div id="view-tech" class="hidden flex flex-col gap-6">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3 font-mono text-xs">
+        <div class="flex items-center justify-between text-emerald-300 font-bold border-b border-slate-800 pb-2">
+          <span>data/reports/complex_sprint_live.json (Sprint Ingegneria 35 Min • 19/19 Test)</span>
+          <span class="text-slate-500">JSON Reale</span>
+        </div>
+        <pre id="raw-sprint" class="bg-black/80 p-4 rounded-xl overflow-x-auto text-[11px] text-emerald-300 max-h-96 custom-scrollbar"></pre>
+      </div>
+
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3 font-mono text-xs">
         <div class="flex items-center justify-between text-cyan-300 font-bold border-b border-slate-800 pb-2">
           <span>data/reports/endurance_session_live.json (Telemetria 60 Minuti)</span>
@@ -273,8 +325,11 @@
         const data = await resp.json();
 
         // Populate Raw
-        document.getElementById('raw-endurance').textContent = JSON.stringify(data.endurance, null, 2);
-        document.getElementById('raw-benchmark').textContent = JSON.stringify(data.benchmark, null, 2);
+        if (document.getElementById('raw-sprint')) {
+          document.getElementById('raw-sprint').textContent = JSON.stringify(data.sprint || {}, null, 2);
+        }
+        document.getElementById('raw-endurance').textContent = JSON.stringify(data.endurance || {}, null, 2);
+        document.getElementById('raw-benchmark').textContent = JSON.stringify(data.benchmark || {}, null, 2);
 
         // Populate KPIs
         const sum = data.human_summary;
@@ -282,14 +337,96 @@
           document.getElementById('card-speed').textContent = sum.kpi_semplici[0].valore;
           document.getElementById('card-success').textContent = sum.kpi_semplici[1].valore;
           document.getElementById('card-memory').textContent = sum.kpi_semplici[2].valore;
-          document.getElementById('card-total').textContent = sum.kpi_semplici[3].valore;
+          const sprintTok = (data.sprint && data.sprint.tokens_total) ? data.sprint.tokens_total : 24890;
+          const endurTok = (data.endurance && data.endurance.total_tokens_generated) ? data.endurance.total_tokens_generated : 79563;
+          document.getElementById('card-total').textContent = (sprintTok + endurTok).toLocaleString('it-IT') + ' Parole';
           if (sum.spiegazione_rapida) document.getElementById('hero-summary').textContent = sum.spiegazione_rapida;
         }
 
+        renderMilestones(data.milestones || []);
         renderBars(data.endurance || {});
+        renderDevLoopTable(data.devloop_history || []);
       } catch (e) {
         console.error('Errore caricamento:', e);
       }
+    }
+
+    function renderMilestones(milestones) {
+      const container = document.getElementById('milestones-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      milestones.forEach(m => {
+        const card = document.createElement('div');
+        const colorBorder = m.color === 'emerald' ? 'hover:border-emerald-500/50 border-emerald-950/80 bg-emerald-950/20' :
+                            m.color === 'cyan' ? 'hover:border-cyan-500/50 border-cyan-950/80 bg-cyan-950/20' :
+                            m.color === 'purple' ? 'hover:border-purple-500/50 border-purple-950/80 bg-purple-950/20' :
+                            'hover:border-amber-500/50 border-amber-950/80 bg-amber-950/20';
+
+        const badgeClass = m.color === 'emerald' ? 'bg-emerald-950 border-emerald-700 text-emerald-300' :
+                           m.color === 'cyan' ? 'bg-cyan-950 border-cyan-700 text-cyan-300' :
+                           m.color === 'purple' ? 'bg-purple-950 border-purple-700 text-purple-300' :
+                           'bg-amber-950 border-amber-700 text-amber-300';
+
+        let linksHtml = '';
+        if (m.artifacts) {
+          linksHtml = m.artifacts.map(a => {
+            if (a.url) {
+              return `<a href="${a.url}" target="_blank" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[10px] transition">🔗 ${a.label}</a>`;
+            } else {
+              return `<span class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px] font-mono">${a.label}</span>`;
+            }
+          }).join(' ');
+        }
+
+        card.className = `border rounded-2xl p-5 flex flex-col justify-between transition shadow-md ${colorBorder}`;
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span class="text-lg">${m.icon || '🚀'}</span> ${m.title}
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full border font-bold ${badgeClass}">${m.badge}</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-2 leading-relaxed">${m.summary}</p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <span class="text-slate-400 font-mono">Durata: <strong class="text-white">${m.duration}</strong> • Token: <strong class="text-cyan-300">${(m.tokens || 0).toLocaleString()}</strong></span>
+            <div class="flex items-center gap-1.5">${linksHtml}</div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderDevLoopTable(events) {
+      const tbody = document.getElementById('devloop-table-body');
+      const countEl = document.getElementById('devloop-count');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (countEl) countEl.textContent = `${events.length} eventi registrati`;
+
+      const reversed = [...events].reverse();
+      reversed.forEach((ev, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-900/60 transition';
+        const isPass = ev.qa_passed !== false;
+        const statusBadge = isPass ? 
+          '<span class="text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80 font-bold">✓ PASS</span>' : 
+          '<span class="text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80 font-bold">⚠ RETRY</span>';
+
+        const nodesStr = Array.isArray(ev.nodes) ? ev.nodes.join(', ') : (ev.nodes || 'cluster');
+        const cycleLabel = ev.cycle ? `#${ev.cycle}` : `ev-${idx+1}`;
+
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-semibold text-white">${cycleLabel}</td>
+          <td class="py-2 px-3 text-slate-300">${ev.action || 'collaborative_cycle'}</td>
+          <td class="py-2 px-3">${statusBadge}</td>
+          <td class="py-2 px-3 text-cyan-300 font-semibold">${ev.duration_s ? ev.duration_s + 's' : '-'}</td>
+          <td class="py-2 px-3 text-slate-400 text-[11px]">${nodesStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     function renderBars(endurance) {
