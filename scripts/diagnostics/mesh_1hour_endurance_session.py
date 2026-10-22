@@ -68,14 +68,14 @@ def tcp_ping(host: str, port: int, timeout: float = 2.0) -> Tuple[bool, float]:
         return False, -1.0
 
 
-def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65536, timeout: float = 120.0) -> Dict[str, Any]:
+def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65536, timeout: float = 240.0) -> Dict[str, Any]:
     """Invia richiesta firmata con ECDSA al Node Worker OMEN (:8081/execute)."""
     ident = generate_or_load_identity()
     body_data = {
         "task_id": f"endurance-omen-{int(time.time() * 1000)}",
         "model": model,
         "prompt": prompt,
-        "options": {"num_ctx": num_ctx, "num_predict": 1200, "temperature": 0.2}
+        "options": {"num_ctx": num_ctx, "num_predict": 900, "temperature": 0.2}
     }
     payload = json.dumps(body_data).encode("utf-8")
     headers = {"Content-Type": "application/json"}
@@ -103,13 +103,13 @@ def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65
     }
 
 
-def query_asus_flint(prompt: str, num_ctx: int = 131072, timeout: float = 120.0) -> Dict[str, Any]:
+def query_asus_flint(prompt: str, num_ctx: int = 131072, timeout: float = 240.0) -> Dict[str, Any]:
     """Invia richiesta al modello Flint 40B su ASUS V16."""
     payload = json.dumps({
         "model": MODEL_FLINT40B,
         "prompt": prompt,
         "stream": False,
-        "options": {"num_ctx": num_ctx, "num_predict": 1200, "temperature": 0.2}
+        "options": {"num_ctx": num_ctx, "num_predict": 1000, "temperature": 0.2}
     }).encode("utf-8")
 
     t0 = time.time()
@@ -233,8 +233,8 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                 # Ciclo Dispari: OMEN (Architect LFM2.5 @ 64k) redige specifica -> ASUS (Flint @ 128k) genera il codice
                 print(f"  [1/2] OMEN (LFM2.5 24B @ 64k) architettura `{topic_name}`...")
                 omen_prompt = (
-                    f"Sei Lead System Architect di HyperSpace AGI. Progetta la specifica tecnica per `{topic_name}` ({topic_desc}). "
-                    "Ragiona concisamente in <think> (max 70 parole). Definisci interfaccia chiara in codice Python per Lead Coder Flint."
+                    f"Sei Lead System Architect di HyperSpace AGI. Progetta la specifica tecnica essenziale per `{topic_name}` ({topic_desc}). "
+                    "Ragiona concisamente in <think> (max 40 parole). Definisci interfaccia concisa in codice Python per Lead Coder Flint."
                 )
                 omen_res = query_omen_execute(omen_prompt, model=MODEL_LFM24B, num_ctx=65536)
                 cycle_tokens += omen_res["eval_count"]
@@ -245,7 +245,7 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                 flint_prompt = (
                     f"Sei Lead Coder di HyperSpace AGI. Implementa la classe completa `{topic_name}` basandoti su questa specifica:\n"
                     f"{omen_res['text']}\n\n"
-                    "Ragiona in <think> (max 60 parole) e scrivi codice Python completo in blocco ```python ... ```."
+                    "Ragiona in <think> (max 40 parole) e scrivi codice Python completo in blocco ```python ... ```."
                 )
                 flint_res = query_asus_flint(flint_prompt, num_ctx=131072)
                 cycle_tokens += flint_res["eval_count"]
@@ -261,7 +261,7 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                 except SyntaxError as syn_err:
                     print(f"    ⚠ AST Syntax Warning: {syn_err}")
 
-                cot_snippet = parsed.thinking_trace or omen_res["text"][:300]
+                cot_snippet = parsed.reasoning_cot or omen_res["text"][:300]
                 update_devloop_hud(cycle, True, time.time() - cycle_t0, f"arch_impl_{topic_name}", cot_snippet)
 
             else:
