@@ -7318,5 +7318,14 @@ Completata la milestone su richiesta esplicita dell'utente, consolidando le inno
      - Aggiornamento in tempo reale di `data/omen_dev_loop.jsonl`, `data/synthetic_cot_dataset.jsonl` e `data/reports/endurance_session_live.json`.
      - Il Cockpit Web legge gli avanzamenti via `/api/devloop` incrementando in diretta il contatore dei cicli e i campioni CoT distillati.
    - Sessione avviata in background per 60 minuti (`task-859`).
+   - **Esito Sessione Endurance (1 Ora Completata)**:
+     - **Cicli totali eseguiti**: **43 cicli continui** multi-agente distribuiti tra i nodi.
+     - **Tasso di successo**: **39/43 cicli PASS (90.7%)** con inferenza reale costante.
+     - **Token totali generati**: **79.563 token**.
+     - **Throughput medio sostenuto**: **28.61 token/s** (Flint 40B @ 128k su ASUS fisso a ~30-31 tok/s, LFM2.5 24B @ 64k su OMEN a ~18-30 tok/s).
+     - **Campioni CoT distillati**: dataset `data/synthetic_cot_dataset.jsonl` incrementato fino a **199 campioni**.
+     - **Integrità hardware**: Nessun crash OOM o throttling termico; KV cache a 128k su ASUS V16 stabilissima per l'intera ora.
+     - **Report live**: Archiviato e consolidato in [`data/reports/endurance_session_live.json`](data/reports/endurance_session_live.json).
+
 
 
