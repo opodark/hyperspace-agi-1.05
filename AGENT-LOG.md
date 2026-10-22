@@ -7297,3 +7297,26 @@ Tutti e 4 gli scenari eseguiti da [`scripts/diagnostics/test_flint_lfm_collabora
 - **Tool Riutilizzabile**: [`scripts/diagnostics/test_flint_lfm_collaboration.py`](scripts/diagnostics/test_flint_lfm_collaboration.py) con supporto per target nodi `--target omen|asus|mac`, autenticazione automatica ECDSA e contesti arbitrari (`--flint-ctx`, `--lfm-ctx`).
 - **Report Completo**: Archiviato in [`data/reports/flint_128k_lfm24b_64k_collaboration_1792668132.json`](data/reports/flint_128k_lfm24b_64k_collaboration_1792668132.json).
 
+## 2026-10-22 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Milestone MoE Distribuita, Commit/Push su origin/main, Cockpit Live (:8090) e Sessione Endurance 1 Ora
+
+Completata la milestone su richiesta esplicita dell'utente, consolidando le innovazioni architetturali e avviando la verifica continua:
+
+1. **Commit & Push della Milestone su GitHub**:
+   - Creato commit `1134faa` (*feat(mesh): milestone MoE distribuita (Flint 40B @ 128k, LFM2.5 24B @ 64k), voce Kokoro-82M, Cockpit e test endurance*) con 25 file (+3014 righe).
+   - Eseguito `git push origin main` con successo: gli altri nodi (`ASUS V16` e `HP OMEN 16`) possono eseguire `git pull origin main` per allinearsi.
+
+2. **Aggiornamento e Riavvio Operations Cockpit (`http://localhost:8090`)**:
+   - Allineato [`scripts/cockpit_service.py`](scripts/cockpit_service.py) e [`web-node/apps/playground/index.html`](web-node/apps/playground/index.html) agli endpoint reali della mesh:
+     - **ASUS V16**: commutato a `http://100.64.31.18:8081` (latenza ~8-14 ms), stato `ONLINE`, modello `Flint-40B-MoE (128k, NVFP4)`.
+     - **HP OMEN 16**: `http://100.104.238.125:8081` (latenza ~117-160 ms), stato `ONLINE`, modello `LFM2.5-24B-A2B-Uncensored (64k)`.
+     - **Mac M5 Hub**: `http://127.0.0.1:8085`, stato `ONLINE`, modello `LFM2.5-8B / Kokoro TTS / CP 1.05`.
+   - Entrambi i nodi satellite rispondono con ping < 15ms (ASUS) e < 165ms (OMEN) e sono interrogabili in tempo reale dal Cockpit.
+
+3. **Sessione di Test ed Endurance Continua (1 Ora)**:
+   - Sviluppato [`scripts/diagnostics/mesh_1hour_endurance_session.py`](scripts/diagnostics/mesh_1hour_endurance_session.py) per cicli collaborativi prolungati:
+     - Alternanza Architect (OMEN @ 64k) -> Coder (Flint @ 128k) -> Validazione AST -> Handshake Telemetrico JSON.
+     - Aggiornamento in tempo reale di `data/omen_dev_loop.jsonl`, `data/synthetic_cot_dataset.jsonl` e `data/reports/endurance_session_live.json`.
+     - Il Cockpit Web legge gli avanzamenti via `/api/devloop` incrementando in diretta il contatore dei cicli e i campioni CoT distillati.
+   - Sessione avviata in background per 60 minuti (`task-859`).
+
+
