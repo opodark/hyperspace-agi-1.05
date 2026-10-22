@@ -1000,6 +1000,16 @@ def v1_chat_completions():
                 messages[last_user_idx] = {**messages[last_user_idx], "content": compressed}
                 data = {**data, "messages": messages}
 
+    # Limite prudenziale su num_ctx per inferenza locale:
+    # Se il client non lo dichiara o se supera 8192, limitiamo a 8192 per evitare
+    # che Ollama allochi contesti da 64K (17+ GB di VRAM/RAM per KV cache e prompt cache).
+    if not omniroute_direct:
+        opts = dict(data.get("options") or {})
+        current_ctx = int(opts.get("num_ctx") or 0)
+        if current_ctx <= 0 or current_ctx > 8192:
+            opts["num_ctx"] = 8192
+            data = {**data, "options": opts}
+
     task = {
         "id": task_id, "status": "created", "node": None,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

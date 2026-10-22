@@ -83,6 +83,59 @@ def render_title_png(text: str, w: int, h: int, pos: str, out: Path) -> None:
     img.save(out)
 
 
+def render_subtitle_png(text: str, w: int, h: int, out: Path,
+                        pos: str = "bottom", style: str = "tiktok_bold",
+                        font_size: int = 0) -> None:
+    """PNG trasparente con la battuta di sottotitolo ad alta visibilità
+    ottimizzata per Reel/TikTok/Shorts."""
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    size = font_size if font_size > 0 else max(26, int(w * 0.046))
+    font = _load_font(size)
+    margin = int(w * 0.10)
+    lines = _wrap(d, text.strip(), font, w - 2 * margin)
+    line_h = int(size * 1.35)
+    block_h = line_h * len(lines)
+
+    if pos == "top":
+        y = int(h * 0.15)
+    elif pos == "center":
+        y = (h - block_h) // 2
+    else:  # bottom: safe zone sopra la barra di TikTok
+        margin_bottom = int(h * 0.18) if h > w else int(h * 0.12)
+        y = h - margin_bottom - block_h
+
+    stroke = max(3, int(size * 0.10))
+    for ln in lines:
+        tw = d.textlength(ln, font=font)
+        x = (w - tw) // 2
+        if style == "box":
+            pad_x = int(size * 0.45)
+            pad_y = int(size * 0.16)
+            r = int(size * 0.30)
+            d.rounded_rectangle((x - pad_x, y - pad_y, x + tw + pad_x, y + size + pad_y),
+                                radius=r, fill=(0, 0, 0, 185))
+            d.text((x, y), ln, font=font, fill=(255, 255, 255, 255))
+        elif style == "yellow":
+            d.text((x + 2, y + 3), ln, font=font, fill=(0, 0, 0, 160),
+                   stroke_width=stroke, stroke_fill=(0, 0, 0, 160))
+            d.text((x, y), ln, font=font, fill=(255, 230, 0, 255),
+                   stroke_width=stroke, stroke_fill=(0, 0, 0, 240))
+        elif style == "minimal":
+            d.text((x + 2, y + 2), ln, font=font, fill=(0, 0, 0, 140))
+            d.text((x, y), ln, font=font, fill=(255, 255, 255, 255),
+                   stroke_width=max(1, size // 25), stroke_fill=(20, 20, 20, 180))
+        else:  # tiktok_bold (default)
+            d.text((x + 2, y + 3), ln, font=font, fill=(0, 0, 0, 160),
+                   stroke_width=stroke, stroke_fill=(0, 0, 0, 160))
+            d.text((x, y), ln, font=font, fill=(255, 255, 255, 255),
+                   stroke_width=stroke, stroke_fill=(0, 0, 0, 240))
+        y += line_h
+
+    img.save(out)
+
+
+
 def prepare_watermark_png(src: Path, target_w: int, scale: float, out: Path) -> tuple[int, int]:
     """Ridimensiona il logo a `scale` della larghezza del video,
     mantenendo l'alpha. Ritorna (w, h) finali in pixel."""

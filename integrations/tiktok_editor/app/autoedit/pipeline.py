@@ -20,9 +20,10 @@ from .beats import detect_beats, get_cut_times
 from .edl import build_segments
 from .effects import EDIT_STYLES, finish_chain
 from .media import load_media
-from .overlays import prepare_watermark_png, render_cross_light_png, render_title_png
+from .overlays import prepare_watermark_png, render_cross_light_png, render_subtitle_png, render_title_png
 from .person_layers import prepare_person_mask
 from .render import Segment, concat_with_xfade, mux_audio, render_segments
+from .subtitles import parse_subtitles
 
 log = logging.getLogger("autoedit")
 
@@ -109,6 +110,14 @@ class RenderConfig:
     title_start: float = 0.0
     title_duration: float = 2.5
 
+    # --- sottotitoli (SRT / VTT) ---------------------------------------
+    subtitles_file: Optional[Path] = None
+    subtitles_text: str = ""
+    subtitles_pos: str = "bottom"        # bottom | center | top
+    subtitles_style: str = "tiktok_bold" # tiktok_bold | box | yellow | minimal
+    subtitles_font_size: int = 0         # 0 = automatico in base alla risoluzione
+
+
 
 _WM_POS = {"tl", "tr", "bl", "br"}
 
@@ -169,8 +178,9 @@ def crescendo_cut_times(audio_start: float, audio_duration: float) -> np.ndarray
 
 
 def _build_overlays(cfg: RenderConfig, target_w: int, target_h: int, work_dir: Path,
-                    beat_info=None) -> list[dict]:
-    """Prepara i PNG di watermark e titolo e ritorna le voci per mux_audio."""
+                    beat_info=None, audio_offset: float = 0.0,
+                    total_dur: float = 0.0) -> list[dict]:
+    """Prepara i PNG di watermark, titolo e sottotitoli sincronizzati per mux_audio."""
     overlays: list[dict] = []
 
     if cfg.watermark and Path(cfg.watermark).is_file():
@@ -194,6 +204,40 @@ def _build_overlays(cfg: RenderConfig, target_w: int, target_h: int, work_dir: P
         s = max(0.0, cfg.title_start)
         e = s + max(0.4, cfg.title_duration)
         overlays.append({"png": ti_png, "x": 0, "y": 0, "start": s, "end": e, "fade": 0.3})
+
+    # Sottotitoli sincronizzati (da file SRT/VTT o testo incollato)
+    sub_source = cfg.subtitles_file or (cfg.subtitles_text.strip() if cfg.subtitles_text else None)
+    if sub_source:
+        try:
+            cues = parse_subtitles(sub_source)
+            for idx, cue in enumerate(cues):
+                s = cue.start - audio_offset
+                e = cue.end - audio_offset
+                if total_dur > 0:
+                    if s >= total_dur or e <= 0.02:
+                        continue
+                    s = max(0.0, s)
+                    e = min(total_dur, e)
+                else:
+                    if e <= 0.02:
+                        continue
+                    s = max(0.0, s)
+                if e - s < 0.04:
+                    continue
+                sub_png = work_dir / f"sub_{idx:04d}.png"
+                render_subtitle_png(cue.text, target_w, target_h, sub_png,
+                                    pos=cfg.subtitles_pos, style=cfg.subtitles_style,
+                                    font_size=cfg.subtitles_font_size)
+                overlays.append({
+                    "png": sub_png,
+                    "x": 0,
+                    "y": 0,
+                    "start": s,
+                    "end": e,
+                    "fade": 0.03,
+                })
+        except Exception as exc:
+            log.warning("Impossibile caricare i sottotitoli: %s", exc)
 
     if cfg.crescendo_finale and cfg.cross_strobe:
         cross_png = work_dir / "cross-light.png"
@@ -360,7 +404,8 @@ def run_pipeline(cfg: RenderConfig, progress: Optional[ProgressCB] = None) -> Pa
                                       target_w=target_w, target_h=target_h)
         _p(0.92, "Montaggio video pronto (%.2fs)." % total_dur)
 
-        overlays = _build_overlays(cfg, target_w, target_h, work_dir, beat_info)
+        overlays = _build_overlays(cfg, target_w, target_h, work_dir, beat_info,
+                                  audio_offset=audio_offset, total_dur=total_dur)
 
         cfg.out.parent.mkdir(parents=True, exist_ok=True)
         _p(0.95, "Audio + testo/logo ..." if overlays else "Aggiungo la traccia audio ...")

@@ -36,8 +36,11 @@ def main(argv=None) -> int:
         import gui  # type: ignore  # loaded from the configured local editor
 
         print("TikTok editor: http://127.0.0.1:7860", flush=True)
-        share_dir = Path(os.getenv("TIKTOK_EDITOR_SHARE_DIR", "/Users/opo/hyperspace_share"))
-        allowed = [str(share_dir.resolve())] if share_dir.is_dir() else []
+        if hasattr(gui, "get_allowed_paths"):
+            allowed = gui.get_allowed_paths()
+        else:
+            share_dir = Path(os.getenv("TIKTOK_EDITOR_SHARE_DIR", "/Users/opo/hyperspace_share"))
+            allowed = [str(share_dir.resolve())] if share_dir.is_dir() else []
         gui.demo.launch(server_name="127.0.0.1", server_port=7860,
                         inbrowser=False, share=False, show_error=True,
                         allowed_paths=allowed)

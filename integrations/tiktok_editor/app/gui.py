@@ -77,6 +77,13 @@ WM_POS = {
     "Alto a destra": "tr", "Alto a sinistra": "tl",
 }
 TITLE_POS = {"In alto": "top", "Al centro": "center", "In basso": "bottom"}
+SUBTITLE_POS = {"In basso (Reel/TikTok)": "bottom", "Al centro": "center", "In alto": "top"}
+SUBTITLE_STYLES = {
+    "TikTok Bold (bianco + bordo nero)": "tiktok_bold",
+    "Box scuro (pillola)": "box",
+    "Giallo fluo (social)": "yellow",
+    "Minimal": "minimal",
+}
 
 STYLE_BY_LABEL = {v: k for k, v in COLOR_LABELS.items()}
 MOTION_BY_LABEL = {v: k for k, v in MOTION_LABELS.items()}
@@ -86,6 +93,8 @@ SPEED_BY_VALUE = {v: k for k, v in SPEEDS.items()}
 ASPECT_BY_VALUE = {v: k for k, v in ASPECT_LABELS.items()}
 TRANS_BY_VALUE = {v: k for k, v in TRANSITIONS.items()}
 TITLE_BY_VALUE = {v: k for k, v in TITLE_POS.items()}
+SUBTITLE_POS_BY_VALUE = {v: k for k, v in SUBTITLE_POS.items()}
+SUBTITLE_STYLE_BY_VALUE = {v: k for k, v in SUBTITLE_STYLES.items()}
 EDIT_STYLE_BY_LABEL = {v: k for k, v in EDIT_STYLE_LABELS.items()}
 LLM_PROVIDERS = {"Compatibile OpenAI (anche locale)": "openai", "Anthropic (Claude)": "anthropic"}
 PROVIDER_LABEL = {v: k for k, v in LLM_PROVIDERS.items()}
@@ -108,6 +117,7 @@ PRESET_FIELDS = [
     "separate_person", "subject_style", "background_style", "background_blur",
     "background_dim", "subject_spot", "subject_dim", "outline_color",
     "outline_strength", "outline_width", "cross_strobe",
+    "subtitles_style", "subtitles_pos",
 ]
 
 
@@ -153,9 +163,26 @@ def _open_webui_project(name: str):
         audio_path = (folder / manifest["audio_file"]).resolve(strict=True)
         if not audio_path.is_relative_to(folder) or not audio_path.is_file():
             raise gr.Error("Percorso audio nel progetto non valido.")
+
+    subtitles_path = None
+    sub_candidate = manifest.get("subtitles_file") or "subtitles.srt"
+    cand_path = (folder / sub_candidate).resolve()
+    if cand_path.is_file() and cand_path.is_relative_to(folder):
+        subtitles_path = cand_path
+    elif (folder / "subtitles.vtt").is_file():
+        subtitles_path = (folder / "subtitles.vtt").resolve()
+
+    extras = []
+    if audio_path:
+        extras.append("audio")
+    if subtitles_path:
+        extras.append("sottotitoli sincronizzati")
+    extras_str = f" con {', '.join(extras)}" if extras else ""
+
     next_action = "premi Analizza" if audio_path else "aggiungi la musica e premi Analizza"
     return (paths, gr.update(value=creator), brief,
-            f"✅ Progetto **{name}** caricato ({len(paths)} media). Controlla il brief, {next_action}.",
+            f"✅ Progetto **{name}** caricato ({len(paths)} media{extras_str}). Controlla il brief, {next_action}.",
+            str(subtitles_path) if subtitles_path else None,
             str(audio_path) if audio_path else None)
 
 
@@ -308,6 +335,16 @@ def _do_generate(state, p: dict, force_seed, progress) -> tuple[str, str]:
     order_file.write_text("\n".join(metas[idx]["name"] for _, idx in chosen))
     out_path = work / "reel.mp4"
 
+    target_dur = AUTOCUT.get(p.get("duration_preset"))
+    if target_dur is not None:
+        bi_dur = float(state.get("beat", {}).get("duration", 0.0))
+        audio_st = float(p.get("audio_start") or 0.0)
+        if bi_dur > 0 and (audio_st + target_dur) > bi_dur + 0.01:
+            if target_dur == 60 and bi_dur >= 29.5:
+                target_dur = 30
+            elif (audio_st + 30) > bi_dur + 0.01:
+                target_dur = None
+
     seed_val = p.get("seed")
     cfg = RenderConfig(
         media_dir=media_dir, audio=audio_path, out=out_path, order_file=order_file,
@@ -336,13 +373,17 @@ def _do_generate(state, p: dict, force_seed, progress) -> tuple[str, str]:
         title_pos=TITLE_POS.get(p.get("title_pos"), "center"),
         title_start=float(p.get("title_start") or 0.0),
         title_duration=float(p.get("title_dur") or 2.5),
+        subtitles_file=Path(_as_path(p["subtitles_file"])) if p.get("subtitles_file") else None,
+        subtitles_text=(p.get("subtitles_text") or "").strip(),
+        subtitles_pos=SUBTITLE_POS.get(p.get("subtitles_pos"), "bottom"),
+        subtitles_style=SUBTITLE_STYLES.get(p.get("subtitles_style"), "tiktok_bold"),
         watermark=Path(_as_path(p["wm_file"])) if p.get("wm_file") else None,
         watermark_pos=WM_POS.get(p.get("wm_pos"), "br"),
         watermark_scale=float(p.get("wm_scale") or 0.15),
         watermark_opacity=float(p.get("wm_opacity") or 0.85),
         shuffle=bool(p.get("shuffle")),
         max_duration=float(p["max_dur"]) if p.get("max_dur") else None,
-        target_duration=AUTOCUT.get(p.get("duration_preset")),
+        target_duration=target_dur,
         crescendo_finale=bool(p.get("crescendo_finale")),
         finale_media_dir=Path(state["work"]) / "finale",
         separate_person=bool(p.get("separate_person")),
@@ -544,6 +585,15 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
             wm_opacity = gr.Slider(0.2, 1.0, value=0.85, step=0.05, label="Opacità")
         gr.HTML(comics_for("wm_file", "wm_pos", "wm_scale", "wm_opacity"))
 
+    with gr.Accordion("💬 Sottotitoli (SRT / VTT)", open=False):
+        with gr.Row():
+            subtitles_file = gr.File(label="File .srt o .vtt (opzionale)", file_types=[".srt", ".vtt", ".txt"])
+            subtitles_style = gr.Dropdown(list(SUBTITLE_STYLES), value=list(SUBTITLE_STYLES)[0], label="Stile grafico")
+            subtitles_pos = gr.Dropdown(list(SUBTITLE_POS), value=list(SUBTITLE_POS)[0], label="Posizione")
+        subtitles_text = gr.Textbox(label="Oppure incolla i sottotitoli in formato SRT o VTT", lines=3,
+                                    placeholder="1\n00:00:00,000 --> 00:00:04,500\nLa tua didascalia qui...")
+        gr.HTML(comics_for("subtitles_file", "subtitles_style", "subtitles_pos", "subtitles_text"))
+
     with gr.Accordion("⏱️ Ritmo / sincronia / hook", open=False):
         with gr.Row():
             hook_hold = gr.Slider(0.0, 2.0, value=0.0, step=0.1,
@@ -582,6 +632,8 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
             "title_text": d[title_text], "title_pos": d[title_pos],
             "title_start": d[title_start], "title_dur": d[title_dur], "wm_file": d[wm_file],
             "wm_pos": d[wm_pos], "wm_scale": d[wm_scale], "wm_opacity": d[wm_opacity],
+            "subtitles_file": d[subtitles_file], "subtitles_text": d[subtitles_text],
+            "subtitles_pos": d[subtitles_pos], "subtitles_style": d[subtitles_style],
             "hook_hold": d[hook_hold], "audio_start": d[audio_start], "beat_offset": d[beat_offset],
             "xfade_ms": d[xfade_ms], "snap_onsets": d[snap_onsets], "dynamic_pacing": d[dynamic_pacing],
             "strong_only": d[strong_only], "shuffle": d[shuffle], "max_dur": d[max_dur],
@@ -680,6 +732,7 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
         use_scene_ai, crescendo_finale, separate_person, subject_style, background_style,
         background_blur, background_dim, subject_spot, subject_dim,
         outline_color, outline_strength, outline_width, cross_strobe,
+        subtitles_style, subtitles_pos,
     ]
 
     def load_preset(name):
@@ -729,8 +782,9 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
         if cfg is None:
             return (gr.update(), gr.update(), gr.update(), gr.update(),
                     "❌ Control plane non raggiungibile su `127.0.0.1:8085` o nessun modello locale trovato.")
+        save_llm_config(cfg)
         return (PROVIDER_LABEL["openai"], cfg.model, cfg.base_url, cfg.api_key,
-                f"✅ HyperSpace trovato: `{cfg.model}`. Nessuna configurazione manuale necessaria.")
+                f"✅ HyperSpace connesso: `{cfg.model}` ({cfg.base_url}). Configurazione salvata.")
 
     # componenti aggiornati da un brief, nell'ordine di BRIEF_KEYS
     BRIEF_COMPONENTS = [edit_style, style, motion, motion_intensity, transition_mode, variety,
@@ -801,6 +855,7 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
         max_dur, seed, use_scene_ai, crescendo_finale, separate_person, subject_style,
         background_style, background_blur, background_dim, subject_spot, subject_dim,
         outline_color, outline_strength, outline_width, cross_strobe,
+        subtitles_file, subtitles_text, subtitles_pos, subtitles_style,
     }
     draft_components = [table, *PRESET_COMPONENTS, creator_profile, brief_text, wm_file]
     draft_keys = ["table", *PRESET_FIELDS, "creator_profile", "brief_text", "wm_file"]
@@ -847,7 +902,7 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
                        outputs=[state, gallery, table, wave_img, info_md])
     webui_refresh.click(lambda: gr.update(choices=_list_webui_projects()), outputs=[webui_project])
     webui_open.click(_open_webui_project, inputs=[webui_project],
-                     outputs=[files, creator_profile, brief_text, webui_status, audio])
+                     outputs=[files, creator_profile, brief_text, webui_status, subtitles_file, audio])
     scene_ai_btn.click(on_scene_ai, inputs=[state, table], outputs=[state, scene_ai_status])
     mask_preview_btn.click(preview_person_mask, inputs=[state, table], outputs=[mask_preview])
     genera_btn.click(on_generate, inputs=gen_set, outputs=[out_video, out_file])
@@ -865,8 +920,27 @@ with gr.Blocks(title="autoedit — montaggio automatico") as demo:
                     outputs=BRIEF_COMPONENTS + [brief_status])
 
 
+def get_allowed_paths() -> list[str]:
+    """Directory consentite a Gradio per evitare InvalidPathError su draft e media."""
+    import tempfile
+    root = Path(__file__).resolve().parents[3]
+    share = Path(os.getenv("TIKTOK_EDITOR_SHARE_DIR", "/Users/opo/hyperspace_share"))
+    comfy = Path("/Users/opo/ComfyUI-Shared")
+    candidates = [
+        Path(__file__).resolve().parent,
+        DATA_DIR,
+        DATA_DIR.parent,
+        root,
+        share,
+        comfy,
+        Path(tempfile.gettempdir()),
+        Path("/tmp"),
+    ]
+    return [str(p.resolve()) for p in candidates if p.exists()]
+
+
 if __name__ == "__main__":
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
         print("ATTENZIONE: 'ffmpeg' / 'ffprobe' non trovati nel PATH. "
               "Installali (es. 'brew install ffmpeg') o il montaggio fallira'.\n")
-    demo.launch(inbrowser=True)
+    demo.launch(inbrowser=True, allowed_paths=get_allowed_paths())

@@ -51,6 +51,10 @@ GUIDES = {
     "shuffle": ("Ordine casuale", "Mischia le scene", "Ignora l'ordine della tabella e crea una sequenza nuova."),
     "max_dur": ("Durata massima", "Un limite libero", "Vale solo con Autocut Libero/manuale; 30/60 secondi hanno priorità."),
     "seed": ("Seed", "Rifacciamolo uguale", "Usa lo stesso numero per ripetere le scelte casuali."),
+    "subtitles_file": ("File sottotitoli", "I testi prendono ritmo", "Carica un file .srt o .vtt con i timestamp sincronizzati alla voce o alla canzone."),
+    "subtitles_style": ("Stile sottotitoli", "Look TikTok o minimale", "Scegli il font bianco con contorno nero marcato, la classica pillola scura o il giallo virale."),
+    "subtitles_pos": ("Posizione sottotitoli", "Sempre visibili", "In basso calcola la safe-zone sopra l'interfaccia di TikTok e Reels per non coprire il testo."),
+    "subtitles_text": ("Sottotitoli diretti", "Incolla il testo", "Puoi incollare direttamente le battute in formato SRT o VTT con i relativi tempi."),
 }
 
 

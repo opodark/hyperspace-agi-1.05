@@ -122,10 +122,12 @@ else
   log "web-node locale avviato su http://127.0.0.1:8790"
 fi
 
+kokoro_python="$REPO/data/kokoro-venv/bin/python"
+[[ ! -x "$kokoro_python" ]] && kokoro_python="$REPO/.venv/bin/python"
 if running '[k]okoro_tts_service.py' || curl -fsS --max-time 2 http://127.0.0.1:8880/health >/dev/null 2>&1; then
   log "Kokoro TTS service già attivo su http://127.0.0.1:8880"
-elif [[ -f "$REPO/.venv/bin/python" && -f "$REPO/scripts/kokoro_tts_service.py" ]]; then
-  nohup "$REPO/.venv/bin/python" -u "$REPO/scripts/kokoro_tts_service.py" >"$REPO/data/kokoro-tts.log" 2>"$REPO/data/kokoro-tts.err.log" &
+elif [[ -x "$kokoro_python" && -f "$REPO/scripts/kokoro_tts_service.py" ]]; then
+  nohup "$kokoro_python" -u "$REPO/scripts/kokoro_tts_service.py" >"$REPO/data/kokoro-tts.log" 2>"$REPO/data/kokoro-tts.err.log" &
   log "Kokoro TTS service avviato su http://127.0.0.1:8880"
 fi
 

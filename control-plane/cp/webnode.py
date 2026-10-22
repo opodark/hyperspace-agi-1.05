@@ -647,8 +647,9 @@ def web_image_generate():
         width = min(1024, max(512, int(data.get("width", 768))))
         height = min(1024, max(512, int(data.get("height", 768))))
         steps = min(35, max(15, int(data.get("steps", 25))))
+        seed = int(data.get("seed", 0))
     except (TypeError, ValueError):
-        width, height, steps = 768, 768, 25
+        width, height, steps, seed = 768, 768, 25, 0
 
     from shared.image_jobs import nuovo_job
     try:
@@ -658,6 +659,7 @@ def web_image_generate():
             larghezza=width,
             altezza=height,
             passi=steps,
+            seed=seed,
             richiedente=str(data.get("requester", "ai-studio")),
             canale="web",
             famiglia=family,
@@ -740,7 +742,7 @@ def web_audio_speech():
     # 2. Fallback sintetico locale (senza dipendenze esterne)
     from scripts.kokoro_tts_service import _generate_fallback_wav
     from flask import Response
-    wav_bytes = _generate_fallback_wav(text)
+    wav_bytes = _generate_fallback_wav(text, voice=voice)
     return Response(wav_bytes, mimetype="audio/wav")
 
 

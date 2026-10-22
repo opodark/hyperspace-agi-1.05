@@ -90,7 +90,7 @@ def analyze_scene(path: Path, model: str, base_url: str = OLLAMA_URL) -> dict:
     body = json.dumps({"model": native_model,
                        "messages": [{"role": "user", "content": prompt, "images": [encoded]}],
                        "stream": False, "think": False, "keep_alive": "2m",
-                       "options": {"temperature": 0, "num_predict": 220}},
+                       "options": {"temperature": 0, "num_predict": 220, "num_ctx": 4096}},
                       ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(base + "/api/chat", data=body,
                                  headers={"Content-Type": "application/json"})

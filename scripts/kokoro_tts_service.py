@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 MODELS_DIR = DATA_DIR / "models" / "kokoro"
 DEFAULT_PORT = int(os.getenv("KOKORO_PORT", "8880"))
+DEFAULT_VOICE = os.getenv("KOKORO_VOICE", "af_nicole")
 
 # URL ufficiali pesi ONNX Kokoro-82M v1.0
 KOKORO_ONNX_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx"
@@ -70,8 +71,63 @@ def _init_kokoro() -> bool:
     return False
 
 
-def _generate_fallback_wav(text: str, sample_rate: int = 24000) -> bytes:
+VOICE_ALIASES: Dict[str, str] = {
+    # Voci ufficiali Kokoro v1.0
+    "if_sara": "if_sara",        # Italiano Donna (Sara)
+    "im_nicola": "im_nicola",    # Italiano Uomo (Nicola)
+    "af_heart": "af_heart",      # Inglese USA Donna (Heart)
+    "af_bella": "af_bella",      # Inglese USA Donna (Bella)
+    "af_nicole": "af_nicole",    # Inglese USA Donna (Nicole)
+    "af_sky": "af_sky",          # Inglese USA Donna (Sky)
+    "am_michael": "am_michael",  # Inglese USA Uomo (Michael)
+    "am_adam": "am_adam",        # Inglese USA Uomo (Adam)
+    "bf_alice": "bf_alice",      # Inglese UK Donna (Alice)
+    "bm_george": "bm_george",    # Inglese UK Uomo (George)
+    # Alias amichevoli per l'italiano
+    "it": "if_sara",
+    "italiano": "if_sara",
+    "italian": "if_sara",
+    "sara": "if_sara",
+    "nicola": "im_nicola",
+    "it_sara": "if_sara",
+    "it_nicola": "im_nicola",
+    "it_elisa": "if_sara",
+    # Mappatura dai default OpenAI (usati dai dropdown di Open WebUI)
+    "alloy": "af_heart",
+    "echo": "im_nicola",
+    "fable": "bf_alice",
+    "onyx": "am_michael",
+    "nova": "af_bella",
+    "shimmer": "if_sara",
+}
+
+
+def _resolve_voice(voice: str, text: str = "") -> tuple[str, str]:
+    """Risolve la voce e la lingua (en/it). Ritorna (voice_id, lang_code)."""
+    v = str(voice or "").strip().lower()
+    canonical = VOICE_ALIASES.get(v, v or "af_nicole")
+
+    # Riconoscimento lingua: prefisso 'i' per italiano in Kokoro
+    if canonical.startswith("i") or v in ("it", "italiano", "italian", "sara", "nicola"):
+        return canonical, "it"
+
+    if canonical in ("af_nicole", "nicole"):
+        return "af_nicole", "it"
+
+    # Se la voce è OpenAI generica ma il testo è italiano, usa Nicole
+    parole_it = ("ciao", "questo", "grazie", "sono", "perché", "buongiorno", "della", "delle", "degli", "nella", "come")
+    if any(p in text.lower() for p in parole_it):
+        if canonical in ("im_nicola", "echo", "onyx"):
+            return "im_nicola", "it"
+        return "af_nicole", "it"
+
+    return canonical, "en-us"
+
+
+def _generate_fallback_wav(text: str, voice: str = "", sample_rate: int = 24000) -> bytes:
     """Genera un file WAV valido di sintesi fallback per test o quando i pesi non sono presenti."""
+    resolved_voice, lang = _resolve_voice(voice, text)
+
     # Se siamo su macOS e il comando 'say' è disponibile, usalo per generare audio reale
     if sys.platform == "darwin":
         try:
@@ -81,9 +137,13 @@ def _generate_fallback_wav(text: str, sample_rate: int = 24000) -> bytes:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as wav_f:
                 wav_path = wav_f.name
 
-            # Voce italiana o inglese
-            voice = "Alice" if any(w in text.lower() for w in ("ciao", "questo", "grazie", "sono", "il", "la")) else "Samantha"
-            subprocess.run(["say", "-v", voice, "-o", aiff_path, text[:400]], check=True, timeout=10)
+            # Scelta voce macOS nativa (Alice per femmina IT, Eddy per maschio IT, Samantha per EN)
+            if lang == "it":
+                macos_voice = "Eddy" if resolved_voice == "im_nicola" else "Alice"
+            else:
+                macos_voice = "Samantha"
+
+            subprocess.run(["say", "-v", macos_voice, "-o", aiff_path, text[:400]], check=True, timeout=10)
             subprocess.run(["ffmpeg", "-y", "-i", aiff_path, "-ar", str(sample_rate), wav_path], capture_output=True, check=True, timeout=10)
 
             with open(wav_path, "rb") as f:
@@ -135,8 +195,35 @@ def health():
         "service": "kokoro-tts",
         "engine": "kokoro-onnx" if has_onnx else "system-tts-fallback",
         "port": DEFAULT_PORT,
-        "voices": ["af_heart", "af_bella", "af_nicole", "af_sky", "it_nicola", "it_elisa"],
+        "default_italian_voice": "if_sara",
+        "voices": [
+            {"id": "if_sara", "name": "Sara (Italiano Femminile)", "gender": "female", "language": "it"},
+            {"id": "im_nicola", "name": "Nicola (Italiano Maschile)", "gender": "male", "language": "it"},
+            {"id": "af_heart", "name": "Heart (English Female)", "gender": "female", "language": "en"},
+            {"id": "af_bella", "name": "Bella (English Female)", "gender": "female", "language": "en"},
+            {"id": "af_nicole", "name": "Nicole (English Female)", "gender": "female", "language": "en"},
+            {"id": "am_michael", "name": "Michael (English Male)", "gender": "male", "language": "en"},
+            {"id": "bf_alice", "name": "Alice (British Female)", "gender": "female", "language": "en-gb"}
+        ],
         "openai_compatible": True
+    })
+
+
+@app.route("/v1/audio/voices", methods=["GET"])
+def list_voices():
+    """Elenco voci disponibili (con supporto nativo italiano e stili miscelati)."""
+    return jsonify({
+        "voices": [
+            {"id": "if_sara", "name": "Sara (Standard)", "gender": "female", "language": "it", "description": "Voce italiana naturale di riferimento"},
+            {"id": "poetica", "name": "Sara (Stile Poetico)", "gender": "female", "language": "it", "description": "Cadenza lirica, morbida e melodica (Sara + Aoede)"},
+            {"id": "documentarista", "name": "Sara (Stile Documentarista)", "gender": "female", "language": "it", "description": "Cadenza autorevole, riflessiva da reportage (Sara + Emma)"},
+            {"id": "giornalista", "name": "Sara (Stile Giornalista)", "gender": "female", "language": "it", "description": "Cadenza dinamica, incisiva e brillante (Sara + Bella)"},
+            {"id": "teatrale", "name": "Sara (Stile Teatrale)", "gender": "female", "language": "it", "description": "Cadenza espressiva, intensa e drammatica (Sara + Isabella)"},
+            {"id": "im_nicola", "name": "Nicola", "gender": "male", "language": "it", "description": "Voce italiana naturale maschile"},
+            {"id": "af_heart", "name": "Heart", "gender": "female", "language": "en", "description": "Voce calda e profonda (USA)"},
+            {"id": "af_nicole", "name": "Nicole", "gender": "female", "language": "en", "description": "Voce sussurrata e rilassante (USA)"},
+            {"id": "bf_emma", "name": "Emma", "gender": "female", "language": "en-gb", "description": "Voce aristocratica ed elegante (UK)"}
+        ]
     })
 
 
@@ -172,7 +259,9 @@ def audio_speech():
     if not text:
         return jsonify({"error": "Parametro 'input' mancante o vuoto"}), 400
 
-    voice = str(data.get("voice", "af_heart")).strip()
+    raw_voice = str(data.get("voice", DEFAULT_VOICE)).strip() or DEFAULT_VOICE
+    play_on_speaker = bool(data.get("play", False))
+    voice, lang = _resolve_voice(raw_voice, text)
     speed = float(data.get("speed", 1.0))
     fmt = str(data.get("response_format", "mp3")).strip().lower()
     if fmt not in ("mp3", "wav", "ogg"):
@@ -182,18 +271,132 @@ def audio_speech():
     if _init_kokoro() and _kokoro_instance is not None:
         try:
             import soundfile as sf  # type: ignore
-            samples, sample_rate = _kokoro_instance.create(text, voice=voice, speed=speed)
+
+            # Gestione stili miscelati (Voice Blending) per cadenze specifiche
+            target_voice = voice
+            v_key = raw_voice.lower()
+            if v_key in ("poetica", "sara_poetica", "poesia"):
+                sara = _kokoro_instance.get_voice_style("if_sara")
+                aoede = _kokoro_instance.get_voice_style("af_aoede")
+                target_voice = 0.6 * sara + 0.4 * aoede
+                lang = "it"
+                if speed == 1.0:
+                    speed = 0.92
+            elif v_key in ("documentarista", "sara_doc", "documentario"):
+                sara = _kokoro_instance.get_voice_style("if_sara")
+                emma = _kokoro_instance.get_voice_style("bf_emma")
+                target_voice = 0.65 * sara + 0.35 * emma
+                lang = "it"
+                if speed == 1.0:
+                    speed = 0.94
+            elif v_key in ("giornalista", "sara_news", "notizie"):
+                sara = _kokoro_instance.get_voice_style("if_sara")
+                bella = _kokoro_instance.get_voice_style("af_bella")
+                target_voice = 0.6 * sara + 0.4 * bella
+                lang = "it"
+                if speed == 1.0:
+                    speed = 1.05
+            elif v_key in ("teatrale", "sara_teatrale", "drammatica"):
+                sara = _kokoro_instance.get_voice_style("if_sara")
+                isabella = _kokoro_instance.get_voice_style("bf_isabella")
+                target_voice = 0.55 * sara + 0.45 * isabella
+                lang = "it"
+                if speed == 1.0:
+                    speed = 0.90
+
+            try:
+                samples, sample_rate = _kokoro_instance.create(text, voice=target_voice, speed=speed, lang=lang)
+            except TypeError:
+                samples, sample_rate = _kokoro_instance.create(text, voice=target_voice, speed=speed)
+
             buf = io.BytesIO()
             sf_format = "WAV" if fmt == "wav" else "OGG"
             sf.write(buf, samples, sample_rate, format=sf_format)
             buf.seek(0)
+
+            if play_on_speaker:
+                try:
+                    import tempfile, subprocess
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f_play:
+                        f_play.write(buf.getvalue())
+                        play_p = f_play.name
+                    if sys.platform == "darwin":
+                        subprocess.Popen(["afplay", play_p])
+                except Exception:
+                    pass
+
             return Response(buf.read(), mimetype=f"audio/{fmt}")
         except Exception as exc:
             print(f"[kokoro] Errore sintesi ONNX: {exc}, passo al fallback.")
 
-    # 2. Sintesi Fallback deterministica (WAV)
-    wav_bytes = _generate_fallback_wav(text)
+    # 2. Sintesi Fallback deterministica (WAV ad alta fedeltà con Alice/Eddy su macOS)
+    wav_bytes = _generate_fallback_wav(text, voice=raw_voice)
     return Response(wav_bytes, mimetype="audio/wav")
+
+
+@app.route("/v1/audio/transcriptions", methods=["POST", "OPTIONS"])
+def audio_transcriptions():
+    """Endpoint compatibile OpenAI Speech-to-Text (/v1/audio/transcriptions).
+    
+    Supporta la trascrizione del microfono inviata da Open WebUI usando Whisper.
+    """
+    if request.method == "OPTIONS":
+        return "", 204
+
+    if "file" not in request.files:
+        return jsonify({"error": "Parametro 'file' mancante", "text": ""}), 400
+
+    audio_file = request.files["file"]
+    lang = request.form.get("language", "it")
+
+    import tempfile
+    suffix = Path(audio_file.filename or "audio.wav").suffix or ".wav"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_in:
+        tmp_in_path = tmp_in.name
+        audio_file.save(tmp_in_path)
+
+    # Converti in WAV 16kHz per Whisper se necessario
+    wav_path = tmp_in_path + ".wav"
+    try:
+        subprocess.run(["ffmpeg", "-y", "-i", tmp_in_path, "-ar", "16000", "-ac", "1", wav_path],
+                       capture_output=True, check=True, timeout=15)
+        target_path = wav_path
+    except Exception:
+        target_path = tmp_in_path
+
+    try:
+        whisper_bin = "/opt/homebrew/bin/whisper"
+        if os.path.exists(whisper_bin):
+            out_dir = tempfile.gettempdir()
+            stem = Path(target_path).stem
+            cmd = [
+                whisper_bin, target_path,
+                "--model", "tiny",
+                "--language", lang,
+                "--output_format", "json",
+                "--output_dir", out_dir
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            json_out = Path(out_dir) / f"{stem}.json"
+            if json_out.exists():
+                with open(json_out, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                try:
+                    os.remove(json_out)
+                except Exception:
+                    pass
+                return jsonify({"text": data.get("text", "").strip()})
+
+        return jsonify({"text": ""})
+    except Exception as exc:
+        return jsonify({"error": str(exc), "text": ""}), 500
+    finally:
+        for p in (tmp_in_path, wav_path):
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
 
 
 def download_models():

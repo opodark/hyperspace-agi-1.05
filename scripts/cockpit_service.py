@@ -38,7 +38,8 @@ except Exception as exc:
 
 # Configurazione nodi
 OMEN_URL = os.getenv("OMEN_NODE_URL", "http://100.104.238.125:8081")
-ASUS_URL = os.getenv("ASUS_NODE_URL", "http://100.125.101.44:8081")
+ASUS_URL = os.getenv("ASUS_NODE_URL", "http://100.64.31.18:8081")
+ASUS_OLLAMA_URL = os.getenv("ASUS_OLLAMA_URL", "http://100.64.31.18:11434")
 MAC_OLLAMA_URL = os.getenv("MAC_OLLAMA_URL", "http://localhost:11434")
 CP_URL = os.getenv("HYPERSPACE_CP_URL", "http://localhost:8085")
 STATIC_DIR = REPO_ROOT / "web-node" / "apps" / "playground"
@@ -165,13 +166,13 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 "omen": {
                     "id": "omen",
                     "name": "HP Omen 16",
-                    "role": "GPU Worker (CUDA Primary)",
+                    "role": "GPU Worker (Architect & Gate)",
                     "status": "ONLINE" if omen_status else "OFFLINE",
                     "hardware": f"RTX 3070 {omen_status.get('vram_gb', 8.0)}GB VRAM + 32GB RAM" if omen_status else "RTX 3070 8GB VRAM",
                     "power": "AC Line Power" if (omen_status and omen_status.get("ac_line")) else "Battery",
                     "battery_pct": omen_status.get("battery_pct", 100) if omen_status else 100,
                     "ac_line": omen_status.get("ac_line", True) if omen_status else True,
-                    "active_model": "LFM2.5-8B-A1B-Abliterated (GGUF Q4_K_M)",
+                    "active_model": "LFM2.5-24B-A2B-Uncensored (64k)",
                     "saturation": omen_status.get("saturation", 0.0) if omen_status else 0.0,
                     "uptime_s": omen_status.get("uptime_s", 0) if omen_status else 0,
                     "endpoint": OMEN_URL
@@ -179,13 +180,13 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 "asus": {
                     "id": "asus",
                     "name": "ASUS V16",
-                    "role": "Large RAM Node (Hybrid 48GB)",
+                    "role": "Lead Coder (40B MoE @ 128k)",
                     "status": "ONLINE" if asus_status else "STANDBY / SLEEP",
-                    "hardware": "48GB DDR4 RAM + RTX Mobile 8GB",
-                    "power": "AC Power" if (asus_status and asus_status.get("ac_line")) else "Battery (Standby)",
+                    "hardware": f"RTX 5060 {asus_status.get('vram_gb', 8.0)}GB + 48GB RAM" if asus_status else "48GB RAM + RTX 5060 8GB",
+                    "power": "AC Power" if (asus_status and asus_status.get("ac_line", True)) else "Battery",
                     "battery_pct": asus_status.get("battery_pct", 100) if asus_status else 100,
-                    "ac_line": asus_status.get("ac_line", False) if asus_status else False,
-                    "active_model": "LFM2.5-24B-A2B-Uncensored (Q4_K_M)",
+                    "ac_line": asus_status.get("ac_line", True) if asus_status else True,
+                    "active_model": "Flint-40B-MoE (128k, NVFP4)",
                     "endpoint": ASUS_URL
                 }
             },
@@ -268,6 +269,32 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 })
             except Exception as exc:
                 self.send_json({"error": f"Errore inferenza Omen: {exc}", "elapsed_s": round(time.time() - t0, 2)}, status=502)
+        elif target == "asus":
+            # Chiamata ad ASUS V16 (Flint 40B @ 128k su Ollama o Node Worker)
+            asus_model = model if model != "hf.co/DuoNeural/LFM2.5-8B-A1B-Abliterated-GGUF:Q4_K_M" else "flint:latest"
+            asus_payload = json.dumps({
+                "model": asus_model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_ctx": 131072, "num_predict": 1500}
+            }).encode("utf-8")
+            req = urllib.request.Request(f"{ASUS_OLLAMA_URL}/api/generate", data=asus_payload, headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=180) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                elapsed = time.time() - t0
+                raw_resp = data.get("response", "")
+                thought, content = self._split_thought(raw_resp)
+                self.send_json({
+                    "status": "ok",
+                    "target": "asus",
+                    "model": asus_model,
+                    "elapsed_s": round(elapsed, 2),
+                    "thought": thought,
+                    "response": content
+                })
+            except Exception as exc:
+                self.send_json({"error": f"Errore inferenza ASUS: {exc}", "elapsed_s": round(time.time() - t0, 2)}, status=502)
         else:
             # Fallback Mac Ollama
             mac_payload = json.dumps({

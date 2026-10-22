@@ -1134,60 +1134,188 @@
       .footer-bottom { flex-direction: column; align-items: flex-start; }
     }
 
-    /* Banner Trasparenza Mayhem Mode */
-    .mayhem-alert-strip {
-      background: linear-gradient(90deg, rgba(88, 28, 135, 0.45) 0%, rgba(15, 23, 42, 0.9) 50%, rgba(13, 148, 136, 0.25) 100%);
+    /* Permanent Live News Bulletin & Platform Notice */
+    .news-bulletin-card {
+      background: linear-gradient(135deg, rgba(26, 14, 56, 0.92) 0%, rgba(13, 22, 46, 0.95) 50%, rgba(6, 28, 42, 0.92) 100%);
       border: 1px solid rgba(168, 85, 247, 0.45);
-      border-radius: 14px;
-      padding: 14px 20px;
-      margin: 0 0 28px;
-      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.35);
+      border-radius: 18px;
+      padding: 18px 22px;
+      margin: 0 0 32px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+      position: relative;
+      overflow: hidden;
     }
-    .mayhem-alert-inner {
+    .news-bulletin-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #7c3aed, #57e6d9, #f43f5e);
+    }
+    .bulletin-top-bar {
       display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .bulletin-badges-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .bulletin-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(124, 58, 237, 0.5);
+    }
+    .bulletin-radar-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #57e6d9;
+      box-shadow: 0 0 8px #57e6d9;
+      display: inline-block;
+      animation: pulse-dot 1.8s infinite;
+    }
+    .platform-updating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .bulletin-meta-time {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .bulletin-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .bulletin-tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .bulletin-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    .bulletin-tab-btn.active {
+      background: rgba(87, 230, 217, 0.15);
+      border-color: #57e6d9;
+      color: #57e6d9;
+      font-weight: 700;
+    }
+    .bulletin-news-pane {
+      display: none;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
+      background: rgba(3, 7, 18, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 18px;
+      animation: fadeInBulletin .25s ease-out;
     }
-    .mayhem-alert-tag {
-      background: linear-gradient(135deg, #7c3aed, #db2777);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 6px;
-      white-space: nowrap;
+    .bulletin-news-pane.active {
+      display: flex;
     }
-    .mayhem-alert-text {
+    @keyframes fadeInBulletin {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bulletin-news-body {
       flex: 1;
-      font-size: 13.5px;
-      line-height: 1.5;
-      color: #e2e8f0;
       min-width: 260px;
     }
-    .mayhem-alert-text strong {
+    .bulletin-news-title {
+      font-size: 14px;
+      font-weight: 750;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .bulletin-news-desc {
+      font-size: 13px;
+      line-height: 1.55;
+      color: #cbd5e1;
+      margin: 0;
+    }
+    .bulletin-news-desc strong {
       color: #57e6d9;
     }
-    .mayhem-alert-cta {
+    .bulletin-news-cta {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       padding: 8px 16px;
-      border-radius: 8px;
-      background: #7c3aed;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
       color: #fff;
-      text-decoration: none;
       font-size: 12.5px;
-      font-weight: 700;
+      font-weight: 750;
+      text-decoration: none;
       white-space: nowrap;
       transition: all .15s;
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
     }
-    .mayhem-alert-cta:hover {
+    .bulletin-news-cta:hover {
       background: #9333ea;
       transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+    }
+    .bulletin-evolution-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 12px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px dashed rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #fde68a;
     }
   </style>
 </head>
@@ -1213,16 +1341,84 @@
     </div>
   </nav>
 
-  <!-- BANNER DI TRASPARENZA MAYHEM MODE (PUMP.FUN) -->
-  <div class="mayhem-alert-strip">
-    <div class="mayhem-alert-inner">
-      <span class="mayhem-alert-tag">⚠️ Trasparenza Lancio Pump.fun</span>
-      <div class="mayhem-alert-text">
-        <strong>$00MESH è stato lanciato in Mayhem Mode:</strong> nelle prime 24 ore il volume e la volatilità del grafico riflettono anche l'attività casuale del bot promozionale di Pump.fun. 00MESH non è un memecoin speculativo, ma un utility token sperimentale per la mesh AI P2P sovrana e Proof-of-Useful-Work. La priorità sono i nodi e l'inferenza AI reale.
+  <!-- PERMANENT LIVE NEWS BULLETIN & PLATFORM EVOLUTION NOTICE -->
+  <aside class="news-bulletin-card" id="newsBulletin" aria-label="Bollettino Novità & Aggiornamenti Mesh">
+    <div class="bulletin-top-bar">
+      <div class="bulletin-badges-group">
+        <span class="bulletin-live-badge"><i class="bulletin-radar-dot"></i> LIVE NETWORK BULLETIN</span>
+        <span class="platform-updating-badge">🛠️ Piattaforma in Costante Aggiornamento</span>
       </div>
-      <a href="./token.html" class="mayhem-alert-cta">Scopri $00MESH & Roadmap ↗</a>
+      <span class="bulletin-meta-time">Build in Public · HyperSpace 00MESH 1.05.5</span>
     </div>
-  </div>
+
+    <!-- Ticker / Quick Tab Selector -->
+    <div class="bulletin-tabs">
+      <button type="button" class="bulletin-tab-btn active" data-tab="0">🪙 Token $00MESH & PoUW</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="1">🧠 Modelli LFM 2.5 & Qwen</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="2">⚡ Nodo Web (WebGPU 1-Click)</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="3">🔌 Estensione GPU Desktop</button>
+    </div>
+
+    <!-- News Pane 0: Token & Utility -->
+    <div class="bulletin-news-pane active" id="paneNews0">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>🚀 Tokenomics & Calcolo Distribuito $00MESH (Solana SPL)</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Fair Launch su Pump.fun completato:</strong> fixed supply da 1B con 200M riservati alla community pool PoUW per ricompensare chi fornisce calcolo AI reale. <em>Nota: il volume delle prime 24h riflette le compravendite casuali del bot Mayhem, mentre il valore reale risiede nei nodi e nelle inferenze fornite.</em>
+        </p>
+      </div>
+      <a href="./token.html" class="bulletin-news-cta">Trasparenza Token & Roadmap ↗</a>
+    </div>
+
+    <!-- News Pane 1: Modelli Sovrani -->
+    <div class="bulletin-news-pane" id="paneNews1">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>🧠 Attivato Liquid Foundation Model (LFM 2.5 8B) & Qwen 3.5</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Aggiornamento catalogo neurale:</strong> dismesso Bonsai 2 in favore di <strong>LFM 2.5 8B DuoNeural</strong> abliterated (latenza 4.68s su HP OMEN e Mac M-Series), affiancato da sintesi ComfyUI e ricerca live SearXNG senza censure.
+        </p>
+      </div>
+      <a href="./ai.html" class="bulletin-news-cta">Accedi all'AI Studio ↗</a>
+    </div>
+
+    <!-- News Pane 2: WebGPU Browser Node -->
+    <div class="bulletin-news-pane" id="paneNews2">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>⚡ Diventa un Nodo dal Browser in 1 Clic (Zero Installazioni)</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Mining ecologico Proof-of-Useful-Work:</strong> apri la scheda di calcolo nel browser per validare micro-task ed estrazioni documentali client-side con WebGPU, accumulando punti computazionali $00MESH verificabili su registro crittografico.
+        </p>
+      </div>
+      <a href="./join.html" class="bulletin-news-cta">Accendi Nodo Web ↗</a>
+    </div>
+
+    <!-- News Pane 3: Desktop GPU Extension -->
+    <div class="bulletin-news-pane" id="paneNews3">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>🔌 Connetti la tua GPU Locale via Ollama o LM Studio</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Infrastruttura peer-to-peer crittografata:</strong> connettore E2EE locale per schede NVIDIA, AMD o Apple Silicon. Instrada le richieste di inferenza della community e guadagna ricompense PoUW con moltiplicatori 1.5x–3.0x.
+        </p>
+      </div>
+      <a href="#chromeBridgeSection" class="bulletin-news-cta">Scopri Estensione GPU ↓</a>
+    </div>
+
+    <!-- Avviso permanente di costante aggiornamento -->
+    <div class="bulletin-evolution-footer">
+      <span>⚙️</span>
+      <div>
+        <strong>Piattaforma in costante aggiornamento:</strong> Zero Zero Computer sviluppa in modalità <em>Build-in-Public</em> (dal 2003 a Saronno). Modelli neurali, gateway di federazione e contratti Solana evolvono quotidianamente in risposta ai contributi della community e ai carichi di rete.
+      </div>
+    </div>
+  </aside>
 
   <!-- Hero Section -->
   <div class="hero">
@@ -1235,6 +1431,7 @@
         <span>Modelli Abliterated Senza Filtri</span>
         <span>Proof-of-Useful-Work (PoUW)</span>
         <span>Liquidità su Solana / pump.fun</span>
+        <span style="border-color:rgba(245, 158, 11, 0.45); color:#fde68a;">🛠️ Piattaforma in Costante Aggiornamento</span>
       </div>
 
       <div class="hero-actions">
@@ -2854,6 +3051,43 @@
   else if (location.protocol !== "https:" && location.hostname !== "localhost") { state("error", "Apri la pagina in HTTPS"); }
   else { $("meshFreshness").textContent = "nodo pronto per i task browser"; }
   updateButtons();
+
+  // News Bulletin Tab Switcher & Auto-Rotator
+  (function initBulletin() {
+    const tabBtns = document.querySelectorAll(".bulletin-tab-btn");
+    const newsPanes = document.querySelectorAll(".bulletin-news-pane");
+    if (!tabBtns.length || !newsPanes.length) return;
+
+    let activeIdx = 0;
+    let timer = null;
+
+    function selectTab(idx) {
+      activeIdx = idx;
+      tabBtns.forEach((btn, i) => btn.classList.toggle("active", i === idx));
+      newsPanes.forEach((pane, i) => pane.classList.toggle("active", i === idx));
+    }
+
+    tabBtns.forEach((btn, idx) => {
+      btn.addEventListener("click", () => {
+        selectTab(idx);
+        clearInterval(timer);
+      });
+    });
+
+    const card = document.querySelector(".news-bulletin-card");
+    function startTimer() {
+      timer = setInterval(() => {
+        activeIdx = (activeIdx + 1) % tabBtns.length;
+        selectTab(activeIdx);
+      }, 8500);
+    }
+
+    if (card) {
+      card.addEventListener("mouseenter", () => clearInterval(timer));
+      card.addEventListener("mouseleave", () => startTimer());
+    }
+    startTimer();
+  })();
 </script>
 </body>
 </html>
