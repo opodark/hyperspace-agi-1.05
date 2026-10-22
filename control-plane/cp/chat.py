@@ -57,6 +57,7 @@
 #   la federazione: sono tutti infrastruttura con molti chiamanti, e vanno
 #   estratti come dominio loro, non passati qui come iniettati.
 
+import ast
 import json
 import os
 import re
@@ -334,6 +335,101 @@ def _tool_del_client(tool_name: str, client_names) -> bool:
     if not nome or nome in (_handlers_nativi() if _handlers_nativi else ()):
         return False
     return nome in {str(nome_cliente or "") for nome_cliente in (client_names or [])}
+
+def _extract_raw_tool_calls(content: str):
+    """Estrae e converte chiamate di tool formattate in sintassi speciale (Qwen, Hermes, XML) nel testo."""
+    if not content or not isinstance(content, str):
+        return content, []
+
+    patterns = [
+        r'<\|tool_call_start\|>(.*?)<\|tool_call_end\|>',
+        r'<tool_call>(.*?)</tool_call>',
+        r'\[TOOL_CALL\](.*?)\[/TOOL_CALL\]',
+    ]
+
+    extracted_calls = []
+    cleaned_content = content
+
+    for pat in patterns:
+        matches = list(re.finditer(pat, cleaned_content, re.DOTALL))
+        for match in reversed(matches):
+            raw_block = match.group(1).strip()
+            if raw_block.startswith("```") and raw_block.endswith("```"):
+                raw_block = re.sub(r"^```(?:json)?\s*", "", raw_block)
+                raw_block = re.sub(r"\s*```$", "", raw_block).strip()
+
+            parsed = False
+            # 1. Tentativo parsing JSON
+            try:
+                data = json.loads(raw_block)
+                items = data if isinstance(data, list) else [data]
+                for item in items:
+                    if isinstance(item, dict):
+                        fn = item.get("function") or item
+                        name = fn.get("name")
+                        args = fn.get("arguments", fn.get("parameters", {}))
+                        if isinstance(args, dict):
+                            args = json.dumps(args, ensure_ascii=False)
+                        if name:
+                            extracted_calls.append({
+                                "id": f"call_{uuid.uuid4().hex[:8]}",
+                                "type": "function",
+                                "function": {"name": str(name), "arguments": str(args)}
+                            })
+                            parsed = True
+            except Exception:
+                pass
+
+            # 2. Tentativo parsing espressione Call in Python AST: [fn(k=v)] o fn(k=v)
+            if not parsed:
+                try:
+                    tree = ast.parse(raw_block, mode="eval")
+                    items = tree.body.elts if isinstance(tree.body, ast.List) else [tree.body]
+                    for item in items:
+                        if isinstance(item, ast.Call):
+                            fn_name = item.func.id if isinstance(item.func, ast.Name) else str(item.func)
+                            kwargs = {}
+                            for kw in item.keywords:
+                                try:
+                                    kwargs[kw.arg] = ast.literal_eval(kw.value)
+                                except Exception:
+                                    kwargs[kw.arg] = ast.unparse(kw.value) if hasattr(ast, "unparse") else str(kw.value)
+                            extracted_calls.append({
+                                "id": f"call_{uuid.uuid4().hex[:8]}",
+                                "type": "function",
+                                "function": {"name": fn_name, "arguments": json.dumps(kwargs, ensure_ascii=False)}
+                            })
+                            parsed = True
+                except Exception:
+                    pass
+
+            if parsed:
+                start, end = match.span()
+                cleaned_content = cleaned_content[:start] + cleaned_content[end:]
+
+    return cleaned_content.strip(), extracted_calls
+
+
+def _auto_heal_response_tool_calls(resp):
+    """Se il modello ha emesso i token speciali nel testo invece che nel JSON, li converte in tool_calls nativi."""
+    if not isinstance(resp, dict):
+        return resp
+    choices = resp.get("choices") or []
+    if not choices or not isinstance(choices[0], dict):
+        return resp
+    message = choices[0].get("message") or {}
+    if message.get("tool_calls"):
+        return resp
+    raw_content = message.get("content", "")
+    cleaned, extracted = _extract_raw_tool_calls(raw_content)
+    if extracted:
+        message["content"] = cleaned
+        message["tool_calls"] = extracted
+        choices[0]["finish_reason"] = "tool_calls"
+        push_log('system', f'Auto-healed tool call from content: {[tc["function"]["name"] for tc in extracted]}',
+                 detail=f'nomi={[tc["function"]["name"] for tc in extracted]}', status='info')
+    return resp
+
 
 def _risposta_solo_tool_del_client(resp, tool_calls):
     """La risposta del modello con i SOLI tool che deve eseguire il client.
@@ -758,6 +854,7 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
             time.sleep(min(1.0 + iteration, 5.0))
             continue
 
+        resp      = _auto_heal_response_tool_calls(resp)
         last_resp = resp
         choice    = resp.get("choices", [{}])[0]
         message   = choice.get("message", {})

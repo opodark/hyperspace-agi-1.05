@@ -128,6 +128,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_plan()
         elif self.path.startswith("/api/missions"):
             self.handle_api_missions_create()
+        elif self.path.startswith("/api/telegram/broadcast"):
+            self.handle_api_telegram_broadcast()
         else:
             self.send_error(404, "Endpoint non trovato")
 
@@ -414,6 +416,26 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.send_json({"error": f"HTTP {he.code}: {err_body}"}, status=he.code)
         except Exception as exc:
             self.send_json({"error": str(exc)}, status=502)
+
+    def handle_api_telegram_broadcast(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+        try:
+            data = json.loads(body)
+        except Exception:
+            data = {}
+
+        text = data.get("text", "").strip()
+        if not text:
+            self.send_json({"error": "Parametro 'text' mancante"}, status=400)
+            return
+
+        try:
+            from scripts.telegram_dispatcher import broadcast_message
+            res = broadcast_message(text, parse_mode=data.get("parse_mode", "HTML"))
+            self.send_json({"status": "ok", "results": res})
+        except Exception as exc:
+            self.send_json({"error": str(exc)}, status=500)
 
     def handle_api_devloop(self):
         dev_loop_file = REPO_ROOT / "data" / "omen_dev_loop.jsonl"

@@ -681,6 +681,7 @@
         if (lower === 'help') {
           printToTerminal(`Comandi Live Disponibili:\n` +
             `  • history / sprint        : Storico completo dei test, sprint e milestone del cluster\n` +
+            `  • tg <messaggio>          : Invia un aggiornamento broadcast immediato sui canali Telegram\n` +
             `  • devloop                 : Telemetria e stato dei cicli autonomi 24/7 di HP OMEN\n` +
             `  • chronicle               : Cronologia mutazioni e diario di bordo della codebase\n` +
             `  • dataset                 : Ultimo campione sintetico CoT distillato e verificato (AST)\n` +
@@ -693,6 +694,28 @@
             `  • vram                    : Mostra l'allocazione VRAM/RAM reale dei nodi\n` +
             `  • select <omen|mac|asus>  : Commuta il nodo di default per le inferenze\n` +
             `  • clear                   : Pulisce la schermata del terminale`, 'text-slate-300');
+        } else if (lower.startsWith('telegram ') || lower.startsWith('tg ')) {
+          const msg = rawInput.replace(/^(telegram|tg)\s+/i, '').trim();
+          if (!msg) {
+            printToTerminal(`Specificare il testo del messaggio: es. 'tg Aggiornamento completato!'`, 'text-amber-400');
+            return;
+          }
+          printToTerminal(`Invio broadcast sui canali Telegram (@ZeroZeroMesh)...`, 'text-slate-500');
+          try {
+            const resp = await fetch('/api/telegram/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: `📢 <b>Aggiornamento Operativo Cockpit</b>\n\n${msg}\n\n🤖 <i>Inviato dall'operatore via HyperSpace Cockpit</i>` })
+            });
+            const res = await resp.json();
+            if (res.status === 'ok') {
+              printToTerminal(`✓ Messaggio inviato con successo a tutti i canali Telegram!`, 'text-emerald-400 font-bold');
+            } else {
+              printToTerminal(`[!] Errore invio Telegram: ${res.error || JSON.stringify(res)}`, 'text-rose-400');
+            }
+          } catch (e) {
+            printToTerminal(`[ERRORE TELEGRAM] ${e.message}`, 'text-rose-400');
+          }
         } else if (lower === 'history' || lower === 'sprint' || lower === 'tests' || lower === 'milestones') {
           printToTerminal(`Recupero storico test e milestones da /api/analytics...`, 'text-slate-500');
           try {

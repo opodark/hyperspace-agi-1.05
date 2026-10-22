@@ -1089,7 +1089,9 @@ let currentMissionData = null;
 let currentCanvasTab = 'diff';
 let pollInterval = null;
 
-// Gestione Token Operatore
+let isLocalOperator = false;
+
+// Gestione Token Operatore & Trust Locale
 function getOperatorToken() {
   try {
     return sessionStorage.getItem('hyperspaceDreamReviewToken') || 
@@ -1113,13 +1115,33 @@ function setOperatorToken(tok) {
   updateTokenUI();
 }
 
+async function autoAuthLocal() {
+  let tok = getOperatorToken();
+  if (!tok) {
+    try {
+      const res = await fetch('/api/auth/local-token');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.token) {
+          setOperatorToken(data.token);
+          isLocalOperator = true;
+          tok = data.token;
+        }
+      }
+    } catch(e) {}
+  } else {
+    isLocalOperator = true;
+  }
+  updateTokenUI();
+}
+
 function updateTokenUI() {
   const tok = getOperatorToken();
   const dot = document.getElementById('tokenDot');
   const label = document.getElementById('tokenLabel');
   if (tok && tok.length >= 8) {
     dot.className = 'status-dot ok';
-    label.textContent = '🔓 Token Attivo';
+    label.textContent = isLocalOperator ? '🔓 Operatore Locale' : '🔓 Token Attivo';
   } else {
     dot.className = 'status-dot warn';
     label.textContent = '🔒 Inserisci Token';
@@ -1136,7 +1158,7 @@ function apiHeaders(json = false) {
 
 // Inizializzazione
 window.addEventListener('DOMContentLoaded', async () => {
-  updateTokenUI();
+  await autoAuthLocal();
   await checkHealth();
   await loadMissions();
   pollInterval = setInterval(refreshCycle, 5000);
@@ -1174,21 +1196,17 @@ async function refreshCycle() {
 // Caricamento elenco missioni
 async function loadMissions(silent = false) {
   const listEl = document.getElementById('missionsList');
-  if (!getOperatorToken()) {
-    listEl.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🔒</div>
-        <div class="empty-title">Token Operatore Assente</div>
-        <div class="empty-desc">Clicca su "Inserisci Token" in alto a destra per autenticare il workspace con il Control Plane.</div>
-      </div>`;
-    return;
-  }
 
   try {
     const res = await fetch('/missions', { headers: apiHeaders() });
     if (!res.ok) {
-      if (res.status === 401) {
-        listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Token non valido</div></div>`;
+      if (res.status === 401 || res.status === 503) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔒</div>
+            <div class="empty-title">Token Operatore Richiesto</div>
+            <div class="empty-desc">Se non sei in locale, inserisci il DREAM_REVIEW_TOKEN cliccando in alto a destra.</div>
+          </div>`;
         return;
       }
       throw new Error('HTTP ' + res.status);

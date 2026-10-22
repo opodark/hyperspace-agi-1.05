@@ -2657,13 +2657,40 @@ def _reachable_dream_node(node_id):
     return node
 
 
+def _is_local_operator_request() -> bool:
+    """Verifica se la richiesta proviene direttamente da localhost / operatore locale su Mac."""
+    remote = request.remote_addr or ""
+    host = request.headers.get("Host", "")
+    origin = request.headers.get("Origin", "") or request.headers.get("Referer", "")
+    return (
+        remote in ("127.0.0.1", "::1", "172.18.0.1") or
+        host.startswith("localhost") or host.startswith("127.0.0.1") or
+        "localhost" in origin or "127.0.0.1" in origin
+    )
+
+
+DREAM_REVIEW_TOKEN = os.getenv("DREAM_REVIEW_TOKEN", "")
+
 def _dream_review_auth_error():
+    token = os.getenv("DREAM_REVIEW_TOKEN", DREAM_REVIEW_TOKEN)
     if len(DREAM_REVIEW_TOKEN) < 32:
         return jsonify({"error": "DREAM_REVIEW_TOKEN assente o troppo corto — revisione disabilitata"}), 503
     provided = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
-    if not token_authorized(provided, DREAM_REVIEW_TOKEN):
-        return jsonify({"error": "Token revisione sogni non valido"}), 401
-    return None
+    if token_authorized(provided, DREAM_REVIEW_TOKEN):
+        return None
+    # Trust locale: zero friction per l'operatore locale su localhost (Web-Node resta protetto)
+    if os.getenv("LOCAL_OPERATOR_AUTH", "true").lower() in ("true", "1", "yes") and _is_local_operator_request():
+        return None
+    return jsonify({"error": "Token revisione sogni non valido"}), 401
+
+
+@app.route('/api/auth/local-token')
+def local_token_provider():
+    """Fornisce automaticamente il token operatore alla UI quando originata da localhost."""
+    token = os.getenv("DREAM_REVIEW_TOKEN", DREAM_REVIEW_TOKEN)
+    if _is_local_operator_request() and len(token) >= 32:
+        return jsonify({"ok": True, "token": token, "mode": "local_operator"})
+    return jsonify({"ok": False, "error": "Accesso riservato all'operatore locale"}), 403
 
 
 @app.route('/dreams')

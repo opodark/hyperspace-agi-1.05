@@ -291,6 +291,16 @@ def cmd_post(credentials: dict, title: str, content: str, submolt: str = "genera
         print(f"• ID:      {post_data.get('id')}")
         print(f"• Titolo:  {post_data.get('title')}")
         print(f"• URL:     https://www.moltbook.com/post/{post_data.get('id')}")
+
+        # Inoltro automatico su Telegram (@ZeroZeroMesh e admin)
+        try:
+            from scripts.telegram_dispatcher import broadcast_moltbook_diary
+            post_url = f"https://www.moltbook.com/post/{post_data.get('id')}"
+            broadcast_moltbook_diary(title=title, excerpt=content, post_url=post_url)
+            print("• Telegram: Aggiornamento inviato con successo sui canali (@ZeroZeroMesh)")
+        except Exception as exc:
+            print(f"• Telegram: Errore inoltro automatico: {exc}")
+
         return 0
     except urllib.error.HTTPError as exc:
         print(f"Errore pubblicazione post Moltbook: HTTP {exc.code} — {exc.reason}")

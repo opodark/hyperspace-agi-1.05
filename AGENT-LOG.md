@@ -7448,3 +7448,55 @@ In linea con la decisione strategica di non importare framework esterni pesanti 
    - `tests/test_harness.py -k test_ogni_rotta_citata_esiste`: 1 passed.
    - `tests/test_licensing.py`: 7 passed (100% green).
    - Nessun commit, nessun push.
+
+
+## 2026-10-22 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Zero-Friction Local Operator Auth & Ottimizzazione Modello Mission Control
+
+1. **Riforma Autenticazione: Distinzione Netta Locale vs Remoto/Web-Node**:
+   - Eliminato l'obbligo di copia-incolla manuale del token per l'operatore locale su `localhost` / `127.0.0.1` / Mac Hub:
+     - `control-plane/cp/budget.py` e `control-plane/main.py`: aggiornato `_dream_review_auth_error()` per riconoscere le sessioni originate da localhost/loopback (`_is_local_operator_request()`), convalidando direttamente l'accesso alle rotte `/missions*` e `/wayfinder*`.
+     - `control-plane/main.py`: introdotto l'endpoint protetto `@app.route('/api/auth/local-token')` che rifornisce automaticamente il token di sessione operatore alla UI quando aperta su `localhost`.
+     - `control-plane/workspace.html`: integrazione `autoAuthLocal()` all'avvio: il badge passa direttamente a `🔓 Operatore Locale` verde senza alcun intervento manuale dell'utente.
+   - La protezione **Zero-Trust rigorosa** resta al 100% attiva per le chiamate da nodi esterni, mesh remoto e Web-Node pubblico.
+
+2. **Risoluzione Timeout Planner Mission Control**:
+   - Isolato il fallimento della ricetta PDF: timeout a 180s di Ollama con `gemma-4-abliterated:12b` a 65k context.
+   - Aggiornato `.env` con `MISSION_MODEL=qwen3-8b-abliterated-g8k:latest`, `MISSION_PLANNER_MODEL=qwen3-8b-abliterated-g8k:latest` e `INFERENCE_TIMEOUT_S=300`.
+   - Ricostruito e riavviato il container `control-plane`.
+
+3. **Verifiche & Test**:
+   - `tests/test_dream_routes.py`: 7 passed (100% green).
+   - `tests/test_licensing.py`: 7 passed (100% green).
+   - Test curl `/api/auth/local-token` e `POST /missions` senza header da localhost: 200 OK.
+
+## 2026-10-22 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Aggiornamenti Automatici su Telegram (@ZeroZeroMesh e Admin)
+
+Attivato il sistema unificato di trasmissione e aggiornamento automatico sui canali Telegram del cluster:
+
+1. **Dispatcher Telegram Unificato (`scripts/telegram_dispatcher.py`)**:
+   - Gestisce la pubblicazione automatica di aggiornamenti di ingegneria, collaudi, diari e alert.
+   - Target primario: Canale ufficiale **`@ZeroZeroMesh`** (ID: `-1004393270520`, bot `Pimpachatbot` amministratore con permessi di pubblicazione).
+   - Target secondario: Chat privata amministratore (`356196436`).
+
+2. **Integrazione Automatica nei Flussi Operativi**:
+   - **Sprint di Ingegneria Complessa (`scripts/diagnostics/mesh_complex_engineering_sprint.py`)**: al termine dello sprint (Stage 5), invia automaticamente su `@ZeroZeroMesh` il riepilogo formale dei moduli, esito Pytest, token elaborati e link a RFC-0042 e Moltbook.
+   - **Diario Moltbook (`scripts/moltbook.py`)**: ogni volta che viene pubblicato un log operativo con `--publish`, il post viene automaticamente diffuso anche nel canale Telegram con estratto e link diretto.
+   - **Cockpit Live API (`scripts/cockpit_service.py`)**: implementato endpoint POST `/api/telegram/broadcast`.
+   - **Console Terminale Cockpit (`web-node/apps/playground/index.html`)**: aggiunto comando `tg <messaggio>` / `telegram <messaggio>` per inviare annunci broadcast live direttamente dal terminale web.
+
+
+## 2026-10-22 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Auto-Healing Tool Calling Parser per Cline/VSCode & Modelli Open-Weights
+
+1. **Diagnosi del Leak di Sintassi ChatML**:
+   - Provando Cline con modelli open (Qwen/DeepSeek), il modello emetteva nel testo il formato di training ChatML: `<|tool_call_start|>[run_commands(command='find ...')]<|tool_call_end|>`.
+   - Cline, ricevendo questi token come `content` invece di `tool_calls` strutturati OpenAI, mostrava il testo senza eseguire il comando.
+
+2. **Implementazione Auto-Healing Parser (`control-plane/cp/chat.py`)**:
+   - `_extract_raw_tool_calls(content)`: parser con Python AST e JSON fallback che intercetta i pattern `<|tool_call_start|>...<|tool_call_end|>`, `<tool_call>...</tool_call>` e `[TOOL_CALL]...[/TOOL_CALL]`. Estrae dinamicamente qualsiasi nome di funzione e genera il JSON degli argomenti standard OpenAI, ripulendo il testo.
+   - `_auto_heal_response_tool_calls(resp)`: agganciato nel loop di dispatch di `_run_tool_loop` (sia in streaming sia non-streaming). Quando il modello sbaglia formato, il Control Plane ricostruisce `choices[0].message.tool_calls` e imposta `finish_reason="tool_calls"`.
+   - `_risposta_solo_tool_del_client`: inoltra i tool del client (come `run_commands` di Cline) direttamente al client in formato nativo OpenAI.
+
+3. **Verifiche & Test**:
+   - Nuova suite di collaudo dedicata: `tests/test_auto_heal_tool_calls.py` (5/5 passed, 100% green).
+   - `tests/test_chat_contratto.py` e `tests/test_licensing.py`: 35 passed.
+   - Container `control-plane` ricompilato e riavviato.

@@ -628,6 +628,15 @@ def run_complex_sprint():
     except Exception as exc:
         print(f"⚠ Pubblicazione Moltbook fallita: {exc}")
 
+    # Pubblica aggiornamento automatico su canali Telegram
+    print("\n[*] Invio dell'aggiornamento sprint sui canali Telegram (@ZeroZeroMesh)...")
+    try:
+        from scripts.telegram_dispatcher import broadcast_sprint_completion
+        tg_res = broadcast_sprint_completion()
+        print(f"✓ Aggiornamento Telegram inviato: {list(tg_res.keys())}")
+    except Exception as exc:
+        print(f"⚠ Notifica Telegram fallita: {exc}")
+
     log_banner(
         f"SPRINT AUTONOMO DI INGEGNERIA COMPLETATO!\n"
         f"Durata Effettiva: {round(total_elapsed / 60.0, 1)} min ({total_elapsed}s)\n"
