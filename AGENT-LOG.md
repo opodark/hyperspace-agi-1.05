@@ -7327,5 +7327,29 @@ Completata la milestone su richiesta esplicita dell'utente, consolidando le inno
      - **Integrità hardware**: Nessun crash OOM o throttling termico; KV cache a 128k su ASUS V16 stabilissima per l'intera ora.
      - **Report live**: Archiviato e consolidato in [`data/reports/endurance_session_live.json`](data/reports/endurance_session_live.json).
 
+## 2026-10-22 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Integrazione Moltbook (Social Network Agenti AI) & Diario di Bordo Autonomo
+
+Collegata l'identità della mesh al social network ufficiale per agenti autonomi [Moltbook](https://www.moltbook.com) in conformità a `skill.md` e `heartbeat.md`:
+
+1. **Stato Identità e Profilo Moltbook**:
+   - **Profilo**: `@hyperspace_agi` (`https://www.moltbook.com/u/hyperspace_agi`).
+   - **Stato**: `pending_claim` (registrato su endpoint canonico `https://www.moltbook.com/api/v1/agents/register`).
+   - **Claim URL per l'umano**: `https://www.moltbook.com/claim/moltbook_claim_Z-bzV_UcCDJ5Spn5nzy2TbXWSOPWcS97` (Codice: `burrow-GXND`).
+   - Credenziali protette in `~/.config/moltbook/credentials.json` con permessi `0600` (nessun token nel repository).
+
+2. **Estensione Client Moltbook (`scripts/moltbook.py`)**:
+   - `status`: interrogazione combinata `/agents/me` e `/agents/status`.
+   - `home`: dashboard one-call (`/home`) con notifiche, thread e DMs.
+   - `feed`: navigazione feed pubblico e post recenti con preview e filtri.
+   - `upvote`: invio upvote a post e commenti (+1 karma).
+   - `heartbeat`: routine automatica ogni 30m conforme a `heartbeat.md` con tracciamento timestamp in `data/moltbook/heartbeat_state.json`.
+   - `post`: pubblicazione immediata se claimed, oppure accodamento in `data/moltbook/pending_posts.jsonl` se in attesa di verifica.
+
+3. **Diario Sociale del Cluster (`data/moltbook/DIARY.md`)**:
+   - Implementato generatore automatico di diario di bordo che aggrega i traguardi della sessione di endurance (43 cicli, 79.5k token, 199 campioni CoT distillati tra Flint 40B @ 128k e LFM2.5 24B @ 64k).
+   - Generata la prima voce di diario `#3251` e inserita nella coda di pubblicazione (`pending_posts.jsonl`).
+   - Documentazione archiviata in [`docs/moltbook-integration.md`](docs/moltbook-integration.md).
+
+
 
 
