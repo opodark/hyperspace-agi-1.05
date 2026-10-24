@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperSpace Sovereign R&D Lab | Albero Genealogico, AST Prototypes & Deploy Produzione</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          },
+          colors: {
+            brand: {
+              cyan: '#57e6d9',
+              purple: '#8b5cf6',
+              amber: '#f59e0b',
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              indigo: '#6366f1'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070a12;
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(87, 230, 217, 0.05) 0px, transparent 40%),
+        radial-gradient(at 90% 90%, rgba(139, 92, 246, 0.05) 0px, transparent 40%);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(87, 230, 217, 0.25);
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(87, 230, 217, 0.5);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card:hover {
+      border-color: rgba(87, 230, 217, 0.25);
+    }
+    .pulse-glow {
+      animation: pulseGlow 2.5s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.96); }
+    }
+    .tree-connector {
+      stroke: rgba(148, 163, 184, 0.25);
+      stroke-width: 2;
+      fill: none;
+      transition: stroke 0.3s;
+    }
+    .tree-connector.active {
+      stroke: #57e6d9;
+      stroke-width: 2.5;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-cyan selection:text-black">
+
+  <!-- TOP HEADER & NAV -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-3.5 h-3.5 rounded-full bg-brand-purple shadow-[0_0_12px_#8b5cf6] pulse-glow"></div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          HyperSpace Sovereign R&D Lab <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-brand-purple font-mono">AST & Evolution Tree</span>
+        </h1>
+        <p class="text-xs text-slate-400">Albero Genealogico delle Ricerche, Test Falliti, Pivot Strategici e Deploy in Produzione</p>
+      </div>
+    </div>
+
+    <!-- NAVIGATION LINKS -->
+    <nav class="flex items-center gap-2 text-xs">
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🚀 Cockpit
+      </a>
+      <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        📡 Scouting & Missioni
+      </a>
+      <a href="/research.html" class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-brand-purple font-bold border border-purple-500/30 transition">
+        🧬 R&D Lab & AST Deploy
+      </a>
+      <a href="/analytics.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🏛️ Storico Test
+      </a>
+      <a href="/dialogues.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        💬 Dialoghi Agenti
+      </a>
+      <a href="/seo.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🌐 Dashboard SEO
+      </a>
+      <a id="devStudioNavLink" href="/devstudio.html" class="hidden px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        ⚡ HyperDev Studio
+      </a>
+      <script>
+        (function() {
+          const h = window.location.hostname;
+          if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local')) {
+            const el = document.getElementById('devStudioNavLink');
+            if (el) el.classList.remove('hidden');
+          }
+        })();
+      </script>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
+
+    <!-- KPI SUMMARY CARDS -->
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <!-- 1: Totale Nodi -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+        <div class="text-xs font-mono text-slate-400">TOTALE NODI R&D</div>
+        <div class="text-3xl font-extrabold text-white font-mono mt-1" id="kpiTotalNodes">--</div>
+        <div class="text-[11px] text-slate-500 mt-1">Evoluzione continua</div>
+      </div>
+      <!-- 2: Superati -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between border-emerald-500/20">
+        <div class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> SUPERATI
+        </div>
+        <div class="text-3xl font-extrabold text-emerald-400 font-mono mt-1" id="kpiPassed">--</div>
+        <div class="text-[11px] text-slate-500 mt-1">AST & Test Validati</div>
+      </div>
+      <!-- 3: Falliti -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between border-rose-500/20">
+        <div class="text-xs font-mono text-rose-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-rose-400"></span> TEST FALLITI
+        </div>
+        <div class="text-3xl font-extrabold text-rose-400 font-mono mt-1" id="kpiFailed">--</div>
+        <div class="text-[11px] text-slate-500 mt-1">Errori & Regressioni</div>
+      </div>
+      <!-- 4: Pivot -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between border-amber-500/20">
+        <div class="text-xs font-mono text-amber-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span> PIVOT / CAMBI
+        </div>
+        <div class="text-3xl font-extrabold text-amber-400 font-mono mt-1" id="kpiPivots">--</div>
+        <div class="text-[11px] text-slate-500 mt-1">Riorientamenti R&D</div>
+      </div>
+      <!-- 5: Prototipi -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between border-purple-500/20">
+        <div class="text-xs font-mono text-purple-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-purple-400"></span> PROTOTIPI AST
+        </div>
+        <div class="text-3xl font-extrabold text-purple-400 font-mono mt-1" id="kpiPrototypes">--</div>
+        <div class="text-[11px] text-slate-500 mt-1">Codice generato</div>
+      </div>
+      <!-- 6: In Produzione -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between border-cyan-500/20">
+        <div class="text-xs font-mono text-brand-cyan flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-brand-cyan"></span> IN PRODUZIONE
+        </div>
+        <div class="text-3xl font-extrabold text-brand-cyan font-mono mt-1" id="kpiProduction">--</div>
+        <div class="text-[11px] text-slate-500 mt-1">Attivi in shared/</div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: ALBERO GENEALOGICO & GRAFICO EVOLUTIVO A RAMI -->
+    <section class="glass-card rounded-3xl p-6 border border-slate-800 relative">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span>🌳</span> Albero Genealogico & Branching Evolutivo R&D
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Mappa visuale delle biforcazioni di ricerca: ogni nodo documenta ipotesi, fallimenti dei test e motivazioni del pivot.
+          </p>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <!-- Branch Selector -->
+          <select id="branchFilter" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-200 font-mono focus:border-brand-purple focus:outline-none">
+            <option value="all">Tutti i Rami di Ricerca</option>
+            <option value="aleksander_axioms">🧠 Coscienza (Aleksander)</option>
+            <option value="swarm_emergence">🐝 Swarm AI & Mesh</option>
+            <option value="algorithmic_poetry_aesthetics">📜 Estetica & Poesia</option>
+            <option value="sovereign_mesh_runtime">⚡ Runtime Sovrano & GPU</option>
+          </select>
+
+          <!-- Status Filter -->
+          <div class="inline-flex rounded-lg bg-slate-900/80 p-0.5 border border-slate-800 text-[11px]">
+            <button onclick="setStatusFilter('all')" class="status-btn px-2.5 py-1 rounded-md font-medium text-white bg-slate-800" data-status="all">Tutti</button>
+            <button onclick="setStatusFilter('passed')" class="status-btn px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white" data-status="passed">🟢 Superati</button>
+            <button onclick="setStatusFilter('failed')" class="status-btn px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white" data-status="failed">🔴 Falliti</button>
+            <button onclick="setStatusFilter('pivot')" class="status-btn px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white" data-status="pivot">🟡 Pivot</button>
+            <button onclick="setStatusFilter('prototype')" class="status-btn px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white" data-status="prototype">🟣 Prototipi</button>
+            <button onclick="setStatusFilter('production')" class="status-btn px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white" data-status="production">🚀 Produzione</button>
+          </div>
+
+          <button onclick="refreshTreeData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-mono flex items-center gap-1.5 transition">
+            <span>🔄</span> Ricarica
+          </button>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE TREE CANVAS / GRAPH CONTAINER -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- TREE GRAPH (COL 8) -->
+        <div class="lg:col-span-8 bg-slate-950/80 rounded-2xl p-5 border border-slate-800/80 custom-scroll overflow-x-auto min-h-[480px]">
+          <div id="treeContainer" class="flex flex-col gap-6 relative min-w-[580px]">
+            <!-- Dynamic tree branches rendered here -->
+            <div class="text-center py-12 text-slate-500 font-mono text-xs">Caricamento albero genealogico R&D in corso...</div>
+          </div>
+        </div>
+
+        <!-- NODE DETAIL DRAWER / INSPECTOR (COL 4) -->
+        <div class="lg:col-span-4 bg-slate-900/60 rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+          <div id="nodeDetailEmpty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+            <div class="text-4xl mb-3">🔍</div>
+            <div class="text-sm font-semibold text-slate-300">Nessun nodo selezionato</div>
+            <div class="text-xs text-slate-500 mt-1">Clicca su uno dei nodi dell'albero a sinistra per visualizzare dettagli tecnici, analisi del fallimento o motivazione del pivot.</div>
+          </div>
+
+          <div id="nodeDetailContent" class="hidden flex flex-col gap-4">
+            <!-- Header Nodo -->
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span id="nodeBranchBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Ramo</span>
+                <span id="nodeStatusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">Stato</span>
+              </div>
+              <h3 id="nodeTitle" class="text-base font-bold text-white tracking-tight">Titolo Nodo</h3>
+              <div id="nodeTimestamp" class="text-[11px] font-mono text-slate-400 mt-0.5">--</div>
+            </div>
+
+            <!-- Modello Impiegato -->
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
+              <span class="text-slate-400">Modello Utilizzato:</span>
+              <div id="nodeModel" class="font-mono text-slate-200 font-medium truncate mt-0.5">--</div>
+            </div>
+
+            <!-- Ipotesi -->
+            <div>
+              <div class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1">
+                <span>🎯</span> Ipotesi & Obiettivo
+              </div>
+              <p id="nodeHypothesis" class="text-xs text-slate-400 leading-relaxed bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/80">--</p>
+            </div>
+
+            <!-- Esito -->
+            <div>
+              <div class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-1">
+                <span>📊</span> Esito & Riscontro
+              </div>
+              <p id="nodeOutcome" class="text-xs text-slate-400 leading-relaxed bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/80">--</p>
+            </div>
+
+            <!-- Fallimento (se failed) -->
+            <div id="nodeFailureBox" class="hidden">
+              <div class="text-xs font-semibold text-rose-400 flex items-center gap-1.5 mb-1">
+                <span>🔴</span> Causa Tecnica del Fallimento
+              </div>
+              <p id="nodeFailureReason" class="text-xs text-rose-300/90 leading-relaxed bg-rose-950/20 p-2.5 rounded-xl border border-rose-900/40 font-mono">--</p>
+            </div>
+
+            <!-- Pivot Rationale (se pivot) -->
+            <div id="nodePivotBox" class="hidden">
+              <div class="text-xs font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
+                <span>🟡</span> Rationale del Pivot & Cambio Direzione
+              </div>
+              <p id="nodePivotRationale" class="text-xs text-amber-300/90 leading-relaxed bg-amber-950/20 p-2.5 rounded-xl border border-amber-900/40">--</p>
+            </div>
+
+            <!-- Azione Rapida Prototipo -->
+            <div id="nodeActionBox" class="pt-2 border-t border-slate-800/80 mt-1">
+              <button id="btnOpenNodeProto" class="w-full py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30">
+                <span>🔬</span> Ispeziona Codice & AST
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: ISPETTORE AST PROTOTIPI & DEPLOY IN PRODUZIONE -->
+    <section id="astInspectorSection" class="glass-card rounded-3xl p-6 border border-slate-800 relative">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span>🔬</span> Ispettore AST Prototipi & Deploy in Produzione
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Esplora l'Abstract Syntax Tree (Classi, Metodi, Parametri tipizzati) e promuovi i moduli collaudati in <code class="text-brand-cyan">shared/</code>.
+          </p>
+        </div>
+
+        <!-- PROTOTYPE SELECTOR -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-400 font-mono">Prototipo:</label>
+          <select id="prototypeSelect" onchange="loadSelectedPrototype()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-brand-purple focus:outline-none min-w-[280px]">
+            <option value="">Caricamento prototipi...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- MAIN SPLIT VIEW: AST EXPLORER (COL 5) + CODE VIEWER (COL 7) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- COL 5: AST STRUCTURE & METRICS -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+          <!-- METRICS SUMMARY -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-center">
+              <div class="text-[10px] font-mono text-slate-400">STATO AST</div>
+              <div id="astStatusBadge" class="text-xs font-bold font-mono mt-1 text-emerald-400">✓ Valido</div>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-center">
+              <div class="text-[10px] font-mono text-slate-400">NODI SINTATTICI</div>
+              <div id="astNodeCount" class="text-xs font-bold font-mono mt-1 text-white">--</div>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-center">
+              <div class="text-[10px] font-mono text-slate-400">STATEMENTS</div>
+              <div id="astStatementsCount" class="text-xs font-bold font-mono mt-1 text-white">--</div>
+            </div>
+          </div>
+
+          <!-- AST TREE ACCORDION -->
+          <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800 flex flex-col gap-4 custom-scroll max-h-[460px] overflow-y-auto">
+            <!-- Classes -->
+            <div>
+              <div class="text-xs font-mono text-purple-400 uppercase tracking-wider flex items-center justify-between mb-2">
+                <span class="flex items-center gap-1.5"><span>🏛️</span> Classi Definite (<span id="astClassesCount">0</span>)</span>
+              </div>
+              <div id="astClassesList" class="flex flex-col gap-2">
+                <!-- Class cards rendered here -->
+              </div>
+            </div>
+
+            <!-- Standalone Functions -->
+            <div>
+              <div class="text-xs font-mono text-cyan-400 uppercase tracking-wider flex items-center justify-between mb-2">
+                <span class="flex items-center gap-1.5"><span>⚙️</span> Funzioni (<span id="astFunctionsCount">0</span>)</span>
+              </div>
+              <div id="astFunctionsList" class="flex flex-col gap-2">
+                <!-- Function cards rendered here -->
+              </div>
+            </div>
+
+            <!-- Imports -->
+            <div>
+              <div class="text-xs font-mono text-slate-400 uppercase tracking-wider flex items-center justify-between mb-2">
+                <span class="flex items-center gap-1.5"><span>📦</span> Moduli & Import (<span id="astImportsCount">0</span>)</span>
+              </div>
+              <div id="astImportsList" class="flex flex-wrap gap-1.5">
+                <!-- Imports rendered here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COL 7: SOURCE CODE VIEWER + PRODUCTION DEPLOY PANEL -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+          <!-- CODE VIEWER -->
+          <div class="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
+            <div class="bg-slate-900/80 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-xs font-mono">
+              <span id="codeFilename" class="text-slate-300">proto_source.py</span>
+              <button onclick="copySourceCode()" class="text-slate-400 hover:text-white transition flex items-center gap-1">
+                <span>📋</span> Copia Codice
+              </button>
+            </div>
+            <pre class="p-4 text-xs font-mono text-slate-200 custom-scroll overflow-x-auto max-h-[340px] leading-relaxed"><code id="codeSourceDisplay"># Seleziona un prototipo per esaminare il codice sorgente</code></pre>
+          </div>
+
+          <!-- PRODUCTION DEPLOY BOX -->
+          <div class="bg-gradient-to-r from-purple-950/40 to-cyan-950/40 p-4 rounded-2xl border border-purple-500/30 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🚀</span>
+                <div>
+                  <h4 class="text-sm font-bold text-white">Promuovi in Produzione (<code class="text-brand-cyan text-xs">shared/</code>)</h4>
+                  <p class="text-[11px] text-slate-400">Compila l'AST, crea automaticamente un backup <code class="text-slate-300">.bak</code> e registra l'evento nell'albero R&D.</p>
+                </div>
+              </div>
+              <span id="productionStatusBadge" class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400">Non promosso</span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-1">
+              <div class="flex-1 min-w-[240px]">
+                <label class="text-[10px] font-mono text-slate-400">Nome Modulo Destinazione:</label>
+                <input id="targetModuleInput" type="text" placeholder="shared/neuro_symbolic_poetry.py" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:border-brand-cyan focus:outline-none mt-0.5">
+              </div>
+              <div class="flex items-end gap-2">
+                <button onclick="checkDiffTarget()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">
+                  🔍 Diff
+                </button>
+                <button id="btnPromoteDeploy" onclick="deployToProduction()" class="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 font-bold text-xs transition shadow-lg shadow-cyan-950/50 flex items-center gap-1.5">
+                  <span>🚀</span> Promuovi in Produzione
+                </button>
+              </div>
+            </div>
+
+            <!-- DIFF PREVIEW MODAL / ACCORDION -->
+            <div id="diffOutputBox" class="hidden mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono">
+              <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1">
+                <span>CONFRONTO CON VERSIONE IN PRODUZIONE</span>
+                <button onclick="document.getElementById('diffOutputBox').classList.add('hidden')" class="text-slate-400 hover:text-white">Chiudi</button>
+              </div>
+              <pre id="diffPre" class="text-[11px] text-slate-300 custom-scroll overflow-x-auto max-h-[160px]"></pre>
+            </div>
+
+            <!-- ALERT ESITO DEPLOY -->
+            <div id="deployAlertBox" class="hidden p-3 rounded-xl text-xs font-mono"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: REGISTRO PIVOT & TEST FALLITI (INCIDENT & LEARNING LOG) -->
+    <section class="glass-card rounded-3xl p-6 border border-slate-800">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📜</span> Registro Pivot & Test Falliti (R&D Incident & Learning Log)
+          </h3>
+          <p class="text-xs text-slate-400">Lezioni apprese, allucinazioni intercettate e modifiche architetturali del cluster notturno.</p>
+        </div>
+        <span class="text-xs font-mono text-slate-500" id="incidentsCount">0 eventi registrati</span>
+      </div>
+
+      <div class="custom-scroll overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="text-[11px] font-mono text-slate-400 uppercase bg-slate-950/60 border-b border-slate-800">
+            <tr>
+              <th class="py-2.5 px-3">Data/Ora</th>
+              <th class="py-2.5 px-3">Ramo</th>
+              <th class="py-2.5 px-3">Stato</th>
+              <th class="py-2.5 px-3">Titolo / Esperimento</th>
+              <th class="py-2.5 px-3">Modello</th>
+              <th class="py-2.5 px-3">Causa Fallimento o Rationale Pivot</th>
+            </tr>
+          </thead>
+          <tbody id="incidentsTableBody" class="divide-y divide-slate-800/60 font-mono text-[11px]">
+            <!-- Table rows rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let gTreeData = null;
+    let gPrototypes = [];
+    let gSelectedNodeId = null;
+    let gCurrentStatusFilter = 'all';
+
+    async function init() {
+      await Promise.all([
+        refreshTreeData(),
+        loadPrototypesList()
+      ]);
+      // Auto-refresh ogni 30 secondi
+      setInterval(refreshTreeData, 30000);
+    }
+
+    async function refreshTreeData() {
+      const branch = document.getElementById('branchFilter').value;
+      const url = `/api/research/tree?branch=${encodeURIComponent(branch)}&status=${encodeURIComponent(gCurrentStatusFilter)}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        gTreeData = await res.json();
+        renderTree(gTreeData);
+        renderStats(gTreeData.stats);
+        renderIncidentsLog(gTreeData.nodes);
+      } catch (err) {
+        console.error('Errore caricamento albero R&D:', err);
+      }
+    }
+
+    function setStatusFilter(status) {
+      gCurrentStatusFilter = status;
+      document.querySelectorAll('.status-btn').forEach(btn => {
+        if (btn.getAttribute('data-status') === status) {
+          btn.className = 'status-btn px-2.5 py-1 rounded-md font-medium text-white bg-slate-800';
+        } else {
+          btn.className = 'status-btn px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white';
+        }
+      });
+      refreshTreeData();
+    }
+
+    document.getElementById('branchFilter').addEventListener('change', refreshTreeData);
+
+    function renderStats(stats) {
+      if (!stats) return;
+      document.getElementById('kpiTotalNodes').textContent = stats.total_nodes ?? '--';
+      document.getElementById('kpiPassed').textContent = stats.passed ?? '--';
+      document.getElementById('kpiFailed').textContent = stats.failed ?? '--';
+      document.getElementById('kpiPivots').textContent = stats.pivots ?? '--';
+      document.getElementById('kpiPrototypes').textContent = stats.prototypes ?? '--';
+      document.getElementById('kpiProduction').textContent = stats.in_production ?? '--';
+    }
+
+    function renderTree(data) {
+      const container = document.getElementById('treeContainer');
+      const nodes = data.nodes || [];
+      const pillars = data.pillars || [];
+
+      if (nodes.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-500 font-mono text-xs">Nessun nodo trovato per i filtri selezionati.</div>';
+        return;
+      }
+
+      // Raggruppa i nodi per ramo
+      const branchMap = {};
+      pillars.forEach(p => branchMap[p.id] = { meta: p, nodes: [] });
+      nodes.forEach(n => {
+        const b = n.branch_id || 'aleksander_axioms';
+        if (!branchMap[b]) {
+          branchMap[b] = { meta: { id: b, name: b, icon: '🔬', color: '#64748b' }, nodes: [] };
+        }
+        branchMap[b].nodes.push(n);
+      });
+
+      let html = '';
+
+      for (const [bId, bData] of Object.entries(branchMap)) {
+        if (bData.nodes.length === 0) continue;
+
+        html += `
+          <div class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base">${bData.meta.icon}</span>
+                <span class="font-bold text-sm text-white tracking-tight">${bData.meta.name}</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">${bData.nodes.length} iterazioni</span>
+              </div>
+              <span class="text-[11px] font-mono text-slate-500">${bData.meta.domain || ''}</span>
+            </div>
+
+            <!-- Pipeline / Branch Nodes -->
+            <div class="flex flex-wrap items-center gap-3 pt-2">
+        `;
+
+        bData.nodes.forEach((node, idx) => {
+          const isSelected = node.id === gSelectedNodeId;
+          const statusConf = getStatusConfig(node.status);
+
+          html += `
+            <div onclick="selectNode('${node.id}')" 
+                 class="cursor-pointer transition-all duration-200 p-3.5 rounded-xl border flex flex-col gap-2 min-w-[220px] max-w-[280px] relative
+                        ${isSelected ? 'ring-2 ring-brand-purple bg-slate-800 border-purple-500/80 shadow-lg' : 'bg-slate-950/80 hover:bg-slate-900/90 border-slate-800'}">
+              
+              <div class="flex items-center justify-between gap-1 text-[10px] font-mono">
+                <span class="px-2 py-0.5 rounded-md ${statusConf.badgeBg} ${statusConf.badgeText} font-bold flex items-center gap-1">
+                  ${statusConf.icon} ${statusConf.label}
+                </span>
+                <span class="text-slate-500">${formatTime(node.timestamp)}</span>
+              </div>
+
+              <div class="font-semibold text-xs text-white leading-snug line-clamp-2">
+                ${node.title}
+              </div>
+
+              <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
+                <span class="truncate max-w-[120px]" title="${node.model}">${node.model ? node.model.split('/').pop().split(':')[0] : 'N/A'}</span>
+                ${node.prototype_file ? '<span class="text-purple-400 font-bold">AST ✓</span>' : ''}
+                ${node.promoted ? '<span class="text-brand-cyan font-bold">PROD 🚀</span>' : ''}
+              </div>
+            </div>
+          `;
+
+          // Se non è l'ultimo, mostra freccia di transizione
+          if (idx < bData.nodes.length - 1) {
+            html += `<div class="text-slate-600 font-bold select-none text-xs">➔</div>`;
+          }
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+
+      // Se c'è un nodo precedentemente selezionato, ri-renderizza il dettaglio
+      if (gSelectedNodeId) {
+        const found = nodes.find(n => n.id === gSelectedNodeId);
+        if (found) renderNodeDetail(found);
+      }
+    }
+
+    function getStatusConfig(status) {
+      switch (status) {
+        case 'passed':
+          return { label: 'Superato', icon: '🟢', badgeBg: 'bg-emerald-950/80 border border-emerald-700/60', badgeText: 'text-emerald-400' };
+        case 'failed':
+          return { label: 'Fallito', icon: '🔴', badgeBg: 'bg-rose-950/80 border border-rose-700/60', badgeText: 'text-rose-400' };
+        case 'pivot':
+          return { label: 'Pivot R&D', icon: '🟡', badgeBg: 'bg-amber-950/80 border border-amber-700/60', badgeText: 'text-amber-400' };
+        case 'prototype':
+          return { label: 'Prototipo AST', icon: '🟣', badgeBg: 'bg-purple-950/80 border border-purple-700/60', badgeText: 'text-purple-300' };
+        case 'production':
+          return { label: 'In Produzione', icon: '🚀', badgeBg: 'bg-cyan-950/80 border border-cyan-700/60', badgeText: 'text-brand-cyan' };
+        default:
+          return { label: status || 'Iterazione', icon: '⚪', badgeBg: 'bg-slate-800', badgeText: 'text-slate-300' };
+      }
+    }
+
+    function selectNode(nodeId) {
+      gSelectedNodeId = nodeId;
+      if (!gTreeData || !gTreeData.nodes) return;
+      const node = gTreeData.nodes.find(n => n.id === nodeId);
+      if (node) {
+        renderTree(gTreeData);
+        renderNodeDetail(node);
+      }
+    }
+
+    function renderNodeDetail(node) {
+      document.getElementById('nodeDetailEmpty').classList.add('hidden');
+      const box = document.getElementById('nodeDetailContent');
+      box.classList.remove('hidden');
+
+      document.getElementById('nodeTitle').textContent = node.title || 'Iterazione Senza Titolo';
+      document.getElementById('nodeTimestamp').textContent = node.timestamp ? new Date(node.timestamp).toLocaleString() : '--';
+      document.getElementById('nodeBranchBadge').textContent = node.branch_id || 'R&D';
+
+      const sConf = getStatusConfig(node.status);
+      const sBadge = document.getElementById('nodeStatusBadge');
+      sBadge.textContent = `${sConf.icon} ${sConf.label}`;
+      sBadge.className = `text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${sConf.badgeBg} ${sConf.badgeText}`;
+
+      document.getElementById('nodeModel').textContent = node.model || 'Non specificato';
+      document.getElementById('nodeHypothesis').textContent = node.hypothesis || 'Nessuna ipotesi formalizzata.';
+      document.getElementById('nodeOutcome').textContent = node.outcome || 'Nessun riscontro registrato.';
+
+      // Fallimento
+      const fBox = document.getElementById('nodeFailureBox');
+      if (node.status === 'failed' || node.failure_reason) {
+        fBox.classList.remove('hidden');
+        document.getElementById('nodeFailureReason').textContent = node.failure_reason || 'Errore non specificato.';
+      } else {
+        fBox.classList.add('hidden');
+      }
+
+      // Pivot
+      const pBox = document.getElementById('nodePivotBox');
+      if (node.status === 'pivot' || node.pivot_rationale) {
+        pBox.classList.remove('hidden');
+        document.getElementById('nodePivotRationale').textContent = node.pivot_rationale || 'Nessuna motivazione registrata.';
+      } else {
+        pBox.classList.add('hidden');
+      }
+
+      // Azione Prototipo
+      const actBox = document.getElementById('nodeActionBox');
+      const btnProto = document.getElementById('btnOpenNodeProto');
+      if (node.prototype_file) {
+        actBox.classList.remove('hidden');
+        btnProto.onclick = () => {
+          document.getElementById('prototypeSelect').value = node.prototype_file;
+          loadSelectedPrototype();
+          document.getElementById('astInspectorSection').scrollIntoView({ behavior: 'smooth' });
+        };
+      } else {
+        actBox.classList.add('hidden');
+      }
+    }
+
+    async function loadPrototypesList() {
+      try {
+        const res = await fetch('/api/research/prototypes');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        gPrototypes = data.prototypes || [];
+        const select = document.getElementById('prototypeSelect');
+        select.innerHTML = '';
+
+        if (gPrototypes.length === 0) {
+          select.innerHTML = '<option value="">Nessun prototipo trovato</option>';
+          return;
+        }
+
+        gPrototypes.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.filename;
+          const statusTag = p.is_promoted ? ' [IN PRODUZIONE]' : (p.ast_valid ? ' [AST OK]' : ' [SYNTAX ERROR]');
+          opt.textContent = `${p.filename}${statusTag}`;
+          select.appendChild(opt);
+        });
+
+        loadSelectedPrototype();
+      } catch (err) {
+        console.error('Errore elenco prototipi:', err);
+      }
+    }
+
+    async function loadSelectedPrototype() {
+      const filename = document.getElementById('prototypeSelect').value;
+      if (!filename) return;
+
+      document.getElementById('codeFilename').textContent = filename;
+      document.getElementById('codeSourceDisplay').textContent = '# Caricamento AST e codice sorgente...';
+
+      try {
+        const res = await fetch(`/api/research/prototype?file=${encodeURIComponent(filename)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        // Status Badge
+        const sBadge = document.getElementById('astStatusBadge');
+        if (data.valid) {
+          sBadge.textContent = '✓ Valido';
+          sBadge.className = 'text-xs font-bold font-mono mt-1 text-emerald-400';
+        } else {
+          sBadge.textContent = '✗ Errore AST';
+          sBadge.className = 'text-xs font-bold font-mono mt-1 text-rose-400';
+        }
+
+        document.getElementById('astNodeCount').textContent = data.node_count ?? '--';
+        document.getElementById('astStatementsCount').textContent = data.statements_count ?? '--';
+
+        // Render Classes
+        const cList = document.getElementById('astClassesList');
+        document.getElementById('astClassesCount').textContent = (data.classes || []).length;
+        if (!data.classes || data.classes.length === 0) {
+          cList.innerHTML = '<div class="text-[11px] text-slate-500 font-mono">Nessuna classe definita</div>';
+        } else {
+          cList.innerHTML = data.classes.map(c => `
+            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+              <div class="flex items-center justify-between text-xs font-mono font-bold text-white">
+                <span>class ${c.name}${c.bases && c.bases.length ? `(${c.bases.join(', ')})` : ''}</span>
+                <span class="text-[10px] text-purple-400">${c.methods.length} metodi</span>
+              </div>
+              ${c.docstring ? `<div class="text-[11px] text-slate-400 italic mt-1 line-clamp-2">${c.docstring}</div>` : ''}
+              <div class="mt-2 flex flex-col gap-1">
+                ${c.methods.map(m => `
+                  <div class="text-[11px] font-mono text-slate-300 pl-2 border-l border-slate-700">
+                    <span class="text-cyan-400">def</span> ${m.name}(${m.args.join(', ')})
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // Render Functions
+        const fList = document.getElementById('astFunctionsList');
+        document.getElementById('astFunctionsCount').textContent = (data.functions || []).length;
+        if (!data.functions || data.functions.length === 0) {
+          fList.innerHTML = '<div class="text-[11px] text-slate-500 font-mono">Nessuna funzione globale</div>';
+        } else {
+          fList.innerHTML = data.functions.map(f => `
+            <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+              <span class="text-cyan-400">def</span> <span class="text-white font-bold">${f.name}</span>(${f.args.join(', ')})
+            </div>
+          `).join('');
+        }
+
+        // Render Imports
+        const iList = document.getElementById('astImportsList');
+        document.getElementById('astImportsCount').textContent = (data.imports || []).length;
+        if (!data.imports || data.imports.length === 0) {
+          iList.innerHTML = '<span class="text-[11px] text-slate-500 font-mono">Nessun import esterno</span>';
+        } else {
+          iList.innerHTML = data.imports.map(imp => `
+            <span class="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300">${imp}</span>
+          `).join('');
+        }
+
+        // Code display
+        document.getElementById('codeSourceDisplay').textContent = data.source || '# Nessun codice sorgente disponibile';
+
+        // Suggerimento modulo destinazione
+        const protoObj = gPrototypes.find(p => p.filename === filename);
+        const targetInput = document.getElementById('targetModuleInput');
+        const prodBadge = document.getElementById('productionStatusBadge');
+
+        if (protoObj && protoObj.is_promoted) {
+          prodBadge.textContent = '🚀 Attivo in produzione';
+          prodBadge.className = 'text-[10px] font-mono px-2.5 py-1 rounded-full bg-cyan-950 text-brand-cyan border border-cyan-800 font-bold';
+          targetInput.value = protoObj.promoted_target || 'shared/module.py';
+        } else {
+          prodBadge.textContent = 'Non promosso';
+          prodBadge.className = 'text-[10px] font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400';
+          
+          // Genera nome intelligente
+          let defName = 'shared/module.py';
+          if (data.classes && data.classes.length > 0) {
+            const cName = data.classes[0].name;
+            const snake = cName.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+            defName = `shared/${snake}.py`;
+          } else if (filename.includes('poetry')) {
+            defName = 'shared/neuro_symbolic_poetry.py';
+          } else if (filename.includes('aleksander')) {
+            defName = 'shared/synthetic_consciousness_governor.py';
+          } else if (filename.includes('swarm')) {
+            defName = 'shared/stigmergic_mesh_swarm.py';
+          }
+          targetInput.value = defName;
+        }
+
+      } catch (err) {
+        console.error('Errore ispezione AST prototipo:', err);
+        document.getElementById('codeSourceDisplay').textContent = `# Errore: ${err.message}`;
+      }
+    }
+
+    async function checkDiffTarget() {
+      const filename = document.getElementById('prototypeSelect').value;
+      const target = document.getElementById('targetModuleInput').value.trim();
+      if (!filename || !target) return;
+
+      const diffBox = document.getElementById('diffOutputBox');
+      const diffPre = document.getElementById('diffPre');
+      diffBox.classList.remove('hidden');
+      diffPre.textContent = 'Calcolo del diff in corso...';
+
+      try {
+        const res = await fetch(`/api/research/diff?file=${encodeURIComponent(filename)}&target=${encodeURIComponent(target)}`);
+        const data = await res.json();
+        if (data.error) {
+          diffPre.textContent = `Errore: ${data.error}`;
+        } else if (!data.has_target) {
+          diffPre.textContent = data.message;
+        } else {
+          diffPre.textContent = data.diff || 'Nessuna differenza (i due file sono identici).';
+        }
+      } catch (err) {
+        diffPre.textContent = `Errore diff: ${err.message}`;
+      }
+    }
+
+    async function deployToProduction() {
+      const filename = document.getElementById('prototypeSelect').value;
+      const target = document.getElementById('targetModuleInput').value.trim();
+      const alertBox = document.getElementById('deployAlertBox');
+      const btn = document.getElementById('btnPromoteDeploy');
+
+      if (!filename || !target) {
+        alert('Seleziona un prototipo e indica il file di destinazione in shared/.');
+        return;
+      }
+
+      if (!confirm(`Sei sicuro di voler promuovere il prototipo '${filename}' in produzione su '${target}'?`)) {
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Compilazione & Deploy...';
+      alertBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/research/prototype/promote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prototype_file: filename,
+            target_module: target
+          })
+        });
+
+        const data = await res.json();
+        alertBox.classList.remove('hidden');
+
+        if (res.ok && data.success) {
+          alertBox.className = 'p-3 rounded-xl text-xs font-mono bg-emerald-950/60 border border-emerald-700/80 text-emerald-300';
+          alertBox.innerHTML = `
+            <div class="font-bold flex items-center gap-1.5"><span>✓</span> ${data.message}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Target: <code class="text-white">${data.target_file}</code> ${data.backup_file ? `| Backup creato: <code>${data.backup_file}</code>` : ''}</div>
+          `;
+          await loadPrototypesList();
+          await refreshTreeData();
+        } else {
+          alertBox.className = 'p-3 rounded-xl text-xs font-mono bg-rose-950/60 border border-rose-700/80 text-rose-300';
+          alertBox.textContent = `Errore deploy: ${data.error || 'Operazione rifiutata'}`;
+        }
+      } catch (err) {
+        alertBox.classList.remove('hidden');
+        alertBox.className = 'p-3 rounded-xl text-xs font-mono bg-rose-950/60 border border-rose-700/80 text-rose-300';
+        alertBox.textContent = `Errore di rete: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🚀</span> Promuovi in Produzione';
+      }
+    }
+
+    function renderIncidentsLog(nodes) {
+      const tbody = document.getElementById('incidentsTableBody');
+      const relevant = (nodes || []).filter(n => n.status === 'failed' || n.status === 'pivot' || n.failure_reason || n.pivot_rationale);
+      document.getElementById('incidentsCount').textContent = `${relevant.length} eventi registrati`;
+
+      if (relevant.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">Nessun incidente o pivot registrato al momento.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = relevant.map(n => {
+        const isFail = n.status === 'failed';
+        const statusBadge = isFail 
+          ? '<span class="text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800">FALLITO</span>'
+          : '<span class="text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800">PIVOT R&D</span>';
+
+        const reason = isFail ? (n.failure_reason || n.outcome) : (n.pivot_rationale || n.outcome);
+
+        return `
+          <tr class="hover:bg-slate-900/50 transition">
+            <td class="py-2.5 px-3 text-slate-400 whitespace-nowrap">${formatTime(n.timestamp)}</td>
+            <td class="py-2.5 px-3 text-purple-300">${n.branch_id || 'R&D'}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">${statusBadge}</td>
+            <td class="py-2.5 px-3 text-white font-semibold">${n.title}</td>
+            <td class="py-2.5 px-3 text-slate-400 truncate max-w-[140px]">${n.model ? n.model.split('/').pop() : '--'}</td>
+            <td class="py-2.5 px-3 text-slate-300 font-sans text-xs">${reason}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function copySourceCode() {
+      const code = document.getElementById('codeSourceDisplay').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Codice sorgente copiato negli appunti!');
+      });
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '--';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+      } catch {
+        return iso;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

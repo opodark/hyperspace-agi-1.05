@@ -21,6 +21,7 @@ import socket
 import sys
 import time
 import urllib.error
+from urllib.parse import parse_qs, urlparse
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -53,6 +54,8 @@ except Exception:
 
 DREAM_REVIEW_TOKEN = os.getenv("DREAM_REVIEW_TOKEN", "")
 MISSIONS_FILE = REPO_ROOT / "data" / "missions.jsonl"
+_NIGHTLY_DAEMON_THREAD = None
+_NIGHTLY_DAEMON_STOP = None
 
 
 def fetch_json(url: str, headers: dict | None = None, timeout: float = 3.0) -> dict | None:
@@ -86,6 +89,11 @@ def probe_node_ping(host_port: str, timeout: float = 2.0) -> dict:
 class CockpitHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
+
+    def _is_local_creator(self) -> bool:
+        """Verifica che la richiesta provenga strettamente dalla macchina locale del Creatore."""
+        client_ip = self.client_address[0] if self.client_address else ""
+        return client_ip in ("127.0.0.1", "::1", "localhost", "testclient") or client_ip.startswith("127.") or client_ip.startswith("192.168.") or client_ip.startswith("10.") or client_ip.startswith("100.")
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -139,6 +147,12 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(content)
                 return
         if self.path in ("/devstudio", "/devstudio.html"):
+            if not self._is_local_creator():
+                self.send_response(403)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b'{"error": "Access Denied: HyperDev Studio is reserved for sovereign local creator only"}')
+                return
             dev_file = REPO_ROOT / "web-node" / "apps" / "playground" / "devstudio.html"
             if dev_file.exists():
                 content = dev_file.read_bytes()
@@ -168,6 +182,33 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_mesh_scouting()
         elif self.path.startswith("/api/persona-dreams"):
             self.handle_api_persona_dreams()
+        elif self.path.startswith("/api/nightly-shift"):
+            self.handle_api_nightly_shift()
+        elif self.path.startswith("/api/research/tree"):
+            self.handle_api_research_tree()
+        elif self.path.startswith("/api/research/prototypes"):
+            self.handle_api_research_prototypes()
+        elif self.path.startswith("/api/research/prototype"):
+            self.handle_api_research_prototype_inspect()
+        elif self.path.startswith("/api/research/diff"):
+            self.handle_api_research_diff()
+        elif self.path.startswith("/api/devstudio/files"):
+            if not self._is_local_creator():
+                self.send_json({"error": "Access Denied"}, status=403)
+                return
+            self.handle_api_devstudio_files()
+        elif self.path.startswith("/api/devstudio/file"):
+            if not self._is_local_creator():
+                self.send_json({"error": "Access Denied"}, status=403)
+                return
+            self.handle_api_devstudio_read_file()
+        elif self.path.startswith("/api/devstudio/git-status"):
+            if not self._is_local_creator():
+                self.send_json({"error": "Access Denied"}, status=403)
+                return
+            self.handle_api_devstudio_git_status()
+        elif self.path.startswith("/api/agi-research"):
+            self.handle_api_agi_research()
         else:
             super().do_GET()
 
@@ -184,12 +225,29 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_mesh_scouting_refresh()
         elif self.path.startswith("/api/persona-dreams/"):
             self.handle_api_persona_dream_review()
-        elif self.path.startswith("/api/devstudio/chat"):
-            self.handle_api_devstudio_chat()
-        elif self.path.startswith("/api/devstudio/run-tests"):
-            self.handle_api_devstudio_run_tests()
-        elif self.path.startswith("/api/devstudio/apply-diff"):
-            self.handle_api_devstudio_apply_diff()
+        elif self.path.startswith("/api/research/prototype/promote"):
+            if not self._is_local_creator():
+                self.send_json({"error": "Access Denied: Production deployment is reserved for sovereign local creator only"}, status=403)
+                return
+            self.handle_api_research_prototype_promote()
+        elif self.path.startswith("/api/devstudio/"):
+            if not self._is_local_creator():
+                self.send_json({"error": "Access Denied: HyperDev Studio is reserved for sovereign local creator only"}, status=403)
+                return
+            if self.path.startswith("/api/devstudio/chat"):
+                self.handle_api_devstudio_chat()
+            elif self.path.startswith("/api/devstudio/run-tests"):
+                self.handle_api_devstudio_run_tests()
+            elif self.path.startswith("/api/devstudio/apply-diff"):
+                self.handle_api_devstudio_apply_diff()
+            elif self.path.startswith("/api/devstudio/file"):
+                self.handle_api_devstudio_save_file()
+            elif self.path.startswith("/api/devstudio/terminal"):
+                self.handle_api_devstudio_terminal()
+        elif self.path.startswith("/api/nightly-shift/trigger"):
+            self.handle_api_nightly_shift_trigger()
+        elif self.path.startswith("/api/nightly-shift/daemon"):
+            self.handle_api_nightly_shift_daemon()
         else:
             self.send_error(404, "Endpoint non trovato")
 
@@ -561,7 +619,7 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             return
 
         prompt = body.get("prompt", "").strip()
-        target = body.get("target", "omen").lower()
+        target = body.get("target", "mac").lower()
         if not prompt:
             self.send_json({"ok": False, "error": "Prompt vuoto"}, status=400)
             return
@@ -578,16 +636,53 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             return
 
         system_instruction = (
-            "Sei HyperDev Assistant, il pair programmer autonomo di HyperSpace AGI.\n"
+            "Sei HyperDev Assistant, il pair programmer sovrano di HyperSpace AGI.\n"
             "Regole fondamentali da AGENTS.md:\n"
             "- La verità è il repository. I test girano nel .venv del repository.\n"
             "- Rispondi in modo conciso, professionale e operativo in italiano.\n"
-            "- Se proponi compiti o piani, organizza i passi chiaramente.\n"
-            "- Se proponi modifiche al codice, usa blocchi di codice completi o diff unificati.\n"
+            "- Se proponi compiti o piani, organizza i passi chiaramente in una lista numerata.\n"
+            "- Se proponi modifiche al codice, usa blocchi ```diff ... ``` o codice completo.\n"
         )
         full_prompt = f"{system_instruction}\nRichiesta sviluppatore:\n{prompt}"
 
         t0 = time.time()
+
+        # 1. Target ASUS (Flint 40B / Granite 3.3 8B)
+        if target == "asus":
+            asus_url = "http://100.64.31.18:11434"
+            for model_candidate in ("granite3.3:8b", "flint:latest", "gemma4-abliterated:12b"):
+                try:
+                    asus_payload = json.dumps({
+                        "model": model_candidate,
+                        "prompt": full_prompt,
+                        "stream": False
+                    }).encode("utf-8")
+                    req = urllib.request.Request(f"{asus_url}/api/generate", data=asus_payload, headers={"Content-Type": "application/json"})
+                    with urllib.request.urlopen(req, timeout=90) as resp:
+                        data = json.loads(resp.read().decode("utf-8"))
+                    elapsed = time.time() - t0
+                    raw_resp = data.get("response", "")
+                    thought = data.get("thinking", "")
+                    if not thought:
+                        thought, content = self._split_thought(raw_resp)
+                    else:
+                        content = raw_resp
+                    diff = self._extract_diff(content)
+                    tasks = self._extract_tasks(content)
+                    self.send_json({
+                        "ok": True,
+                        "target": f"asus ({model_candidate})",
+                        "elapsed_s": round(elapsed, 2),
+                        "thought": thought,
+                        "response": content,
+                        "diff": diff,
+                        "tasks": tasks
+                    })
+                    return
+                except Exception:
+                    continue
+
+        # 2. Target OMEN (Liquid LFM 2.5 24B via ECDSA)
         if target == "omen" and NODE_IDENTITY:
             omen_payload = json.dumps({
                 "task_id": f"devstudio-{int(time.time() * 1000)}",
@@ -623,14 +718,45 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+        # 3. Target Mac: Prova Control Plane /v1 poi Ollama Locale
+        try:
+            cp_payload = json.dumps({
+                "model": "qwen3-8b-abliterated-g8k:latest",
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": prompt}
+                ],
+                "stream": False
+            }).encode("utf-8")
+            req = urllib.request.Request("http://127.0.0.1:8085/v1/chat/completions", data=cp_payload, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            elapsed = time.time() - t0
+            raw_resp = data["choices"][0]["message"].get("content", "")
+            thought, content = self._split_thought(raw_resp)
+            diff = self._extract_diff(content)
+            tasks = self._extract_tasks(content)
+            self.send_json({
+                "ok": True,
+                "target": "mac (Control Plane /v1)",
+                "elapsed_s": round(elapsed, 2),
+                "thought": thought,
+                "response": content,
+                "diff": diff,
+                "tasks": tasks
+            })
+            return
+        except Exception:
+            pass
+
         try:
             mac_payload = json.dumps({
-                "model": "qwen2.5:latest",
+                "model": "qwen3-8b-abliterated-g8k:latest",
                 "prompt": full_prompt,
                 "stream": False
             }).encode("utf-8")
             req = urllib.request.Request(f"{MAC_OLLAMA_URL}/api/generate", data=mac_payload, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=90) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             elapsed = time.time() - t0
             raw_resp = data.get("response", "")
@@ -639,27 +765,30 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             tasks = self._extract_tasks(content)
             self.send_json({
                 "ok": True,
-                "target": "mac",
+                "target": "mac (Ollama Locale)",
                 "elapsed_s": round(elapsed, 2),
                 "thought": thought,
                 "response": content,
                 "diff": diff,
                 "tasks": tasks
             })
+            return
         except Exception:
-            fallback_response = f"Ricevuto: '{prompt}'.\nHo registrato la richiesta in HyperDev Studio. Il cluster è pronto per avviare il piano di lavoro in conformità a RFC-0043 e RFC-0044."
-            self.send_json({
-                "ok": True,
-                "target": "local-fallback",
-                "thought": "I nodi GPU sono momentaneamente occupati o in sleep: fornisco risposta deterministica locale.",
-                "response": fallback_response,
-                "diff": "",
-                "tasks": [
-                    {"key": "analyze-req", "role": "planner", "title": "Analisi Requisito", "instruction": prompt, "status": "done"},
-                    {"key": "exec-sandbox", "role": "coder", "title": "Esecuzione Sandbox", "instruction": "Genera soluzione e diff isolato", "status": "ready"},
-                    {"key": "verify-pytest", "role": "verifier", "title": "Verifica Determinismo", "instruction": "Valida gate di test 100% GREEN", "status": "pending"}
-                ]
-            })
+            pass
+
+        fallback_response = f"Ricevuto: '{prompt}'.\nHo registrato la richiesta in HyperDev Studio. Il cluster è pronto per avviare il piano di lavoro in conformità a RFC-0043 e RFC-0044."
+        self.send_json({
+            "ok": True,
+            "target": "local-fallback",
+            "thought": "I nodi GPU sono momentaneamente occupati o in sleep: fornisco risposta deterministica locale.",
+            "response": fallback_response,
+            "diff": "",
+            "tasks": [
+                {"key": "analyze-req", "role": "planner", "title": "Analisi Requisito", "instruction": prompt, "status": "done"},
+                {"key": "exec-sandbox", "role": "coder", "title": "Esecuzione Sandbox", "instruction": "Genera soluzione e diff isolato", "status": "ready"},
+                {"key": "verify-pytest", "role": "verifier", "title": "Verifica Determinismo", "instruction": "Valida gate di test 100% GREEN", "status": "pending"}
+            ]
+        })
 
     def _extract_diff(self, text: str) -> str:
         diff_match = re.search(r"```(?:diff|patch)?\n([\s\S]*?)```", text)
@@ -687,22 +816,40 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                     break
         return tasks
 
-    def _exec_pytest(self) -> dict:
+    def _exec_pytest(self, target=None) -> dict:
         import subprocess
-        cmd = [
+        base_cmd = [
             str(REPO_ROOT / ".venv" / "bin" / "python"),
             "-m", "pytest",
-            "tests/test_task_scheduler_rfc0043.py",
-            "tests/test_resumable_state_machine_rfc0044.py",
-            "tests/test_missions_dashboard.py",
-            "-q"
         ]
+        if target and target.strip():
+            cmd = base_cmd + target.strip().split() + ["-q"]
+        else:
+            cmd = base_cmd + [
+                "tests/test_task_scheduler_rfc0043.py",
+                "tests/test_resumable_state_machine_rfc0044.py",
+                "tests/test_missions_dashboard.py",
+                "-q"
+            ]
+
         try:
-            res = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=20)
+            res = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=35)
+            summary = ""
+            for line in reversed(res.stdout.split("\n")):
+                if "passed" in line or "failed" in line or "error" in line or "skipped" in line:
+                    summary = line.strip()
+                    break
             return {
                 "exit_code": res.returncode,
                 "stdout": res.stdout,
-                "stderr": res.stderr
+                "stderr": res.stderr,
+                "summary": summary
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "exit_code": 124,
+                "stdout": "",
+                "stderr": "Timeout: esecuzione test interrotta dopo 35s"
             }
         except Exception as exc:
             return {
@@ -712,8 +859,216 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             }
 
     def handle_api_devstudio_run_tests(self):
-        res = self._exec_pytest()
+        target = None
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            if length > 0:
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+                target = body.get("target")
+        except Exception:
+            pass
+        res = self._exec_pytest(target=target)
         self.send_json(res)
+
+    def handle_api_devstudio_files(self):
+        try:
+            parsed = urlparse(self.path)
+            query = parse_qs(parsed.query)
+            rel_path = query.get("path", [""])[0].strip().lstrip("/")
+            target_dir = (REPO_ROOT / rel_path).resolve() if rel_path else REPO_ROOT.resolve()
+
+            if not str(target_dir).startswith(str(REPO_ROOT.resolve())):
+                self.send_json({"ok": False, "error": "Path traversal vietato"}, status=403)
+                return
+
+            if not target_dir.exists() or not target_dir.is_dir():
+                self.send_json({"ok": False, "error": f"Directory non trovata: {rel_path}"}, status=404)
+                return
+
+            items = []
+            for entry in sorted(target_dir.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower())):
+                if entry.name in (".git", ".venv", "__pycache__", "node_modules", ".pytest_cache", ".DS_Store"):
+                    continue
+                try:
+                    is_d = entry.is_dir()
+                    st = entry.stat()
+                    items.append({
+                        "name": entry.name,
+                        "path": str(entry.relative_to(REPO_ROOT)),
+                        "is_dir": is_d,
+                        "size": 0 if is_d else st.st_size,
+                        "modified": int(st.st_mtime)
+                    })
+                except Exception:
+                    continue
+
+            parent_path = ""
+            if rel_path:
+                p = Path(rel_path).parent
+                parent_path = "" if str(p) == "." else str(p)
+
+            self.send_json({
+                "ok": True,
+                "current_path": rel_path,
+                "parent_path": parent_path,
+                "items": items
+            })
+        except Exception as exc:
+            self.send_json({"ok": False, "error": str(exc)}, status=500)
+
+    def handle_api_devstudio_read_file(self):
+        try:
+            parsed = urlparse(self.path)
+            query = parse_qs(parsed.query)
+            rel_path = query.get("path", [""])[0].strip().lstrip("/")
+            if not rel_path:
+                self.send_json({"ok": False, "error": "Parametro 'path' mancante"}, status=400)
+                return
+
+            target_file = (REPO_ROOT / rel_path).resolve()
+            if not str(target_file).startswith(str(REPO_ROOT.resolve())):
+                self.send_json({"ok": False, "error": "Path traversal vietato"}, status=403)
+                return
+
+            if not target_file.exists() or not target_file.is_file():
+                self.send_json({"ok": False, "error": f"File non trovato: {rel_path}"}, status=404)
+                return
+
+            if target_file.stat().st_size > 2_500_000:
+                self.send_json({"ok": False, "error": "File troppo grande (> 2.5 MB) per l'editor web"}, status=400)
+                return
+
+            content = target_file.read_text(encoding="utf-8", errors="replace")
+            self.send_json({
+                "ok": True,
+                "path": rel_path,
+                "name": target_file.name,
+                "content": content,
+                "size": len(content),
+                "modified": int(target_file.stat().st_mtime)
+            })
+        except Exception as exc:
+            self.send_json({"ok": False, "error": str(exc)}, status=500)
+
+    def handle_api_devstudio_save_file(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            rel_path = body.get("path", "").strip().lstrip("/")
+            content = body.get("content", "")
+
+            if not rel_path:
+                self.send_json({"ok": False, "error": "Parametro 'path' mancante"}, status=400)
+                return
+
+            target_file = (REPO_ROOT / rel_path).resolve()
+            if not str(target_file).startswith(str(REPO_ROOT.resolve())):
+                self.send_json({"ok": False, "error": "Path traversal vietato"}, status=403)
+                return
+
+            # Safety backup
+            if target_file.exists():
+                backup_dir = REPO_ROOT / "data" / "sandbox" / "backups"
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                backup_file = backup_dir / f"{target_file.name}.{int(time.time())}.bak"
+                backup_file.write_text(target_file.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+
+            target_file.parent.mkdir(parents=True, exist_ok=True)
+            target_file.write_text(content, encoding="utf-8")
+
+            self.send_json({
+                "ok": True,
+                "path": rel_path,
+                "message": "File salvato con successo",
+                "size": len(content)
+            })
+        except Exception as exc:
+            self.send_json({"ok": False, "error": str(exc)}, status=500)
+
+    def handle_api_devstudio_git_status(self):
+        import subprocess
+        try:
+            res_status = subprocess.run(
+                ["git", "status", "--short", "-b"],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            raw_lines = res_status.stdout.strip().split("\n") if res_status.stdout else []
+            branch = "main"
+            files = []
+            for line in raw_lines:
+                if line.startswith("## "):
+                    branch = line[3:].split("...")[0].strip()
+                elif line.strip():
+                    status_code = line[:2].strip()
+                    file_path = line[3:].strip()
+                    files.append({"status": status_code, "path": file_path})
+
+            res_stat = subprocess.run(
+                ["git", "diff", "--stat"],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            res_diff = subprocess.run(
+                ["git", "diff", "-U3"],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            diff_text = res_diff.stdout[:150_000] if res_diff.stdout else ""
+
+            self.send_json({
+                "ok": True,
+                "branch": branch,
+                "files": files,
+                "stat": res_stat.stdout.strip() if res_stat.stdout else "Nessuna modifica non committata.",
+                "diff": diff_text,
+                "clean": len(files) == 0
+            })
+        except Exception as exc:
+            self.send_json({"ok": False, "error": str(exc)}, status=500)
+
+    def handle_api_devstudio_terminal(self):
+        import subprocess
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+            command = body.get("command", "").strip()
+
+            if not command:
+                self.send_json({"ok": False, "error": "Comando vuoto"}, status=400)
+                return
+
+            if len(command) > 500:
+                self.send_json({"ok": False, "error": "Comando troppo lungo"}, status=400)
+                return
+
+            res = subprocess.run(
+                command,
+                shell=True,
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=25
+            )
+
+            self.send_json({
+                "ok": True,
+                "command": command,
+                "stdout": res.stdout,
+                "stderr": res.stderr,
+                "exit_code": res.returncode
+            })
+        except subprocess.TimeoutExpired:
+            self.send_json({"ok": False, "error": "Timeout: comando interrotto dopo 25 secondi"}, status=504)
+        except Exception as exc:
+            self.send_json({"ok": False, "error": str(exc)}, status=500)
 
     def handle_api_devstudio_apply_diff(self):
         try:
@@ -1153,6 +1508,168 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             "priority_fixes": geo_data.get("priority_fixes", []),
             "pages_count": len(pages),
             "pages": pages
+        })
+
+    def handle_api_nightly_shift(self):
+        try:
+            from scripts.omen_allnight_sovereign import get_nightly_status
+            st = get_nightly_status()
+            st["daemon_running"] = bool(_NIGHTLY_DAEMON_THREAD and _NIGHTLY_DAEMON_THREAD.is_alive())
+            self.send_json(st)
+        except Exception as exc:
+            self.send_json({"error": f"Errore lettura stato notturno: {exc}", "daemon_running": False}, status=500)
+
+    def handle_api_agi_research(self):
+        try:
+            from shared.agi_research_engine import AGIResearchEngine, SYNTHESIS_MD, DEEP_DIVES_LOG
+            engine = AGIResearchEngine()
+            st = engine.get_research_status()
+            synthesis_text = SYNTHESIS_MD.read_text(encoding="utf-8") if SYNTHESIS_MD.exists() else ""
+            
+            deep_dives = []
+            if DEEP_DIVES_LOG.exists():
+                for line in DEEP_DIVES_LOG.read_text(encoding="utf-8").splitlines():
+                    if line.strip():
+                        deep_dives.append(json.loads(line))
+
+            self.send_json({
+                "status": "ok",
+                "research_status": st,
+                "synthesis_md": synthesis_text,
+                "deep_dives": deep_dives[-10:],  # Ultime 10 ricerche
+            })
+        except Exception as exc:
+            self.send_json({"error": f"Errore recupero ricerche AGI: {exc}"}, status=500)
+
+    def handle_api_research_tree(self):
+        try:
+            from shared.research_tree import ResearchTreeManager
+            parsed_url = urlparse(self.path)
+            params = parse_qs(parsed_url.query)
+            branch = params.get("branch", [None])[0]
+            status = params.get("status", [None])[0]
+            mgr = ResearchTreeManager()
+            tree = mgr.get_tree(branch_id=branch, status=status)
+            self.send_json(tree)
+        except Exception as exc:
+            self.send_json({"error": f"Errore recupero albero R&D: {exc}"}, status=500)
+
+    def handle_api_research_prototypes(self):
+        try:
+            from shared.research_tree import ResearchTreeManager
+            mgr = ResearchTreeManager()
+            protos = mgr.list_prototypes()
+            self.send_json({"prototypes": protos, "count": len(protos)})
+        except Exception as exc:
+            self.send_json({"error": f"Errore elenco prototipi: {exc}"}, status=500)
+
+    def handle_api_research_prototype_inspect(self):
+        try:
+            from shared.research_tree import ResearchTreeManager
+            parsed_url = urlparse(self.path)
+            params = parse_qs(parsed_url.query)
+            filename = params.get("file", [""])[0]
+            if not filename:
+                self.send_json({"error": "Parametro 'file' mancante"}, status=400)
+                return
+            mgr = ResearchTreeManager()
+            res = mgr.inspect_prototype(filename)
+            self.send_json(res)
+        except Exception as exc:
+            self.send_json({"error": f"Errore ispezione AST: {exc}"}, status=500)
+
+    def handle_api_research_diff(self):
+        try:
+            from shared.research_tree import ResearchTreeManager
+            parsed_url = urlparse(self.path)
+            params = parse_qs(parsed_url.query)
+            filename = params.get("file", [""])[0]
+            target = params.get("target", [""])[0]
+            if not filename or not target:
+                self.send_json({"error": "Parametri 'file' e 'target' richiesti"}, status=400)
+                return
+            mgr = ResearchTreeManager()
+            res = mgr.get_diff(filename, target)
+            self.send_json(res)
+        except Exception as exc:
+            self.send_json({"error": f"Errore diff modulo: {exc}"}, status=500)
+
+    def handle_api_research_prototype_promote(self):
+        try:
+            from shared.research_tree import ResearchTreeManager
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            proto_file = body.get("prototype_file", "").strip()
+            target_module = body.get("target_module", "").strip()
+            if not proto_file or not target_module:
+                self.send_json({"error": "Campi 'prototype_file' e 'target_module' obbligatori"}, status=400)
+                return
+            mgr = ResearchTreeManager()
+            res = mgr.promote_prototype(proto_file, target_module, author="local_creator")
+            status_code = 200 if res.get("success") else 400
+            self.send_json(res, status=status_code)
+        except Exception as exc:
+            self.send_json({"error": f"Errore promozione in produzione: {exc}"}, status=500)
+
+    def handle_api_nightly_shift_trigger(self):
+        try:
+            import threading
+            from scripts.omen_allnight_sovereign import run_single_allnight_cycle
+
+            t = threading.Thread(target=run_single_allnight_cycle, daemon=True, name="nightly-single-run")
+            t.start()
+            self.send_json({"status": "triggered", "message": "Ciclo notturno sovrano OMEN avviato in background"})
+        except Exception as exc:
+            self.send_json({"error": f"Errore avvio ciclo: {exc}"}, status=500)
+
+    def handle_api_nightly_shift_daemon(self):
+        global _NIGHTLY_DAEMON_THREAD, _NIGHTLY_DAEMON_STOP
+        import threading
+
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+        except Exception:
+            body = {}
+
+        action = body.get("action", "start").lower()
+        interval = max(60, int(body.get("interval", 300)))
+
+        if action == "stop":
+            if _NIGHTLY_DAEMON_STOP:
+                _NIGHTLY_DAEMON_STOP.set()
+            self.send_json({"status": "stopping", "message": "Segnale di arresto inviato al demone notturno"})
+            return
+
+        if _NIGHTLY_DAEMON_THREAD and _NIGHTLY_DAEMON_THREAD.is_alive():
+            self.send_json({"status": "already_running", "message": "Il demone notturno è già attivo"})
+            return
+
+        _NIGHTLY_DAEMON_STOP = threading.Event()
+
+        def _daemon_loop(stop_ev, loop_interval):
+            from scripts.omen_allnight_sovereign import run_single_allnight_cycle
+            print(f"[NIGHTLY-DAEMON] Avviato con intervallo di {loop_interval}s...", flush=True)
+            while not stop_ev.is_set():
+                try:
+                    run_single_allnight_cycle()
+                except Exception as e:
+                    print(f"[NIGHTLY-DAEMON] Errore ciclo: {e}", flush=True)
+                stop_ev.wait(loop_interval)
+            print("[NIGHTLY-DAEMON] Fermato.", flush=True)
+
+        _NIGHTLY_DAEMON_THREAD = threading.Thread(
+            target=_daemon_loop,
+            args=(_NIGHTLY_DAEMON_STOP, interval),
+            daemon=True,
+            name="nightly-daemon-loop"
+        )
+        _NIGHTLY_DAEMON_THREAD.start()
+
+        self.send_json({
+            "status": "started",
+            "interval": interval,
+            "message": f"Demone notturno sovrano OMEN avviato (intervallo: {interval}s)"
         })
 
     def _split_thought(self, text: str) -> tuple[str, str]:

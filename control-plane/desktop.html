@@ -121,6 +121,8 @@ const HOST = window.location.hostname;
 const CORE_PORT = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
 const SERVICES = {
   use: [
+    {icon:'🛠️', title:'OpenWork Coding Agent', customUrl:'openwork://', customPort:'Desktop App', desc:'Workspace agentico su macOS: modifiche file, terminale, diff, MCP HyperSpace e modelli ASUS (Flint 40B) / Mac.'},
+    {icon:'⚡', title:'HyperDev Studio', port:8090, path:'/devstudio.html', desc:'IDE Web Sovrano per il Creatore: file explorer, editor di codice, git diff, terminale shell e runner Pytest.'},
     {icon:'🪐', title:'Agentic Workspace', port:CORE_PORT, path:'/workspace', desc:'Il workspace di lavoro centrale: chat, DAG multi-agente, canvas per artefatti live e review Human-In-The-Loop.'},
     {icon:'💬', title:'Chat', port:3000, path:'/', desc:'Open WebUI — chatta con la mesh, scegli modelli locali o OmniRoute dal menu.'},
     {icon:'🔀', title:'OmniRoute', port:20128, path:'/', desc:'Gateway verso 278+ provider esterni — fallback e dashboard provider/costi.'},
@@ -143,13 +145,16 @@ function render(){
   for (const section of Object.keys(SERVICES)){
     const grid = document.getElementById('grid-'+section);
     grid.innerHTML = SERVICES[section].map((s,i)=>{
-      const url = s.port === CORE_PORT ? `${window.location.origin}${s.path}` : `http://${HOST}:${s.port}${s.path}`;
+      const url = s.customUrl ? s.customUrl : (s.port === CORE_PORT ? `${window.location.origin}${s.path}` : `http://${HOST}:${s.port}${s.path}`);
+      const portText = s.customPort ? s.customPort : `:${s.port}`;
       const id = `${section}-${i}`;
-      return `<a class="tile" href="${url}" target="_blank" rel="noopener" data-check="${url}" id="tile-${id}">
+      const targetAttr = s.customUrl ? '' : 'target="_blank" rel="noopener"';
+      const checkAttr = s.customUrl ? '' : `data-check="${url}"`;
+      return `<a class="tile" href="${url}" ${targetAttr} ${checkAttr} id="tile-${id}">
         <div class="tile-icon">${s.icon}</div>
         <div class="tile-title">${s.title}</div>
         <div class="tile-desc">${s.desc}</div>
-        <div class="tile-foot"><span class="tile-port">:${s.port}</span><span class="tile-status"><span class="dot" id="dot-${id}"></span><span id="stat-${id}">…</span></span></div>
+        <div class="tile-foot"><span class="tile-port">${portText}</span><span class="tile-status"><span class="dot ${s.customUrl ? 'up' : ''}" id="dot-${id}"></span><span id="stat-${id}">${s.customUrl ? 'pronto' : '…'}</span></span></div>
       </a>`;
     }).join('');
   }

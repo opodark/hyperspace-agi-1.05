@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Test suite per HyperDev Sovereign Studio (Antigravity Mesh Console)."""
+"""Test suite per HyperDev Sovereign Studio 2.0 (Antigravity Mesh IDE)."""
 
 import json
 import urllib.request
@@ -12,14 +12,17 @@ DIST_DEVSTUDIO_HTML = REPO_ROOT / "dist" / "web-node-aruba" / "apps" / "playgrou
 
 
 def test_devstudio_html_exists():
-    assert DEVSTUDIO_HTML.exists(), "web-node/apps/playground/devstudio.html deve esistere"
-    assert DIST_DEVSTUDIO_HTML.exists(), "dist/web-node-aruba/apps/playground/devstudio.html deve esistere"
+    assert DEVSTUDIO_HTML.exists(), "web-node/apps/playground/devstudio.html deve esistere per il Creatore locale"
+    assert not DIST_DEVSTUDIO_HTML.exists(), "dist/web-node-aruba non deve contenere devstudio.html per sicurezza (solo locale)"
 
     content = DEVSTUDIO_HTML.read_text(encoding="utf-8")
     assert "HyperDev Sovereign Studio" in content
-    assert "Mission DAG" in content
-    assert "Sandbox Diff" in content
-    assert "Pytest Console" in content
+    assert "Code Editor" in content
+    assert "Repository Files" in content
+    assert "Git & Diff" in content
+    assert "Pytest" in content
+    assert "Shell" in content
+    assert "Access Denied" in content
 
 
 def test_devstudio_service_endpoints():
@@ -70,5 +73,43 @@ def test_devstudio_service_endpoints():
             assert resp.status == 200
             diff_data = json.loads(resp.read().decode("utf-8"))
             assert diff_data.get("ok") is True
+
+        # 5. Test Files API (Directory Explorer)
+        req_files = urllib.request.Request("http://127.0.0.1:8090/api/devstudio/files?path=tests")
+        with urllib.request.urlopen(req_files, timeout=5) as resp:
+            assert resp.status == 200
+            files_data = json.loads(resp.read().decode("utf-8"))
+            assert files_data.get("ok") is True
+            assert len(files_data.get("items", [])) > 0
+
+        # 6. Test File Read API
+        req_file = urllib.request.Request("http://127.0.0.1:8090/api/devstudio/file?path=tests/test_devstudio_service.py")
+        with urllib.request.urlopen(req_file, timeout=5) as resp:
+            assert resp.status == 200
+            file_data = json.loads(resp.read().decode("utf-8"))
+            assert file_data.get("ok") is True
+            assert "HyperDev" in file_data.get("content", "")
+
+        # 7. Test Git Status API
+        req_git = urllib.request.Request("http://127.0.0.1:8090/api/devstudio/git-status")
+        with urllib.request.urlopen(req_git, timeout=5) as resp:
+            assert resp.status == 200
+            git_data = json.loads(resp.read().decode("utf-8"))
+            assert git_data.get("ok") is True
+            assert "branch" in git_data
+
+        # 8. Test Terminal Command API
+        term_payload = json.dumps({"command": "echo 'sovereign-devstudio-ok'"}).encode("utf-8")
+        req_term = urllib.request.Request(
+            "http://127.0.0.1:8090/api/devstudio/terminal",
+            data=term_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req_term, timeout=5) as resp:
+            assert resp.status == 200
+            term_data = json.loads(resp.read().decode("utf-8"))
+            assert term_data.get("ok") is True
+            assert "sovereign-devstudio-ok" in term_data.get("stdout", "")
     except urllib.error.URLError:
         pytest.skip("Cockpit service su porta 8090 non attivo in questo worker, test locale saltato")

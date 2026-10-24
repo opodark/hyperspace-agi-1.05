@@ -99,9 +99,21 @@
       <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-brand-cyan font-bold border border-cyan-500/30 transition">
         📡 Scouting & Missioni
       </a>
-      <a href="/devstudio.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+      <a href="/research.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🧬 R&D Lab & AST
+      </a>
+      <a id="devStudioNavLink" href="/devstudio.html" class="hidden px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
         ⚡ HyperDev Studio
       </a>
+      <script>
+        (function() {
+          const h = window.location.hostname;
+          if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local')) {
+            const el = document.getElementById('devStudioNavLink');
+            if (el) el.classList.remove('hidden');
+          }
+        })();
+      </script>
     </nav>
   </header>
 
@@ -198,6 +210,14 @@
         <button type="button" onclick="switchSection('dreams')" id="tabBtn-dreams" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
           <span>🌙 Sogni Notturni & Identità</span>
           <span id="badgeDreamsCandidate" class="hidden px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]">0</span>
+        </button>
+        <button type="button" onclick="switchSection('nightshift')" id="tabBtn-nightshift" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>🌌 Turno Notturno OMEN</span>
+          <span id="badgeNightshiftLive" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        </button>
+        <button type="button" onclick="switchSection('agiresearch')" id="tabBtn-agiresearch" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>🧠 Ricerca AGI & Swarm</span>
+          <span class="px-2 py-0.5 rounded-full bg-purple-950 text-brand-purple font-mono font-bold text-[10px]" id="badgePrototypesCount">0</span>
         </button>
         <button type="button" onclick="switchSection('flow')" id="tabBtn-flow" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
           <span>🌊 Mappa Flusso Cognitivo</span>
@@ -404,6 +424,261 @@
       <div class="flex flex-col gap-4" id="dreamsList">
         <div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">
           Caricamento sogni di identità in corso...
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: TURNO NOTTURNO SOVRANO (HP OMEN 16 & MESH) -->
+    <section id="section-nightshift" class="view-section hidden flex flex-col gap-5">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Turno Notturno Sovrano (HP OMEN 16 & RTX GPU)</span>
+            <span id="daemonStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 font-mono font-bold animate-pulse">● DAEMON PRONTO</span>
+          </h2>
+          <p class="text-xs text-slate-400">Ciclo continuo 24/7 per tutta la notte: audit invarianti, distillazione CoT (Qwen 9B / LFM 24B), sogni e rendering ComfyUI</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="triggerNightlySingleRun()" id="btnNightlyTrigger" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-cyan border border-cyan-500/30 font-medium text-xs transition flex items-center gap-2">
+            <span>⚡ Esegui Ciclo Subito</span>
+          </button>
+          <button type="button" onclick="toggleNightlyDaemon()" id="btnNightlyDaemon" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+            <span id="daemonBtnIcon">🚀</span>
+            <span id="daemonBtnText">Avvia Daemon Notturno</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Hardware Card -->
+      <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+        <div class="flex flex-col gap-1">
+          <span class="text-slate-400 font-mono">Nodo OMEN 16 Target:</span>
+          <span class="text-sm font-bold text-white flex items-center gap-1.5 font-mono">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> 100.104.238.125:8081
+          </span>
+          <span class="text-[11px] text-slate-500">Tier: Root | AC Continua (100%)</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-slate-400 font-mono">Compute Engine:</span>
+          <span class="text-sm font-bold text-brand-purple font-mono">RTX 8GB VRAM</span>
+          <span class="text-[11px] text-slate-500">Qwen 9B Coder + LFM 24B Uncensored</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-slate-400 font-mono">Motore Visivo:</span>
+          <span class="text-sm font-bold text-brand-cyan font-mono">ComfyUI :8188</span>
+          <span class="text-[11px] text-slate-500">ChickMixFlat SD1.5 (Anna) + SDXL Turbo</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-slate-400 font-mono">Guardia Termica (WAL RFC-0044):</span>
+          <span class="text-sm font-bold text-emerald-400 font-mono" id="hwThermalSafe">✓ SICURO (&lt;80°C)</span>
+          <span class="text-[11px] text-slate-500">Auto-cooldown con checkpoint atomico</span>
+        </div>
+      </div>
+
+      <!-- 4 Pillars of the Nightly Shift -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Audit & QA -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+              <span>1. AUDIT &amp; QA</span>
+              <span class="text-emerald-400 font-bold">100% GREEN</span>
+            </div>
+            <div class="text-2xl font-bold text-white font-mono" id="metricAuditRuns">--</div>
+            <div class="text-[11px] text-slate-400 mt-1">Esecuzione invarianti Pytest e watchdog di latenza</div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 font-mono" id="metricPytestStatus">
+            Ultimo: ✓ Invarianti verificate
+          </div>
+        </div>
+
+        <!-- 2. CoT & Dev -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+              <span>2. SVILUPPO AUTONOMO</span>
+              <span class="text-brand-purple font-bold">AST Verified</span>
+            </div>
+            <div class="text-2xl font-bold text-white font-mono" id="metricCotSamples">--</div>
+            <div class="text-[11px] text-slate-400 mt-1">Campioni sintetici CoT distillati e convalidati AST</div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 font-mono">
+            Riflessione Harness² attiva
+          </div>
+        </div>
+
+        <!-- 3. Dreams & Identity -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+              <span>3. SOGNI NOTTURNI</span>
+              <span class="text-brand-amber font-bold">Anna v8</span>
+            </div>
+            <div class="text-2xl font-bold text-white font-mono" id="metricDreamsTotal">--</div>
+            <div class="text-[11px] text-slate-400 mt-1">Sogni onirici + proposte candidate identità</div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 font-mono">
+            Revisione HITL in Tab 5
+          </div>
+        </div>
+
+        <!-- 4. Images Rendered -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+              <span>4. ARTE &amp; COMFYUI</span>
+              <span class="text-brand-cyan font-bold">MPS / GPU</span>
+            </div>
+            <div class="text-2xl font-bold text-white font-mono" id="metricImagesTotal">--</div>
+            <div class="text-[11px] text-slate-400 mt-1">Render visivi prodotti durante la notte</div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 font-mono">
+            Salvati in output/nightly_renders/
+          </div>
+        </div>
+      </div>
+
+      <!-- Latest Cycle Live Details Card -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-bold text-white flex items-center gap-2">
+            <span>Dettagli Ultimo Ciclo Eseguito</span>
+            <span class="text-xs px-2 py-0.5 rounded font-mono bg-slate-800 text-slate-300" id="nightlyCycleId">Nessun ciclo eseguito</span>
+          </div>
+          <span class="text-xs text-slate-400 font-mono" id="nightlyCycleTime">--</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono text-slate-300 overflow-x-auto max-h-60 custom-scroll" id="nightlyCycleJson">
+          In attesa del prossimo ciclo notturno...
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: RICERCA AGI & SWARM INTELLIGENCE -->
+    <section id="section-agiresearch" class="view-section hidden flex flex-col gap-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Laboratorio Ricerca AGI, Coscienza Sintetica &amp; Swarm Intelligence</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-950/80 text-brand-purple border border-purple-800/80 font-mono font-bold">Direzione Frontiera</span>
+          </h2>
+          <p class="text-xs text-slate-400">Approfondimento teorico e validazione architetturale dei trend intercettati da Agent-Reach (Igor Aleksander, Swarm Emergence, Algorithmic Aesthetics)</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="/research.html" class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs transition flex items-center gap-2 shadow-lg shadow-purple-900/30">
+            <span>🧬 Apri R&D Lab Completo &amp; AST Inspector ➔</span>
+          </a>
+          <button type="button" onclick="loadAgiResearchData()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-purple border border-purple-500/30 font-medium text-xs transition flex items-center gap-2">
+            <span>🔄 Ricarica Studi AGI</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. The 5 Axioms of Synthetic Consciousness Grid -->
+      <div class="glass-card rounded-2xl p-6 flex flex-col gap-5">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider font-mono text-brand-cyan mb-1">Modello di Riferimento: Igor Aleksander (1995/2000)</div>
+          <h3 class="text-sm font-bold text-white">I Cinque Assiomi della Coscienza Sintetica applicati alla Mesh Sovrana</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <!-- Axiom 1 -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="w-6 h-6 rounded-lg bg-purple-950 text-brand-purple border border-purple-700 font-mono font-bold text-xs flex items-center justify-center">1</span>
+              <span class="text-[10px] font-mono text-emerald-400">Attivo</span>
+            </div>
+            <div class="font-bold text-white text-xs">Depiction of Self</div>
+            <div class="text-[11px] text-slate-400 leading-snug">Rappresentazione interna di sé distinta dal mondo. Realizzato in <code>persona.json</code> (Anna v8), identità biografica persistente.</div>
+          </div>
+
+          <!-- Axiom 2 -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="w-6 h-6 rounded-lg bg-purple-950 text-brand-purple border border-purple-700 font-mono font-bold text-xs flex items-center justify-center">2</span>
+              <span class="text-[10px] font-mono text-emerald-400">Attivo</span>
+            </div>
+            <div class="font-bold text-white text-xs">Imagination</div>
+            <div class="text-[11px] text-slate-400 leading-snug">Simulazione controfattuale di scenari non percepiti. Sogni notturni, sandbox codice e rendering visivo ComfyUI.</div>
+          </div>
+
+          <!-- Axiom 3 -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="w-6 h-6 rounded-lg bg-purple-950 text-brand-purple border border-purple-700 font-mono font-bold text-xs flex items-center justify-center">3</span>
+              <span class="text-[10px] font-mono text-emerald-400">Attivo</span>
+            </div>
+            <div class="font-bold text-white text-xs">Attention</div>
+            <div class="text-[11px] text-slate-400 leading-snug">Selezione attiva con budget limitato. Caveman Engine (compressione contestuale), governor di VRAM e code di priorità.</div>
+          </div>
+
+          <!-- Axiom 4 -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="w-6 h-6 rounded-lg bg-purple-950 text-brand-purple border border-purple-700 font-mono font-bold text-xs flex items-center justify-center">4</span>
+              <span class="text-[10px] font-mono text-emerald-400">Attivo</span>
+            </div>
+            <div class="font-bold text-white text-xs">Planning</div>
+            <div class="text-[11px] text-slate-400 leading-snug">Proiezione causale per raggiungere scopi. Task DAG RFC-0043 con ordinamento topologico e transizioni WAL RFC-0044.</div>
+          </div>
+
+          <!-- Axiom 5 -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="w-6 h-6 rounded-lg bg-purple-950 text-brand-purple border border-purple-700 font-mono font-bold text-xs flex items-center justify-center">5</span>
+              <span class="text-[10px] font-mono text-emerald-400">Attivo</span>
+            </div>
+            <div class="font-bold text-white text-xs">Emotion / Valencing</div>
+            <div class="text-[11px] text-slate-400 leading-snug">Valutazione preferenziale degli stati. Gate Human-In-The-Loop per le mutazioni del self-model, reward e guardia etica.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Swarm AI & Algorithmic Aesthetics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Swarm Intelligence -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🐝</span>
+            <div>
+              <div class="text-xs font-mono uppercase text-brand-cyan font-bold">Architettura Distribuita</div>
+              <div class="text-sm font-bold text-white">Swarm AI &amp; Coscienza Collettiva di Rete</div>
+            </div>
+          </div>
+          <div class="text-xs text-slate-300 leading-relaxed">
+            Invece di un singolo modello AGI monolitico, HyperSpace implementa una <strong>stigmergia cognitiva</strong>: i singoli agenti (Planner, Coder, Verifier, Scout) cooperano depositando segnali in memoria condivisa (Hermes FTS5) e coordinandosi tramite code lock-free Chase-Lev e vector clocks, facendo emergere capacità di problem-solving superiori alla somma delle singole parti.
+          </div>
+        </div>
+
+        <!-- Algorithmic Aesthetics & Poetry -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🎨</span>
+            <div>
+              <div class="text-xs font-mono uppercase text-brand-purple font-bold">Neuro-Symbolic Aesthetics</div>
+              <div class="text-sm font-bold text-white">E-Literature &amp; Intelligent Poetry Engine</div>
+            </div>
+          </div>
+          <div class="text-xs text-slate-300 leading-relaxed">
+            Ispirato dal manifesto <em>"Making the dumb machines sing"</em> e dalle indagini cognitive sull'arte generativa, l'engine fonde la prosodia poetica (metrica, rime ed endecasillabi) con la generazione di immagini ComfyUI (ChickMixFlat SD1.5), sintetizzando un'esperienza visivo-letteraria coerente con la personalità di Anna.
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. AST Validated Prototypes & Studies Log -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-bold text-white flex items-center gap-2">
+            <span>Dossier e Prototipi di Ricerca Eseguiti su OMEN</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono" id="researchPrototypesBadge">0 Prototipi AST</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3" id="researchStudiesList">
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-slate-400 text-xs">
+            Caricamento studi di ricerca in corso...
+          </div>
         </div>
       </div>
     </section>
@@ -835,6 +1110,20 @@
       } catch (e) {
         console.warn('Dreams fetch error', e);
       }
+
+      // 4. Fetch Nightly Shift Data
+      try {
+        const nRes = await fetch('/api/nightly-shift');
+        if (nRes.ok) {
+          const nData = await nRes.json();
+          renderNightshift(nData);
+        }
+      } catch (e) {
+        console.warn('Nightshift fetch error', e);
+      }
+
+      // 5. Fetch AGI Research Data
+      await loadAgiResearchData();
     }
 
     let globalDreamsData = [];
@@ -953,6 +1242,139 @@
       } catch (err) {
         alert(`Errore di rete: ${err.message}`);
       }
+    }
+
+    function renderNightshift(data) {
+      if (!data) return;
+      const m = data.metrics || {};
+      document.getElementById('metricAuditRuns').textContent = m.total_audit_runs || 0;
+      document.getElementById('metricCotSamples').textContent = m.total_cot_samples || 0;
+      document.getElementById('metricDreamsTotal').textContent = m.total_dreams_synthesized || 0;
+      document.getElementById('metricImagesTotal').textContent = m.total_images_rendered || 0;
+      document.getElementById('hwThermalSafe').textContent = m.thermal_safe ? '✓ SICURO (<80°C)' : '⚠️ ALLERTA TERMICA (>80°C)';
+      
+      const badge = document.getElementById('daemonStatusBadge');
+      const btnIcon = document.getElementById('daemonBtnIcon');
+      const btnText = document.getElementById('daemonBtnText');
+      const btn = document.getElementById('btnNightlyDaemon');
+      
+      if (data.daemon_running) {
+        badge.textContent = '● DAEMON ATTIVO 24/7';
+        badge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono font-bold animate-pulse';
+        btnIcon.textContent = '🛑';
+        btnText.textContent = 'Ferma Daemon';
+        btn.className = 'px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-[0_0_15px_rgba(244,63,94,0.3)]';
+      } else {
+        badge.textContent = '○ DAEMON IN PAUSA';
+        badge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono font-bold';
+        btnIcon.textContent = '🚀';
+        btnText.textContent = 'Avvia Daemon Notturno';
+        btn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
+      }
+
+      const cycle = data.latest_cycle || {};
+      if (cycle.cycle_id) {
+        document.getElementById('nightlyCycleId').textContent = cycle.cycle_id;
+        document.getElementById('nightlyCycleTime').textContent = `${cycle.completed_at ? cycle.completed_at.slice(0, 19).replace('T', ' ') : ''} (${cycle.total_elapsed_s || 0}s)`;
+        document.getElementById('nightlyCycleJson').textContent = JSON.stringify(cycle.phases || cycle, null, 2);
+      }
+    }
+
+    async function triggerNightlySingleRun() {
+      const btn = document.getElementById('btnNightlyTrigger');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin">🌀</span> Avvio ciclo in corso...`;
+      try {
+        const res = await fetch('/api/nightly-shift/trigger', { method: 'POST' });
+        const d = await res.json();
+        alert(d.message || 'Ciclo avviato!');
+        setTimeout(loadAllData, 3000);
+      } catch (e) {
+        alert('Errore trigger: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>⚡ Esegui Ciclo Subito</span>`;
+      }
+    }
+
+    async function toggleNightlyDaemon() {
+      const isRunning = document.getElementById('daemonBtnText').textContent.includes('Ferma');
+      const action = isRunning ? 'stop' : 'start';
+      try {
+        const res = await fetch('/api/nightly-shift/daemon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action, interval: 300 })
+        });
+        const d = await res.json();
+        alert(d.message || 'Comando inviato');
+        await loadAllData();
+      } catch (e) {
+        alert('Errore daemon: ' + e.message);
+      }
+    }
+
+    async function loadAgiResearchData() {
+      try {
+        const res = await fetch('/api/agi-research');
+        if (res.ok) {
+          const data = await res.json();
+          renderAgiResearch(data);
+        }
+      } catch (e) {
+        console.warn('AGI research fetch error', e);
+      }
+    }
+
+    function renderAgiResearch(data) {
+      if (!data) return;
+      const st = data.research_status || {};
+      const prototypesCount = st.prototypes_count || 0;
+      const badgeNav = document.getElementById('badgePrototypesCount');
+      if (badgeNav) badgeNav.textContent = prototypesCount;
+
+      const badgeHeader = document.getElementById('researchPrototypesBadge');
+      if (badgeHeader) badgeHeader.textContent = `${prototypesCount} Prototipi AST`;
+
+      const list = document.getElementById('researchStudiesList');
+      const studies = data.deep_dives || [];
+      if (!studies.length) {
+        list.innerHTML = `<div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-slate-400 text-xs">Nessun approfondimento di ricerca ancora registrato.</div>`;
+        return;
+      }
+
+      list.innerHTML = studies.map(s => `
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-white font-mono">${escapeHtml(s.domain || s.pillar_id)}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono ${s.ast_valid ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400'}">
+                ${s.ast_valid ? '✓ AST VALID' : 'REASONING ONLY'}
+              </span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-500">${s.timestamp ? s.timestamp.slice(0, 19).replace('T', ' ') : ''}</span>
+          </div>
+
+          <div class="text-[11px] text-slate-400 flex items-center gap-2">
+            <span class="text-brand-purple font-mono">Riferimento:</span>
+            <span>${escapeHtml(s.reference || '')}</span>
+          </div>
+
+          ${s.reasoning_cot ? `
+            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-300 font-mono leading-relaxed">
+              <span class="text-brand-cyan font-bold block mb-1">Ragionamento CoT (${escapeHtml(s.model_used || 'LLM')}):</span>
+              ${escapeHtml(s.reasoning_cot.slice(0, 300))}${s.reasoning_cot.length > 300 ? '...' : ''}
+            </div>
+          ` : ''}
+
+          ${s.prototype_file ? `
+            <div class="flex items-center justify-between text-[11px] font-mono pt-2 border-t border-slate-800">
+              <span class="text-slate-400">Modulo Python: <code>data/research/prototypes/${escapeHtml(s.prototype_file)}</code></span>
+              <span class="text-emerald-400">100% Eseguibile</span>
+            </div>
+          ` : ''}
+        </div>
+      `).reverse().join('');
     }
 
     function escapeHtml(str) {

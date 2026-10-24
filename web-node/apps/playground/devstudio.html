@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HyperDev Sovereign Studio | Antigravity for HyperSpace</title>
+  <title>HyperDev Sovereign Studio 2.0 | Antigravity Mesh IDE</title>
+  <script>
+    // Rigorosa protezione del Creatore: DevStudio è riservato esclusivamente al Cockpit Locale (Localhost / Sovereign Machine)
+    (function() {
+      const h = window.location.hostname;
+      const isLocal = h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h.endsWith('.local') || h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('100.');
+      if (!isLocal) {
+        window.location.replace('/');
+        document.documentElement.innerHTML = '<div style="background:#090d16;color:#f87171;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;text-align:center;"><h1>⛔ Accesso Negato</h1><p style="color:#94a3b8;">HyperDev Sovereign Studio è uno strumento di ingegneria interno accessibile solo al Creatore in locale.</p><a href="/" style="color:#38bdf8;margin-top:16px;">Torna alla Home</a></div>';
+        throw new Error("Access Denied: Sovereign Creator Cockpit Only.");
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,37 +81,43 @@
     .diff-ctx {
       color: #94a3b8;
     }
+    .editor-textarea {
+      tab-size: 4;
+      white-space: pre;
+      overflow-wrap: normal;
+    }
   </style>
 </head>
 <body class="text-slate-100 h-screen flex flex-col font-sans overflow-hidden selection:bg-brand-cyan selection:text-black">
 
   <!-- TOP HEADER & NAV -->
-  <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-6 py-3 flex flex-wrap items-center justify-between gap-4 z-50 shrink-0">
+  <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-6 py-2.5 flex flex-wrap items-center justify-between gap-4 z-50 shrink-0">
     <div class="flex items-center gap-3">
       <div class="w-3.5 h-3.5 rounded-full bg-brand-cyan shadow-[0_0_12px_#57e6d9] animate-pulse"></div>
       <div>
         <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
-          HyperDev Sovereign Studio <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-700 text-brand-cyan font-mono">Antigravity Mesh</span>
+          HyperDev Sovereign Studio <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-700 text-brand-cyan font-mono">v2.0 Mesh IDE</span>
         </h1>
-        <p class="text-[11px] text-slate-400">Sviluppa HyperSpace con HyperSpace · Pair Programming Sovrano, Mission DAG & Sandbox</p>
+        <p class="text-[11px] text-slate-400">Pair Programming Sovrano · File Explorer · Git Inspector · Pytest Runner & Shell</p>
       </div>
     </div>
 
-    <!-- NODE SELECTOR & TELEMETRY -->
+    <!-- NODE SELECTOR & GIT TELEMETRY -->
     <div class="flex items-center gap-3 text-xs font-mono">
       <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
-        <span class="text-slate-400">Target Node:</span>
+        <span class="text-slate-400">Target:</span>
         <select id="selectTargetNode" class="bg-transparent text-brand-cyan font-bold outline-none cursor-pointer">
-          <option value="omen" class="bg-slate-900 text-white">HP OMEN 16 (LFM 2.5 @ ~36 tk/s)</option>
-          <option value="mac" class="bg-slate-900 text-white">Mac M5 Hub (Ollama / Python 3.14)</option>
-          <option value="asus" class="bg-slate-900 text-white">ASUS V16 (Flint 40B @ 128k)</option>
+          <option value="mac" class="bg-slate-900 text-white">Mac M5 Hub (Qwen 8B / Control Plane)</option>
+          <option value="asus" class="bg-slate-900 text-white">ASUS V16 (Flint 40B @ 128k / Granite 8B)</option>
+          <option value="omen" class="bg-slate-900 text-white">HP OMEN 16 (LFM 2.5 24B @ ~36 tk/s)</option>
         </select>
       </div>
 
-      <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px]">
+      <div id="gitHeaderBadge" onclick="switchRightTab('git')" class="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] hover:border-cyan-500/40 transition">
         <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-        <span class="text-slate-300">RFC-0043 Scheduler:</span>
-        <span class="text-emerald-400 font-bold">READY</span>
+        <span class="text-slate-400">Git:</span>
+        <span id="gitBranchText" class="text-white font-bold">🌿 main</span>
+        <span id="gitChangesBadge" class="px-1.5 py-0.2 rounded bg-amber-950 text-brand-amber font-mono text-[10px]">…</span>
       </div>
     </div>
 
@@ -114,9 +132,6 @@
       <a href="/dialogues.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
         💬 Dialoghi
       </a>
-      <a href="/seo.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
-        🌐 SEO 100
-      </a>
       <a href="/missions.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
         📡 Scouting
       </a>
@@ -129,97 +144,135 @@
   <!-- SPLIT SCREEN WORKSPACE -->
   <main class="flex-1 flex overflow-hidden">
 
-    <!-- LEFT COLUMN: DEV CHAT & THOUGHT STREAM (50%) -->
-    <section class="w-full lg:w-1/2 border-r border-slate-800 flex flex-col bg-slate-950/60 justify-between">
+    <!-- LEFT COLUMN: DUAL MODE (DEV CHAT OR FILE EXPLORER) (45%) -->
+    <section class="w-full lg:w-[45%] border-r border-slate-800 flex flex-col bg-slate-950/60 justify-between">
       
-      <!-- Chat Header -->
-      <div class="p-3 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs">
+      <!-- Left Sub-Header with Dual Switcher -->
+      <div class="p-2 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs shrink-0">
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button type="button" onclick="switchLeftMode('chat')" id="ltab-chat" class="px-3 py-1 rounded-lg bg-brand-cyan text-slate-950 font-bold transition">
+            💬 Dev Stream
+          </button>
+          <button type="button" onclick="switchLeftMode('files')" id="ltab-files" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">
+            📁 Repository Files
+          </button>
+        </div>
         <div class="flex items-center gap-2">
-          <span class="text-brand-purple font-mono font-bold">💬 Dev Stream</span>
-          <span class="text-slate-500">|</span>
-          <span class="text-slate-400">Dialogo interattivo con il cluster</span>
-        </div>
-        <button type="button" onclick="clearChat()" class="text-slate-500 hover:text-slate-300 font-mono transition text-[11px]">
-          Pulisci Chat
-        </button>
-      </div>
-
-      <!-- Chat Messages Timeline -->
-      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scroll text-xs">
-        <!-- Initial Welcome Message -->
-        <div class="flex items-start gap-3">
-          <div class="w-8 h-8 rounded-xl bg-purple-950 border border-purple-700/80 text-brand-purple flex items-center justify-center font-mono font-bold shrink-0 shadow-lg">
-            ⚡
-          </div>
-          <div class="flex flex-col gap-1.5 max-w-[88%]">
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-white">HyperDev Assistant</span>
-              <span class="text-[10px] text-slate-500 font-mono">Cluster Sovereign</span>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-slate-200 leading-relaxed shadow-sm">
-              Ciao! Sono il tuo copilota di ingegneria per sviluppare HyperSpace. Puoi chiedermi di:
-              <ul class="mt-2 flex flex-col gap-1 text-slate-300">
-                <li>• Creare un nuovo endpoint API o ottimizzare le prestazioni.</li>
-                <li>• Decomporre un obiettivo in un <strong>DAG di task</strong> ed eseguirlo sui nodi (OMEN / Mac).</li>
-                <li>• Ispezionare e modificare codice in sandbox con <strong>anteprima dei diff</strong> prima del merge.</li>
-                <li>• Lanciare la suite di test Pytest e verificare che sia al <strong>100% GREEN</strong>.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Preset Prompt Chips -->
-      <div class="px-4 py-2 border-t border-slate-800/80 bg-slate-950/80 flex items-center gap-2 overflow-x-auto custom-scroll text-[11px]">
-        <button type="button" onclick="setPrompt('Esegui tutti i test del sistema con pytest e riporta lo stato.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
-          🧪 Esegui Test Pytest
-        </button>
-        <button type="button" onclick="setPrompt('Decomponi una missione per aggiungere metriche di telemetria GPU in tempo reale.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
-          🧩 Pianifica Missione DAG
-        </button>
-        <button type="button" onclick="setPrompt('Mostrami le differenze di latenza tra LFM 2.5 24B su OMEN e Mac M5.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
-          ⚡ Confronto Nodi Cluster
-        </button>
-        <button type="button" onclick="setPrompt('Verifica conformità AGENTS.md e genera un report di integrità del codice.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
-          🛡️ Audit Sicurezza & AGENTS.md
-        </button>
-      </div>
-
-      <!-- Prompt Input Box -->
-      <div class="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-col gap-2">
-        <div class="relative flex items-end gap-2">
-          <textarea id="promptInput" rows="2" placeholder="Chiedi un task, pianifica una missione o chiedi modifiche al codice... (Invio per spedire, Shift+Invio per a capo)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500/50 resize-none font-sans custom-scroll transition"></textarea>
-          <button type="button" onclick="sendDevPrompt()" id="btnSendPrompt" class="px-4 py-3 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(87,230,217,0.3)] shrink-0">
-            <span id="sendSpinner" class="hidden animate-spin">🌀</span>
-            <span id="sendBtnText">Invia ➔</span>
+          <button type="button" onclick="clearChat()" id="btnClearChat" class="text-slate-500 hover:text-slate-300 font-mono transition text-[11px]">
+            Pulisci Chat
+          </button>
+          <button type="button" onclick="refreshFiles()" id="btnRefreshFiles" class="hidden text-brand-cyan hover:underline font-mono text-[11px]">
+            🔄 Aggiorna
           </button>
         </div>
       </div>
+
+      <!-- VIEW 1: DEV CHAT STREAM -->
+      <div id="left-view-chat" class="flex-1 flex flex-col justify-between overflow-hidden">
+        <!-- Messages Timeline -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scroll text-xs">
+          <!-- Initial Welcome Message -->
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-purple-950 border border-purple-700/80 text-brand-purple flex items-center justify-center font-mono font-bold shrink-0 shadow-lg">
+              ⚡
+            </div>
+            <div class="flex flex-col gap-1.5 max-w-[90%]">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white">HyperDev Assistant 2.0</span>
+                <span class="text-[10px] text-slate-500 font-mono">Cluster Sovereign</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-slate-200 leading-relaxed shadow-sm">
+                Benvenuto in <strong>HyperDev Sovereign Studio 2.0</strong>. Ora hai a disposizione:
+                <ul class="mt-2 flex flex-col gap-1 text-slate-300 text-[11px]">
+                  <li>• <strong>📁 Files:</strong> Sfoglia la codebase, apri file ed effettua modifiche nell'editor.</li>
+                  <li>• <strong>🔍 Git & Diff:</strong> Visualizza `git status` e i diff reali non committati.</li>
+                  <li>• <strong>🧪 Pytest Runner:</strong> Lancia la suite completa o test mirati con feedback live.</li>
+                  <li>• <strong>💻 Shell Terminal:</strong> Esegui comandi shell rapidi sul repository locale.</li>
+                  <li>• <strong>⚡ Multi-Node:</strong> Dialoga con Mac M5, ASUS Flint 40B o HP OMEN 16.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Preset Prompt Chips -->
+        <div class="px-4 py-2 border-t border-slate-800/80 bg-slate-950/80 flex items-center gap-2 overflow-x-auto custom-scroll text-[11px] shrink-0">
+          <button type="button" onclick="setPrompt('Esegui tutti i test con pytest e riporta lo stato completo.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+            🧪 Pytest Suite
+          </button>
+          <button type="button" onclick="setPrompt('Mostra lo stato di git e i file modificati non committati.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+            🔍 Git Status
+          </button>
+          <button type="button" onclick="setPrompt('Pianifica una missione DAG per ottimizzare l\'inferenza su ASUS.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+            🧩 Pianifica DAG
+          </button>
+          <button type="button" onclick="setPrompt('Controlla la conformità con AGENTS.md e verifica che non ci siano segreti.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+            🛡️ Audit AGENTS.md
+          </button>
+        </div>
+
+        <!-- Prompt Input Box -->
+        <div class="p-3 border-t border-slate-800 bg-slate-900/90 flex flex-col gap-2 shrink-0">
+          <div class="relative flex items-end gap-2">
+            <textarea id="promptInput" rows="2" placeholder="Chiedi un task, pianifica una missione o chiedi modifiche al codice... (Invio per spedire, Shift+Invio per a capo)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500/50 resize-none font-sans custom-scroll transition"></textarea>
+            <button type="button" onclick="sendDevPrompt()" id="btnSendPrompt" class="px-3.5 py-2.5 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(87,230,217,0.3)] shrink-0">
+              <span id="sendSpinner" class="hidden animate-spin">🌀</span>
+              <span id="sendBtnText">Invia ➔</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: REPOSITORY FILE EXPLORER -->
+      <div id="left-view-files" class="hidden flex-1 flex flex-col overflow-hidden bg-slate-950/80">
+        <!-- Breadcrumb / Path Header -->
+        <div class="p-2.5 border-b border-slate-800 bg-slate-900/70 flex items-center justify-between text-xs font-mono">
+          <div class="flex items-center gap-1.5 text-slate-400 overflow-x-auto custom-scroll">
+            <span class="text-brand-cyan font-bold">root:</span>
+            <span id="fileBreadcrumb">/</span>
+          </div>
+          <button type="button" onclick="navFileUp()" id="btnNavUp" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] transition">
+            ⬆ Su
+          </button>
+        </div>
+
+        <!-- File Tree List -->
+        <div id="fileTreeContainer" class="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5 custom-scroll text-xs font-mono">
+          <div class="p-4 text-center text-slate-500 italic">Caricamento file repository...</div>
+        </div>
+      </div>
+
     </section>
 
-    <!-- RIGHT COLUMN: WORKSPACE, MISSION DAG & VERIFIER (50%) -->
-    <section class="hidden lg:flex w-1/2 flex-col bg-slate-950/90 justify-between overflow-hidden">
+    <!-- RIGHT COLUMN: MULTI-TAB WORKSPACE (55%) -->
+    <section class="hidden lg:flex w-[55%] flex-col bg-slate-950/90 justify-between overflow-hidden">
 
       <!-- Right Tab Header -->
       <div class="border-b border-slate-800 bg-slate-900/60 p-2 flex items-center justify-between text-xs shrink-0">
-        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-          <button type="button" onclick="switchRightTab('dag')" id="rtab-dag" class="rtab-btn px-3 py-1.5 rounded-lg bg-brand-cyan text-slate-950 font-bold transition">
-            🧩 Mission DAG
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto custom-scroll">
+          <button type="button" onclick="switchRightTab('editor')" id="rtab-editor" class="rtab-btn px-3 py-1.5 rounded-lg bg-brand-cyan text-slate-950 font-bold transition">
+            📝 Code Editor
           </button>
-          <button type="button" onclick="switchRightTab('diff')" id="rtab-diff" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
-            📝 Sandbox Diff
+          <button type="button" onclick="switchRightTab('dag')" id="rtab-dag" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            🧩 DAG
+          </button>
+          <button type="button" onclick="switchRightTab('git')" id="rtab-git" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            🔍 Git & Diff
           </button>
           <button type="button" onclick="switchRightTab('tests')" id="rtab-tests" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
-            🧪 Pytest Console
+            🧪 Pytest
+          </button>
+          <button type="button" onclick="switchRightTab('terminal')" id="rtab-terminal" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            💻 Shell
           </button>
           <button type="button" onclick="switchRightTab('telemetry')" id="rtab-telemetry" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
-            ⚡ Telemetria RFC
+            ⚡ Telemetria
           </button>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="runTestsLive()" class="px-3 py-1.5 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-700/80 hover:bg-emerald-900 text-[11px] font-mono font-semibold transition flex items-center gap-1">
-            <span>▶ Lancia Pytest</span>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" onclick="runTestsLive()" class="px-2.5 py-1.5 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-700/80 hover:bg-emerald-900 text-[11px] font-mono font-semibold transition flex items-center gap-1">
+            <span>▶ Test Rapidi</span>
           </button>
         </div>
       </div>
@@ -227,8 +280,28 @@
       <!-- Right Tab Contents Container -->
       <div class="flex-1 overflow-y-auto p-4 custom-scroll text-xs">
 
-        <!-- TAB 1: MISSION DAG VIEW -->
-        <div id="content-dag" class="rtab-content flex flex-col gap-4">
+        <!-- TAB 1: CODE EDITOR & VIEWER -->
+        <div id="content-editor" class="rtab-content flex flex-col gap-3 h-full">
+          <div class="flex items-center justify-between font-mono text-[11px]">
+            <div class="flex items-center gap-2">
+              <span class="text-brand-cyan font-bold" id="editorCurrentFile">Nessun file aperto</span>
+              <span id="editorDirtyBadge" class="hidden px-1.5 py-0.2 rounded bg-amber-950 text-brand-amber font-bold">MODIFICATO</span>
+            </div>
+            <div class="flex items-center gap-3 text-slate-400">
+              <span id="editorStats">0 linee</span>
+              <button type="button" onclick="saveCurrentFile()" id="btnSaveFile" class="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold transition flex items-center gap-1 shadow-sm">
+                <span>💾 Salva File</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex-1 flex flex-col border border-slate-800 rounded-xl overflow-hidden bg-black/90 font-mono text-xs shadow-inner">
+            <textarea id="fileEditorTextarea" spellcheck="false" class="editor-textarea flex-1 p-3.5 bg-transparent text-slate-200 outline-none resize-none font-mono custom-scroll leading-relaxed" placeholder="Seleziona un file dall'Explorer a sinistra per visualizzarlo o modificarlo..."></textarea>
+          </div>
+        </div>
+
+        <!-- TAB 2: MISSION DAG VIEW -->
+        <div id="content-dag" class="rtab-content hidden flex flex-col gap-4">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold font-mono uppercase text-brand-purple tracking-wider">Flusso Decomposizione Task DAG (RFC-0043)</h2>
             <span class="text-[11px] font-mono text-slate-400" id="dagStatusText">In attesa di prompt</span>
@@ -236,79 +309,169 @@
 
           <div id="dagContainer" class="flex flex-col gap-3">
             <div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-xs">
-              Invia un messaggio per generare o visualizzare un DAG di missione con ruoli Planner, Coder e Verifier.
+              Invia un messaggio nella chat per generare o visualizzare un DAG di missione con ruoli Planner, Coder e Verifier.
             </div>
           </div>
         </div>
 
-        <!-- TAB 2: SANDBOX DIFF VIEWER -->
-        <div id="content-diff" class="rtab-content hidden flex flex-col gap-3">
+        <!-- TAB 3: GIT STATUS & DIFF VIEWER -->
+        <div id="content-git" class="rtab-content hidden flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <h2 class="text-xs font-bold font-mono uppercase text-brand-cyan tracking-wider">Anteprima Modifiche Codice (Sandbox)</h2>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 border border-amber-800 text-brand-amber">applied: false</span>
+              <h2 class="text-xs font-bold font-mono uppercase text-brand-cyan tracking-wider">Git Status & Repository Diff</h2>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300" id="gitStatusSummary">Controllo...</span>
             </div>
-            <span class="text-[11px] text-slate-400 font-mono" id="diffStats">0 file modificati</span>
+            <button type="button" onclick="loadGitStatus()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] transition">
+              🔄 Ricarica Git
+            </button>
           </div>
 
-          <div class="rounded-xl border border-slate-800 bg-slate-950 font-mono text-[11px] overflow-x-auto p-3 flex flex-col gap-0.5 custom-scroll" id="diffContent">
-            <div class="text-slate-500 italic p-4 text-center">Nessun diff pendente nel sandbox. Le modifiche proposte dagli agenti appariranno qui prima del merge.</div>
+          <!-- Modified Files List -->
+          <div id="gitFilesList" class="flex flex-wrap gap-1.5 p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 font-mono text-[11px]">
+            <span class="text-slate-500 italic">Nessun file modificato</span>
+          </div>
+
+          <!-- Diff Container -->
+          <div class="flex-1 flex flex-col border border-slate-800 rounded-xl bg-black font-mono text-[11px] overflow-hidden">
+            <div class="p-2 border-b border-slate-800/80 bg-slate-900/80 flex items-center justify-between text-slate-400 text-[10px]">
+              <span>UNIFIED DIFF (git diff)</span>
+              <span id="gitDiffLineCount">0 righe</span>
+            </div>
+            <div class="p-3 overflow-y-auto max-h-[50vh] custom-scroll flex flex-col gap-0.5" id="gitDiffContent">
+              <div class="text-slate-500 italic p-4 text-center">Nessun diff non committato nel repository.</div>
+            </div>
           </div>
         </div>
 
-        <!-- TAB 3: PYTEST & VERIFIER CONSOLE -->
+        <!-- TAB 4: PYTEST & VERIFIER CONSOLE -->
         <div id="content-tests" class="rtab-content hidden flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xs font-bold font-mono uppercase text-emerald-400 tracking-wider">Console Risultati Verifier & Pytest</h2>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700" id="pytestVerdictBadge">VERDETTO: ATTESA</span>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xs font-bold font-mono uppercase text-emerald-400 tracking-wider">Pytest Verifier Console</h2>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold" id="pytestVerdictBadge">ATTESA</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="pytestPresetSelect" class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 font-mono text-[11px] outline-none">
+                <option value="">Default (Scheduler + State Machine)</option>
+                <option value="tests/test_auto_heal_tool_calls.py tests/test_mcp_bridge.py">Test Auto-Heal & MCP Bridge</option>
+                <option value="tests/test_chat_contratto.py tests/test_licensing.py">Test Chat & Licensing</option>
+                <option value="tests/test_devstudio_service.py">Test DevStudio Service</option>
+                <option value="tests/">Tutta la suite del repo (tests/)</option>
+              </select>
+              <button type="button" onclick="runTestsLiveCustom()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold font-mono text-[11px] transition shadow-sm">
+                ▶ Esegui
+              </button>
+            </div>
           </div>
 
-          <pre class="rounded-xl border border-slate-800 bg-black/80 font-mono text-[11px] text-slate-300 p-4 overflow-x-auto max-h-[60vh] custom-scroll whitespace-pre-wrap leading-relaxed" id="pytestOutput">Premi '▶ Lancia Pytest' per eseguire la suite del repository o attendi la verifica automatica del Verifier.</pre>
+          <pre class="rounded-xl border border-slate-800 bg-black font-mono text-[11px] text-slate-300 p-4 overflow-x-auto max-h-[60vh] custom-scroll whitespace-pre-wrap leading-relaxed shadow-inner" id="pytestOutput">Seleziona una suite e clicca '▶ Esegui' per verificare che il codice sia al 100% GREEN.</pre>
         </div>
 
-        <!-- TAB 4: TELEMETRY (RFC-0043 & RFC-0044) -->
+        <!-- TAB 5: SHELL TERMINAL -->
+        <div id="content-terminal" class="rtab-content hidden flex flex-col gap-3 h-full">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xs font-bold font-mono uppercase text-brand-cyan tracking-wider">Terminale Shell Sovereign</h2>
+              <span class="text-[10px] font-mono text-slate-500">CWD: /Users/opo/hyperspace-agi-1.04</span>
+            </div>
+            <button type="button" onclick="clearTerminal()" class="text-slate-500 hover:text-slate-300 font-mono text-[11px] transition">
+              Pulisci Console
+            </button>
+          </div>
+
+          <!-- Quick Shell Command Pills -->
+          <div class="flex items-center gap-1.5 overflow-x-auto custom-scroll text-[11px] font-mono">
+            <button type="button" onclick="execTerminal('git status -s')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-brand-cyan transition">git status</button>
+            <button type="button" onclick="execTerminal('git log -n 5 --oneline')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-brand-cyan transition">git log</button>
+            <button type="button" onclick="execTerminal('git branch -a')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-brand-cyan transition">git branch</button>
+            <button type="button" onclick="execTerminal('ls -lh scripts/')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-brand-cyan transition">ls scripts/</button>
+            <button type="button" onclick="execTerminal('tail -n 20 AGENT-LOG.md')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-brand-cyan transition">tail AGENT-LOG</button>
+          </div>
+
+          <!-- Terminal Output -->
+          <pre id="terminalOutput" class="flex-1 rounded-xl border border-slate-800 bg-black font-mono text-[11px] text-green-400 p-4 overflow-y-auto custom-scroll whitespace-pre-wrap leading-relaxed shadow-inner min-h-[300px]">HyperDev Shell Ready. Digita un comando per iniziare.</pre>
+
+          <!-- Terminal Input -->
+          <div class="flex items-center gap-2">
+            <input type="text" id="terminalInput" placeholder="Digita un comando shell (es: git status, ls -la, python3 ...) e premi Invio" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-slate-500 outline-none focus:border-cyan-500/50">
+            <button type="button" onclick="submitTerminalCmd()" id="btnTermSend" class="px-4 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs transition">
+              Esegui
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 6: TELEMETRY (RFC-0043 & RFC-0044) -->
         <div id="content-telemetry" class="rtab-content hidden flex flex-col gap-4">
           <h2 class="text-xs font-bold font-mono uppercase text-amber-400 tracking-wider">Stato Nodi & Work-Stealing Governor</h2>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="telemetryGrid">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="telemetryGrid">
             <!-- Mac Hub -->
             <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2 font-mono text-[11px]">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-white">Mac M5 Hub (Master)</span>
-                <span class="text-emerald-400">ONLINE</span>
+                <span class="font-bold text-white">Mac M5 Hub</span>
+                <span class="text-emerald-400 font-bold">ONLINE</span>
               </div>
-              <div class="text-slate-400">Ruolo: Orchestratore & Sandbox Runner</div>
-              <div class="text-slate-400">Checkpoint Engine: <span class="text-brand-cyan">WAL Atomo Attivo (RFC-0044)</span></div>
+              <div class="text-slate-400">Ruolo: Control Plane & Sandbox</div>
+              <div class="text-slate-400">Model: Qwen 8B / Python 3.14</div>
+            </div>
+
+            <!-- ASUS V16 -->
+            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-cyan-500/30 flex flex-col gap-2 font-mono text-[11px]">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-brand-cyan">ASUS V16</span>
+                <span class="text-emerald-400 font-bold">ONLINE</span>
+              </div>
+              <div class="text-slate-400">Ruolo: Lead Coder (Flint 40B @ 128k)</div>
+              <div class="text-slate-400">GPU: RTX 5060 8GB + 48GB RAM</div>
             </div>
 
             <!-- HP OMEN -->
-            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2 font-mono text-[11px]">
+            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-purple-500/30 flex flex-col gap-2 font-mono text-[11px]">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-brand-cyan">HP OMEN 16 (Worker)</span>
-                <span class="text-emerald-400">ONLINE (~36 tk/s)</span>
+                <span class="font-bold text-brand-purple">HP OMEN 16</span>
+                <span class="text-emerald-400 font-bold">ONLINE</span>
               </div>
-              <div class="text-slate-400">Modello: Liquid LFM 2.5 24B & Flint 40B</div>
-              <div class="text-slate-400">Work-Stealing Queue: <span class="text-emerald-400">Chase-Lev Deque Pronta</span></div>
+              <div class="text-slate-400">Ruolo: Sovereign Night Shift (24B)</div>
+              <div class="text-slate-400">GPU: RTX 3070 8GB + 32GB RAM</div>
+            </div>
+          </div>
+
+          <!-- All-Night Shift Live Controller -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-3 font-mono text-[11px]">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span>🌌 Turno Notturno Sovrano OMEN</span>
+                <span id="devNightlyLiveBadge" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              </div>
+              <button type="button" onclick="triggerNightlyFromDev()" id="btnDevNightly" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold transition flex items-center gap-1">
+                <span>⚡ Lancia Ciclo Notturno Ora</span>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-slate-400 text-[10px]">
+              <div>CoT Distillati: <span class="text-white font-bold" id="devCotTotal">--</span></div>
+              <div>Sogni Sintetizzati: <span class="text-white font-bold" id="devDreamsTotal">--</span></div>
+              <div>Immagini ComfyUI: <span class="text-white font-bold" id="devImagesTotal">--</span></div>
+              <div>Guardia Termica: <span class="text-emerald-400 font-bold" id="devThermalSafe">✓ SICURO</span></div>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- BOTTOM HUMAN-IN-THE-LOOP ACTION GATE BAR -->
-      <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3 shrink-0">
+      <!-- BOTTOM ACTION BAR -->
+      <div class="p-2.5 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3 shrink-0">
         <div class="flex items-center gap-2 text-xs">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-          <span class="text-slate-300 font-mono text-[11px]">Human-In-The-Loop Gate:</span>
-          <span class="text-slate-500 text-[11px]">Nessun commit o merge senza tua approvazione</span>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          <span class="text-slate-300 font-mono text-[11px]">Human-In-The-Loop:</span>
+          <span class="text-slate-400 text-[11px]" id="bottomStatusBar">Tutte le modifiche al filesystem richiedono salvataggio o conferma</span>
         </div>
 
         <div class="flex items-center gap-2">
           <button type="button" onclick="discardDiff()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs font-medium transition">
             ✗ Scarta Sandbox
           </button>
-          <button type="button" onclick="applyDiffMerge()" id="btnApplyMerge" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-            <span>🚀 Approva & Applica Modifiche</span>
+          <button type="button" onclick="applyDiffMerge()" id="btnApplyMerge" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+            <span>🚀 Applica Patch Sandbox</span>
           </button>
         </div>
       </div>
@@ -321,7 +484,38 @@
   <script>
     let activeDiffText = "";
     let activeMissionTasks = [];
+    let currentOpenFilePath = "";
+    let currentFileContent = "";
+    let currentDirectoryPath = "";
 
+    // Switch Left Column Mode: 'chat' or 'files'
+    function switchLeftMode(mode) {
+      const viewChat = document.getElementById('left-view-chat');
+      const viewFiles = document.getElementById('left-view-files');
+      const btnChat = document.getElementById('ltab-chat');
+      const btnFiles = document.getElementById('ltab-files');
+      const btnClear = document.getElementById('btnClearChat');
+      const btnRefresh = document.getElementById('btnRefreshFiles');
+
+      if (mode === 'chat') {
+        viewChat.classList.remove('hidden');
+        viewFiles.classList.add('hidden');
+        btnChat.className = "px-3 py-1 rounded-lg bg-brand-cyan text-slate-950 font-bold transition";
+        btnFiles.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+        btnClear.classList.remove('hidden');
+        btnRefresh.classList.add('hidden');
+      } else {
+        viewChat.classList.add('hidden');
+        viewFiles.classList.remove('hidden');
+        btnFiles.className = "px-3 py-1 rounded-lg bg-brand-cyan text-slate-950 font-bold transition";
+        btnChat.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+        btnClear.classList.add('hidden');
+        btnRefresh.classList.remove('hidden');
+        loadFiles(currentDirectoryPath);
+      }
+    }
+
+    // Switch Right Tabs
     function switchRightTab(tabId) {
       document.querySelectorAll('.rtab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.rtab-btn').forEach(btn => {
@@ -336,9 +530,14 @@
         targetBtn.classList.remove('text-slate-400');
         targetBtn.classList.add('bg-brand-cyan', 'text-slate-950', 'font-bold');
       }
+
+      if (tabId === 'git') {
+        loadGitStatus();
+      }
     }
 
     function setPrompt(text) {
+      switchLeftMode('chat');
       const input = document.getElementById('promptInput');
       input.value = text;
       input.focus();
@@ -355,7 +554,7 @@
       const container = document.getElementById('chatMessages');
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
-      const avatar = isUser ? '👤' : (sender.includes('OMEN') ? '⚡' : '🧠');
+      const avatar = isUser ? '👤' : (sender.includes('OMEN') ? '⚡' : (sender.includes('ASUS') ? '💻' : '🧠'));
       const avatarBg = isUser ? 'bg-cyan-950 border-cyan-700 text-brand-cyan' : 'bg-purple-950 border-purple-700 text-brand-purple';
 
       let thoughtHtml = '';
@@ -394,7 +593,6 @@
 
     function formatMessageText(text) {
       if (!text) return '';
-      // Escape HTML but preserve bold and code blocks
       let safe = escapeHtml(text);
       safe = safe.replace(/\`\`\`([\s\S]*?)\`\`\`/g, '<pre class="bg-black/60 p-2.5 rounded-lg border border-slate-800 my-2 overflow-x-auto text-[11px] font-mono text-cyan-300">$1</pre>');
       safe = safe.replace(/\`([^\`]+)\`/g, '<code class="bg-slate-800 px-1 py-0.5 rounded text-brand-cyan font-mono text-[11px]">$1</code>');
@@ -411,7 +609,6 @@
       const spinner = document.getElementById('sendSpinner');
       const btnText = document.getElementById('sendBtnText');
 
-      // Append user message
       appendMessage("Tu (Sviluppatore)", prompt, null, true);
       input.value = "";
       btn.disabled = true;
@@ -427,23 +624,19 @@
         const data = await res.json();
 
         if (data.ok) {
-          const senderName = target === 'omen' ? 'HP OMEN 16 (LFM 2.5 24B)' : 'Mac M5 Orchestrator';
+          const senderName = data.target || target.toUpperCase();
           appendMessage(senderName, data.response || "Task completato.", data.thought || null);
 
-          // Update DAG if tasks generated
           if (data.tasks && data.tasks.length) {
             renderDag(data.tasks);
             switchRightTab('dag');
           }
 
-          // Update Diff if code generated
           if (data.diff) {
             activeDiffText = data.diff;
-            renderDiff(data.diff);
-            switchRightTab('diff');
+            switchRightTab('git');
           }
 
-          // Update Pytest results if run
           if (data.pytest) {
             renderPytestResult(data.pytest);
           }
@@ -459,6 +652,306 @@
       }
     }
 
+    // ── FILE EXPLORER & EDITOR ──────────────────────────────────────────
+    async function loadFiles(dirPath = "") {
+      const container = document.getElementById('fileTreeContainer');
+      const breadcrumb = document.getElementById('fileBreadcrumb');
+      container.innerHTML = `<div class="p-4 text-center text-slate-500 italic">Caricamento...</div>`;
+      currentDirectoryPath = dirPath;
+      breadcrumb.textContent = dirPath ? `/${dirPath}` : "/";
+
+      try {
+        const res = await fetch(`/api/devstudio/files?path=${encodeURIComponent(dirPath)}`);
+        const data = await res.json();
+        if (!data.ok) {
+          container.innerHTML = `<div class="p-3 text-rose-400">Errore: ${data.error}</div>`;
+          return;
+        }
+
+        const items = data.items || [];
+        if (items.length === 0) {
+          container.innerHTML = `<div class="p-3 text-slate-500 italic">Cartella vuota</div>`;
+          return;
+        }
+
+        container.innerHTML = items.map(item => {
+          const icon = item.is_dir ? '📁' : getFileIcon(item.name);
+          const sizeStr = item.is_dir ? '' : formatBytes(item.size);
+          return `
+            <div onclick="${item.is_dir ? `loadFiles('${escapeJs(item.path)}')` : `openFile('${escapeJs(item.path)}')`}" 
+                 class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-slate-900 cursor-pointer text-slate-300 hover:text-white transition group">
+              <div class="flex items-center gap-2 truncate">
+                <span class="text-xs shrink-0">${icon}</span>
+                <span class="truncate ${item.is_dir ? 'font-bold text-brand-cyan' : ''}">${escapeHtml(item.name)}</span>
+              </div>
+              <span class="text-[10px] text-slate-500 font-mono group-hover:text-slate-400 shrink-0">${sizeStr}</span>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="p-3 text-rose-400">Errore di rete: ${err.message}</div>`;
+      }
+    }
+
+    function navFileUp() {
+      if (!currentDirectoryPath) return;
+      const parts = currentDirectoryPath.split('/');
+      parts.pop();
+      loadFiles(parts.join('/'));
+    }
+
+    function refreshFiles() {
+      loadFiles(currentDirectoryPath);
+    }
+
+    function getFileIcon(name) {
+      if (name.endsWith('.py')) return '🐍';
+      if (name.endsWith('.js') || name.endsWith('.mjs')) return '🟨';
+      if (name.endsWith('.html')) return '🌐';
+      if (name.endsWith('.json') || name.endsWith('.jsonc')) return '📦';
+      if (name.endsWith('.md')) return '📝';
+      if (name.endsWith('.sh')) return '🐚';
+      if (name.endsWith('.css')) return '🎨';
+      return '📄';
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return '';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    async function openFile(filePath) {
+      switchRightTab('editor');
+      const textarea = document.getElementById('fileEditorTextarea');
+      const headerTitle = document.getElementById('editorCurrentFile');
+      const stats = document.getElementById('editorStats');
+      const dirtyBadge = document.getElementById('editorDirtyBadge');
+
+      headerTitle.textContent = filePath;
+      textarea.value = "Caricamento file...";
+      dirtyBadge.classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/devstudio/file?path=${encodeURIComponent(filePath)}`);
+        const data = await res.json();
+        if (data.ok) {
+          currentOpenFilePath = filePath;
+          currentFileContent = data.content;
+          textarea.value = data.content;
+          const lineCount = data.content.split('\n').length;
+          stats.textContent = `${lineCount} linee · ${formatBytes(data.size)}`;
+        } else {
+          textarea.value = `Errore nel caricamento del file: ${data.error}`;
+        }
+      } catch (err) {
+        textarea.value = `Errore di rete: ${err.message}`;
+      }
+    }
+
+    async function saveCurrentFile() {
+      if (!currentOpenFilePath) {
+        alert("Nessun file aperto da salvare.");
+        return;
+      }
+      const textarea = document.getElementById('fileEditorTextarea');
+      const content = textarea.value;
+      const btn = document.getElementById('btnSaveFile');
+      btn.disabled = true;
+      btn.textContent = "Salvataggio...";
+
+      try {
+        const res = await fetch('/api/devstudio/file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: currentOpenFilePath, content: content })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          currentFileContent = content;
+          document.getElementById('editorDirtyBadge').classList.add('hidden');
+          document.getElementById('bottomStatusBar').textContent = `File salvato: ${currentOpenFilePath}`;
+          alert(`File '${currentOpenFilePath}' salvato con successo!`);
+          loadGitStatus();
+        } else {
+          alert(`Errore nel salvataggio: ${data.error}`);
+        }
+      } catch (err) {
+        alert(`Errore di rete: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "💾 Salva File";
+      }
+    }
+
+    // Monitor changes in editor textarea
+    document.getElementById('fileEditorTextarea').addEventListener('input', () => {
+      const dirtyBadge = document.getElementById('editorDirtyBadge');
+      const textarea = document.getElementById('fileEditorTextarea');
+      if (textarea.value !== currentFileContent) {
+        dirtyBadge.classList.remove('hidden');
+      } else {
+        dirtyBadge.classList.add('hidden');
+      }
+      const lineCount = textarea.value.split('\n').length;
+      document.getElementById('editorStats').textContent = `${lineCount} linee (in modifica)`;
+    });
+
+    // ── GIT STATUS & DIFF ──────────────────────────────────────────────
+    async function loadGitStatus() {
+      const statusBadge = document.getElementById('gitStatusSummary');
+      const filesContainer = document.getElementById('gitFilesList');
+      const diffContainer = document.getElementById('gitDiffContent');
+      const lineCountBadge = document.getElementById('gitDiffLineCount');
+      statusBadge.textContent = "Aggiornamento...";
+
+      try {
+        const res = await fetch('/api/devstudio/git-status');
+        const data = await res.json();
+        if (!data.ok) {
+          statusBadge.textContent = "Errore";
+          return;
+        }
+
+        document.getElementById('gitBranchText').textContent = `🌿 ${data.branch}`;
+        const files = data.files || [];
+        document.getElementById('gitChangesBadge').textContent = `${files.length} mod`;
+        statusBadge.textContent = data.clean ? "Repo Pulito" : `${files.length} modifiche`;
+
+        if (files.length === 0) {
+          filesContainer.innerHTML = `<span class="text-emerald-400 font-bold">✓ Working tree pulita (nessuna modifica non committata)</span>`;
+        } else {
+          filesContainer.innerHTML = files.map(f => {
+            const isM = f.status.includes('M');
+            const isA = f.status.includes('?') || f.status.includes('A');
+            const color = isM ? 'bg-amber-950/80 text-brand-amber border-amber-800/80' : 'bg-emerald-950/80 text-emerald-400 border-emerald-800/80';
+            return `
+              <span onclick="openFile('${escapeJs(f.path)}')" class="cursor-pointer px-2 py-0.5 rounded border ${color} hover:underline">
+                <strong>${f.status}</strong> ${escapeHtml(f.path)}
+              </span>
+            `;
+          }).join('');
+        }
+
+        const diffText = data.diff || activeDiffText || "";
+        if (!diffText) {
+          diffContainer.innerHTML = `<div class="text-slate-500 italic p-4 text-center">Nessun diff non committato nel repository.</div>`;
+          lineCountBadge.textContent = "0 righe";
+        } else {
+          const lines = diffText.split('\n');
+          lineCountBadge.textContent = `${lines.length} righe`;
+          diffContainer.innerHTML = lines.map(line => {
+            let cls = 'diff-ctx';
+            if (line.startsWith('+') && !line.startsWith('+++')) cls = 'diff-add px-2 py-0.5';
+            else if (line.startsWith('-') && !line.startsWith('---')) cls = 'diff-del px-2 py-0.5';
+            else if (line.startsWith('@@')) cls = 'text-brand-purple font-bold py-1';
+            return `<div class="${cls}">${escapeHtml(line)}</div>`;
+          }).join('');
+        }
+      } catch (err) {
+        statusBadge.textContent = "Errore rete";
+      }
+    }
+
+    // ── PYTEST RUNNER ──────────────────────────────────────────────────
+    async function runTestsLive() {
+      runTestsTarget("");
+    }
+
+    async function runTestsLiveCustom() {
+      const select = document.getElementById('pytestPresetSelect');
+      runTestsTarget(select.value);
+    }
+
+    async function runTestsTarget(targetPath) {
+      switchRightTab('tests');
+      const badge = document.getElementById('pytestVerdictBadge');
+      const output = document.getElementById('pytestOutput');
+      badge.textContent = "IN ESECUZIONE...";
+      badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-brand-cyan border border-cyan-700 animate-pulse";
+      output.textContent = `Esecuzione Pytest in corso${targetPath ? ` su '${targetPath}'` : ''}...\n`;
+
+      try {
+        const res = await fetch('/api/devstudio/run-tests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: targetPath })
+        });
+        const data = await res.json();
+        renderPytestResult(data);
+      } catch (err) {
+        badge.textContent = "ERRORE";
+        output.textContent = `Errore di connessione: ${err.message}`;
+      }
+    }
+
+    function renderPytestResult(data) {
+      const badge = document.getElementById('pytestVerdictBadge');
+      const output = document.getElementById('pytestOutput');
+
+      if (data.exit_code === 0) {
+        badge.textContent = "✓ 100% GREEN (PASS)";
+        badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold";
+      } else {
+        badge.textContent = `✗ FALLITO (Codice ${data.exit_code})`;
+        badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700 font-bold";
+      }
+
+      output.textContent = data.stdout || data.stderr || "Nessun output registrato.";
+    }
+
+    // ── SHELL TERMINAL ────────────────────────────────────────────────
+    async function execTerminal(cmd) {
+      switchRightTab('terminal');
+      const input = document.getElementById('terminalInput');
+      input.value = cmd;
+      submitTerminalCmd();
+    }
+
+    async function submitTerminalCmd() {
+      const input = document.getElementById('terminalInput');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+
+      const output = document.getElementById('terminalOutput');
+      const btn = document.getElementById('btnTermSend');
+      btn.disabled = true;
+      output.textContent += `\n$ ${cmd}\n[Esecuzione in corso...]`;
+      output.scrollTop = output.scrollHeight;
+
+      try {
+        const res = await fetch('/api/devstudio/terminal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          const resText = (data.stdout || '') + (data.stderr || '');
+          output.textContent += `\n${resText || '(nessun output)'}\n[Exit code: ${data.exit_code}]\n`;
+        } else {
+          output.textContent += `\n[Errore]: ${data.error}\n`;
+        }
+      } catch (err) {
+        output.textContent += `\n[Errore di rete]: ${err.message}\n`;
+      } finally {
+        btn.disabled = false;
+        output.scrollTop = output.scrollHeight;
+      }
+    }
+
+    function clearTerminal() {
+      document.getElementById('terminalOutput').textContent = "HyperDev Shell Ready.\n";
+    }
+
+    document.getElementById('terminalInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        submitTerminalCmd();
+      }
+    });
+
+    // ── DAG & DIFFS ───────────────────────────────────────────────────
     function renderDag(tasks) {
       activeMissionTasks = tasks;
       const container = document.getElementById('dagContainer');
@@ -487,64 +980,12 @@
       `).join('');
     }
 
-    function renderDiff(diffText) {
-      const container = document.getElementById('diffContent');
-      if (!diffText) {
-        container.innerHTML = `<div class="text-slate-500 italic p-4 text-center">Nessuna modifica di codice rilevata.</div>`;
-        return;
-      }
-
-      const lines = diffText.split('\n');
-      document.getElementById('diffStats').textContent = `${lines.length} righe modificate`;
-
-      container.innerHTML = lines.map(line => {
-        let cls = 'diff-ctx';
-        if (line.startsWith('+') && !line.startsWith('+++')) cls = 'diff-add px-2 py-0.5';
-        else if (line.startsWith('-') && !line.startsWith('---')) cls = 'diff-del px-2 py-0.5';
-        else if (line.startsWith('@@')) cls = 'text-brand-purple font-bold py-1';
-        return `<div class="${cls}">${escapeHtml(line)}</div>`;
-      }).join('');
-    }
-
-    async function runTestsLive() {
-      const badge = document.getElementById('pytestVerdictBadge');
-      const output = document.getElementById('pytestOutput');
-      badge.textContent = "IN ESECUZIONE...";
-      badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-brand-cyan border border-cyan-700 animate-pulse";
-      output.textContent = "Esecuzione Pytest in corso nel .venv del repository...";
-      switchRightTab('tests');
-
-      try {
-        const res = await fetch('/api/devstudio/run-tests', { method: 'POST' });
-        const data = await res.json();
-        renderPytestResult(data);
-      } catch (err) {
-        badge.textContent = "ERRORE";
-        output.textContent = `Errore di connessione: ${err.message}`;
-      }
-    }
-
-    function renderPytestResult(data) {
-      const badge = document.getElementById('pytestVerdictBadge');
-      const output = document.getElementById('pytestOutput');
-
-      if (data.exit_code === 0) {
-        badge.textContent = "✓ 100% GREEN (PASS)";
-        badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold";
-      } else {
-        badge.textContent = `✗ FALLITO (Codice ${data.exit_code})`;
-        badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700 font-bold";
-      }
-
-      output.textContent = data.stdout || data.stderr || "Nessun output registrato.";
-    }
-
     async function applyDiffMerge() {
       if (!activeDiffText) {
         alert("Nessun diff pendente nel sandbox da applicare.");
         return;
       }
-      if (!confirm("Sei sicuro di voler applicare queste modifiche al codice del repository?")) return;
+      if (!confirm("Sei sicuro di voler salvare questo diff sandbox in data/sandbox/latest_applied_diff.patch?")) return;
 
       try {
         const res = await fetch('/api/devstudio/apply-diff', {
@@ -554,11 +995,10 @@
         });
         const data = await res.json();
         if (data.ok) {
-          alert("Modifiche applicate con successo al repository!");
-          activeDiffText = "";
-          renderDiff("");
+          alert("Diff salvato con successo nella sandbox!");
+          loadGitStatus();
         } else {
-          alert(`Errore nell'applicazione: ${data.error}`);
+          alert(`Errore: ${data.error}`);
         }
       } catch (e) {
         alert(`Errore di rete: ${e.message}`);
@@ -568,9 +1008,58 @@
     function discardDiff() {
       if (confirm("Vuoi scartare le modifiche proposte nella sandbox?")) {
         activeDiffText = "";
-        renderDiff("");
+        loadGitStatus();
       }
     }
+
+    // ── TELEMETRIA NOTTURNA ───────────────────────────────────────────
+    async function pollNightlyStatusDev() {
+      try {
+        const res = await fetch('/api/nightly-shift');
+        if (res.ok) {
+          const data = await res.json();
+          const m = data.metrics || {};
+          document.getElementById('devCotTotal').textContent = m.total_cot_samples || 0;
+          document.getElementById('devDreamsTotal').textContent = m.total_dreams_synthesized || 0;
+          document.getElementById('devImagesTotal').textContent = m.total_images_rendered || 0;
+          document.getElementById('devThermalSafe').textContent = m.thermal_safe ? '✓ SICURO' : '⚠️ CALDO';
+        }
+      } catch (e) {
+        console.warn('Dev nightly status poll error', e);
+      }
+    }
+
+    async function triggerNightlyFromDev() {
+      const btn = document.getElementById('btnDevNightly');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin">🌀</span> Avvio...`;
+      try {
+        const res = await fetch('/api/nightly-shift/trigger', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Ciclo notturno avviato!');
+        setTimeout(pollNightlyStatusDev, 3000);
+      } catch (e) {
+        alert('Errore: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>⚡ Lancia Ciclo Notturno Ora</span>`;
+      }
+    }
+
+    // Keyboard Shortcuts (Ctrl+S / Cmd+S to save file)
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveCurrentFile();
+      }
+    });
+
+    document.getElementById('promptInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendDevPrompt();
+      }
+    });
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -581,12 +1070,17 @@
         .replace(/"/g, '&quot;');
     }
 
-    // Keybindings: Enter to send, Shift+Enter for newline
-    document.getElementById('promptInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendDevPrompt();
-      }
+    function escapeJs(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'");
+    }
+
+    // Startup Init
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFiles("");
+      loadGitStatus();
+      pollNightlyStatusDev();
+      setInterval(pollNightlyStatusDev, 30000);
     });
   </script>
 </body>
