@@ -8260,3 +8260,30 @@ Su richiesta dell'utente ("quello che ha raccolto agent reach è interessante...
 
 4. **Collaudo**:
    - Aggiornata e superata la test suite [`tests/test_devstudio_service.py`](tests/test_devstudio_service.py) $\rightarrow$ **2/2 passed (100% green)** testando tutti gli 8 endpoint.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Arresto Test Immagini Confuse, Fix Sincronizzazione R&D e Console Stream dei Nodi Live
+
+1. **Arresto della Generazione Immagini nel Turno Continuo**:
+   - Disabilitato il passo `step_image` impostando `ENABLE_IMAGE_GENERATION = False` in [`scripts/omen_allnight_sovereign.py`](scripts/omen_allnight_sovereign.py).
+   - **Spiegazione tecnica del test**: Il job era una prova di connettività automatica dal testo dei sogni notturni all'endpoint ComfyUI (:8188) con sampler Euler rapido a soli 8 passi (5–10s). Su checkpoint SD 1.5 come ChickMixFlat v1.0, 8 passi sono insufficienti per il denoising anatomico (ne occorrono almeno 25–30), producendo rendering confusi e allucinazioni rumorose.
+   - Fermando il test, il 100% delle risorse GPU e memoria resta allocato alla distillazione CoT, ai modelli **40B Flint** e **24B LFM**, e alla sintesi AST.
+
+2. **Risoluzione Sincronizzazione e Aggiornamento Pagina di Ricerca ([`shared/research_tree.py`](shared/research_tree.py))**:
+   - Risolto il collo di bottiglia in `_sync_deep_dives_to_tree`: in precedenza venivano importati solo gli studi con un file di prototipo fisico generato, tralasciando gli studi di pura riflessione teorica o i test con esito AST non conforme (`ast_valid: False`).
+   - Ora ogni studio condotto dai modelli (36+ iterazioni totali) viene mappato istantaneamente come nodo nell'albero genealogico con lo stato corretto (`🟢 Superato`, `🔴 Test Fallito / AST Invalido`, `🟡 Pivot R&D`, `🟣 Prototipo AST`).
+   - Corretto il calcolo delle statistiche aggregate (`stats`) e la conservazione della selezione del prototipo durante il refresh.
+
+3. **Console di Debug & Stream dei Nodi in Tempo Reale ([`web-node/apps/playground/research.html`](web-node/apps/playground/research.html))**:
+   - Aggiunta in fondo alla pagina di ricerca una **Console Terminale Live** collassabile:
+     - Badge di stato per i 3 nodi attivi: **OMEN 16** (GPU :8081), **ASUS V16** (Flint 40B • LFM 24B :11434), e **Mac M5 Hub** (Cockpit :8090).
+     - Stream dei log in formato monospace colorato con timestamp, nodo di provenienza e tag operativo (`[RESEARCH]`, `[DEV CoT]`, `[AUDIT]`, `[AST-GATE]`, `[DAEMON]`).
+     - Controlli utente: Filtro per nodo (`Tutti`, `OMEN`, `ASUS`, `Mac`), toggle `Auto-Scroll: ON/OFF`, pulsante `Pulisci` e pulsante `Espandi/Riduci`.
+     - Polling continuo accelerato a **5 secondi** con badge indicatore `Live Sync (5s)` e timestamp dell'ultimo aggiornamento.
+   - Creato l'endpoint API `GET /api/research/node-stream` in [`scripts/cockpit_service.py`](scripts/cockpit_service.py) collegato al ring-buffer atomico `data/nightly/node_stream.jsonl`.
+   - Aggiornato il pacchetto di distribuzione con [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh).
+
+4. **Verifica & Test**:
+   - Estesa la suite di test [`tests/test_research_tree_and_lab.py`](tests/test_research_tree_and_lab.py) $\rightarrow$ **9/9 passed** (0.04s).
+   - Suite completa del repository $\rightarrow$ **39/39 passed (100% GREEN)**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.

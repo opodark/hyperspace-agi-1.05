@@ -72,9 +72,13 @@ AUDIT_LOG = NIGHTLY_DIR / "omen_audit.jsonl"
 COT_DATASET = DATA_DIR / "synthetic_cot_dataset.jsonl"
 DREAM_LOG = NIGHTLY_DIR / "omen_dreams.jsonl"
 IMAGE_LOG = NIGHTLY_DIR / "omen_images.jsonl"
+NODE_STREAM_LOG = NIGHTLY_DIR / "node_stream.jsonl"
 THERMAL_FLAG = DATA_DIR / "thermal_pause.flag"
 OUTPUT_DIR = ROOT / "output" / "nightly_renders"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Toggle generazione immagini (disabilitato su richiesta per evitare allucinazioni veloci a 8 passi e concentrare 100% risorse su 40B/24B)
+ENABLE_IMAGE_GENERATION = os.getenv("ENABLE_IMAGE_GENERATION", "false").lower() == "true"
 
 # Modelli target ad alta capacità (40B e 24B prioritari per ricerca e sviluppo continuo)
 CODE_MODELS = [
@@ -127,9 +131,21 @@ AUTONOMOUS_DEV_TASKS = [
 ]
 
 
-def _log(tag: str, msg: str):
-    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts}] [{tag}] {msg}", flush=True)
+def _log(tag: str, msg: str, node: str = "OMEN-16"):
+    ts_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    print(f"[{ts_str}] [{tag}] {msg}", flush=True)
+    try:
+        record = {
+            "timestamp": now_iso,
+            "tag": tag,
+            "node": node,
+            "message": msg,
+        }
+        with open(NODE_STREAM_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def is_thermal_safe() -> bool:
@@ -540,6 +556,9 @@ def run_single_allnight_cycle() -> Dict[str, Any]:
         return {"dream": run_nightly_dreams()}
 
     def step_image(state: RunState) -> Dict[str, Any]:
+        if not ENABLE_IMAGE_GENERATION:
+            _log("IMAGE", "Generazione immagini fermata: risorse calcolo allocate al 100% per ricerca e modelli 40B/24B.", node="Mac M5 Hub")
+            return {"image": {"executed": False, "status": "stopped_by_user", "reason": "Test fermato: risorse dedicate a 40B/24B"}}
         dream_hint = (state.payload.get("dream", {}).get("visual_dream") or {}).get("disegno")
         return {"image": run_image_generation(dream_prompt_hint=dream_hint)}
 

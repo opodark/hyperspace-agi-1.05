@@ -171,6 +171,15 @@ class TestCockpitResearchEndpoints(unittest.TestCase):
             self.assertIn("prototypes", data)
             self.assertIn("count", data)
 
+    def test_api_research_node_stream_endpoint(self):
+        """Verifica che /api/research/node-stream restituisca il feed live dei nodi."""
+        req = urllib.request.Request(f"{self.BASE_URL}/api/research/node-stream")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertIn("stream", data)
+            self.assertIn("nodes", data)
+
     def test_research_html_served(self):
         """Verifica che la pagina grafica research.html venga servita correttamente."""
         req = urllib.request.Request(f"{self.BASE_URL}/research.html")

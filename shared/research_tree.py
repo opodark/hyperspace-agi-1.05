@@ -354,41 +354,41 @@ class ResearchTreeManager:
 
         nodes = data.get("nodes", [])
 
-        # Sync con deep dives se ci sono nuovi prototipi
+        # Sync con tutti gli studi e prototipi da deep dives
         self._sync_deep_dives_to_tree(nodes)
 
-        # Filtri
+        # Filtri di visualizzazione
+        filtered_nodes = list(nodes)
         if branch_id and branch_id != "all":
-            nodes = [n for n in nodes if n.get("branch_id") == branch_id]
+            filtered_nodes = [n for n in filtered_nodes if n.get("branch_id") == branch_id]
         if status and status != "all":
-            nodes = [n for n in nodes if n.get("status") == status]
+            filtered_nodes = [n for n in filtered_nodes if n.get("status") == status]
 
-        # Statistiche sintetiche
-        all_nodes = data.get("nodes", [])
+        # Statistiche sintetiche calcolate sull'elenco aggiornato completo
         stats = {
-            "total_nodes": len(all_nodes),
-            "passed": sum(1 for n in all_nodes if n.get("status") == "passed"),
-            "failed": sum(1 for n in all_nodes if n.get("status") == "failed"),
-            "pivots": sum(1 for n in all_nodes if n.get("status") == "pivot" or n.get("pivot_rationale")),
-            "prototypes": sum(1 for n in all_nodes if n.get("status") == "prototype" or n.get("prototype_file")),
-            "in_production": sum(1 for n in all_nodes if n.get("status") == "production" or n.get("promoted")),
+            "total_nodes": len(nodes),
+            "passed": sum(1 for n in nodes if n.get("status") == "passed"),
+            "failed": sum(1 for n in nodes if n.get("status") == "failed"),
+            "pivots": sum(1 for n in nodes if n.get("status") == "pivot" or n.get("pivot_rationale")),
+            "prototypes": sum(1 for n in nodes if n.get("status") == "prototype" or n.get("prototype_file")),
+            "in_production": sum(1 for n in nodes if n.get("status") == "production" or n.get("promoted")),
         }
 
         return {
             "version": data.get("version", "1.0"),
             "pillars": data.get("pillars", RESEARCH_PILLARS),
-            "nodes": nodes,
+            "nodes": filtered_nodes,
             "stats": stats,
             "updated_at": data.get("updated_at", datetime.datetime.now(datetime.timezone.utc).isoformat()),
         }
 
     def _sync_deep_dives_to_tree(self, nodes: List[Dict[str, Any]]):
-        """Aggiunge all'albero eventuali prototipi da agi_deep_dives non ancora presenti."""
+        """Aggiunge all'albero tutti gli studi e prototipi da agi_deep_dives non ancora presenti."""
         if not self.deep_dives_log.exists():
             return
 
-        existing_protos = {n.get("prototype_file") for n in nodes if n.get("prototype_file")}
         existing_ids = {n.get("id") for n in nodes}
+        existing_protos = {n.get("prototype_file") for n in nodes if n.get("prototype_file")}
         dirty = False
 
         try:
@@ -396,15 +396,21 @@ class ResearchTreeManager:
                 if not line.strip():
                     continue
                 entry = json.loads(line)
+                study_id = entry.get("id", "")
+                node_id = f"node-{study_id}" if study_id else f"node-{int(time.time()*1000)}"
+                if node_id in existing_ids:
+                    continue
+
                 proto = entry.get("prototype_file")
-                if proto and proto not in existing_protos and (self.prototypes_dir / proto).exists():
-                    node_id = f"node-{entry.get('id', int(time.time()))}"
-                    if node_id in existing_ids:
-                        continue
-                    
-                    # Ispezione AST
+                ast_valid = entry.get("ast_valid", False)
+                pillar_id = entry.get("pillar_id", "aleksander_axioms")
+                domain = entry.get("domain", "R&D")
+                model_used = entry.get("model_used", "ollama")
+                reasoning = entry.get("reasoning_cot", "")
+
+                summary = None
+                if proto and (self.prototypes_dir / proto).exists():
                     ast_info = ASTInspector.inspect_file(self.prototypes_dir / proto)
-                    summary = None
                     if ast_info.get("valid"):
                         summary = {
                             "classes": [c["name"] for c in ast_info.get("classes", [])],
@@ -412,25 +418,45 @@ class ResearchTreeManager:
                             "node_count": ast_info.get("node_count", 0),
                         }
 
-                    nodes.append({
-                        "id": node_id,
-                        "parent_id": None,
-                        "branch_id": entry.get("pillar_id", "aleksander_axioms"),
-                        "title": f"Prototipo: {entry.get('domain', proto)}",
-                        "timestamp": entry.get("timestamp", datetime.datetime.now(datetime.timezone.utc).isoformat()),
-                        "status": "prototype",
-                        "model": entry.get("model_used", "ollama"),
-                        "hypothesis": f"Verifica e generazione codice per {entry.get('domain', 'R&D')}",
-                        "outcome": f"Generato prototipo AST valido ({proto})",
-                        "failure_reason": None,
-                        "pivot_rationale": None,
-                        "prototype_file": proto,
-                        "ast_summary": summary,
-                        "promoted": False,
-                    })
+                if ast_valid and proto:
+                    status = "prototype"
+                    title = f"Prototipo: {domain}"
+                    outcome = f"Generato prototipo AST valido ({proto})"
+                    failure_reason = None
+                    pivot_rationale = None
+                elif not ast_valid and reasoning:
+                    status = "failed"
+                    title = f"Validazione AST Fallita: {domain}"
+                    outcome = f"Ragionamento prodotto ({len(reasoning)} car.), ma codice AST non conforme o incompleto."
+                    failure_reason = "Sintassi AST non valida o blocco ```python incompleto"
+                    pivot_rationale = "Rafforzamento dei vincoli sintattici nel prompt e retry su modello ad alta precisione."
+                else:
+                    status = "pivot"
+                    title = f"Analisi Esplorativa: {domain}"
+                    outcome = "Esplorazione euristica completata."
+                    failure_reason = None
+                    pivot_rationale = "Riorientamento parametri di ricerca."
+
+                nodes.append({
+                    "id": node_id,
+                    "parent_id": None,
+                    "branch_id": pillar_id,
+                    "title": title,
+                    "timestamp": entry.get("timestamp", datetime.datetime.now(datetime.timezone.utc).isoformat()),
+                    "status": status,
+                    "model": model_used,
+                    "hypothesis": f"Studio di frontiera: {domain} ({entry.get('reference', '')})",
+                    "outcome": outcome,
+                    "failure_reason": failure_reason,
+                    "pivot_rationale": pivot_rationale,
+                    "prototype_file": proto,
+                    "ast_summary": summary,
+                    "promoted": False,
+                })
+                existing_ids.add(node_id)
+                if proto:
                     existing_protos.add(proto)
-                    existing_ids.add(node_id)
-                    dirty = True
+                dirty = True
         except Exception:
             pass
 

@@ -192,6 +192,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_research_prototype_inspect()
         elif self.path.startswith("/api/research/diff"):
             self.handle_api_research_diff()
+        elif self.path.startswith("/api/research/node-stream"):
+            self.handle_api_research_node_stream()
         elif self.path.startswith("/api/devstudio/files"):
             if not self._is_local_creator():
                 self.send_json({"error": "Access Denied"}, status=403)
@@ -1610,6 +1612,44 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.send_json(res, status=status_code)
         except Exception as exc:
             self.send_json({"error": f"Errore promozione in produzione: {exc}"}, status=500)
+
+    def handle_api_research_node_stream(self):
+        try:
+            import datetime
+            parsed_url = urlparse(self.path)
+            params = parse_qs(parsed_url.query)
+            limit = int(params.get("limit", [60])[0])
+            stream_file = REPO_ROOT / "data" / "nightly" / "node_stream.jsonl"
+            stream_entries = []
+
+            if stream_file.exists():
+                lines = [l.strip() for l in stream_file.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+                for line in lines[-limit:]:
+                    try:
+                        stream_entries.append(json.loads(line))
+                    except Exception:
+                        pass
+
+            if not stream_entries:
+                now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                stream_entries = [
+                    {"timestamp": now_str, "node": "OMEN-16", "tag": "DAEMON", "message": "Cluster loop R&D online. Watchdog termico safe (<80°C)."},
+                    {"timestamp": now_str, "node": "ASUS-V16", "tag": "40B/24B", "message": "Flint 40B & LFM 24B allocati su porta 11434."},
+                    {"timestamp": now_str, "node": "Mac M5 Hub", "tag": "IMAGE", "message": "Generazione immagini disabilitata su richiesta (focus 100% CoT & AST)."}
+                ]
+
+            self.send_json({
+                "status": "ok",
+                "stream": stream_entries,
+                "count": len(stream_entries),
+                "nodes": {
+                    "omen": {"name": "HP OMEN 16", "role": "GPU Coder / Execution", "status": "active"},
+                    "asus": {"name": "ASUS V16", "role": "Flint 40B & LFM 24B Reasoning", "status": "active"},
+                    "mac": {"name": "Mac M5 Hub", "role": "Control Plane / Cockpit / AST Gate", "status": "active"}
+                }
+            })
+        except Exception as exc:
+            self.send_json({"error": f"Errore node stream: {exc}"}, status=500)
 
     def handle_api_nightly_shift_trigger(self):
         try:

@@ -89,7 +89,13 @@
         <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
           HyperSpace Sovereign R&D Lab <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-brand-purple font-mono">AST & Evolution Tree</span>
         </h1>
-        <p class="text-xs text-slate-400">Albero Genealogico delle Ricerche, Test Falliti, Pivot Strategici e Deploy in Produzione</p>
+        <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+          <span>Albero Genealogico delle Ricerche, Test Falliti, Pivot Strategici e Deploy in Produzione</span>
+          <span class="text-slate-600">•</span>
+          <span id="liveSyncStatus" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/70 text-emerald-400 border border-emerald-800/80 font-mono text-[10px]">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Live Sync: <span id="lastSyncTime">attivo</span>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -461,6 +467,59 @@
       </div>
     </section>
 
+    <!-- SECTION 4: 📟 DEBUG CONSOLE & STREAM DEI NODI (LIVE CLUSTER RADAR) -->
+    <section class="glass-card rounded-3xl p-5 border border-slate-800 flex flex-col gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] pulse-glow"></div>
+          <div>
+            <h3 class="text-sm font-bold text-white font-mono flex items-center gap-2">
+              <span>📟</span> Console di Debug: Stream dei Nodi in Tempo Reale
+              <span id="nodeStreamCountBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">0 eventi</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">Tracciamento live delle operazioni: OMEN 16, ASUS 40B/24B Reasoning e Mac M5 Hub.</p>
+          </div>
+        </div>
+
+        <!-- CLUSTER NODES PILLS & CONTROLS -->
+        <div class="flex flex-wrap items-center gap-2 text-[10px] font-mono">
+          <span class="px-2 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> OMEN 16 (GPU :8081)
+          </span>
+          <span class="px-2 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> ASUS V16 (Flint 40B • LFM 24B)
+          </span>
+          <span class="px-2 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span> Mac M5 (Cockpit :8090)
+          </span>
+
+          <!-- Console Controls -->
+          <div class="flex items-center gap-1 ml-2">
+            <select id="nodeFilterSelect" onchange="filterNodeStream()" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:outline-none">
+              <option value="all">Tutti i Nodi</option>
+              <option value="OMEN">OMEN 16</option>
+              <option value="ASUS">ASUS (40B/24B)</option>
+              <option value="Mac">Mac Hub</option>
+            </select>
+            <button onclick="toggleConsoleAutoScroll()" id="btnAutoScroll" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-medium">
+              Auto-Scroll: ON
+            </button>
+            <button onclick="clearConsoleLogs()" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700">
+              Pulisci
+            </button>
+            <button onclick="toggleConsoleOpen()" id="btnToggleConsole" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+              ▼ Riduci
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STREAM TERMINAL BOX -->
+      <div id="consoleTerminalBody" class="bg-black/90 rounded-2xl p-3 border border-slate-800/80 custom-scroll overflow-y-auto max-h-[260px] font-mono text-[11px] leading-relaxed flex flex-col gap-1.5 transition-all">
+        <!-- Log records stream dynamically here -->
+      </div>
+    </section>
+
   </main>
 
   <!-- JAVASCRIPT LOGIC -->
@@ -469,14 +528,35 @@
     let gPrototypes = [];
     let gSelectedNodeId = null;
     let gCurrentStatusFilter = 'all';
+    let gNodeStreamLogs = [];
+    let gAutoScrollConsole = true;
+    let gConsoleOpen = true;
 
     async function init() {
       await Promise.all([
         refreshTreeData(),
-        loadPrototypesList()
+        loadPrototypesList(),
+        fetchNodeStream()
       ]);
-      // Auto-refresh ogni 30 secondi
-      setInterval(refreshTreeData, 30000);
+      // Auto-refresh rapido ogni 5 secondi per seguire il loop live del cluster
+      setInterval(refreshAll, 5000);
+    }
+
+    async function refreshAll() {
+      await Promise.all([
+        refreshTreeData(),
+        loadPrototypesList(true),
+        fetchNodeStream()
+      ]);
+      updateSyncTimestamp();
+    }
+
+    function updateSyncTimestamp() {
+      const now = new Date();
+      const el = document.getElementById('lastSyncTime');
+      if (el) {
+        el.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
     }
 
     async function refreshTreeData() {
@@ -492,6 +572,101 @@
       } catch (err) {
         console.error('Errore caricamento albero R&D:', err);
       }
+    }
+
+    // --- NODE STREAM & DEBUG CONSOLE ---
+    async function fetchNodeStream() {
+      try {
+        const res = await fetch('/api/research/node-stream?limit=80');
+        if (!res.ok) return;
+        const data = await res.json();
+        gNodeStreamLogs = data.stream || [];
+        document.getElementById('nodeStreamCountBadge').textContent = `${gNodeStreamLogs.length} eventi`;
+        renderNodeStream();
+      } catch (err) {
+        console.warn('Errore fetch stream nodi:', err);
+      }
+    }
+
+    function renderNodeStream() {
+      const terminal = document.getElementById('consoleTerminalBody');
+      if (!terminal) return;
+
+      const filter = document.getElementById('nodeFilterSelect')?.value || 'all';
+      let filtered = gNodeStreamLogs;
+      if (filter !== 'all') {
+        filtered = gNodeStreamLogs.filter(l => (l.node || '').toLowerCase().includes(filter.toLowerCase()));
+      }
+
+      if (filtered.length === 0) {
+        terminal.innerHTML = '<div class="text-slate-500 italic py-3 text-center">Nessun log recente registrato per il filtro selezionato.</div>';
+        return;
+      }
+
+      terminal.innerHTML = filtered.map(item => {
+        const ts = item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : '--:--:--';
+        let nodeBadgeClass = 'text-purple-400 bg-purple-950/60 border border-purple-800';
+        const nodeStr = (item.node || '').toLowerCase();
+        if (nodeStr.includes('omen')) {
+          nodeBadgeClass = 'text-emerald-400 bg-emerald-950/60 border border-emerald-800';
+        } else if (nodeStr.includes('asus') || nodeStr.includes('40b') || nodeStr.includes('24b')) {
+          nodeBadgeClass = 'text-cyan-400 bg-cyan-950/60 border border-cyan-800';
+        }
+
+        let tagClass = 'text-slate-300';
+        const tagStr = (item.tag || '').toUpperCase();
+        if (tagStr.includes('RESEARCH') || tagStr.includes('AST')) tagClass = 'text-purple-300 font-bold';
+        else if (tagStr.includes('DEV') || tagStr.includes('COT')) tagClass = 'text-cyan-300 font-bold';
+        else if (tagStr.includes('AUDIT') || tagStr.includes('TEST')) tagClass = 'text-amber-300 font-bold';
+        else if (tagStr.includes('ERROR') || tagStr.includes('FAIL')) tagClass = 'text-rose-400 font-bold';
+        else if (tagStr.includes('IMAGE')) tagClass = 'text-amber-400';
+
+        return `
+          <div class="flex items-start gap-2 hover:bg-slate-900/60 py-0.5 px-1 rounded transition">
+            <span class="text-slate-500 whitespace-nowrap text-[10px] select-none">${ts}</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] whitespace-nowrap font-mono ${nodeBadgeClass}">[${item.node || 'NODE'}]</span>
+            <span class="px-1 py-0.2 rounded text-[10px] whitespace-nowrap font-mono ${tagClass}">[${item.tag || 'INFO'}]</span>
+            <span class="text-slate-200 break-words flex-1 leading-snug">${escapeHtml(item.message || '')}</span>
+          </div>
+        `;
+      }).join('');
+
+      if (gAutoScrollConsole) {
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+    }
+
+    function toggleConsoleAutoScroll() {
+      gAutoScrollConsole = !gAutoScrollConsole;
+      const btn = document.getElementById('btnAutoScroll');
+      if (btn) {
+        btn.textContent = gAutoScrollConsole ? 'Auto-Scroll: ON' : 'Auto-Scroll: OFF';
+        btn.className = gAutoScrollConsole 
+          ? 'px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-medium'
+          : 'px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 font-medium';
+      }
+    }
+
+    function clearConsoleLogs() {
+      gNodeStreamLogs = [];
+      renderNodeStream();
+    }
+
+    function toggleConsoleOpen() {
+      gConsoleOpen = !gConsoleOpen;
+      const terminal = document.getElementById('consoleTerminalBody');
+      const btn = document.getElementById('btnToggleConsole');
+      if (gConsoleOpen) {
+        terminal.classList.remove('hidden');
+        btn.textContent = '▼ Riduci';
+      } else {
+        terminal.classList.add('hidden');
+        btn.textContent = '▲ Espandi';
+      }
+    }
+
+    function filterNodeStream() {
+      renderNodeStream();
     }
 
     function setStatusFilter(status) {
@@ -686,20 +861,21 @@
       }
     }
 
-    async function loadPrototypesList() {
+    async function loadPrototypesList(preserveSelection = false) {
       try {
+        const prevVal = document.getElementById('prototypeSelect').value;
         const res = await fetch('/api/research/prototypes');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         gPrototypes = data.prototypes || [];
         const select = document.getElementById('prototypeSelect');
-        select.innerHTML = '';
 
         if (gPrototypes.length === 0) {
           select.innerHTML = '<option value="">Nessun prototipo trovato</option>';
           return;
         }
 
+        select.innerHTML = '';
         gPrototypes.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.filename;
@@ -708,7 +884,11 @@
           select.appendChild(opt);
         });
 
-        loadSelectedPrototype();
+        if (preserveSelection && prevVal && gPrototypes.some(p => p.filename === prevVal)) {
+          select.value = prevVal;
+        } else {
+          loadSelectedPrototype();
+        }
       } catch (err) {
         console.error('Errore elenco prototipi:', err);
       }
