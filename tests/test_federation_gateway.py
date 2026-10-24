@@ -49,6 +49,29 @@ class FederationGatewayTests(unittest.TestCase):
         self.assertNotIn(("GET", "/nodes/active"), gateway.ALLOWED_ROUTES)
         self.assertNotIn(("GET", "/logs"), gateway.ALLOWED_ROUTES)
 
+    def test_web_ping_endpoint_zero_cost(self):
+        response = self.client.get("/web/ping")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data.get("echo"), "pong")
+        self.assertEqual(data.get("mesh"), "00MESH")
+        # HEAD also works
+        resp_head = self.client.head("/web/ping")
+        self.assertEqual(resp_head.status_code, 200)
+
+    def test_head_request_forwarded_for_get_routes(self):
+        upstream = Mock(
+            content=b"", status_code=200,
+            headers={"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
+        )
+        with patch.object(gateway, "_rate_check") as rate_check, \
+             patch.object(gateway.requests, "request", return_value=upstream) as req:
+            response = self.client.head("/web/topology")
+        self.assertEqual(response.status_code, 200)
+        req.assert_called_once()
+        self.assertEqual(req.call_args.kwargs["method"], "HEAD")
+        rate_check.assert_not_called()
+
     def test_web_node_preflight_does_not_consume_rate_limit(self):
         upstream = Mock(
             content=b"", status_code=204,

@@ -1,0 +1,20 @@
+# AI Agent & Crawler Permissions Policy
+# Domain: https://www.zerozerocomputer.it
+# Last Updated: 2026-10-24
+
+User-Agent: *
+Allow: /
+
+# Canonical LLM index & Manifests
+Index: https://www.zerozerocomputer.it/llms.txt
+Manifest: https://www.zerozerocomputer.it/.well-known/ai-agent.json
+Sitemap: https://www.zerozerocomputer.it/sitemap.xml
+
+# Summary & FAQs for Perplexity, ChatGPT, Claude
+Summary: https://www.zerozerocomputer.it/ai/summary.json
+FAQ: https://www.zerozerocomputer.it/ai/faq.json
+Service: https://www.zerozerocomputer.it/ai/service.json
+
+# Contact & Attribution
+Contact: info@zerozerocomputer.it
+Attribution: ZeroZeroComputer · 00MESH Sovereign AI Mesh

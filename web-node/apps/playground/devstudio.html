@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperDev Sovereign Studio | Antigravity for HyperSpace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          },
+          colors: {
+            brand: {
+              cyan: '#57e6d9',
+              purple: '#8b5cf6',
+              amber: '#f59e0b',
+              emerald: '#10b981',
+              rose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #060911;
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(87, 230, 217, 0.04) 0px, transparent 40%),
+        radial-gradient(at 90% 90%, rgba(139, 92, 246, 0.04) 0px, transparent 40%);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(87, 230, 217, 0.25);
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(87, 230, 217, 0.5);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .diff-add {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-left: 3px solid #10b981;
+    }
+    .diff-del {
+      background-color: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border-left: 3px solid #f43f5e;
+    }
+    .diff-ctx {
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body class="text-slate-100 h-screen flex flex-col font-sans overflow-hidden selection:bg-brand-cyan selection:text-black">
+
+  <!-- TOP HEADER & NAV -->
+  <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-6 py-3 flex flex-wrap items-center justify-between gap-4 z-50 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-3.5 h-3.5 rounded-full bg-brand-cyan shadow-[0_0_12px_#57e6d9] animate-pulse"></div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+          HyperDev Sovereign Studio <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-700 text-brand-cyan font-mono">Antigravity Mesh</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">Sviluppa HyperSpace con HyperSpace · Pair Programming Sovrano, Mission DAG & Sandbox</p>
+      </div>
+    </div>
+
+    <!-- NODE SELECTOR & TELEMETRY -->
+    <div class="flex items-center gap-3 text-xs font-mono">
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-slate-400">Target Node:</span>
+        <select id="selectTargetNode" class="bg-transparent text-brand-cyan font-bold outline-none cursor-pointer">
+          <option value="omen" class="bg-slate-900 text-white">HP OMEN 16 (LFM 2.5 @ ~36 tk/s)</option>
+          <option value="mac" class="bg-slate-900 text-white">Mac M5 Hub (Ollama / Python 3.14)</option>
+          <option value="asus" class="bg-slate-900 text-white">ASUS V16 (Flint 40B @ 128k)</option>
+        </select>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px]">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="text-slate-300">RFC-0043 Scheduler:</span>
+        <span class="text-emerald-400 font-bold">READY</span>
+      </div>
+    </div>
+
+    <!-- UNIFIED NAVIGATION TABS -->
+    <nav class="flex items-center gap-1.5 text-xs">
+      <a href="/" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
+        🚀 Cockpit
+      </a>
+      <a href="/analytics.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
+        🏛️ Storico
+      </a>
+      <a href="/dialogues.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
+        💬 Dialoghi
+      </a>
+      <a href="/seo.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
+        🌐 SEO 100
+      </a>
+      <a href="/missions.html" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
+        📡 Scouting
+      </a>
+      <a href="/devstudio.html" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-brand-cyan font-bold border border-cyan-500/30 transition">
+        ⚡ HyperDev Studio
+      </a>
+    </nav>
+  </header>
+
+  <!-- SPLIT SCREEN WORKSPACE -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT COLUMN: DEV CHAT & THOUGHT STREAM (50%) -->
+    <section class="w-full lg:w-1/2 border-r border-slate-800 flex flex-col bg-slate-950/60 justify-between">
+      
+      <!-- Chat Header -->
+      <div class="p-3 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-brand-purple font-mono font-bold">💬 Dev Stream</span>
+          <span class="text-slate-500">|</span>
+          <span class="text-slate-400">Dialogo interattivo con il cluster</span>
+        </div>
+        <button type="button" onclick="clearChat()" class="text-slate-500 hover:text-slate-300 font-mono transition text-[11px]">
+          Pulisci Chat
+        </button>
+      </div>
+
+      <!-- Chat Messages Timeline -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scroll text-xs">
+        <!-- Initial Welcome Message -->
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-purple-950 border border-purple-700/80 text-brand-purple flex items-center justify-center font-mono font-bold shrink-0 shadow-lg">
+            ⚡
+          </div>
+          <div class="flex flex-col gap-1.5 max-w-[88%]">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">HyperDev Assistant</span>
+              <span class="text-[10px] text-slate-500 font-mono">Cluster Sovereign</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-slate-200 leading-relaxed shadow-sm">
+              Ciao! Sono il tuo copilota di ingegneria per sviluppare HyperSpace. Puoi chiedermi di:
+              <ul class="mt-2 flex flex-col gap-1 text-slate-300">
+                <li>• Creare un nuovo endpoint API o ottimizzare le prestazioni.</li>
+                <li>• Decomporre un obiettivo in un <strong>DAG di task</strong> ed eseguirlo sui nodi (OMEN / Mac).</li>
+                <li>• Ispezionare e modificare codice in sandbox con <strong>anteprima dei diff</strong> prima del merge.</li>
+                <li>• Lanciare la suite di test Pytest e verificare che sia al <strong>100% GREEN</strong>.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Prompt Chips -->
+      <div class="px-4 py-2 border-t border-slate-800/80 bg-slate-950/80 flex items-center gap-2 overflow-x-auto custom-scroll text-[11px]">
+        <button type="button" onclick="setPrompt('Esegui tutti i test del sistema con pytest e riporta lo stato.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+          🧪 Esegui Test Pytest
+        </button>
+        <button type="button" onclick="setPrompt('Decomponi una missione per aggiungere metriche di telemetria GPU in tempo reale.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+          🧩 Pianifica Missione DAG
+        </button>
+        <button type="button" onclick="setPrompt('Mostrami le differenze di latenza tra LFM 2.5 24B su OMEN e Mac M5.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+          ⚡ Confronto Nodi Cluster
+        </button>
+        <button type="button" onclick="setPrompt('Verifica conformità AGENTS.md e genera un report di integrità del codice.')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-brand-cyan hover:border-cyan-500/40 whitespace-nowrap transition">
+          🛡️ Audit Sicurezza & AGENTS.md
+        </button>
+      </div>
+
+      <!-- Prompt Input Box -->
+      <div class="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-col gap-2">
+        <div class="relative flex items-end gap-2">
+          <textarea id="promptInput" rows="2" placeholder="Chiedi un task, pianifica una missione o chiedi modifiche al codice... (Invio per spedire, Shift+Invio per a capo)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500/50 resize-none font-sans custom-scroll transition"></textarea>
+          <button type="button" onclick="sendDevPrompt()" id="btnSendPrompt" class="px-4 py-3 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(87,230,217,0.3)] shrink-0">
+            <span id="sendSpinner" class="hidden animate-spin">🌀</span>
+            <span id="sendBtnText">Invia ➔</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: WORKSPACE, MISSION DAG & VERIFIER (50%) -->
+    <section class="hidden lg:flex w-1/2 flex-col bg-slate-950/90 justify-between overflow-hidden">
+
+      <!-- Right Tab Header -->
+      <div class="border-b border-slate-800 bg-slate-900/60 p-2 flex items-center justify-between text-xs shrink-0">
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button type="button" onclick="switchRightTab('dag')" id="rtab-dag" class="rtab-btn px-3 py-1.5 rounded-lg bg-brand-cyan text-slate-950 font-bold transition">
+            🧩 Mission DAG
+          </button>
+          <button type="button" onclick="switchRightTab('diff')" id="rtab-diff" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            📝 Sandbox Diff
+          </button>
+          <button type="button" onclick="switchRightTab('tests')" id="rtab-tests" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            🧪 Pytest Console
+          </button>
+          <button type="button" onclick="switchRightTab('telemetry')" id="rtab-telemetry" class="rtab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+            ⚡ Telemetria RFC
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="runTestsLive()" class="px-3 py-1.5 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-700/80 hover:bg-emerald-900 text-[11px] font-mono font-semibold transition flex items-center gap-1">
+            <span>▶ Lancia Pytest</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Tab Contents Container -->
+      <div class="flex-1 overflow-y-auto p-4 custom-scroll text-xs">
+
+        <!-- TAB 1: MISSION DAG VIEW -->
+        <div id="content-dag" class="rtab-content flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold font-mono uppercase text-brand-purple tracking-wider">Flusso Decomposizione Task DAG (RFC-0043)</h2>
+            <span class="text-[11px] font-mono text-slate-400" id="dagStatusText">In attesa di prompt</span>
+          </div>
+
+          <div id="dagContainer" class="flex flex-col gap-3">
+            <div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-xs">
+              Invia un messaggio per generare o visualizzare un DAG di missione con ruoli Planner, Coder e Verifier.
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: SANDBOX DIFF VIEWER -->
+        <div id="content-diff" class="rtab-content hidden flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xs font-bold font-mono uppercase text-brand-cyan tracking-wider">Anteprima Modifiche Codice (Sandbox)</h2>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 border border-amber-800 text-brand-amber">applied: false</span>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono" id="diffStats">0 file modificati</span>
+          </div>
+
+          <div class="rounded-xl border border-slate-800 bg-slate-950 font-mono text-[11px] overflow-x-auto p-3 flex flex-col gap-0.5 custom-scroll" id="diffContent">
+            <div class="text-slate-500 italic p-4 text-center">Nessun diff pendente nel sandbox. Le modifiche proposte dagli agenti appariranno qui prima del merge.</div>
+          </div>
+        </div>
+
+        <!-- TAB 3: PYTEST & VERIFIER CONSOLE -->
+        <div id="content-tests" class="rtab-content hidden flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold font-mono uppercase text-emerald-400 tracking-wider">Console Risultati Verifier & Pytest</h2>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700" id="pytestVerdictBadge">VERDETTO: ATTESA</span>
+          </div>
+
+          <pre class="rounded-xl border border-slate-800 bg-black/80 font-mono text-[11px] text-slate-300 p-4 overflow-x-auto max-h-[60vh] custom-scroll whitespace-pre-wrap leading-relaxed" id="pytestOutput">Premi '▶ Lancia Pytest' per eseguire la suite del repository o attendi la verifica automatica del Verifier.</pre>
+        </div>
+
+        <!-- TAB 4: TELEMETRY (RFC-0043 & RFC-0044) -->
+        <div id="content-telemetry" class="rtab-content hidden flex flex-col gap-4">
+          <h2 class="text-xs font-bold font-mono uppercase text-amber-400 tracking-wider">Stato Nodi & Work-Stealing Governor</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="telemetryGrid">
+            <!-- Mac Hub -->
+            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2 font-mono text-[11px]">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white">Mac M5 Hub (Master)</span>
+                <span class="text-emerald-400">ONLINE</span>
+              </div>
+              <div class="text-slate-400">Ruolo: Orchestratore & Sandbox Runner</div>
+              <div class="text-slate-400">Checkpoint Engine: <span class="text-brand-cyan">WAL Atomo Attivo (RFC-0044)</span></div>
+            </div>
+
+            <!-- HP OMEN -->
+            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2 font-mono text-[11px]">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-brand-cyan">HP OMEN 16 (Worker)</span>
+                <span class="text-emerald-400">ONLINE (~36 tk/s)</span>
+              </div>
+              <div class="text-slate-400">Modello: Liquid LFM 2.5 24B & Flint 40B</div>
+              <div class="text-slate-400">Work-Stealing Queue: <span class="text-emerald-400">Chase-Lev Deque Pronta</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM HUMAN-IN-THE-LOOP ACTION GATE BAR -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+          <span class="text-slate-300 font-mono text-[11px]">Human-In-The-Loop Gate:</span>
+          <span class="text-slate-500 text-[11px]">Nessun commit o merge senza tua approvazione</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="discardDiff()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs font-medium transition">
+            ✗ Scarta Sandbox
+          </button>
+          <button type="button" onclick="applyDiffMerge()" id="btnApplyMerge" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+            <span>🚀 Approva & Applica Modifiche</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let activeDiffText = "";
+    let activeMissionTasks = [];
+
+    function switchRightTab(tabId) {
+      document.querySelectorAll('.rtab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.rtab-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-cyan', 'text-slate-950', 'font-bold');
+        btn.classList.add('text-slate-400');
+      });
+
+      const targetContent = document.getElementById(`content-${tabId}`);
+      const targetBtn = document.getElementById(`rtab-${tabId}`);
+      if (targetContent) targetContent.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.remove('text-slate-400');
+        targetBtn.classList.add('bg-brand-cyan', 'text-slate-950', 'font-bold');
+      }
+    }
+
+    function setPrompt(text) {
+      const input = document.getElementById('promptInput');
+      input.value = text;
+      input.focus();
+    }
+
+    function clearChat() {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = `
+        <div class="p-3 text-center text-slate-500 italic font-mono text-[11px]">Chat pulita. Inizia una nuova richiesta per gli agenti.</div>
+      `;
+    }
+
+    function appendMessage(sender, text, thought = null, isUser = false) {
+      const container = document.getElementById('chatMessages');
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const avatar = isUser ? '👤' : (sender.includes('OMEN') ? '⚡' : '🧠');
+      const avatarBg = isUser ? 'bg-cyan-950 border-cyan-700 text-brand-cyan' : 'bg-purple-950 border-purple-700 text-brand-purple';
+
+      let thoughtHtml = '';
+      if (thought) {
+        thoughtHtml = `
+          <details class="mb-2 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 font-mono">
+            <summary class="cursor-pointer font-bold text-brand-cyan hover:underline select-none">
+              🔍 Flusso di Pensiero Cognitivo (${thought.length} caratteri)
+            </summary>
+            <div class="mt-2 pt-2 border-t border-slate-800/80 whitespace-pre-wrap leading-relaxed">${escapeHtml(thought)}</div>
+          </details>
+        `;
+      }
+
+      const msgHtml = `
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl ${avatarBg} border flex items-center justify-center font-mono font-bold shrink-0 shadow-md">
+            ${avatar}
+          </div>
+          <div class="flex flex-col gap-1.5 max-w-[88%]">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">${escapeHtml(sender)}</span>
+              <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+            </div>
+            <div class="p-3.5 rounded-2xl ${isUser ? 'bg-cyan-950/40 border border-cyan-800/50 text-slate-100' : 'bg-slate-900/80 border border-slate-800 text-slate-200'} leading-relaxed shadow-sm">
+              ${thoughtHtml}
+              <div class="whitespace-pre-wrap">${formatMessageText(text)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.insertAdjacentHTML('beforeend', msgHtml);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function formatMessageText(text) {
+      if (!text) return '';
+      // Escape HTML but preserve bold and code blocks
+      let safe = escapeHtml(text);
+      safe = safe.replace(/\`\`\`([\s\S]*?)\`\`\`/g, '<pre class="bg-black/60 p-2.5 rounded-lg border border-slate-800 my-2 overflow-x-auto text-[11px] font-mono text-cyan-300">$1</pre>');
+      safe = safe.replace(/\`([^\`]+)\`/g, '<code class="bg-slate-800 px-1 py-0.5 rounded text-brand-cyan font-mono text-[11px]">$1</code>');
+      return safe;
+    }
+
+    async function sendDevPrompt() {
+      const input = document.getElementById('promptInput');
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      const target = document.getElementById('selectTargetNode').value;
+      const btn = document.getElementById('btnSendPrompt');
+      const spinner = document.getElementById('sendSpinner');
+      const btnText = document.getElementById('sendBtnText');
+
+      // Append user message
+      appendMessage("Tu (Sviluppatore)", prompt, null, true);
+      input.value = "";
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      btnText.textContent = "Elaborazione...";
+
+      try {
+        const res = await fetch('/api/devstudio/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt, target: target })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          const senderName = target === 'omen' ? 'HP OMEN 16 (LFM 2.5 24B)' : 'Mac M5 Orchestrator';
+          appendMessage(senderName, data.response || "Task completato.", data.thought || null);
+
+          // Update DAG if tasks generated
+          if (data.tasks && data.tasks.length) {
+            renderDag(data.tasks);
+            switchRightTab('dag');
+          }
+
+          // Update Diff if code generated
+          if (data.diff) {
+            activeDiffText = data.diff;
+            renderDiff(data.diff);
+            switchRightTab('diff');
+          }
+
+          // Update Pytest results if run
+          if (data.pytest) {
+            renderPytestResult(data.pytest);
+          }
+        } else {
+          appendMessage("Errore Cluster", `Errore: ${data.error || 'Impossibile elaborare la richiesta'}`);
+        }
+      } catch (err) {
+        appendMessage("Errore Connessione", `Impossibile raggiungere il servizio: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        btnText.textContent = "Invia ➔";
+      }
+    }
+
+    function renderDag(tasks) {
+      activeMissionTasks = tasks;
+      const container = document.getElementById('dagContainer');
+      document.getElementById('dagStatusText').textContent = `${tasks.length} task pianificati`;
+
+      const roleIcons = {
+        planner: '🧠',
+        coder: '💻',
+        verifier: '🔍',
+        'repo-analyst': '📚'
+      };
+
+      container.innerHTML = tasks.map((t, i) => `
+        <div class="glass-card rounded-xl p-3.5 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 text-brand-purple flex items-center justify-center font-bold text-xs">${i + 1}</span>
+              <span class="font-bold text-white text-xs">${roleIcons[t.role] || '⚙️'} ${escapeHtml(t.title || t.key || 'Task')}</span>
+            </div>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${t.status === 'done' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-cyan-950 text-brand-cyan border border-cyan-800'}">
+              ${t.status || 'pronto'}
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">${escapeHtml(t.instruction || '')}</p>
+        </div>
+      `).join('');
+    }
+
+    function renderDiff(diffText) {
+      const container = document.getElementById('diffContent');
+      if (!diffText) {
+        container.innerHTML = `<div class="text-slate-500 italic p-4 text-center">Nessuna modifica di codice rilevata.</div>`;
+        return;
+      }
+
+      const lines = diffText.split('\n');
+      document.getElementById('diffStats').textContent = `${lines.length} righe modificate`;
+
+      container.innerHTML = lines.map(line => {
+        let cls = 'diff-ctx';
+        if (line.startsWith('+') && !line.startsWith('+++')) cls = 'diff-add px-2 py-0.5';
+        else if (line.startsWith('-') && !line.startsWith('---')) cls = 'diff-del px-2 py-0.5';
+        else if (line.startsWith('@@')) cls = 'text-brand-purple font-bold py-1';
+        return `<div class="${cls}">${escapeHtml(line)}</div>`;
+      }).join('');
+    }
+
+    async function runTestsLive() {
+      const badge = document.getElementById('pytestVerdictBadge');
+      const output = document.getElementById('pytestOutput');
+      badge.textContent = "IN ESECUZIONE...";
+      badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-brand-cyan border border-cyan-700 animate-pulse";
+      output.textContent = "Esecuzione Pytest in corso nel .venv del repository...";
+      switchRightTab('tests');
+
+      try {
+        const res = await fetch('/api/devstudio/run-tests', { method: 'POST' });
+        const data = await res.json();
+        renderPytestResult(data);
+      } catch (err) {
+        badge.textContent = "ERRORE";
+        output.textContent = `Errore di connessione: ${err.message}`;
+      }
+    }
+
+    function renderPytestResult(data) {
+      const badge = document.getElementById('pytestVerdictBadge');
+      const output = document.getElementById('pytestOutput');
+
+      if (data.exit_code === 0) {
+        badge.textContent = "✓ 100% GREEN (PASS)";
+        badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold";
+      } else {
+        badge.textContent = `✗ FALLITO (Codice ${data.exit_code})`;
+        badge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700 font-bold";
+      }
+
+      output.textContent = data.stdout || data.stderr || "Nessun output registrato.";
+    }
+
+    async function applyDiffMerge() {
+      if (!activeDiffText) {
+        alert("Nessun diff pendente nel sandbox da applicare.");
+        return;
+      }
+      if (!confirm("Sei sicuro di voler applicare queste modifiche al codice del repository?")) return;
+
+      try {
+        const res = await fetch('/api/devstudio/apply-diff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ diff: activeDiffText })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          alert("Modifiche applicate con successo al repository!");
+          activeDiffText = "";
+          renderDiff("");
+        } else {
+          alert(`Errore nell'applicazione: ${data.error}`);
+        }
+      } catch (e) {
+        alert(`Errore di rete: ${e.message}`);
+      }
+    }
+
+    function discardDiff() {
+      if (confirm("Vuoi scartare le modifiche proposte nella sandbox?")) {
+        activeDiffText = "";
+        renderDiff("");
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Keybindings: Enter to send, Shift+Enter for newline
+    document.getElementById('promptInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendDevPrompt();
+      }
+    });
+  </script>
+</body>
+</html>

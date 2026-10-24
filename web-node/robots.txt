@@ -8,3 +8,6 @@ Allow: /
 #   https://www.zerozerocomputer.it/ai-agent.json
 #   https://www.zerozerocomputer.it/.well-known/ai-agent.json
 #   https://mesh.zerozerocomputer.it/web/topology
+
+# XML Sitemap Direttiva per Googlebot, Bingbot & Crawler AI
+Sitemap: https://www.zerozerocomputer.it/sitemap.xml

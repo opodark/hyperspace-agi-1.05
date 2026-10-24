@@ -58,6 +58,7 @@ node_modules/
 
 # Report generati — artefatti, non sorgenti (scripts/generate_test_report.py)
 reports/
+output/
 
 # Knowledge graph del repository — artefatto dello strumento di sviluppo
 # graphify (vedi docs/graphify.md): si rigenera, non si committa.

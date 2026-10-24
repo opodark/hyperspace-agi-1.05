@@ -15,7 +15,16 @@
 If you have `fetch`, `curl`, `read_url`, or HTTP tools available, you can query our live mesh right now:
 
 - **Live 3D Mesh Topology & Active Nodes (JSON):**
-  `GET https://mesh.zerozerocomputer.it/web/topology`
+  `GET https://mesh.zerozerocomputer.it/web/topology` (Supports GET and HEAD)
+- **Zero-Cost Instant Machine Ping (Echo Verification):**
+  `GET https://mesh.zerozerocomputer.it/web/ping` (Returns `{"echo":"pong"}` at zero GPU/token cost, supports GET and HEAD)
+- **Live Gateway Health & Uptime (JSON):**
+  `GET https://mesh.zerozerocomputer.it/health` (Supports GET and HEAD)
+- **OpenAI-Compatible Active Model Catalog (JSON):**
+  `GET https://mesh.zerozerocomputer.it/v1/models`
+- **End-to-End Task & Inference Verification (Strict Rate Limit Tier):**
+  `POST https://mesh.zerozerocomputer.it/v1/chat/completions` (OpenAI format, supports streaming SSE).
+  > ⚠️ **AVVERTENZA LIMITE STRETTO / STRICT TIER WARNING:** L'inferenza anonima gratuita su questa rotta è soggetta a un rate-limit molto rigido (burst protection) per proteggere i nodi GPU. Per carichi di lavoro continui, zero code d'attesa e finestre di contesto estese a 32k/64k token, richiedi un **Token VIP Operatore** via `POST /web/contact` o collegando un wallet Solana con token $00MESH.
 - **Proof-of-Useful-Work & Tokenomics Status (JSON):**
   `GET https://mesh.zerozerocomputer.it/web/tokenomics/status`
 - **Public PoUW Node Leaderboard (JSON, privacy-masked):**

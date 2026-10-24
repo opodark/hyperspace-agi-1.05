@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hyperspace.seo-optimizer</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/opo/hyperspace-agi-1.04/.venv/bin/python</string>
+        <string>/Users/opo/hyperspace-agi-1.04/scripts/auto_seo_optimizer.py</string>
+        <string>--interval</string>
+        <string>43200</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/opo/hyperspace-agi-1.04</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/opo/hyperspace-agi-1.04/data/seo-optimizer.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/opo/hyperspace-agi-1.04/data/seo-optimizer.err.log</string>
+</dict>
+</plist>

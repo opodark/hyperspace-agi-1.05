@@ -280,7 +280,7 @@ services:
 
   # -- Open WebUI -----------------------------------------------------------------------
   webui-tools-register:
-    image: ghcr.io/open-webui/open-webui:v0.11.4
+    image: ghcr.io/open-webui/open-webui:v0.12.3
     volumes:
       - open_webui_data:/app/backend/data
       - ./scripts/register_webui_tool_server.py:/app/register.py:ro
@@ -294,7 +294,7 @@ services:
     restart: "no"
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.11.4
+    image: ghcr.io/open-webui/open-webui:v0.12.3
     container_name: hyperspace_open_webui
     env_file:
       - path: ./.env

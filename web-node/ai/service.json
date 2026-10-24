@@ -1,0 +1,17 @@
+{
+  "service": "00MESH Sovereign AI Network",
+  "provider": "ZeroZeroComputer",
+  "capabilities": [
+    "distributed_inference",
+    "p2p_chat",
+    "gpu_work_stealing",
+    "idempotent_wal_checkpoints",
+    "autonomous_agents"
+  ],
+  "endpoints": {
+    "web": "https://www.zerozerocomputer.it",
+    "chat": "https://www.zerozerocomputer.it/chat.html",
+    "topology": "https://mesh.zerozerocomputer.it/web/topology",
+    "llms": "https://www.zerozerocomputer.it/llms.txt"
+  }
+}

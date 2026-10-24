@@ -29,15 +29,28 @@ if [[ -f "$REPO_ROOT/web-node/.htaccess" ]]; then
   cp "$REPO_ROOT/web-node/.htaccess" "$TARGET/.htaccess"
 fi
 
-# Copia ads.txt per Google AdSense e file di discovery per Agenti AI (llms.txt, robots.txt, ai-agent.json)
-for root_file in ads.txt llms.txt robots.txt ai-agent.json; do
+# Copia ads.txt per Google AdSense, sitemap.xml e file di discovery per Agenti AI (llms.txt, robots.txt, ai-agent.json, sitemap.xml)
+for root_file in ads.txt llms.txt robots.txt ai-agent.json sitemap.xml; do
   if [[ -f "$REPO_ROOT/web-node/$root_file" ]]; then
     cp "$REPO_ROOT/web-node/$root_file" "$TARGET/$root_file"
   fi
 done
-if [[ -f "$REPO_ROOT/web-node/ai-agent.json" ]]; then
+if [[ -d "$REPO_ROOT/web-node/.well-known" ]]; then
+  mkdir -p "$TARGET/.well-known"
+  cp -R "$REPO_ROOT/web-node/.well-known/." "$TARGET/.well-known/"
+elif [[ -f "$REPO_ROOT/web-node/ai-agent.json" ]]; then
   mkdir -p "$TARGET/.well-known"
   cp "$REPO_ROOT/web-node/ai-agent.json" "$TARGET/.well-known/ai-agent.json"
+fi
+
+if [[ -d "$REPO_ROOT/web-node/ai" ]]; then
+  mkdir -p "$TARGET/ai"
+  cp -R "$REPO_ROOT/web-node/ai/." "$TARGET/ai/"
+fi
+
+if [[ -d "$REPO_ROOT/web-node/apps" ]]; then
+  mkdir -p "$TARGET/apps"
+  cp -R "$REPO_ROOT/web-node/apps/." "$TARGET/apps/"
 fi
 
 # Copia tutti i sorgenti JS

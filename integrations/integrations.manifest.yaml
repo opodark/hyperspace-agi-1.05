@@ -1,0 +1,205 @@
+version: '1.0'
+description: HyperSpace Unified Integrations & Upstream Tracking Manifest
+integrations:
+  tiktok_editor:
+    name: TikTok / Reel Editor
+    category: vendored
+    local_path: integrations/tiktok_editor/app
+    description: Editor video 9:16 locale con autocut sul beat e maschere person layers
+    upstream_url: ''
+    reference_path: /Users/opo/Downloads/tiktok_editor
+    pinned_ref: local-2026-10-05
+    test_command: /Users/opo/Downloads/tiktok_editor/.venv/bin/python tests/test_tiktok_editor_integration.py
+    notes: Evoluzione interna da /Users/opo/Downloads/tiktok_editor, include draft.py
+      e person_mask.swift
+  chrome_extension:
+    name: HyperSpace Chrome Extension
+    category: vendored
+    local_path: integrations/chrome-extension
+    description: Estensione browser per estrazione contenuti e bridge verso Control
+      Plane
+    upstream_url: ''
+    pinned_ref: main
+    test_command: .venv/bin/python -m pytest tests/test_chrome_extension_bridge.py
+      -q
+  telegram_worker:
+    name: Telegram Worker
+    category: vendored
+    local_path: integrations/telegram-worker
+    description: Worker Node.js per gestione bot Telegram e inoltro eventi
+    upstream_url: ''
+    pinned_ref: main
+    test_command: .venv/bin/python -m pytest tests/test_telegram_bot.py -q
+  comfyui_ipadapter_plus:
+    name: ComfyUI IPAdapter Plus
+    category: external_node
+    local_path: ${COMFYUI_CUSTOM_NODES:-~/ComfyUI-Installs/ComfyUI/ComfyUI/custom_nodes}/ComfyUI_IPAdapter_plus
+    description: Innesto del riferimento volto (Anna/Aurora) sul modello ComfyUI
+    upstream_url: https://github.com/cubiq/ComfyUI_IPAdapter_plus.git
+    pinned_ref: a0f451a5113cf9becb0847b92884cb10cbdec0ef
+    active_branch: main
+    pin_reason: Campi fissi IPAdapterAdvanced nel grafo shared/image_jobs.py (linear,
+      concat, V only)
+    test_command: .venv/bin/python -m pytest tests/test_comfyui_modelli_sd15.py -q
+  comfyui_controlnet_aux:
+    name: ComfyUI ControlNet Aux (DWPreprocessor)
+    category: external_node
+    local_path: ${COMFYUI_CUSTOM_NODES:-~/ComfyUI-Installs/ComfyUI/ComfyUI/custom_nodes}/comfyui_controlnet_aux
+    description: Scheletro DWPose per pose da foto (scale_stick_for_xinsr_cn)
+    upstream_url: https://github.com/Fannovel16/comfyui_controlnet_aux.git
+    pinned_ref: main
+    active_branch: main
+    pin_reason: Traccia la testa per supporto preprocessori
+  comfyui_gguf:
+    name: ComfyUI GGUF
+    category: external_node
+    local_path: ${COMFYUI_CUSTOM_NODES:-~/ComfyUI-Installs/ComfyUI/ComfyUI/custom_nodes}/ComfyUI-GGUF
+    description: Supporto nodi quantizzati GGUF per SD1.5 e SDXL
+    upstream_url: https://github.com/leejet/ComfyUI-GGUF.git
+    pinned_ref: main
+    active_branch: main
+  kohya_sd_scripts:
+    name: Kohya SS SD-Scripts
+    category: external_tool
+    local_path: data/training/tools/sd-scripts
+    description: Engine LoRA SDXL e fine-tuning con supporto MPS
+    upstream_url: https://github.com/kohya-ss/sd-scripts.git
+    pinned_ref: v0.12.0
+    active_branch: main
+    pin_reason: "Compatibilit\xE0 con torch 2.14 e torchvision 0.29 su macOS ARM"
+  hyperswarm:
+    name: HyperSwarm
+    category: mesh_sibling
+    local_path: ../hyperswarm
+    description: Mesh networking e swarm agent cluster P2P
+    upstream_url: git@github.com:opodark/hyperswarm.git
+    pinned_ref: main
+    active_branch: main
+  minimesh:
+    name: MiniMesh
+    category: mesh_sibling
+    local_path: ../minimesh
+    description: P2P minimal gossiping engine
+    upstream_url: git@github.com:opodark/minimesh.git
+    pinned_ref: main
+    active_branch: main
+  anna_mac:
+    name: Anna Mac Desktop
+    category: mesh_sibling
+    local_path: ../anna-mac
+    description: App nativa e surface desktop Anna
+    upstream_url: git@github.com:opodark/anna-mac.git
+    pinned_ref: main
+    active_branch: main
+  pole_motion_engine:
+    name: Pole Motion Engine
+    category: mesh_sibling
+    local_path: ../pole-motion-engine
+    description: Motore cinematico e pose analysis
+    upstream_url: git@github.com:opodark/pole-motion-engine.git
+    pinned_ref: main
+    active_branch: main
+  sherlock:
+    name: Sherlock Project
+    category: external_tool
+    local_path: ../sherlock
+    description: OSINT and social footprint tool
+    upstream_url: https://github.com/sherlock-project/sherlock.git
+    pinned_ref: master
+    active_branch: master
+  rea_agents:
+    name: REA Reverse Engineering Agents
+    category: npm_global
+    package_name: rea-agents
+    local_bin: ${REA_BIN:-/Users/opo/.npm-global/bin/rea}
+    description: Superficie di analisi statica ed esame artefatti binari (Ghidra/Hopper/LLM)
+    upstream_url: https://github.com/morluto/rea.git
+    pinned_ref: 6.7.0
+    test_command: .venv/bin/python -m pytest tests/test_rea_surface.py -q
+    auto_sync: true
+  agency_agents:
+    name: Agency Agents
+    category: forge_bundle
+    local_path: vendor/agency-agents
+    description: Profili specializzati di ingegneria agentica (Architect, Code Reviewer,
+      Tech Writer)
+    upstream_url: https://github.com/msitarzewski/agency-agents.git
+    pinned_ref: 4e3ac3ca6604c75113f52c695dbddcc7af928b46
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_forge_skills.py -k agency
+      -q
+    auto_sync: true
+  anydoc_skills:
+    name: AnyDoc Document Conversion Skills
+    category: forge_bundle
+    local_path: vendor/anydoc
+    description: Skill e workflow di conversione documenti d'ufficio in Markdown
+    upstream_url: https://github.com/firecrawl/anydoc.git
+    pinned_ref: e7178e099b6bf9171e2c52b832cbdb4134b69112
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_forge_skills.py -k anydoc
+      -q
+    auto_sync: true
+  wayfinder_skills:
+    name: Wayfinder Decision Skills
+    category: forge_bundle
+    local_path: vendor/wayfinder
+    description: Workflow decisionali persistenti e mappe di pianificazione Wayfinder
+    upstream_url: https://github.com/mattpocock/skills.git
+    pinned_ref: main
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_wayfinder.py -q
+    auto_sync: true
+  ecc_skills:
+    name: ECC Security & Verification Skills
+    category: forge_bundle
+    local_path: vendor/ecc
+    description: Bundle workflow per security review e loop di verifica formale
+    upstream_url: https://github.com/affaan-m/ECC.git
+    pinned_ref: main
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_forge_skills.py -k ecc -q
+    auto_sync: true
+  hermes_gadget_sdk:
+    name: Hermes Gadget SDK
+    category: external_tool
+    description: SDK e simulatore per dispositivi fisici e interfaccia con memoria
+      Hermes
+    upstream_url: https://github.com/Adolanium/hermes-gadget-sdk.git
+    pinned_ref: main
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_hermes_memory.py -q
+    auto_sync: false
+  taste_skill:
+    name: TasteSkill Anti-Slop Frontend Skill
+    category: forge_bundle
+    local_path: vendor/taste-skill
+    description: Framework e skill anti-slop per costruzione di siti web, art direction da 247 siti Awwwards/OnePageLove, layout unici e regole app screen
+    upstream_url: https://github.com/Leonxlnx/taste-skill.git
+    pinned_ref: main
+    active_branch: main
+    test_command: node vendor/taste-skill/skills/taste-skill/scripts/draw.mjs --help
+    auto_sync: true
+  linkedin_liftli:
+    name: Liftli LinkedIn DevPost Generator & Skill
+    category: forge_bundle
+    local_path: scripts/marketing/linkedin_generator.py
+    description: Generatore e validatore euristico di post LinkedIn per aggiornamenti di sviluppo tecnico e build-in-public (fold-cutoff, readability, CTA)
+    upstream_url: https://liftli.ai/skills/
+    pinned_ref: main
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_linkedin_generator.py -q
+    auto_sync: false
+  open_webui:
+    name: Open WebUI Client & Tool Server
+    category: docker_service
+    container_name: hyperspace_open_webui
+    image: ghcr.io/open-webui/open-webui
+    description: Interfaccia web principale con chat, tool OpenAPI, Anna Batch e canali
+      E2EE
+    upstream_url: https://github.com/open-webui/open-webui.git
+    pinned_ref: v0.12.3
+    target_ref: v0.12.3
+    test_command: .venv/bin/python -m pytest tests/test_register_webui_tool_server.py
+      tests/test_webui_tool_api.py -q
+    auto_sync: false

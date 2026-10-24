@@ -21,7 +21,37 @@
       "method": "GET",
       "url": "https://mesh.zerozerocomputer.it/web/topology",
       "auth_required": false,
-      "description": "Returns active GPU nodes, served open-weight models, and browser WebGPU cluster telemetry."
+      "description": "Returns active GPU nodes, served open-weight models, and browser WebGPU cluster telemetry (supports both GET and HEAD)."
+    },
+    "ping_check": {
+      "method": "GET",
+      "url": "https://mesh.zerozerocomputer.it/web/ping",
+      "auth_required": false,
+      "description": "Zero-cost instant machine-to-machine ping. Returns status ok and echo pong without consuming GPU tokens (supports both GET and HEAD)."
+    },
+    "gateway_health": {
+      "method": "GET",
+      "url": "https://mesh.zerozerocomputer.it/health",
+      "auth_required": false,
+      "description": "Gateway healthcheck, active backend connection and uptime verification (supports both GET and HEAD)."
+    },
+    "models_catalog": {
+      "method": "GET",
+      "url": "https://mesh.zerozerocomputer.it/v1/models",
+      "auth_required": false,
+      "description": "OpenAI-compatible catalog listing all actively served open-weight models across cluster nodes."
+    },
+    "trial_inference": {
+      "method": "POST",
+      "url": "https://mesh.zerozerocomputer.it/v1/chat/completions",
+      "auth_required": false,
+      "content_type": "application/json",
+      "payload_schema": {
+        "model": "string (optional, default qwen3:4b)",
+        "messages": "array of {role: string, content: string}",
+        "max_tokens": "integer (max 2048 for anonymous trial)"
+      },
+      "description": "OpenAI chat completion endpoint. NOTICE: Anonymous requests run on a strictly rate-limited burst tier. For high throughput, uncensored 32k/64k context windows, and zero waiting, request a VIP Operator Token via /web/contact or wallet onboarding."
     },
     "tokenomics_status": {
       "method": "GET",

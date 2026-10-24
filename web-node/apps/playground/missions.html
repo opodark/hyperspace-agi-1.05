@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control & Scouting Radar | HyperSpace Sovereign Mesh</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          },
+          colors: {
+            brand: {
+              cyan: '#57e6d9',
+              purple: '#8b5cf6',
+              amber: '#f59e0b',
+              emerald: '#10b981',
+              rose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070a12;
+      background-image: 
+        radial-gradient(at 15% 15%, rgba(87, 230, 217, 0.05) 0px, transparent 40%),
+        radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.05) 0px, transparent 40%);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(87, 230, 217, 0.25);
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(87, 230, 217, 0.5);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card:hover {
+      border-color: rgba(87, 230, 217, 0.2);
+    }
+    .pulse-glow {
+      animation: pulseGlow 2.5s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.96); }
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-cyan selection:text-black">
+
+  <!-- TOP HEADER & NAV -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-3.5 h-3.5 rounded-full bg-brand-cyan shadow-[0_0_12px_#57e6d9] pulse-glow"></div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          HyperSpace Sovereign Mesh <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-700 text-brand-cyan font-mono">Mission Control & Scouting</span>
+        </h1>
+        <p class="text-xs text-slate-400">Flusso di Pensiero e Azione: Dall'Ispirazione del Mondo Reale all'Esecuzione dei Nodi</p>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="flex items-center gap-2 text-xs">
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🚀 Cockpit
+      </a>
+      <a href="/analytics.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🏛️ Storico Test
+      </a>
+      <a href="/dialogues.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        💬 Dialoghi Agenti
+      </a>
+      <a href="/seo.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🌐 Dashboard SEO
+      </a>
+      <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-brand-cyan font-bold border border-cyan-500/30 transition">
+        📡 Scouting & Missioni
+      </a>
+      <a href="/devstudio.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        ⚡ HyperDev Studio
+      </a>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
+
+    <!-- KPI SUMMARY CARDS -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Card 1: Scouting Radar -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+          <span>RADAR DI SCOUTING</span>
+          <span class="text-brand-cyan flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brand-cyan animate-ping"></span> Live</span>
+        </div>
+        <div>
+          <div class="text-3xl font-extrabold text-white font-mono" id="kpiScoutTotal">12</div>
+          <div class="text-xs text-slate-400 mt-1">Ispirazioni dal Web, YouTube, Reddit & GitHub</div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Ultima Scansione:</span>
+          <span class="text-slate-300 font-mono" id="kpiScoutTime">Oggi, 18:25</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Missioni Mesh -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+          <span>MISSIONI AUTONOME</span>
+          <span class="text-brand-purple">DAG Tasks</span>
+        </div>
+        <div>
+          <div class="text-3xl font-extrabold text-white font-mono flex items-baseline gap-2">
+            <span id="kpiMissionsTotal">14</span>
+            <span class="text-xs text-emerald-400 font-normal font-sans" id="kpiMissionsPass">✓ 100% GREEN (ultimi sprint)</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">Piani distribuiti con verifier e sandbox</div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Task completati:</span>
+          <span class="text-brand-cyan font-mono" id="kpiTasksDone">38 task validati</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Timer & Schedulers -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+          <span>SCHEDULER & DAEMON</span>
+          <span class="text-brand-amber">Loop Attivi</span>
+        </div>
+        <div>
+          <div class="text-3xl font-extrabold text-white font-mono" id="kpiSchedulersActive">5</div>
+          <div class="text-xs text-slate-400 mt-1">Daemon di background (Scout, SEO, Sync, Dream)</div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Stato Ecosistema:</span>
+          <span class="text-emerald-400 font-medium">Tutti Schedulati (OK)</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Cluster Status -->
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+          <span>CLUSTER NODES</span>
+          <span class="text-emerald-400">P2P Mesh</span>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-white flex items-center gap-2">
+            <span>Mac M5</span>
+            <span class="text-slate-500 font-light">+</span>
+            <span class="text-brand-cyan">OMEN 16</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">Throughput: ~36 tk/s (LFM 2.5 24B & Flint 40B)</div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+          <span>ASUS V16:</span>
+          <span class="text-amber-400/80">Standby (Pronto)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKFLOW NAVIGATION & ACTION CONTROLS -->
+    <section class="flex flex-wrap items-center justify-between gap-4 glass-card p-3 rounded-2xl">
+      <!-- Section Selector Tabs -->
+      <div class="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800 text-xs font-medium">
+        <button type="button" onclick="switchSection('scouting')" id="tabBtn-scouting" class="tab-btn px-4 py-2 rounded-lg bg-brand-cyan text-slate-950 font-bold transition flex items-center gap-2">
+          <span>📡 Radar Scouting (Agent-Reach)</span>
+        </button>
+        <button type="button" onclick="switchSection('missions')" id="tabBtn-missions" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>🚀 Missioni Mesh & Task DAG</span>
+        </button>
+        <button type="button" onclick="switchSection('schedulers')" id="tabBtn-schedulers" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>⏰ Daemon & Timer Automatici</span>
+        </button>
+        <button type="button" onclick="switchSection('dreams')" id="tabBtn-dreams" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>🌙 Sogni Notturni & Identità</span>
+          <span id="badgeDreamsCandidate" class="hidden px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]">0</span>
+        </button>
+        <button type="button" onclick="switchSection('flow')" id="tabBtn-flow" class="tab-btn px-4 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>🌊 Mappa Flusso Cognitivo</span>
+        </button>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="triggerScoutRefresh()" id="btnTriggerScout" class="text-xs px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-cyan border border-cyan-500/30 font-medium transition flex items-center gap-2">
+          <span id="scoutSpinner" class="hidden animate-spin">🌀</span>
+          <span>⚡ Esegui Scouting Ora</span>
+        </button>
+        <button type="button" onclick="loadAllData()" class="text-xs px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium transition flex items-center gap-1.5">
+          <span>🔄 Ricarica Dati</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SECTION 1: RADAR DI SCOUTING (Agent-Reach Trends) -->
+    <section id="section-scouting" class="view-section flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Ispirazioni dal Mondo Reale</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">Agent-Reach Zero-Cost</span>
+          </h2>
+          <p class="text-xs text-slate-400">Scansione automatica di discussioni e tendenze che alimentano il ciclo sogni di Anna e le missioni del cluster</p>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex items-center gap-2 text-xs" id="scoutTopicFilters">
+          <button type="button" onclick="filterScoutByChannel('all')" class="filter-pill-scout px-3 py-1 rounded-full bg-cyan-500/20 text-brand-cyan border border-cyan-500/40 font-medium">Tutti i Canali</button>
+          <button type="button" onclick="filterScoutByChannel('reddit')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Reddit</button>
+          <button type="button" onclick="filterScoutByChannel('youtube')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">YouTube</button>
+          <button type="button" onclick="filterScoutByChannel('github')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">GitHub</button>
+          <button type="button" onclick="filterScoutByChannel('web')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Web / Jina</button>
+        </div>
+      </div>
+
+      <!-- Grid of Scout Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="scoutGrid">
+        <div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm col-span-full">
+          Caricamento radar scouting in corso...
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: MISSIONI MESH & TASK DAG -->
+    <section id="section-missions" class="view-section hidden flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Registro Missioni & Flusso Task DAG</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-950/80 text-brand-purple border border-purple-800/80 font-mono">Mission Control</span>
+          </h2>
+          <p class="text-xs text-slate-400">Ogni missione decompone un obiettivo in task assegnati a ruoli specializzati (Planner, Coder, Verifier, Repo-Analyst)</p>
+        </div>
+
+        <!-- Filter by Status -->
+        <div class="flex items-center gap-2 text-xs">
+          <button type="button" onclick="filterMissionsByStatus('all')" class="filter-pill-mission px-3 py-1 rounded-full bg-purple-500/20 text-brand-purple border border-purple-500/40 font-medium">Tutte</button>
+          <button type="button" onclick="filterMissionsByStatus('done')" class="filter-pill-mission px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Concluse (Done)</button>
+          <button type="button" onclick="filterMissionsByStatus('running')" class="filter-pill-mission px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">In Corso / Attive</button>
+          <button type="button" onclick="filterMissionsByStatus('failed')" class="filter-pill-mission px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Fallite / Rifiutate</button>
+        </div>
+      </div>
+
+      <!-- Missions List -->
+      <div class="flex flex-col gap-4" id="missionsList">
+        <div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">
+          Caricamento registro missioni in corso...
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: SCHEDULERS & DAEMON AUTOMATICI -->
+    <section id="section-schedulers" class="view-section hidden flex flex-col gap-4">
+      <div>
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <span>Daemon & Scheduler Automatici di HyperSpace</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-950/80 text-brand-amber border border-amber-800/80 font-mono">LaunchAgents & Cron</span>
+        </h2>
+        <p class="text-xs text-slate-400">Processi autonomi che mantengono la rete viva, aggiornata e sincronizzata anche in assenza di comando manuale</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="schedulersGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- SECTION 4: MAPPA FLUSSO COGNITIVO -->
+    <section id="section-flow" class="view-section hidden flex flex-col gap-4">
+      <div>
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <span>Architettura del Flusso Cognitivo (Pensiero ➔ Azione)</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-brand-emerald border border-emerald-800/80 font-mono">Pipeline Globale</span>
+        </h2>
+        <p class="text-xs text-slate-400">Dall'intercettazione dei segnali esterni nel web alla verifica deterministica e diffusione pubblica</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 flex flex-col gap-8">
+        <!-- Pipeline Visual Steps -->
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <!-- Step 1 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col gap-2 relative">
+            <div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-700 text-brand-cyan flex items-center justify-center font-mono font-bold text-xs">1</div>
+            <div class="text-xs font-bold text-white">Radar Scouting</div>
+            <div class="text-[11px] text-slate-400">Agent-Reach legge Reddit, YouTube, Web e GitHub senza costi API.</div>
+          </div>
+          <!-- Step 2 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col gap-2 relative">
+            <div class="w-7 h-7 rounded-lg bg-purple-950 border border-purple-700 text-brand-purple flex items-center justify-center font-mono font-bold text-xs">2</div>
+            <div class="text-xs font-bold text-white">Nightly Dream & Plan</div>
+            <div class="text-[11px] text-slate-400">Anna/Aurora fondono le ispirazioni in sogni e il Planner decompone in DAG.</div>
+          </div>
+          <!-- Step 3 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-amber-500/30 flex flex-col gap-2 relative">
+            <div class="w-7 h-7 rounded-lg bg-amber-950 border border-amber-700 text-brand-amber flex items-center justify-center font-mono font-bold text-xs">3</div>
+            <div class="text-xs font-bold text-white">Work Stealing Mesh</div>
+            <div class="text-[11px] text-slate-400">Lo scheduler distribuisce i task sui nodi con capacità reale (Mac / OMEN).</div>
+          </div>
+          <!-- Step 4 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-blue-500/30 flex flex-col gap-2 relative">
+            <div class="w-7 h-7 rounded-lg bg-blue-950 border border-blue-700 text-blue-400 flex items-center justify-center font-mono font-bold text-xs">4</div>
+            <div class="text-xs font-bold text-white">Inferenza Sovrana</div>
+            <div class="text-[11px] text-slate-400">Esecuzione su modelli LFM 2.5 8B/24B e Flint 40B locale senza cloud.</div>
+          </div>
+          <!-- Step 5 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex flex-col gap-2 relative">
+            <div class="w-7 h-7 rounded-lg bg-emerald-950 border border-emerald-700 text-brand-emerald flex items-center justify-center font-mono font-bold text-xs">5</div>
+            <div class="text-xs font-bold text-white">Sandbox & Verifier</div>
+            <div class="text-[11px] text-slate-400">Verifica deterministica indipendente dal modello (Pytest / Code sandbox).</div>
+          </div>
+          <!-- Step 6 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-rose-500/30 flex flex-col gap-2 relative">
+            <div class="w-7 h-7 rounded-lg bg-rose-950 border border-rose-700 text-brand-rose flex items-center justify-center font-mono font-bold text-xs">6</div>
+            <div class="text-xs font-bold text-white">Diffusione Pubblica</div>
+            <div class="text-[11px] text-slate-400">Pubblicazione su Telegram @ZeroZeroMesh, Moltbook, Bulletin e LinkedIn.</div>
+          </div>
+        </div>
+
+        <!-- System Architecture Principles -->
+        <div class="p-5 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col gap-3">
+          <div class="text-xs font-bold text-brand-cyan uppercase tracking-wider font-mono">Regole d'Oro del Flusso Autonomo:</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Nessun commit senza conferma utente:</strong> Il codice e gli artefatti prodotti dai nodi vivono in sandbox temporanee fino a esplicita validazione umana.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Gate Verifier Indipendente:</strong> Il verdetto di un task non si basa sulle parole del modello ("tutto ok"), ma su test pytest ed evidenze reali di file generati.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Zero Segreti nei Log:</strong> Credenziali, token di bot e chiavi API non vengono mai registrati nei report né stampati nei flussi broadcast.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span><strong>Resilienza al Riavvio:</strong> Gli scheduler persistono i checkpoint su disco in formato JSONL idempotente; un riavvio continua il task interrotto senza doppie esecuzioni.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: SOGNI NOTTURNI & REVISIONE IDENTITÀ -->
+    <section id="section-dreams" class="view-section hidden flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Sogni Notturni & Documento di Identità di Anna</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-950/80 text-brand-amber border border-amber-800/80 font-mono">Human-In-The-Loop</span>
+          </h2>
+          <p class="text-xs text-slate-400">Verifica, analisi di impatto e approvazione delle auto-osservazioni generate durante l'introspezione notturna (04:00 - 07:00)</p>
+        </div>
+
+        <!-- Filter by Status -->
+        <div class="flex items-center gap-2 text-xs">
+          <button type="button" onclick="filterDreamsByStatus('all')" class="filter-pill-dream px-3 py-1 rounded-full bg-amber-500/20 text-brand-amber border border-amber-500/40 font-medium">Tutti i Sogni</button>
+          <button type="button" onclick="filterDreamsByStatus('candidate')" class="filter-pill-dream px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Candidati in Attesa</button>
+          <button type="button" onclick="filterDreamsByStatus('promoted')" class="filter-pill-dream px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Promossi ✓</button>
+          <button type="button" onclick="filterDreamsByStatus('rejected')" class="filter-pill-dream px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Scartati ✗</button>
+        </div>
+      </div>
+
+      <!-- Explanatory Guide Box -->
+      <div class="p-4 rounded-xl bg-slate-900/80 border border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🧠</span>
+          <div>
+            <div class="font-bold text-white">Come Funziona la Revisione dei Sogni di Identità:</div>
+            <div class="text-slate-300 mt-0.5">
+              Se fai <strong>✓ Promuovi</strong>, l'auto-osservazione viene scritta permanentemente in <code>persona.json</code> e incrementa la versione (ora v8). Se fai <strong>✗ Scarta</strong>, la frase entra nella blacklist e non verrà mai più riproposta.
+            </div>
+          </div>
+        </div>
+        <div class="px-3 py-1.5 rounded-lg bg-slate-950 border border-amber-700/60 text-brand-amber font-mono font-bold whitespace-nowrap" id="identityVersionBadge">
+          Stato Identità: v8 Attiva
+        </div>
+      </div>
+
+      <!-- Dreams List Container -->
+      <div class="flex flex-col gap-4" id="dreamsList">
+        <div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">
+          Caricamento sogni di identità in corso...
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: DETTAGLIO MISSIONE / LOG ISPETTORE -->
+  <div id="missionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-700 shadow-2xl">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-brand-cyan"></span>
+          <h3 class="text-sm font-bold text-white" id="modalTitle">Dettaglio Missione</h3>
+        </div>
+        <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white text-lg font-mono px-2 py-0.5 rounded-lg hover:bg-slate-800">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto custom-scroll flex flex-col gap-4 text-xs" id="modalBody">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENT-SIDE SCRIPT -->
+  <script>
+    let globalScoutData = null;
+    let globalMissionsData = [];
+    let currentScoutChannel = 'all';
+    let currentMissionStatus = 'all';
+
+    // Switch active dashboard tab
+    function switchSection(secId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-cyan', 'text-slate-950', 'font-bold');
+        btn.classList.add('text-slate-400');
+      });
+
+      const targetSec = document.getElementById(`section-${secId}`);
+      const targetBtn = document.getElementById(`tabBtn-${secId}`);
+      if (targetSec) targetSec.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.remove('text-slate-400');
+        targetBtn.classList.add('bg-brand-cyan', 'text-slate-950', 'font-bold');
+      }
+    }
+
+    // Modal controls
+    function openModal(title, contentHtml) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = contentHtml;
+      document.getElementById('missionModal').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('missionModal').classList.add('hidden');
+    }
+
+    // Filters
+    function filterScoutByChannel(channel) {
+      currentScoutChannel = channel;
+      document.querySelectorAll('.filter-pill-scout').forEach(btn => {
+        btn.classList.remove('bg-cyan-500/20', 'text-brand-cyan', 'border-cyan-500/40');
+        btn.classList.add('bg-slate-900', 'border-slate-800', 'text-slate-400');
+      });
+      event.target.classList.add('bg-cyan-500/20', 'text-brand-cyan', 'border-cyan-500/40');
+      renderScouting();
+    }
+
+    function filterMissionsByStatus(status) {
+      currentMissionStatus = status;
+      document.querySelectorAll('.filter-pill-mission').forEach(btn => {
+        btn.classList.remove('bg-purple-500/20', 'text-brand-purple', 'border-purple-500/40');
+        btn.classList.add('bg-slate-900', 'border-slate-800', 'text-slate-400');
+      });
+      event.target.classList.add('bg-purple-500/20', 'text-brand-purple', 'border-purple-500/40');
+      renderMissions();
+    }
+
+    // Render Scouting Radar Cards
+    function renderScouting() {
+      const container = document.getElementById('scoutGrid');
+      if (!globalScoutData || !globalScoutData.items || !globalScoutData.items.length) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm col-span-full">Nessun dato di scouting trovato. Premi 'Esegui Scouting Ora' per avviare una scansione.</div>`;
+        return;
+      }
+
+      const filtered = globalScoutData.items.filter(item => {
+        if (currentScoutChannel === 'all') return true;
+        return (item.channel || '').toLowerCase() === currentScoutChannel.toLowerCase();
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm col-span-full">Nessuna ispirazione per il canale selezionato (${currentScoutChannel}).</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const channelColors = {
+          reddit: 'bg-orange-950/80 text-orange-400 border-orange-800/80',
+          youtube: 'bg-red-950/80 text-red-400 border-red-800/80',
+          github: 'bg-purple-950/80 text-purple-300 border-purple-800/80',
+          web: 'bg-cyan-950/80 text-brand-cyan border-cyan-800/80'
+        };
+        const colorClass = channelColors[(item.channel || '').toLowerCase()] || 'bg-slate-800 text-slate-300 border-slate-700';
+
+        const safeTitle = escapeHtml(item.title || 'Ispirazione Senza Titolo');
+        const safeSnippet = escapeHtml(item.snippet || item.summary || '');
+        const safeTopic = escapeHtml(item.topic || 'General Inspiration');
+        const linkHtml = item.url ? `<a href="${item.url}" target="_blank" rel="noopener noreferrer" class="text-brand-cyan hover:underline flex items-center gap-1 font-mono text-[11px]">Fonte Originale ↗</a>` : '<span class="text-slate-500 font-mono text-[11px]">Web Snippet</span>';
+
+        return `
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between gap-3 group transition hover:-translate-y-0.5">
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full border ${colorClass}">
+                  ${escapeHtml(item.channel || 'web')}
+                </span>
+                <span class="text-[11px] text-slate-400 font-medium truncate max-w-[180px]">
+                  # ${safeTopic}
+                </span>
+              </div>
+              <h3 class="text-sm font-bold text-white group-hover:text-brand-cyan transition line-clamp-2">
+                ${safeTitle}
+              </h3>
+              <p class="text-xs text-slate-300 line-clamp-3 leading-relaxed">
+                ${safeSnippet}
+              </p>
+            </div>
+            <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+              <span class="text-slate-500 text-[11px]">Agente: Anna & Aurora Dream</span>
+              ${linkHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render Missions List
+    function renderMissions() {
+      const container = document.getElementById('missionsList');
+      if (!globalMissionsData || !globalMissionsData.length) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">Nessuna missione registrata.</div>`;
+        return;
+      }
+
+      const filtered = globalMissionsData.filter(m => {
+        if (currentMissionStatus === 'all') return true;
+        const st = (m.status || '').toLowerCase();
+        if (currentMissionStatus === 'done') return st === 'done' || st === 'pass';
+        if (currentMissionStatus === 'running') return st === 'running' || st === 'planned';
+        if (currentMissionStatus === 'failed') return st === 'failed' || st === 'cancelled';
+        return true;
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">Nessuna missione con stato '${currentMissionStatus}'.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(m => {
+        const isDone = (m.status || '').toLowerCase() === 'done';
+        const isRunning = (m.status || '').toLowerCase() === 'running' || (m.status || '').toLowerCase() === 'planned';
+        const isFailed = (m.status || '').toLowerCase() === 'failed';
+
+        let badgeClass = 'bg-slate-800 text-slate-400 border-slate-700';
+        let badgeText = m.status || 'UNKNOWN';
+        if (isDone) {
+          badgeClass = 'bg-emerald-950/80 text-emerald-400 border-emerald-700/80';
+          badgeText = '✓ PASS / DONE';
+        } else if (isRunning) {
+          badgeClass = 'bg-cyan-950/80 text-brand-cyan border-cyan-700/80 animate-pulse';
+          badgeText = '⚡ RUNNING';
+        } else if (isFailed) {
+          badgeClass = 'bg-rose-950/80 text-rose-400 border-rose-700/80';
+          badgeText = '✗ FAILED';
+        }
+
+        const tasks = m.tasks || [];
+        const taskPillsHtml = tasks.map(t => {
+          const tDone = (t.status || '').toLowerCase() === 'done';
+          const tRole = t.role || 'worker';
+          const roleIcons = {
+            planner: '🧠',
+            coder: '💻',
+            verifier: '🔍',
+            'repo-analyst': '📚',
+            worker: '⚡'
+          };
+          const icon = roleIcons[tRole] || '⚙️';
+          return `
+            <div class="px-2.5 py-1.5 rounded-lg bg-slate-900 border ${tDone ? 'border-emerald-900/60 text-slate-200' : 'border-slate-800 text-slate-400'} flex items-center gap-1.5 text-[11px] font-mono">
+              <span>${icon}</span>
+              <span class="font-bold text-slate-300">${escapeHtml(t.task_id || tRole)}</span>
+              <span class="${tDone ? 'text-emerald-400' : 'text-slate-500'}">(${escapeHtml(t.status || 'pending')})</span>
+            </div>
+          `;
+        }).join('');
+
+        const criteriaList = (m.success_criteria || []).map(c => `<li>• ${escapeHtml(c)}</li>`).join('');
+
+        return `
+          <div class="glass-card rounded-2xl p-5 flex flex-col gap-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex flex-col gap-1 max-w-2xl">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs text-brand-purple font-bold">${escapeHtml(m.id || 'mission')}</span>
+                  <span class="text-[11px] font-mono px-2 py-0.5 rounded-md border ${badgeClass}">${badgeText}</span>
+                  <span class="text-xs text-slate-500 font-mono">${m.created_at ? m.created_at.replace('T', ' ').slice(0, 19) : ''}</span>
+                </div>
+                <h3 class="text-sm font-semibold text-white mt-1">
+                  ${escapeHtml(m.objective || 'Nessun obiettivo specificato')}
+                </h3>
+              </div>
+              <button type="button" onclick="inspectMission('${m.id}')" class="text-xs px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-cyan border border-cyan-500/30 transition">
+                🔍 Ispeziona Dettaglio
+              </button>
+            </div>
+
+            <!-- Task DAG Wave -->
+            <div class="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
+              <span class="text-[11px] text-slate-400 font-mono uppercase tracking-wider">Flusso Task nel DAG (${tasks.length} task pianificati):</span>
+              <div class="flex flex-wrap items-center gap-2">
+                ${taskPillsHtml || '<span class="text-slate-500 text-xs">Nessun task ancora generato dal planner.</span>'}
+              </div>
+            </div>
+
+            ${criteriaList ? `
+              <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-900 text-slate-400 text-[11px] flex flex-col gap-1">
+                <span class="font-mono text-slate-300 font-bold">Criteri di Successo Verifier:</span>
+                <ul class="flex flex-col gap-0.5">${criteriaList}</ul>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render Schedulers & Daemons
+    function renderSchedulers() {
+      const container = document.getElementById('schedulersGrid');
+      const daemons = [
+        {
+          id: 'trend-scout',
+          name: 'Trend Scouting Radar (Agent-Reach)',
+          interval: 'Ogni 4 Ore',
+          daemon: 'com.hyperspace.trend-scout.plist',
+          script: 'scripts/auto_trend_scout.py',
+          description: 'Estrae ispirazioni fresche da Reddit, YouTube, Web e GitHub e aggiorna il serbatoio di memoria per il dream loop.',
+          status: 'ATTIVO / HEALTHY',
+          badgeColor: 'text-brand-cyan border-cyan-700/80 bg-cyan-950/80'
+        },
+        {
+          id: 'seo-optimizer',
+          name: 'SEO & GEO Rank Optimizer',
+          interval: 'Ogni 6 Ore',
+          daemon: 'com.hyperspace.seo-optimizer.plist',
+          script: 'scripts/auto_seo_optimizer.py',
+          description: 'Verifica il punteggio 100/100, rigenera sitemap.xml, discovery AI (.well-known/ai.txt) e compila il bundle Aruba.',
+          status: 'ATTIVO / HEALTHY',
+          badgeColor: 'text-brand-emerald border-emerald-700/80 bg-emerald-950/80'
+        },
+        {
+          id: 'upstream-sync',
+          name: 'Upstream Auto-Sync & Audit',
+          interval: 'Ogni 6 Ore',
+          daemon: 'com.hyperspace.upstream-auto-sync.plist',
+          script: 'scripts/upstream_auto_sync.py',
+          description: 'Traccia versioni upstream per i 14 repository esterni, open-webui, comfyui, taste-skill e allerta sulle regressioni.',
+          status: 'ATTIVO / HEALTHY',
+          badgeColor: 'text-brand-purple border-purple-700/80 bg-purple-950/80'
+        },
+        {
+          id: 'nightly-dream',
+          name: 'Nightly Development Dream Loop',
+          interval: 'Notturno / Inattività',
+          daemon: 'scripts/dream_scheduler.py',
+          script: 'scripts/dream_scheduler.py',
+          description: 'Elabora proposte evolutive del codice di HyperSpace mentre il sistema è inattivo, archiviando bozze verificate.',
+          status: 'ATTIVO / HEALTHY',
+          badgeColor: 'text-brand-amber border-amber-700/80 bg-amber-950/80'
+        },
+        {
+          id: 'telegram-moltbook',
+          name: 'Social Broadcaster (Telegram & Moltbook)',
+          interval: 'Ad Evento / Release',
+          daemon: 'scripts/telegram_dispatcher.py',
+          script: 'scripts/telegram_dispatcher.py + scripts/moltbook.py',
+          description: 'Invia gli aggiornamenti di completamento sprint sul canale @ZeroZeroMesh e sul social network degli agenti Moltbook.',
+          status: 'CONFIGURATO & AUTORIZZATO',
+          badgeColor: 'text-blue-400 border-blue-700/80 bg-blue-950/80'
+        }
+      ];
+
+      container.innerHTML = daemons.map(d => `
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between gap-4">
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-mono font-bold text-white">${escapeHtml(d.name)}</span>
+              <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${d.badgeColor}">${d.status}</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(d.description)}</p>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 flex flex-col gap-1.5 text-[11px] font-mono text-slate-400">
+            <div class="flex items-center justify-between">
+              <span>Frequenza:</span>
+              <span class="text-slate-200 font-bold">${escapeHtml(d.interval)}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Esecutore:</span>
+              <span class="text-brand-cyan truncate max-w-[240px]">${escapeHtml(d.script)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Inspect Mission Details in Modal
+    function inspectMission(missionId) {
+      const m = (globalMissionsData || []).find(item => item.id === missionId);
+      if (!m) return;
+
+      const tasksHtml = (m.tasks || []).map((t, idx) => `
+        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-bold text-brand-cyan">#${idx + 1} ${escapeHtml(t.task_id || t.role || 'task')}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono ${t.status === 'done' ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${escapeHtml(t.status || 'unknown')}</span>
+          </div>
+          <div class="text-slate-300"><strong>Istruzione:</strong> ${escapeHtml(t.instruction || '')}</div>
+          ${t.output ? `<div class="p-2 rounded bg-black/40 font-mono text-[11px] text-slate-300 whitespace-pre-wrap max-h-40 overflow-y-auto">${escapeHtml(t.output)}</div>` : ''}
+          ${t.error ? `<div class="p-2 rounded bg-red-950/60 text-red-300 font-mono text-[11px]">${escapeHtml(t.error)}</div>` : ''}
+        </div>
+      `).join('');
+
+      const content = `
+        <div class="flex flex-col gap-3">
+          <div>
+            <div class="font-mono text-slate-500">ID Missione: ${escapeHtml(m.id)}</div>
+            <div class="text-sm font-bold text-white mt-1">${escapeHtml(m.objective || '')}</div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-900/60 border border-slate-800 font-mono text-[11px]">
+            <div>Stato: <span class="font-bold text-brand-purple">${escapeHtml(m.status || '')}</span></div>
+            <div>Creata il: ${m.created_at ? m.created_at.slice(0, 19) : 'N/D'}</div>
+            <div>Replans: ${m.counters ? m.counters.replans : 0}</div>
+            <div>Steps eseguiti: ${m.counters ? m.counters.steps : 0}</div>
+          </div>
+          <div class="flex flex-col gap-2 mt-2">
+            <div class="font-bold text-slate-200">Task Eseguiti (${(m.tasks || []).length}):</div>
+            <div class="flex flex-col gap-2">${tasksHtml || '<div class="text-slate-500">Nessun task registrato.</div>'}</div>
+          </div>
+        </div>
+      `;
+
+      openModal(`Missione: ${missionId}`, content);
+    }
+
+    // Trigger instant scout refresh
+    async function triggerScoutRefresh() {
+      const btn = document.getElementById('btnTriggerScout');
+      const spinner = document.getElementById('scoutSpinner');
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/mesh-scouting/refresh', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Scouting completato con successo!');
+        await loadAllData();
+      } catch (err) {
+        alert('Avviata scansione in background: ricarica i dati tra qualche secondo.');
+        setTimeout(loadAllData, 3000);
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+      }
+    }
+
+    // Load all data from API
+    async function loadAllData() {
+      // 1. Fetch Scouting Data
+      try {
+        const sRes = await fetch('/api/mesh-scouting');
+        if (sRes.ok) {
+          globalScoutData = await sRes.json();
+          document.getElementById('kpiScoutTotal').textContent = (globalScoutData.items || []).length;
+          if (globalScoutData.scouted_at) {
+            document.getElementById('kpiScoutTime').textContent = globalScoutData.scouted_at.replace('T', ' ').slice(0, 16);
+          }
+          renderScouting();
+        }
+      } catch (e) {
+        console.warn('Scouting fetch error', e);
+      }
+
+      // 2. Fetch Missions Data
+      try {
+        const mRes = await fetch('/api/missions');
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          globalMissionsData = (mData.missions || []).reverse(); // Newest first
+          document.getElementById('kpiMissionsTotal').textContent = globalMissionsData.length;
+          
+          let totalTasks = 0;
+          globalMissionsData.forEach(m => {
+            totalTasks += (m.tasks || []).filter(t => t.status === 'done').length;
+          });
+          document.getElementById('kpiTasksDone').textContent = `${totalTasks} task validati`;
+          renderMissions();
+        }
+      } catch (e) {
+        console.warn('Missions fetch error', e);
+      }
+
+      // 3. Render Schedulers
+      renderSchedulers();
+
+      // 4. Fetch Persona Dreams
+      try {
+        const dRes = await fetch('/api/persona-dreams');
+        if (dRes.ok) {
+          const dData = await dRes.json();
+          globalDreamsData = dData.dreams || [];
+          const candidates = globalDreamsData.filter(d => d.status === 'candidate').length;
+          const badge = document.getElementById('badgeDreamsCandidate');
+          if (badge) {
+            badge.textContent = candidates;
+            badge.classList.toggle('hidden', candidates === 0);
+          }
+          renderDreams();
+        }
+      } catch (e) {
+        console.warn('Dreams fetch error', e);
+      }
+    }
+
+    let globalDreamsData = [];
+    let currentDreamStatus = 'all';
+
+    function filterDreamsByStatus(status) {
+      currentDreamStatus = status;
+      document.querySelectorAll('.filter-pill-dream').forEach(btn => {
+        btn.classList.remove('bg-amber-500/20', 'text-brand-amber', 'border-amber-500/40');
+        btn.classList.add('bg-slate-900', 'border-slate-800', 'text-slate-400');
+      });
+      event.target.classList.add('bg-amber-500/20', 'text-brand-amber', 'border-amber-500/40');
+      renderDreams();
+    }
+
+    function renderDreams() {
+      const container = document.getElementById('dreamsList');
+      if (!globalDreamsData || !globalDreamsData.length) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">Nessun sogno notturno registrato.</div>`;
+        return;
+      }
+
+      const filtered = globalDreamsData.filter(d => {
+        if (currentDreamStatus === 'all') return true;
+        return (d.status || '').toLowerCase() === currentDreamStatus.toLowerCase();
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="glass-card rounded-2xl p-6 text-center text-slate-400 text-sm">Nessun sogno con stato '${currentDreamStatus}'.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(d => {
+        const isCandidate = d.status === 'candidate';
+        const isPromoted = d.status === 'promoted';
+        const isRejected = d.status === 'rejected';
+
+        let badge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700">Vuoto / Nessuna Proposta</span>';
+        if (isCandidate) {
+          badge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-950/80 text-brand-amber border border-amber-700/80 animate-pulse font-bold">⏳ CANDIDATO IN ATTESA</span>';
+        } else if (isPromoted) {
+          badge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-700/80 font-bold">✓ PROMOSSO IN IDENTITÀ</span>';
+        } else if (isRejected) {
+          badge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-rose-950/80 text-rose-400 border border-rose-700/80 font-bold">✗ SCARTATO (BLACKLIST)</span>';
+        }
+
+        const proposalsHtml = (d.proposals || []).map(p => `
+          <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-0.5 rounded bg-amber-950/60 text-brand-amber font-mono font-bold">Auto-Osservazione</span>
+              <span class="text-sm font-semibold text-white italic">"${escapeHtml(p.text)}"</span>
+            </div>
+            <div class="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80 flex items-start gap-2">
+              <span class="text-brand-cyan font-bold">Impatto:</span>
+              <span>${escapeHtml(p.impact)}</span>
+            </div>
+          </div>
+        `).join('');
+
+        const actionsHtml = isCandidate ? `
+          <div class="flex items-center gap-2 pt-3 border-t border-slate-800/80">
+            <button type="button" onclick="reviewDream('${d.id}', 'promote')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+              <span>✓ Promuovi nell'Identità di Anna</span>
+            </button>
+            <button type="button" onclick="reviewDream('${d.id}', 'reject')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 border border-slate-700 font-medium text-xs transition">
+              <span>✗ Scarta e Blocca</span>
+            </button>
+          </div>
+        ` : (d.reviews && d.reviews.length ? `
+          <div class="pt-2 text-[11px] font-mono text-slate-500 flex items-center justify-between">
+            <span>Revisionato da: <strong>${escapeHtml(d.reviews[0].reviewer || 'utente')}</strong></span>
+            <span>Data: ${d.reviews[0].at ? d.reviews[0].at.slice(0, 19).replace('T', ' ') : ''}</span>
+          </div>
+        ` : '');
+
+        return `
+          <div class="glass-card rounded-2xl p-5 flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs text-brand-amber font-bold">${escapeHtml(d.id)}</span>
+                ${badge}
+              </div>
+              <span class="text-xs text-slate-500 font-mono">${d.created_at ? d.created_at.slice(0, 19).replace('T', ' ') : ''}</span>
+            </div>
+
+            ${proposalsHtml || '<div class="text-xs text-slate-500 italic">Nessuna proposta idonea generata durante questo ciclo.</div>'}
+            
+            ${d.raw_excerpt ? `
+              <div class="text-[11px] text-slate-500 font-mono truncate">
+                <span class="text-slate-400">Estratto grezzo:</span> ${escapeHtml(d.raw_excerpt)}
+              </div>
+            ` : ''}
+
+            ${actionsHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function reviewDream(dreamId, action) {
+      if (!confirm(`Sei sicuro di voler ${action === 'promote' ? 'PROMUOVERE' : 'SCARTARE'} questo sogno di identità?`)) return;
+
+      try {
+        const res = await fetch(`/api/persona-dreams/${encodeURIComponent(dreamId)}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action, reviewer: 'utente' })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          alert(`Operazione completata con successo! Stato: ${data.status}`);
+          await loadAllData();
+        } else {
+          alert(`Errore: ${data.error || 'Impossibile completare la revisione'}`);
+        }
+      } catch (err) {
+        alert(`Errore di rete: ${err.message}`);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Auto initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAllData();
+      // Auto refresh every 30 seconds
+      setInterval(loadAllData, 30000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "geo-optimizer": {
+      "command": "/Users/opo/.local/bin/geo-mcp",
+      "args": [],
+      "description": "Generative Engine Optimization (GEO/AEO) for ChatGPT, Perplexity, Gemini, Claude"
+    },
+    "mcp-gsc": {
+      "command": "/Users/opo/.local/bin/mcp-gsc",
+      "args": [],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/Users/opo/hyperspace-agi-1.04/data/gsc-credentials.json"
+      },
+      "description": "Google Search Console MCP server for live query analytics, clicks, and indexing"
+    },
+    "open-seo": {
+      "url": "https://app.openseo.so/mcp",
+      "description": "OpenSEO platform for keyword research, SERP rank tracking, and site audits"
+    }
+  }
+}

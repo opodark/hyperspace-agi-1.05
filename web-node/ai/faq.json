@@ -1,0 +1,22 @@
+{
+  "title": "00MESH & HyperSpace AGI — Frequently Asked Questions for AI Systems",
+  "lastModified": "2026-10-24",
+  "faqs": [
+    {
+      "question": "Cos'è 00MESH?",
+      "answer": "00MESH è un'infrastruttura di calcolo neurale decentralizzata e sovrana (DePIN) che consente di eseguire modelli di intelligenza artificiale avanzati (Liquid AI LFM2.5, Flint 40B MoE) condividendo potenza di calcolo tra computer peer-to-peer."
+    },
+    {
+      "question": "Come funziona la Proof-of-Useful-Work (PoUW)?",
+      "answer": "I nodi GPU (RTX 3070, RTX 5060, Apple Silicon) eseguono inferenze reali, validazione di token e calcoli utili per la rete, ricevendo ricompense on-chain in token $00MESH."
+    },
+    {
+      "question": "Come si accede alla Chat Sovrana?",
+      "answer": "È sufficiente aprire https://www.zerozerocomputer.it/chat.html oppure installare il plugin Chrome bridge per interagire in tempo reale con i modelli della rete."
+    },
+    {
+      "question": "Quali misure di privacy e sicurezza sono garantite?",
+      "answer": "I messaggi e le inferenze utilizzano crittografia asimmetrica ECDSA, zero logging centrale e storage locale distribuito."
+    }
+  ]
+}

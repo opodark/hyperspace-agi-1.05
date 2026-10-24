@@ -85,7 +85,7 @@ from shared.sketch import job_sketch, puo_generare
 from shared.diario import (Diario, voce)
 from shared.dialogue_image import compose_dialogue
 from shared.conversation_log import ConversationLog, battuta
-from shared.social_dreams import social_dream_inspirations
+from shared.social_dreams import combined_dream_material, social_dream_inspirations
 from shared.dream_schedule import choose_author, in_hour_window
 from shared.dream_visual import build_dream_prompt, filtra_dream, parse_dream
 from shared import ollama_native
@@ -163,7 +163,7 @@ from shared.intimate_diary import (IntimateDiary, build_intimate_prompt,
                                    pagina as pagina_intima)
 from shared.dialogue_image import compose_dialogue
 from shared.conversation_log import ConversationLog, battuta
-from shared.social_dreams import social_dream_inspirations
+from shared.social_dreams import combined_dream_material, social_dream_inspirations
 from shared.dream_schedule import choose_author, conteggi_del_giorno, in_hour_window
 from shared.dream_log import RegistroSogni, riga as riga_sogno, salto_da_scrivere
 from shared.dream_monitor import sintesi as sintesi_sogni
@@ -2112,7 +2112,7 @@ def _dream_loop_enabled() -> bool:
 
 
 def _social_dream_material() -> list[str]:
-    return social_dream_inspirations(
+    return combined_dream_material(
         _conversation_log.list(limit=_post_int("DREAM_SOCIAL_SCAN_TURNS", 80)),
         limit=_post_int("DREAM_SOCIAL_INSPIRATIONS", 5),
     )

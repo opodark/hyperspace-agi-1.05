@@ -109,6 +109,8 @@ ALLOWED_ROUTES = {
     # modelli (gli stessi di /v1/models). Il CP non vi mette endpoint ne' IP.
     ("GET", "/web/topology"),
     ("OPTIONS", "/web/topology"),
+    ("GET", "/web/ping"),
+    ("OPTIONS", "/web/ping"),
     # Esperienza pubblica della mesh: catalogo e chat OpenAI-compatible.
     # Restano escluse dashboard, log, task manuali e configurazione. Il rate
     # limit qui sotto protegge il CP da uso anonimo eccessivo.
@@ -204,18 +206,22 @@ def _rate_check(path: str, ip: str) -> bool:
         return True
 
 
-@app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+@app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"])
 def proxy(path):
     full_path = f"/{path}"
-    route_key = (request.method, full_path)
+    check_method = "GET" if request.method == "HEAD" and ("GET", full_path) in ALLOWED_ROUTES else request.method
+    route_key = (check_method, full_path)
     if route_key not in ALLOWED_ROUTES:
         return {"error": "not found"}, 404
 
     ip = _client_ip()
-    # Il preflight non esegue lavoro applicativo e non deve consumare la quota
-    # della chiamata POST che il browser farà subito dopo.
-    if request.method != "OPTIONS" and full_path in _RATE_LIMITS and not _rate_check(full_path, ip):
-        return {"error": "troppe richieste, riprova più tardi"}, 429
+    # Preflight e HEAD non eseguono lavoro applicativo e non consumano il rate limit
+    if request.method not in ("OPTIONS", "HEAD") and full_path in _RATE_LIMITS and not _rate_check(full_path, ip):
+        return {
+            "error": "Limite richieste anonime superato. Per calcolo illimitato senza code, richiedi un token VIP su /web/contact o connetti un wallet $00MESH.",
+            "code": "RATE_LIMIT_EXCEEDED",
+            "vip_upgrade": "https://www.zerozerocomputer.it/index.html#contactSection"
+        }, 429
 
     forward_headers = {
         k: v for k, v in request.headers.items()
@@ -341,13 +347,29 @@ def _add_cors_headers(response):
     if "Access-Control-Allow-Origin" not in response.headers:
         response.headers["Access-Control-Allow-Origin"] = origin
     if "Access-Control-Allow-Methods" not in response.headers:
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, HEAD"
     if "Access-Control-Allow-Headers" not in response.headers:
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Hyperspace-Network-Token"
     return response
 
 
-@app.route("/health")
+@app.route("/web/ping", methods=["GET", "OPTIONS", "HEAD"])
+def ping():
+    """Endpoint zero-cost per verificare la connettività machine-to-machine
+    senza caricare modelli né consumare GPU/token."""
+    if request.method == "OPTIONS":
+        return Response("", status=204)
+    return {
+        "status": "ok",
+        "mesh": "00MESH",
+        "version": "1.05",
+        "echo": "pong",
+        "service": "federation-gateway",
+        "timestamp": time.time(),
+    }
+
+
+@app.route("/health", methods=["GET", "OPTIONS", "HEAD"])
 def health():
     """Unico endpoint informativo extra, utile per gli healthcheck Docker
     e per verificare che il gateway sia in piedi senza rivelare nulla sul CP."""

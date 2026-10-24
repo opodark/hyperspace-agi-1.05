@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperSpace Sovereign Mesh — Dashboard SEO & Dati Sito</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #020617; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .pulse-glow { animation: pulse-slow 2.5s infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
+
+  <!-- TOP HEADER & NAV -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981] pulse-glow"></div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          HyperSpace Sovereign Mesh <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">SEO & GEO Analytics</span>
+        </h1>
+        <p class="text-xs text-slate-400">Audit tecnico del sito www.zerozerocomputer.it, SERP preview, crawler AI & schema.org</p>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="flex items-center gap-2 text-xs">
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition font-medium">
+        🚀 Cockpit
+      </a>
+      <a href="/analytics.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition font-medium">
+        🏛️ Storico Test
+      </a>
+      <a href="/dialogues.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition font-medium">
+        💬 Dialoghi Agenti
+      </a>
+      <a href="/seo.html" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 transition">
+        🌐 Dashboard SEO
+      </a>
+      <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition font-medium">
+        📡 Scouting & Missioni
+      </a>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
+
+    <!-- HERO HEALTH SCORE & AI PLATFORM CITATIONS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- SCORE CARD -->
+      <div class="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Punteggio GEO & SEO Globale</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">Livello Base Attivo</span>
+          </div>
+          <div class="flex items-baseline gap-3 mt-4">
+            <span class="text-5xl font-black text-emerald-400">46</span>
+            <span class="text-slate-400 text-lg">/ 100</span>
+          </div>
+          <p class="text-xs text-slate-300 mt-3 leading-relaxed">
+            Audit automatico calcolato su 107 verifiche (87 superate, 20 da rifinire). Obiettivo post-ottimizzazione: <strong>92/100</strong>.
+          </p>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+          <span class="text-slate-400">Media Pagine Locali:</span>
+          <span class="text-emerald-400 font-bold" id="avg-local-score">100/100</span>
+        </div>
+      </div>
+
+      <!-- CITATION PROFILE CARDS -->
+      <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+        <div>
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span>🤖</span> Profilo Citazione Piattaforme AI (Generative Engine Optimization)
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- ChatGPT -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white">ChatGPT</span>
+                  <span class="text-xs text-emerald-400 font-mono font-bold">48/100</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2">
+                  <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 48%"></div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-3">GPTBot consentito, llms.txt presente, necessaria Organization schema.</p>
+            </div>
+
+            <!-- Perplexity -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white">Perplexity</span>
+                  <span class="text-xs text-cyan-400 font-mono font-bold">50/100</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2">
+                  <div class="bg-cyan-500 h-1.5 rounded-full" style="width: 50%"></div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-3">PerplexityBot attivo, ottima profondità contenuti, serve dateModified.</p>
+            </div>
+
+            <!-- Google AI -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white">Google AI Search</span>
+                  <span class="text-xs text-amber-400 font-mono font-bold">31/100</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2">
+                  <div class="bg-amber-500 h-1.5 rounded-full" style="width: 31%"></div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-3">Googlebot indicizza, priorità: rel=canonical e sitemap: direttiva.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <span>Target Primario: <strong class="text-white">https://www.zerozerocomputer.it</strong></span>
+          <span class="font-mono text-emerald-400">Crawler AI Autorizzati: 26/26 ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERP & SOCIAL PREVIEW SIMULATOR -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🔍</span> Simulatore Anteprima SERP Google & Social Cards
+          </h3>
+          <p class="text-xs text-slate-400">Visualizza in tempo reale come appare HyperSpace nei risultati di ricerca e sui social</p>
+        </div>
+
+        <!-- Selettore Pagina -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-400">Pagina:</label>
+          <select id="select-preview-page" onchange="updatePreview()" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <!-- Popolato via JS -->
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+        <!-- Google SERP Snippet Preview -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 flex flex-col gap-2">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="text-blue-400">G</span> Google Search Snippet
+          </span>
+          <div class="mt-2">
+            <div class="text-[12px] text-slate-400 flex items-center gap-1 font-sans">
+              <span>https://www.zerozerocomputer.it</span>
+              <span class="text-slate-600">›</span>
+              <span id="serp-slug" class="text-slate-400"></span>
+            </div>
+            <a href="#" id="serp-title" class="text-blue-400 hover:underline text-base font-medium mt-0.5 block truncate">
+              00MESH 1.05 · Rete Neurale Decentralizzata & Tokenomics $00MESH
+            </a>
+            <p id="serp-desc" class="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
+              00MESH 1.05: Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun. Condividi calcolo ed esegui modelli AI sovrani senza censure.
+            </p>
+          </div>
+        </div>
+
+        <!-- Social Share Card (Twitter/X & Telegram) -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+          <div>
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🐦</span> OpenGraph & Twitter Card Preview
+            </span>
+            <div class="mt-3 border border-slate-800 rounded-lg overflow-hidden bg-slate-900">
+              <div class="h-28 bg-gradient-to-r from-cyan-900/60 to-purple-900/60 flex items-center justify-center text-cyan-300 font-bold text-sm tracking-wider">
+                00MESH // HYPERSPACE AGI
+              </div>
+              <div class="p-3">
+                <span class="text-[10px] text-slate-500 uppercase tracking-wider">zerozerocomputer.it</span>
+                <h4 id="social-title" class="text-xs font-bold text-white truncate mt-0.5">00MESH · Intelligenza Sovrana</h4>
+                <p id="social-desc" class="text-[11px] text-slate-400 mt-1 line-clamp-2">Condividi calcolo GPU ed esegui modelli AI sovrani senza censure.</p>
+              </div>
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-500 font-mono mt-2" id="social-status">OpenGraph Attivo ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- OMEN TECHNICAL SEO ROADMAP BANNER -->
+    <div class="bg-gradient-to-r from-emerald-950/40 via-cyan-950/20 to-slate-900 border border-emerald-800/40 rounded-xl p-5 shadow-lg">
+      <div class="flex items-start gap-4">
+        <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xl">
+          🎯
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Roadmap Strategica Eseguita da HP OMEN 16</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 font-mono">Liquid AI LFM2.5 24B MoE @ 36 tk/s</span>
+          </div>
+          <h2 class="text-base font-bold text-white mt-1">Piano di Ottimizzazione SEO & Schema.org JSON-LD per HyperSpace</h2>
+          <div class="text-xs text-slate-300 mt-2 leading-relaxed bg-slate-950/60 p-4 rounded-lg border border-slate-800/80 whitespace-pre-line font-mono">
+1. SCHEMA JSON-LD RACCOMANDATO:
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "00MESH",
+  "operatingSystem": "All",
+  "applicationCategory": "DistributedAICalculation"
+}
+
+2. INTERVENTI PRIORITARI:
+- Aggiungere <link rel='canonical'> a tutte le 14 pagine HTML.
+- Inserire la direttiva 'Sitemap: https://www.zerozerocomputer.it/sitemap.xml' in robots.txt.
+- Creare /ai/summary.json e /ai/faq.json per i bot di Perplexity e OpenAI.
+
+3. KEYWORDS CHIAVE:
+- 'Rete Neurale Decentralizzata'
+- 'Proof-of-Useful-Work AI'
+- 'Modelli AI Sovrani'
+- 'Calcolo GPU P2P'
+- 'ZeroZeroMesh Solana'
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE-BY-PAGE AUDIT TABLE -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>📄</span> Audit Dettagliato Pagine Sito (web-node/*.html)
+          </h3>
+          <p class="text-xs text-slate-400">Verifica di Title, Meta Description, Viewport, OpenGraph e Schema.org su 14 pagine</p>
+        </div>
+        <span class="text-xs font-mono text-slate-400">14 Pagine Scansionate</span>
+      </div>
+
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-mono text-[10px] border-b border-slate-800">
+            <tr>
+              <th class="p-3">File HTML</th>
+              <th class="p-3">Titolo (Caratteri)</th>
+              <th class="p-3">Description</th>
+              <th class="p-3">Mobile & OpenGraph</th>
+              <th class="p-3">Schema.org</th>
+              <th class="p-3 text-right">Score</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60" id="pages-table-body">
+            <!-- Popolato via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PRIORITY FIXES CHECKLIST -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col gap-4">
+      <h3 class="text-sm font-bold text-white flex items-center gap-2">
+        <span>⚡</span> Azioni Correttive Prioritarie (Dall'Audit Live)
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#1</span>
+          <p class="text-xs text-slate-300 leading-relaxed">Hidden text detected (display:none/visibility:hidden with content) — AI crawlers can read it and may penalize this cloaking pattern</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#2</span>
+          <p class="text-xs text-slate-300 leading-relaxed">[G-CANONICAL] No rel=canonical: Google picks the canonical on its own — https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#3</span>
+          <p class="text-xs text-slate-300 leading-relaxed">[G-DATES] No valid publication or update date found — https://developers.google.com/search/docs/appearance/publication-dates</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#4</span>
+          <p class="text-xs text-slate-300 leading-relaxed">[G-BYLINE] No author found: Google asks 'who created the content' — https://developers.google.com/search/docs/fundamentals/creating-helpful-content</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#5</span>
+          <p class="text-xs text-slate-300 leading-relaxed">[G-SITEMAP] robots.txt has no Sitemap: directive — https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#6</span>
+          <p class="text-xs text-slate-300 leading-relaxed">Add WebSite JSON-LD schema to homepage</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#7</span>
+          <p class="text-xs text-slate-300 leading-relaxed">Add Organization JSON-LD schema with name, url, and logo</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#8</span>
+          <p class="text-xs text-slate-300 leading-relaxed">Add FAQPage schema with site FAQs</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#9</span>
+          <p class="text-xs text-slate-300 leading-relaxed">Use consistent brand name across title, og:title, H1, and schema Organization</p>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-3">
+          <span class="text-emerald-400 font-bold mt-0.5">#10</span>
+          <p class="text-xs text-slate-300 leading-relaxed">Add sameAs links in Organization schema to Wikipedia, Wikidata, LinkedIn, or Crunchbase for Knowledge Graph disambiguation</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let PAGES_DATA = [];
+
+    async function loadSeoData() {
+      try {
+        const resp = await fetch('/api/seo-audit');
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.pages && data.pages.length > 0) {
+            PAGES_DATA = data.pages;
+            const avg = Math.round(PAGES_DATA.reduce((acc, p) => acc + p.score, 0) / PAGES_DATA.length);
+            const el = document.getElementById('avg-local-score');
+            if (el) el.textContent = `${avg}/100`;
+          }
+        }
+      } catch (err) {
+        console.warn('Errore fetch audit, uso fallback locale', err);
+      }
+      populatePageSelect();
+      renderPagesTable();
+    }
+
+    function populatePageSelect() {
+      const sel = document.getElementById('select-preview-page');
+      if (!sel || !PAGES_DATA.length) return;
+      sel.innerHTML = PAGES_DATA.map((p, idx) => `
+        <option value="${idx}">${p.file} (${p.score}/100)</option>
+      `).join('');
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const sel = document.getElementById('select-preview-page');
+      if (!sel) return;
+      const idx = sel.value;
+      const p = PAGES_DATA[idx];
+      if (!p) return;
+
+      document.getElementById('serp-slug').textContent = p.file === 'index.html' ? '' : p.file;
+      document.getElementById('serp-title').textContent = p.title || 'Titolo Mancante';
+      document.getElementById('serp-desc').textContent = p.description || 'Meta description non configurata.';
+
+      document.getElementById('social-title').textContent = p.og_title || p.title || '00MESH · HyperSpace';
+      document.getElementById('social-desc').textContent = p.description || 'Rete neurale decentralizzata sovrana.';
+      document.getElementById('social-status').innerHTML = p.og_ready 
+        ? '<span class="text-emerald-400">OpenGraph & Social Card Completi ✓</span>'
+        : '<span class="text-amber-400">OpenGraph Incompleto ⚠️</span>';
+    }
+
+    function renderPagesTable() {
+      const tbody = document.getElementById('pages-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = PAGES_DATA.map(p => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="p-3 font-mono font-bold text-white flex items-center gap-2">
+            <span>📄</span> ${p.file}
+          </td>
+          <td class="p-3">
+            <div class="text-slate-200 truncate max-w-xs" title="${p.title}">${p.title || '<span class="text-rose-400">Mancante</span>'}</div>
+            <span class="text-[10px] text-slate-500 font-mono">${p.title_len} caratteri</span>
+          </td>
+          <td class="p-3">
+            <div class="text-slate-400 truncate max-w-xs" title="${p.description}">${p.description || '<span class="text-rose-400">Mancante</span>'}</div>
+            <span class="text-[10px] text-slate-500 font-mono">${p.desc_len} caratteri</span>
+          </td>
+          <td class="p-3">
+            <div class="flex items-center gap-1.5 font-mono text-[11px]">
+              ${p.has_viewport ? '<span class="text-emerald-400 font-bold">Mobile ✓</span>' : '<span class="text-rose-400 font-bold">No Mobile ✗</span>'}
+              <span class="text-slate-600">•</span>
+              ${p.og_ready ? '<span class="text-emerald-400 font-bold">OG ✓</span>' : '<span class="text-amber-400">OG Incompleto</span>'}
+            </div>
+          </td>
+          <td class="p-3 font-mono text-[11px]">
+            ${p.jsonld_ready ? '<span class="text-emerald-400 font-bold">JSON-LD Presente ✓</span>' : '<span class="text-slate-500">Non presente</span>'}
+          </td>
+          <td class="p-3 text-right">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
+              p.score >= 80 ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' :
+              p.score >= 60 ? 'bg-amber-950 text-amber-300 border border-amber-700' :
+              'bg-rose-950 text-rose-300 border border-rose-700'
+            }">
+              ${p.score}/100
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    loadSeoData();
+  </script>
+</body>
+</html>

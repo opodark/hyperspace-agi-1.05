@@ -1,0 +1,14 @@
+{
+  "name": "00MESH / HyperSpace AGI 1.05",
+  "url": "https://www.zerozerocomputer.it",
+  "description": "Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun. Condividi calcolo ed esegui modelli AI sovrani senza censure.",
+  "category": "Decentralized AI & GPU Compute Mesh",
+  "lastModified": "2026-10-24",
+  "author": "ZeroZeroComputer",
+  "nodesActive": "P2P Cluster across Mac M5, HP OMEN, ASUS V16",
+  "models": [
+    "Liquid AI LFM2.5 24B MoE",
+    "Flint 40B MoE",
+    "Granite 3.3 8B"
+  ]
+}
