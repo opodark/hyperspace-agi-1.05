@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Zero-dependency Chrome DevTools Protocol client.
 // Drives an installed Chrome / Edge / Chromium in headless mode over Node's built-in WebSocket.
 // Requires Node 22+. No npm install.

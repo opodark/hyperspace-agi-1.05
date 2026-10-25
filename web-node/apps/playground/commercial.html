@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperSpace Sovereign B2B Solutions | AI On-Premise, Zero Data Leak & Conformità GDPR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          },
+          colors: {
+            brand: {
+              gold: '#fbbf24',
+              amber: '#f59e0b',
+              cyan: '#57e6d9',
+              purple: '#8b5cf6',
+              emerald: '#10b981',
+              rose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070913;
+      background-image: 
+        radial-gradient(at 5% 5%, rgba(245, 158, 11, 0.06) 0px, transparent 40%),
+        radial-gradient(at 95% 95%, rgba(99, 102, 241, 0.06) 0px, transparent 40%),
+        radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(245, 158, 11, 0.3);
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(245, 158, 11, 0.6);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card:hover {
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+    .neon-text-gold {
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+    .neon-text-green {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-gold selection:text-black custom-scroll">
+
+  <!-- TOP HEADER & NAV -->
+  <header class="border-b border-slate-800 bg-slate-950/85 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-3.5 h-3.5 rounded-full bg-brand-gold shadow-[0_0_14px_#f59e0b] animate-pulse"></div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          HyperSpace Sovereign B2B Solutions <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-600/70 text-brand-gold font-mono">Enterprise & On-Premise</span>
+        </h1>
+        <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+          <span>Intelligenza Artificiale Sovrana, Sicurezza GDPR & Riduzione Costi Cloud</span>
+          <span class="text-slate-600">•</span>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/70 text-emerald-400 border border-emerald-800/80 font-mono text-[10px]">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Mesh Network: <strong class="text-emerald-400">ATTIVA 24/7</strong>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAVIGATION LINKS -->
+    <nav class="flex items-center gap-2 text-xs">
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        🚀 Cockpit
+      </a>
+      <a href="/commercial.html" class="px-3 py-1.5 rounded-lg bg-amber-500/20 text-brand-gold font-bold border border-amber-500/40 transition flex items-center gap-1.5">
+        💼 Soluzioni B2B & Prezzi
+      </a>
+      <a href="/chat.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-cyan-300 transition font-medium">
+        💬 Chat Sovrana
+      </a>
+      <a href="/token.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-purple-300 transition font-medium">
+        🪙 Token $00MESH
+      </a>
+      <a href="/progetto.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition font-medium">
+        📖 Architettura
+      </a>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-8">
+
+    <!-- HERO VALUE PROPOSITION BANNER -->
+    <section class="glass-card rounded-2xl p-8 border-amber-500/30 relative overflow-hidden bg-gradient-to-r from-amber-950/25 via-slate-900/90 to-purple-950/20">
+      <div class="absolute -right-12 -top-12 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 relative z-10">
+        <div class="space-y-3 max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-brand-gold text-xs font-mono">
+            🛡️ SOVRANITÀ DIGITALE • ZERO DATA LEAK • AI ON-PREMISE
+          </div>
+          <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+            Intelligenza Artificiale Sovrana per la tua Impresa. <br/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold via-amber-300 to-emerald-400">
+              Zero Canoni Cloud Monopolistici. Dati 100% al Sicuro in Sede.
+            </span>
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed pt-1">
+            Elimina le fatture imprevedibili per token OpenAI/Microsoft e azzera il rischio di sanzioni GDPR.
+            HyperSpace fornisce alle aziende workstation e appliance dedicate preconfigurate con modelli avanzati open-weight, Code Sandbox isolate e agenti autonomi eseguiti interamente nel vostro perimetro aziendale.
+          </p>
+        </div>
+
+        <!-- QUICK ACTION BUTTONS -->
+        <div class="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto shrink-0">
+          <a href="#packages-section" class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-brand-gold to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm text-center shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+            💎 Listino Soluzioni & Pacchetti
+          </a>
+          <a href="#calculator-section" class="px-6 py-3.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-500/60 text-white font-medium text-sm text-center transition flex items-center justify-center gap-2">
+            🧮 Calcola Risparmio Cloud
+          </a>
+          <a href="#pitch-generator" class="px-6 py-3.5 rounded-xl bg-slate-900/90 border border-purple-500/50 hover:border-purple-400 text-purple-200 font-medium text-sm text-center transition flex items-center justify-center gap-2">
+            ⚡ Simula Valore per la tua Azienda
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 SOLUZIONI CHIAVE PER SETTORE -->
+    <section class="space-y-4">
+      <div>
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+          🏢 Soluzioni Specializzate per Settore Aziendale
+        </h3>
+        <p class="text-xs text-slate-400">Implementazioni concrete pensate per le esigenze reali di conformità, calcolo e sicurezza</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Settore 1: Studi Legali & Commercialisti -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/50 transition">
+          <div>
+            <div class="flex items-center justify-between text-xs font-mono mb-2">
+              <span class="text-brand-gold font-bold flex items-center gap-1.5">⚖️ GDPR & Compliance</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800 text-[10px]">On-Premise</span>
+            </div>
+            <h4 class="text-base font-bold text-white mb-2">Studi Legali & Commercialisti</h4>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Analisi di contratti, bilanci, perizie e cartelle tributarie riservate. I documenti vengono elaborati direttamente sull'hardware dello Studio: nessun dato transita mai su server cloud esteri.
+            </p>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 font-mono space-y-1.5">
+              <div><strong class="text-white">Conformità:</strong> 100% GDPR & AI Act</div>
+              <div><strong class="text-white">Appliance:</strong> Mini-Server Hardware locale</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-mono text-emerald-400 flex justify-between">
+            <span>Zero Canoni Ricorrenti</span>
+            <span>Chiavi in mano</span>
+          </div>
+        </div>
+
+        <!-- Settore 2: Software House & Web Agency -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/50 transition">
+          <div>
+            <div class="flex items-center justify-between text-xs font-mono mb-2">
+              <span class="text-brand-cyan font-bold flex items-center gap-1.5">💻 Dev & Sandbox</span>
+              <span class="px-2 py-0.5 rounded bg-cyan-950/60 text-brand-cyan border border-cyan-800 text-[10px]">Dedicated</span>
+            </div>
+            <h4 class="text-base font-bold text-white mb-2">Software House & Web Agency</h4>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Ambiente di calcolo GPU locale per refactoring, code generation (Qwen Coder, Liquid LFM) e sandbox isolate per testare microservizi senza saturare i budget API dei clienti.
+            </p>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 font-mono space-y-1.5">
+              <div><strong class="text-white">Risparmio:</strong> -80% costi API esterne</div>
+              <div><strong class="text-white">Add-on:</strong> Agente SEO/GEO autonomo</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-mono text-cyan-400 flex justify-between">
+            <span>Sandbox Isolate</span>
+            <span>Mesh Distribuita</span>
+          </div>
+        </div>
+
+        <!-- Settore 3: MSP & IT Support -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/50 transition">
+          <div>
+            <div class="flex items-center justify-between text-xs font-mono mb-2">
+              <span class="text-purple-400 font-bold flex items-center gap-1.5">🛡️ Help Desk L1/L2</span>
+              <span class="px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-800 text-[10px]">E2EE Mesh</span>
+            </div>
+            <h4 class="text-base font-bold text-white mb-2">Managed Service Providers (MSP)</h4>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Agenti diagnostici autonomi per monitoraggio workstation, triage degli errori e supporto sistemistico L1/L2. Controllo remoto sicuro su rete mesh crittografata end-to-end.
+            </p>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 font-mono space-y-1.5">
+              <div><strong class="text-white">Ticket:</strong> -45% tempo di gestione</div>
+              <div><strong class="text-white">Sicurezza:</strong> Crittografia ChaCha20</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-mono text-purple-300 flex justify-between">
+            <span>Remediation Automatica</span>
+            <span>Zero Esposizione</span>
+          </div>
+        </div>
+
+        <!-- Settore 4: PMI & E-Commerce -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/50 transition">
+          <div>
+            <div class="flex items-center justify-between text-xs font-mono mb-2">
+              <span class="text-emerald-400 font-bold flex items-center gap-1.5">📈 Growth & SEO</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800 text-[10px]">Autonomo</span>
+            </div>
+            <h4 class="text-base font-bold text-white mb-2">PMI, Commercio & E-Commerce</h4>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Agenti di intelligence che analizzano cataloghi, ottimizzano le schede prodotto per i motori di ricerca generativi (GEO 100/100) e qualificano nuovi contatti commerciali H24.
+            </p>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 font-mono space-y-1.5">
+              <div><strong class="text-white">Posizionamento:</strong> Ottimizzazione GEO/SEO</div>
+              <div><strong class="text-white">Report:</strong> Sintesi settimanale executive</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-mono text-emerald-400 flex justify-between">
+            <span>Operatività 24/7</span>
+            <span>Canone Fisso</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CALCOLATORE DI RISPARMIO CLOUD MONOPOLIO vs HYPERSPACE -->
+    <section class="glass-card rounded-2xl p-6 bg-gradient-to-r from-slate-900/90 to-amber-950/20 border-amber-500/30" id="calculator-section">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- CONTROLLI SLIDER (7 cols) -->
+        <div class="lg:col-span-7 space-y-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-brand-gold text-[11px] font-mono mb-2">
+              BUSINESS CASE ROI
+            </div>
+            <h3 class="text-xl font-bold text-white">
+              Calcola il Risparmio Economico: Cloud Monopolio vs HyperSpace
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Confronta la spesa ricorrente per abbonamenti cloud (OpenAI GPT-4o Enterprise, Microsoft Copilot, AWS) con una soluzione sovrana HyperSpace.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+            <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+              <label class="block text-slate-400 mb-2">POSTAZIONI AZIENDALI: <strong class="text-white text-sm" id="valSeats">5</strong></label>
+              <input type="range" id="sliderSeats" min="1" max="50" value="5" class="w-full accent-amber-500" oninput="updateCalculatedQuote()">
+              <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>1 Studio</span><span>25 PMI</span><span>50 Enterprise</span></div>
+            </div>
+            <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+              <label class="block text-slate-400 mb-2">MILIONI TOKEN/MESE: <strong class="text-white text-sm" id="valTokens">2.0 M</strong></label>
+              <input type="range" id="sliderTokens" min="0.5" max="20" step="0.5" value="2.0" class="w-full accent-amber-500" oninput="updateCalculatedQuote()">
+              <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>0.5 M</span><span>10 M</span><span>20 M</span></div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-4 text-xs font-mono">
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-950/60 px-3.5 py-2 rounded-lg border border-slate-800">
+              <input type="checkbox" id="checkOnPremise" checked class="accent-amber-500 rounded" onchange="updateCalculatedQuote()">
+              <span class="text-slate-300">Includi Hardware Appliance Dedicata On-Premise (Mini-Server in sede)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- RISULTATO ECONOMICO (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-950/95 border border-amber-500/40 rounded-2xl p-6 text-center flex flex-col justify-between shadow-2xl">
+          <div class="space-y-2">
+            <div class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">RISPARMIO NETTO AZIENDALE (ANNO 1)</div>
+            <div class="text-4xl font-black text-emerald-400 font-mono neon-text-green" id="txtNetSavings">
+              + 2.140,00 €
+            </div>
+            <div class="text-xs text-slate-400 pt-1">
+              Spesa stimata Cloud Monopolio: <span class="text-rose-400 font-mono font-bold" id="txtCloudCost">3.840 €/anno</span>
+            </div>
+          </div>
+
+          <div class="my-5 py-3 border-y border-slate-800/80 flex justify-between items-center text-xs font-mono">
+            <span class="text-slate-400">Ritorno sull'Investimento (ROI):</span>
+            <span class="text-brand-gold font-bold text-sm" id="txtRoiPercent">+ 124.5%</span>
+          </div>
+
+          <a href="mailto:info@zerozerocomputer.it?subject=Richiesta%20Installazione%20Appliance%20HyperSpace%20B2B" class="block w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-500/20 text-center">
+            Richiedi Installazione Dedicata ↗
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE VALUE PROPOSITION & PITCH GENERATOR B2B -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6" id="pitch-generator">
+      
+      <!-- COL LEFT: The Value Proposition (5 cols) -->
+      <div class="lg:col-span-5 glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-purple-950/70 text-purple-300 border border-purple-800 text-xs font-mono mb-3">
+            💼 I VANTAGGI DELL'AI SOVRANA
+          </div>
+          <h3 class="text-lg font-bold text-white">Perché Scegliere HyperSpace</h3>
+          <p class="text-xs text-slate-400 mt-1 mb-4 leading-relaxed">
+            Un'alternativa chiavi in mano alle piattaforme cloud chiuse, progettata per le aziende europee che esigono indipendenza e controllo completo.
+          </p>
+
+          <div class="space-y-3 font-mono text-xs">
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-3">
+              <span class="text-lg">🛡️</span>
+              <div>
+                <div class="font-bold text-white">Sovranità Assoluta del Dato</div>
+                <div class="text-slate-400 text-[11px] mt-0.5">I dati non lasciano mai la rete locale aziendale. Conformità totale a GDPR e AI Act.</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-3">
+              <span class="text-lg">💰</span>
+              <div>
+                <div class="font-bold text-white">Costi Fissi e Prevedibili</div>
+                <div class="text-slate-400 text-[11px] mt-0.5">Nessun costo a consumo o sorprese a fine mese per token utilizzati dai collaboratori.</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-3">
+              <span class="text-lg">⚡</span>
+              <div>
+                <div class="font-bold text-white">Continuità Operativa Garantita</div>
+                <div class="text-slate-400 text-[11px] mt-0.5">I modelli funzionano anche in assenza di connessione Internet esterna o blackout dei provider cloud.</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-3">
+              <span class="text-lg">🤝</span>
+              <div>
+                <div class="font-bold text-white">Supporto & Assistenza Diretta</div>
+                <div class="text-slate-400 text-[11px] mt-0.5">Configurazione, collaudo locale e manutenzione curata da sistemisti esperti (Zero Zero Computer, Saronno).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-800 text-[11px] text-slate-500 font-mono">
+          Esperienza sul campo nei sistemi IT dal 2003
+        </div>
+      </div>
+
+      <!-- COL RIGHT: Interactive Live Pitch Generator (7 cols) -->
+      <div class="lg:col-span-7 glass-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              ⚡ Simula la Proposta di Valore per la tua Azienda
+            </h3>
+            <span class="text-xs text-brand-gold font-mono">Configuratore B2B</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">
+            Seleziona il tuo settore aziendale per formulare all'istante la proposta ottimizzata con argomentazioni economiche e legali.
+          </p>
+
+          <!-- INPUT FORM -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs font-mono">
+            <div>
+              <label class="block text-slate-400 mb-1">SETTORE AZIENDALE:</label>
+              <select id="pitchSector" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500">
+                <option value="Studio Legale e Tributario (GDPR)">Studi Legali, Tributari & Commercialisti (GDPR)</option>
+                <option value="Software House & Web Agency">Software House & Web Agency (Dev Sandbox & SEO)</option>
+                <option value="Managed Service Provider MSP">Managed Service Provider (MSP & Helpdesk L1/L2)</option>
+                <option value="PMI e Aziende di Produzione">PMI, Commercio ed E-Commerce</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">NOME DELLA TUA AZIENDA:</label>
+              <input type="text" id="pitchCompany" placeholder="es. Studio Rossi / TechSolutions S.r.l." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+
+          <!-- GENERATE BUTTON -->
+          <button onclick="generateLivePitch()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-brand-gold to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider transition shadow-md shadow-amber-500/20 mb-4 flex items-center justify-center gap-2">
+            <span>🚀 Genera Sintesi Esecutiva per il tuo Team</span>
+          </button>
+
+          <!-- OUTPUT BOX -->
+          <div class="space-y-3">
+            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 relative">
+              <div class="flex justify-between items-center text-[11px] font-mono text-slate-400 mb-2">
+                <span class="text-amber-400 font-bold">MESSAGGIO DI PRESENTAZIONE ESISTENTE</span>
+                <button onclick="copyToClipboard('pitchOutputLinkedin')" class="text-brand-gold hover:underline flex items-center gap-1">
+                  📋 Copia
+                </button>
+              </div>
+              <pre id="pitchOutputLinkedin" class="text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed max-h-44 overflow-y-auto custom-scroll">Seleziona il settore e clicca su "Genera Sintesi Esecutiva" per consultare la proposta ottimizzata.</pre>
+            </div>
+
+            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 relative">
+              <div class="flex justify-between items-center text-[11px] font-mono text-slate-400 mb-2">
+                <span class="text-emerald-400 font-bold">SCHEDA PROPOSTA COMMERCIALE & ROI</span>
+                <button onclick="copyToClipboard('pitchOutputEmail')" class="text-emerald-400 hover:underline flex items-center gap-1">
+                  📋 Copia
+                </button>
+              </div>
+              <pre id="pitchOutputEmail" class="text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed max-h-44 overflow-y-auto custom-scroll">La bozza dettagliata con calcolo ROI comparirà qui.</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LISTINO PACCHETTI COMMERCIALI B2B -->
+    <section class="space-y-4" id="packages-section">
+      <div class="text-center max-w-2xl mx-auto space-y-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+          💼 PACCHETTI TRASPARENTI & CHIAVI IN MANO
+        </div>
+        <h3 class="text-2xl font-black text-white">
+          Scegli la Soluzione Ideale per la tua Infrastruttura
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Nessun costo nascosto. Supporto all'attivazione e garanzia di conformità normativa.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="packagesContainer">
+        <!-- Generato dinamicamente da JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/90 py-6 px-6 mt-12 text-center text-xs text-slate-500 font-mono">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div>
+        HyperSpace Sovereign B2B Solutions • Zero Zero Computer (Saronno / Lombardia) • Dal 2003
+      </div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <a href="/chat.html" class="hover:text-cyan-400">💬 Chat</a>
+        <a href="/progetto.html" class="hover:text-brand-gold">📖 Architettura</a>
+        <a href="/privacy.html" class="hover:text-white">Privacy</a>
+        <a href="/terms.html" class="hover:text-white">Termini</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // PACCHETTI COMMERCIALI B2B
+    const defaultPackages = [
+      {
+        id: "pkg_starter_sponsor",
+        name: "Starter Mesh Compute Pass",
+        price_eur: 25.0,
+        type: "accesso computazionale",
+        badge: "🥉 Starter",
+        features: [
+          "100.000 Token inferenza su modelli open-weight",
+          "Accesso API al cluster mesh distribuito",
+          "Test di integrazione per sviluppatori e microservizi",
+          "Supporto onboarding via documentazione"
+        ],
+        cta: "Attiva Pass 25€"
+      },
+      {
+        id: "pkg_arcade_champion",
+        name: "Enterprise Compute & Test Pass",
+        price_eur: 75.0,
+        type: "quota compute",
+        badge: "🥇 Pro Business",
+        features: [
+          "500.000 Token inferenza ad alta priorità",
+          "Banda computazionale dedicata su nodi GPU",
+          "Chiave API per ambienti di staging e sviluppo",
+          "Supporto tecnico prioritario per l'integrazione"
+        ],
+        cta: "Attiva Pass 75€"
+      },
+      {
+        id: "pkg_b2b_seo_swarm",
+        name: "Autonomous SEO & Growth Swarm",
+        price_eur: 490.0,
+        type: "canone mensile",
+        badge: "💼 Business Autonomo",
+        features: [
+          "Agente autonomo SEO/GEO 24/7 per il tuo sito web",
+          "Audit continuo parole chiave e visibilità generativa",
+          "Report settimanale con azioni operative raccomandate",
+          "Zero canoni cloud OpenAI aggiuntivi inclusi"
+        ],
+        cta: "Attiva Agente Continuativo"
+      },
+      {
+        id: "pkg_sovereign_studio_box",
+        name: "Appliance Studio Sovrano AI",
+        price_eur: 1490.0,
+        type: "chiavi in mano",
+        badge: "🛡️ 100% On-Premise",
+        features: [
+          "Mini-server hardware dedicato preconfigurato pronto all'uso",
+          "Modelli per analisi contratti, bilanci e perizie in sede",
+          "Zero canoni cloud ricorrenti, 100% GDPR & AI Act",
+          "Collaudo e assistenza installazione inclusi"
+        ],
+        cta: "Ordina Appliance Dedicata"
+      }
+    ];
+
+    function loadPackages() {
+      const container = document.getElementById('packagesContainer');
+      container.innerHTML = defaultPackages.map(pkg => `
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/50 transition">
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-950/80 text-brand-gold border border-amber-800">${pkg.badge}</span>
+              <span class="text-[11px] text-slate-400 font-mono">${pkg.type}</span>
+            </div>
+            <h4 class="text-base font-bold text-white mb-2">${pkg.name}</h4>
+            <div class="text-3xl font-black text-white font-mono mb-4">
+              ${pkg.price_eur.toFixed(0)} <span class="text-sm font-normal text-slate-400">€</span>
+            </div>
+            <ul class="space-y-2 text-xs text-slate-300 font-mono mb-6">
+              ${pkg.features.map(f => `<li class="flex items-start gap-1.5"><span class="text-emerald-400">✓</span> <span>${f}</span></li>`).join('')}
+            </ul>
+          </div>
+          <a href="mailto:info@zerozerocomputer.it?subject=${encodeURIComponent('Richiesta Informazioni B2B: ' + pkg.name)}" class="block w-full py-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-brand-gold border border-amber-500/40 text-center font-bold text-xs uppercase font-mono transition">
+            ${pkg.cta} ↗
+          </a>
+        </div>
+      `).join('');
+    }
+
+    // GENERATORE PITCH & VALUE PROP B2B
+    async function generateLivePitch() {
+      const sector = document.getElementById('pitchSector').value;
+      const company = document.getElementById('pitchCompany').value.trim() || 'La Vostra Azienda';
+
+      try {
+        const res = await fetch('/api/commercial/pitch/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sector, company_name: company })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('pitchOutputLinkedin').textContent = data.pitch.linkedin_pitch;
+          document.getElementById('pitchOutputEmail').textContent = data.pitch.email_pitch;
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback
+      let li = `Gentile Responsabile,\n\nabbiamo analizzato il perimetro operativo di ${company}. Con una soluzione AI Sovrana On-Premise potete eliminare le fatture ricorrenti verso cloud esteri garantendo la conformità totale alle normative GDPR e AI Act.\n\n💡 Vantaggio economico: riduzione fino all'80% sui costi operativi annuali di intelligenza artificiale.\n\nSiamo disponibili per una sessione tecnica dimostrativa dedicata di 15 minuti.\n\nTeam HyperSpace Sovereign B2B\nhttps://www.zerozerocomputer.it`;
+      let em = `Oggetto: Soluzioni AI Sovrane On-Premise e Ottimizzazione Costi per ${company}\n\nGentile Responsabile,\n\nHyperSpace fornisce appliance e modelli avanzati open-weight eseguiti direttamente nel vostro perimetro aziendale.\n\nVantaggi Chiave per ${company}:\n1. Zero Data Leak: i vostri dati riservati non escono mai dalla vostra sede.\n2. Risparmio concreto rispetto a canoni OpenAI ed enterprise cloud.\n3. Hardware dedicato chiavi in mano pronto all'uso operativo.\n\nRestiamo a disposizione per concordare una demo riservata.\n\nCordiali saluti,\nHyperSpace Sovereign Mesh (Zero Zero Computer)`;
+
+      document.getElementById('pitchOutputLinkedin').textContent = li;
+      document.getElementById('pitchOutputEmail').textContent = em;
+    }
+
+    function copyToClipboard(id) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text);
+      alert('✓ Testo copiato negli appunti!');
+    }
+
+    // CALCOLATORE PREVENTIVO DINAMICO
+    function updateCalculatedQuote() {
+      const seats = parseInt(document.getElementById('sliderSeats').value);
+      const tokensM = parseFloat(document.getElementById('sliderTokens').value);
+      const onPrem = document.getElementById('checkOnPremise').checked;
+
+      document.getElementById('valSeats').textContent = seats;
+      document.getElementById('valTokens').textContent = tokensM.toFixed(1) + ' M';
+
+      const cloudMonthly = (tokensM * 6.5) + (seats * 30.0) + 120.0;
+      const cloudAnnual = cloudMonthly * 12;
+
+      const hyperOneOff = onPrem ? 1490.0 : 490.0;
+      const hyperMonthly = (2 * 150.0) + (tokensM * 1.8);
+      const hyperYear1 = hyperOneOff + (hyperMonthly * 12);
+
+      const netSavings = Math.max(0, cloudAnnual - hyperYear1);
+      const roi = ((netSavings / hyperYear1) * 100).toFixed(1);
+
+      document.getElementById('txtNetSavings').textContent = '+ ' + netSavings.toFixed(2) + ' €';
+      document.getElementById('txtCloudCost').textContent = cloudAnnual.toFixed(0) + ' €/anno';
+      document.getElementById('txtRoiPercent').textContent = '+ ' + roi + '%';
+    }
+
+    // Inizializza
+    window.addEventListener('DOMContentLoaded', () => {
+      loadPackages();
+      updateCalculatedQuote();
+    });
+  </script>
+</body>
+</html>

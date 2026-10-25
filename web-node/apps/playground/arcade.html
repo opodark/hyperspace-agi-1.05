@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperSpace Neural Arcade | Sala Giochi Retro & Cantiere Notturno dei Nodi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace'],
+            arcade: ['"Press Start 2P"', 'monospace']
+          },
+          colors: {
+            arcade: {
+              gold: '#fbbf24',
+              amber: '#f59e0b',
+              cyan: '#57e6d9',
+              purple: '#a855f7',
+              neon: '#39ff14',
+              rose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #060814;
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(168, 85, 247, 0.08) 0px, transparent 45%),
+        radial-gradient(at 90% 90%, rgba(245, 158, 11, 0.08) 0px, transparent 45%),
+        radial-gradient(at 50% 50%, rgba(57, 255, 20, 0.04) 0px, transparent 50%);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.8);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(245, 158, 11, 0.4);
+      border-radius: 3px;
+    }
+    .arcade-cabinet {
+      background: #090c1a;
+      border: 3px solid #f59e0b;
+      box-shadow: 0 0 35px rgba(245, 158, 11, 0.3), inset 0 0 40px rgba(0, 0, 0, 0.9);
+    }
+    .arcade-crt {
+      position: relative;
+      overflow: hidden;
+    }
+    .arcade-crt::after {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+      background-size: 100% 3px, 4px 100%;
+      pointer-events: none;
+    }
+    .neon-gold {
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.8), 0 0 25px rgba(245, 158, 11, 0.4);
+    }
+    .neon-green {
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.8);
+    }
+    .pulse-glow {
+      animation: pulseGlow 2.2s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 10px #f59e0b); }
+      50% { opacity: 0.65; filter: drop-shadow(0 0 3px #f59e0b); }
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans selection:bg-arcade-gold selection:text-black custom-scroll">
+
+  <!-- TOP HEADER & NAV -->
+  <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-4 h-4 rounded-full bg-arcade-gold shadow-[0_0_15px_#f59e0b] pulse-glow"></div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2 font-arcade text-arcade-gold neon-gold text-sm md:text-base">
+          HYPERSPACE NEURAL ARCADE <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950/90 border border-purple-600 text-purple-300 font-mono">Night Shift Build</span>
+        </h1>
+        <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+          <span>Sala Giochi Retro & Laboratorio Creativo dei Nodi di Calcolo</span>
+          <span class="text-slate-600">•</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Engine 2D Canvas: ATTIVO
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAVIGATION LINKS -->
+    <nav class="flex items-center gap-2 text-xs font-mono">
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition">
+        🚀 Cockpit
+      </a>
+      <a href="/commercial.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-amber-300 transition">
+        💼 Soluzioni B2B
+      </a>
+      <a href="/arcade.html" class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold transition">
+        🕹️ Sala Giochi
+      </a>
+      <a href="/chat.html" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-cyan-300 transition">
+        💬 Chat
+      </a>
+      <button onclick="toggleArcadeSound()" id="btnSoundToggle" class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-arcade-gold font-bold transition flex items-center gap-1.5">
+        🔊 Sound: <span id="txtSound">ON</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
+
+    <!-- NIGHT SHIFT ARCHITECTURAL BANNER -->
+    <section class="p-4 rounded-2xl bg-gradient-to-r from-purple-950/50 via-slate-900/90 to-amber-950/40 border border-purple-500/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🌙</span>
+        <div>
+          <h2 class="text-sm font-bold text-white font-mono flex items-center gap-2">
+            Cantiere Notturno Autonomo dei Nodi (OMEN 16 + ASUS V16)
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Questa sala giochi è una pagina dedicata in costante espansione. Durante il turno notturno i modelli MoE generano nuovi livelli, fisica dei proiettili, logiche arcade e sonoro retrò.
+          </p>
+        </div>
+      </div>
+      <div class="font-mono text-xs text-slate-400 shrink-0 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span> Turno Notte: <strong class="text-purple-300">ATTIVO</strong>
+      </div>
+    </section>
+
+    <!-- SELECTOR TABS PER I GIOCHI -->
+    <div class="flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
+      <div class="flex flex-wrap gap-2">
+        <button onclick="selectGame('invaders')" id="tabInvaders" class="px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2">
+          <span>👾 Neural Invaders</span>
+        </button>
+        <button onclick="selectGame('pong')" id="tabPong" class="px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2">
+          <span>🏓 Pong vs AGI</span>
+        </button>
+        <button onclick="selectGame('runner')" id="tabRunner" class="px-4 py-2 rounded-xl bg-slate-900/60 text-slate-500 border border-slate-800/60 hover:text-slate-300 transition flex items-center gap-2">
+          <span>⚡ Vector Matrix (In Lavorazione Notturna)</span>
+        </button>
+      </div>
+
+      <div class="text-[11px] text-slate-400 font-mono">
+        Crediti Guadagnati: <span id="tokensWonTotal" class="text-emerald-400 font-bold">0 Token</span>
+      </div>
+    </div>
+
+    <!-- MAIN ARCADE CABINET & LEADERBOARD -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- THE CANVAS CABINET (8 cols) -->
+      <div class="lg:col-span-8 arcade-cabinet rounded-2xl p-4 flex flex-col items-center">
+        <!-- SCORE HEADER -->
+        <div class="w-full flex justify-between items-center px-4 py-2 text-xs font-arcade text-arcade-gold border-b border-amber-900/60 mb-2">
+          <span>SCORE: <span id="liveScore" class="text-white">0000</span></span>
+          <span class="text-emerald-400">TOKENS: <span id="liveTokens">0</span></span>
+          <span class="text-rose-400">VITE: <span id="liveLives">❤️❤️❤️</span></span>
+        </div>
+
+        <!-- CRT CANVAS -->
+        <div class="arcade-crt w-full rounded-xl overflow-hidden bg-black flex justify-center items-center relative shadow-inner">
+          <canvas id="gameCanvas" width="760" height="420" class="w-full max-w-full block"></canvas>
+
+          <!-- OVERLAY MODAL -->
+          <div id="gameOverlay" class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-6 text-center space-y-4">
+            <h3 class="text-xl md:text-2xl font-black font-arcade text-arcade-gold neon-gold" id="overlayHeading">
+              NEURAL INVADERS
+            </h3>
+            <p class="text-xs text-slate-300 max-w-md font-mono" id="overlayText">
+              Difendi il cluster dagli overhead di latenza e dai colli di bottiglia! Usa <strong class="text-arcade-gold">← / →</strong> (o A / D) per muoverti e <strong class="text-arcade-gold">SPAZIO</strong> per sparare impulsi token.
+            </p>
+            <button onclick="startGame()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-arcade-gold to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black font-arcade text-xs tracking-wider transition shadow-lg shadow-amber-500/30">
+              INSERT COIN / START GAME
+            </button>
+          </div>
+        </div>
+
+        <!-- ON-SCREEN CONTROLS (TOUCH & CLICK) -->
+        <div class="w-full flex justify-between items-center pt-3 px-2 text-xs font-mono text-slate-400">
+          <div class="flex gap-2">
+            <button id="ctrlLeft" class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 active:bg-amber-600 active:text-black">◀ SINISTRA</button>
+            <button id="ctrlRight" class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 active:bg-amber-600 active:text-black">DESTRA ▶</button>
+          </div>
+          <button id="ctrlFire" class="px-6 py-2 rounded-lg bg-amber-500/20 text-arcade-gold border border-amber-500/40 active:bg-amber-500 active:text-black font-bold">🔥 FUOCO (SPAZIO)</button>
+        </div>
+      </div>
+
+      <!-- HALL OF FAME & HIGHSCORES (4 cols) -->
+      <div class="lg:col-span-4 p-6 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-white font-arcade text-arcade-gold flex items-center gap-2">
+              🏆 HALL OF FAME
+            </h3>
+            <span class="text-[10px] text-slate-500 font-mono">TOP SCORES</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4 font-mono">
+            I migliori piloti del cluster guadagnano token di calcolo gratuiti per testare i modelli.
+          </p>
+
+          <div class="space-y-2 font-mono text-xs" id="arcadeLeaderboard">
+            <!-- Riempito dinamicamente -->
+          </div>
+        </div>
+
+        <!-- FORM REGISTRAZIONE RECORD -->
+        <div class="mt-6 pt-4 border-t border-slate-800">
+          <label class="block text-[11px] font-mono text-slate-400 mb-1">REGISTRA IL TUO RECORD:</label>
+          <div class="flex gap-2">
+            <input type="text" id="arcadePlayerName" placeholder="Tuo Nickname" maxlength="16" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono">
+            <button onclick="saveArcadeScore()" class="px-4 py-1.5 rounded-lg bg-amber-500/20 text-arcade-gold border border-amber-500/40 hover:bg-amber-500/30 font-bold text-xs font-mono">
+              Salva
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/90 py-6 px-6 mt-12 text-center text-xs text-slate-500 font-mono">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div>
+        HyperSpace Neural Arcade • Cantiere Notturno dei Nodi • Zero Zero Computer
+      </div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <a href="/commercial.html" class="hover:text-arcade-gold">💼 Soluzioni B2B</a>
+        <a href="/chat.html" class="hover:text-cyan-400">💬 Chat Sovrana</a>
+        <a href="/terms.html" class="hover:text-white">Termini</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT ENGINE RETRO CON AUDIO SINTETIZZATO & LOOP -->
+  <script>
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playBeep(freq, type = 'square', duration = 0.1, gainVal = 0.1) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleArcadeSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('txtSound').textContent = soundEnabled ? 'ON' : 'OFF';
+      if (soundEnabled) playBeep(520, 'sine', 0.15, 0.2);
+    }
+
+    // GESTIONE GIOCHI & CANVAS
+    let currentGame = 'invaders';
+    let isRunning = false;
+    let isOver = false;
+    let animId = null;
+    let score = 0;
+    let lives = 3;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let player = { x: 380, y: 380, width: 36, height: 20, speed: 6.5, color: '#fbbf24' };
+    let bullets = [];
+    let enemies = [];
+    let particles = [];
+    let stars = [];
+    let enemySpeed = 1.3;
+    let spawnTimer = 0;
+
+    // Genera stelle di sfondo
+    for (let i = 0; i < 70; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 0.5,
+        speed: Math.random() * 0.9 + 0.3
+      });
+    }
+
+    const enemyCatalog = [
+      { text: "⚡ LATENCY SPIKE", color: "#f59e0b", points: 80 },
+      { text: "☁️ CLOUD INVOICE", color: "#f43f5e", points: 100 },
+      { text: "💾 MEMORY LEAK", color: "#a855f7", points: 120 },
+      { text: "⚠️ SERVER TIMEOUT", color: "#ef4444", points: 150 },
+      { text: "🔥 OVERHEATING", color: "#fb923c", points: 90 }
+    ];
+
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (e.code === 'Space' && isRunning) {
+        e.preventDefault();
+        shoot();
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    document.getElementById('ctrlLeft').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowLeft'] = true; });
+    document.getElementById('ctrlLeft').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowLeft'] = false; });
+    document.getElementById('ctrlRight').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowRight'] = true; });
+    document.getElementById('ctrlRight').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowRight'] = false; });
+    document.getElementById('ctrlFire').addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
+
+    function selectGame(gameId) {
+      currentGame = gameId;
+      document.getElementById('tabInvaders').className = gameId === 'invaders' ? 'px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
+      document.getElementById('tabPong').className = gameId === 'pong' ? 'px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
+      resetGameState();
+    }
+
+    function shoot() {
+      if (!isRunning || isOver) return;
+      bullets.push({ x: player.x, y: player.y - 10, width: 4, height: 12, speed: 9, color: '#39ff14' });
+      playBeep(700, 'square', 0.05, 0.1);
+    }
+
+    function startGame() {
+      document.getElementById('gameOverlay').classList.add('hidden');
+      resetGameState();
+      isRunning = true;
+      playBeep(520, 'sine', 0.15, 0.2);
+      if (animId) cancelAnimationFrame(animId);
+      gameLoop();
+    }
+
+    function resetGameState() {
+      score = 0;
+      lives = 3;
+      isOver = false;
+      bullets = [];
+      enemies = [];
+      particles = [];
+      player.x = canvas.width / 2;
+      player.y = canvas.height - 35;
+      updateUI();
+    }
+
+    function updateUI() {
+      document.getElementById('liveScore').textContent = score.toString().padStart(4, '0');
+      const tokensWon = Math.floor(score / 40);
+      document.getElementById('liveTokens').textContent = tokensWon;
+      document.getElementById('tokensWonTotal').textContent = tokensWon + ' Token';
+      document.getElementById('liveLives').textContent = '❤️'.repeat(Math.max(0, lives));
+    }
+
+    function spawnEnemy() {
+      const type = enemyCatalog[Math.floor(Math.random() * enemyCatalog.length)];
+      const x = Math.random() * (canvas.width - 130) + 20;
+      enemies.push({
+        x: x,
+        y: -20,
+        width: 110,
+        height: 22,
+        label: type.text,
+        color: type.color,
+        points: type.points,
+        speed: enemySpeed + Math.random() * 0.5
+      });
+    }
+
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 16; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          size: Math.random() * 3 + 1,
+          color: color,
+          alpha: 1
+        });
+      }
+      playBeep(200, 'sawtooth', 0.15, 0.2);
+    }
+
+    function gameLoop() {
+      ctx.fillStyle = '#060814';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Stelle
+      ctx.fillStyle = '#ffffff';
+      for (let s of stars) {
+        s.y += s.speed;
+        if (s.y > canvas.height) s.y = 0;
+        ctx.globalAlpha = s.speed * 0.7;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      }
+      ctx.globalAlpha = 1;
+
+      if (isRunning && !isOver) {
+        if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > player.width / 2) player.x -= player.speed;
+        if ((keys['ArrowRight'] || keys['KeyD']) && player.x < canvas.width - player.width / 2) player.x += player.speed;
+
+        spawnTimer++;
+        if (spawnTimer % 65 === 0) spawnEnemy();
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          b.y -= b.speed;
+          if (b.y < -10) { bullets.splice(i, 1); continue; }
+
+          ctx.fillStyle = b.color;
+          ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
+
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const e = enemies[j];
+            if (b.x > e.x && b.x < e.x + e.width && b.y > e.y && b.y < e.y + e.height) {
+              createExplosion(b.x, b.y, e.color);
+              score += e.points;
+              updateUI();
+              enemies.splice(j, 1);
+              bullets.splice(i, 1);
+              break;
+            }
+          }
+        }
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          e.y += e.speed;
+
+          ctx.fillStyle = '#0e1224';
+          ctx.strokeStyle = e.color;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(e.x, e.y, e.width, e.height);
+          ctx.fillRect(e.x, e.y, e.width, e.height);
+
+          ctx.fillStyle = e.color;
+          ctx.font = '9px "Press Start 2P", monospace';
+          ctx.fillText(e.label, e.x + 6, e.y + 15);
+
+          if (e.y > canvas.height - 20) {
+            enemies.splice(i, 1);
+            lives--;
+            playBeep(120, 'sawtooth', 0.2, 0.25);
+            updateUI();
+            if (lives <= 0) { gameOver(); return; }
+          }
+        }
+
+        // Nave giocatore
+        ctx.fillStyle = player.color;
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y - 12);
+        ctx.lineTo(player.x - 18, player.y + 10);
+        ctx.lineTo(player.x, player.y + 4);
+        ctx.lineTo(player.x + 18, player.y + 10);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.035;
+        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+
+      animId = requestAnimationFrame(gameLoop);
+    }
+
+    function gameOver() {
+      isOver = true;
+      isRunning = false;
+      const tok = Math.floor(score / 40);
+      document.getElementById('overlayHeading').textContent = "RUN COMPLETATA!";
+      document.getElementById('overlayText').innerHTML = `
+        Punteggio: <strong class="text-arcade-gold text-lg">${score}</strong><br>
+        Hai sbloccato <strong class="text-emerald-400 font-bold">${tok} Token</strong> per testare i modelli.<br>
+        Salva il tuo punteggio nella Hall of Fame.
+      `;
+      document.getElementById('gameOverlay').classList.remove('hidden');
+      playBeep(180, 'square', 0.35, 0.25);
+    }
+
+    // LEADERBOARD
+    let highscores = [
+      { player: "CyberPilot", score: 4820, tokens: 120 },
+      { player: "FlintMaster", score: 3950, tokens: 90 },
+      { player: "ByteSurfer", score: 2740, tokens: 60 },
+      { player: "MeshNode", score: 1980, tokens: 40 },
+      { player: "LiquidMind", score: 1500, tokens: 25 }
+    ];
+
+    function renderLeaderboard() {
+      const container = document.getElementById('arcadeLeaderboard');
+      container.innerHTML = highscores.slice(0, 5).map((s, idx) => `
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="text-arcade-gold font-bold font-arcade text-[10px]">#${idx + 1}</span>
+            <span class="text-white font-bold">${s.player}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-amber-400 font-bold">${s.score} pts</span>
+            <span class="text-[10px] text-emerald-400 ml-1.5">(+${s.tokens || Math.floor(s.score/40)} tok)</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function saveArcadeScore() {
+      const name = document.getElementById('arcadePlayerName').value.trim() || 'Player1';
+      const pts = score || 1200;
+
+      try {
+        const res = await fetch('/api/commercial/arcade/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ player: name, score: pts, game: currentGame })
+        });
+        if (res.ok) {
+          alert(`✓ Record registrato: ${name} (${pts} pts)!`);
+          loadApiLeaderboard();
+          return;
+        }
+      } catch (e) {}
+
+      highscores.unshift({ player: name, score: pts, tokens: Math.floor(pts / 40) });
+      highscores.sort((a, b) => b.score - a.score);
+      renderLeaderboard();
+      alert(`✓ Record salvato: ${name} (${pts} pts)!`);
+    }
+
+    async function loadApiLeaderboard() {
+      try {
+        const res = await fetch('/api/commercial/arcade/scores');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.scores && data.scores.length > 0) {
+            highscores = data.scores.map(s => ({ player: s.player, score: s.score, tokens: s.tokens_won }));
+          }
+        }
+      } catch (e) {}
+      renderLeaderboard();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadApiLeaderboard();
+    });
+  </script>
+</body>
+</html>

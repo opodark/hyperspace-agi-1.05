@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """
 Tests for B2B target research and LinkedIn bulletin generator.
 Ensures both scripts handle data formatting, filtering, and reporting properly.

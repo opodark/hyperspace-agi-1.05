@@ -188,10 +188,17 @@ def execute_omen_prompt(
     # 1. Routing prioritario carichi pesanti (40B flint, 24B LFM) su ASUS se disponibile (48GB RAM)
     if (is_heavy or is_flint) and _is_asus_available():
         t0 = time.perf_counter()
-        asus_timeout = max(timeout, 380) if is_flint else max(timeout, 150)
+        asus_timeout = max(timeout, 380) if is_flint else max(timeout, 300)
         try:
-            _log_stream("ROUTING", f"Inoltro prompt ({model}) verso ASUS Ollama (timeout {asus_timeout}s)...", node="ASUS-V16")
-            mesh_payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+            _log_stream("ROUTING", f"Inoltro prompt ({model}) verso ASUS Ollama (timeout {asus_timeout}s, num_ctx 32k)...", node="ASUS-V16")
+            mesh_payload = json.dumps({
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_ctx": 32768,  # Finestra di contesto ottimizzata (max 200k) per alimentazione PD 100W
+                },
+            }).encode("utf-8")
             mesh_req = urllib.request.Request(
                 f"{ASUS_OLLAMA_URL}/api/generate",
                 data=mesh_payload,
@@ -281,7 +288,14 @@ def execute_omen_prompt(
     if not is_flint and _is_asus_available():
         try:
             _log_stream("ROUTING", f"Fallback secondario su ASUS Ollama per {model}...", node="ASUS-V16")
-            mesh_payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+            mesh_payload = json.dumps({
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_ctx": 32768,
+                },
+            }).encode("utf-8")
             mesh_req = urllib.request.Request(
                 f"{ASUS_OLLAMA_URL}/api/generate",
                 data=mesh_payload,

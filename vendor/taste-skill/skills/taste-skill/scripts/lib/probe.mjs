@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // probe() runs INSIDE the page (it is serialised and evaluated through cdp.mjs), so it must stay
 // self-contained: no imports, no closures over module scope.
 // It measures what a design reviewer looks at — headline line counts, the type system, colour,

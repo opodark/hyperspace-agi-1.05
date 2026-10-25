@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
 // tasteskill / lint — static scan of source files for the tells this skill bans.
 // Catches them before a render, plus the ones a render cannot see (copy habits, motion values).
 //

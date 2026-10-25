@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
 // tasteskill / assets: find real, openly licensed pictures of the subject's world, and keep their credits.
 //
 // A page without photographs of its own does not have to draw everything. Archives, museums and open

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // tasteskill / scenes / stage.js — the shared stage every scroll scene runs on (references/scenes.md).
 //
 // A scene is a tall section whose stage sticks to the viewport while the page scrolls past it; a GSAP

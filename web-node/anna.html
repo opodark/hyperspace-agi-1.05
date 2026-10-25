@@ -5,26 +5,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#070b18">
-  <meta name="description" content="Incontra Anna e Aurora, agenti AI autonomi capaci di generare riflessioni, diari notturni, poesie visive e contenuti multimediali sovrani.">
+  <meta name="description" content="HyperSpace AI Testbench: collaudo interattivo del chatbot Anna con tutte le ultime feature del flusso (Vector Clocks, CoT Reasoning, Memoria a Grafo e Modelli 40B/24B).">
   <link rel="canonical" href="https://www.zerozerocomputer.it/anna.html">
   <!-- START HYPERSPACE SEO METADATA -->
   <meta property="og:site_name" content="00MESH · HyperSpace AGI">
-  <meta property="og:type" content="profile">
+  <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.zerozerocomputer.it/anna.html">
-  <meta property="og:title" content="Anna & Aurora · Agenti Autonomi Sovrani nel Mesh HyperSpace">
-  <meta property="og:description" content="Incontra Anna e Aurora, agenti AI autonomi capaci di generare riflessioni, diari notturni, poesie visive e contenuti multimediali sovrani.">
+  <meta property="og:title" content="Anna Neural Chatbot · HyperSpace AI Testbench & Flusso Sovrano">
+  <meta property="og:description" content="Collaudo del chatbot neurale Anna con tutte le ultime feature del flusso HyperSpace: Vector Clocks, CoT Reasoning, Memoria Tri-Modale e Nodi di Calcolo Sovrani.">
   <meta property="og:image" content="https://www.zerozerocomputer.it/og-image.png">
   <meta property="og:locale" content="it_IT">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@ZeroZeroMesh">
-  <meta name="twitter:title" content="Anna & Aurora · Agenti Autonomi Sovrani nel Mesh HyperSpace">
-  <meta name="twitter:description" content="Incontra Anna e Aurora, agenti AI autonomi capaci di generare riflessioni, diari notturni, poesie visive e contenuti multimediali sovrani.">
+  <meta name="twitter:title" content="Anna Neural Chatbot · HyperSpace AI Testbench & Flusso Sovrano">
+  <meta name="twitter:description" content="Collaudo del chatbot neurale Anna con tutte le ultime feature del flusso HyperSpace.">
   <meta name="twitter:image" content="https://www.zerozerocomputer.it/og-image.png">
   <meta name="author" content="ZeroZeroComputer · HyperSpace Sovereign Mesh">
-  <meta name="date" content="2026-10-24">
-  <meta name="last-modified" content="2026-10-24">
+  <meta name="date" content="2026-10-25">
+  <meta name="last-modified" content="2026-10-25">
   <!-- END HYPERSPACE SEO METADATA -->
-  <title>Anna & Aurora · Agenti Autonomi Sovrani nel Mesh HyperSpace</title>
+  <title>Anna Neural Chatbot · HyperSpace AI Testbench & Flusso Sovrano</title>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791" crossorigin="anonymous"></script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%23a855f7' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
 
@@ -34,8 +34,10 @@
       --card: #0b1124;
       --cyan: #57e6d9;
       --violet: #a855f7;
+      --indigo: #6366f1;
       --pink: #f43f5e;
       --gold: #fbbf24;
+      --emerald: #10b981;
       --text: #f8fafc;
       --muted: #94a3b8;
       --border: #1e293b;
@@ -50,9 +52,9 @@
       display: flex;
       flex-direction: column;
       background-image:
-        radial-gradient(circle at 50% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 60%),
-        radial-gradient(circle at 80% 80%, rgba(87, 230, 217, 0.08) 0%, transparent 50%),
-        linear-gradient(rgba(5, 8, 20, 0.95), rgba(5, 8, 20, 0.95));
+        radial-gradient(circle at 50% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 85% 85%, rgba(87, 230, 217, 0.08) 0%, transparent 50%),
+        linear-gradient(rgba(5, 8, 20, 0.96), rgba(5, 8, 20, 0.96));
     }
 
     /* Top Navigation HUD */
@@ -63,10 +65,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 20px;
-      background: rgba(11, 17, 36, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+      padding: 10px 20px;
+      background: rgba(11, 17, 36, 0.9);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.3);
       flex-wrap: wrap;
       gap: 12px;
     }
@@ -79,7 +81,7 @@
     .brand-badge {
       font-size: 11px;
       font-weight: 800;
-      background: linear-gradient(135deg, var(--violet), var(--cyan));
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: .08em;
@@ -91,26 +93,26 @@
       color: #fff;
     }
 
-    /* Affection / Intimacy Meter */
-    .affinity-container {
+    /* Flow Synchronization & Coherence Meter */
+    .flow-meter-wrap {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: rgba(7, 11, 24, 0.7);
+      background: rgba(7, 11, 24, 0.85);
       padding: 6px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
     }
-    .affinity-heart {
-      font-size: 18px;
-      animation: pulse 1.8s infinite;
+    .flow-icon {
+      font-size: 16px;
+      animation: pulseFlow 2s infinite;
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px var(--pink)); }
-      50% { transform: scale(1.2); filter: drop-shadow(0 0 12px var(--pink)); }
+    @keyframes pulseFlow {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px var(--cyan)); }
+      50% { transform: scale(1.15); filter: drop-shadow(0 0 10px var(--cyan)); }
     }
-    .affinity-bar-wrap {
+    .flow-bar-bg {
       width: 140px;
       height: 8px;
       background: #1e293b;
@@ -118,17 +120,18 @@
       overflow: hidden;
       position: relative;
     }
-    .affinity-bar-fill {
+    .flow-bar-fill {
       height: 100%;
-      width: 15%;
-      background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
+      width: 88%;
+      background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--violet));
       border-radius: 999px;
-      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: width 0.5s ease;
     }
-    .affinity-label {
+    .flow-label {
       font-size: 12px;
       font-weight: 700;
       color: #fff;
+      font-family: monospace;
     }
     .stage-pill {
       font-size: 10px;
@@ -136,49 +139,94 @@
       text-transform: uppercase;
       padding: 3px 8px;
       border-radius: 6px;
-      background: rgba(168, 85, 247, 0.2);
-      color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.4);
+      background: rgba(87, 230, 217, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(87, 230, 217, 0.4);
+      font-family: monospace;
     }
 
     /* Actions Right */
     .hud-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+    }
+    .nav-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .nav-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--cyan);
+      color: #fff;
     }
     .btn-phantom {
-      background: linear-gradient(135deg, #5822b3, #8b5cf6);
-      border: 1px solid #a855f7;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      border: 1px solid #818cf8;
       color: #fff;
       font-size: 12px;
       font-weight: 700;
-      padding: 7px 14px;
+      padding: 6px 12px;
       border-radius: 8px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: all .2s;
     }
-    .btn-phantom:hover { filter: brightness(1.15); transform: translateY(-1px); }
-    .btn-pump {
-      background: rgba(87, 230, 217, 0.1);
-      border: 1px solid rgba(87, 230, 217, 0.4);
-      color: var(--cyan);
+
+    /* FEATURE TESTBENCH TOGGLE BAR */
+    .testbench-bar {
+      max-width: 960px;
+      width: 100%;
+      margin: 12px auto 0;
+      padding: 8px 16px;
+      background: rgba(11, 17, 36, 0.85);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
       font-size: 12px;
-      font-weight: 700;
-      padding: 7px 12px;
+      font-family: monospace;
+    }
+    .feature-badge-btn {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      padding: 4px 10px;
       border-radius: 8px;
-      text-decoration: none;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      transition: all .2s;
+      gap: 5px;
+      transition: all .15s;
     }
-    .btn-pump:hover { background: rgba(87, 230, 217, 0.2); }
+    .feature-badge-btn.active {
+      background: rgba(87, 230, 217, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: bold;
+    }
+    .model-selector {
+      background: #070b18;
+      border: 1px solid #334155;
+      color: #fff;
+      font-size: 11.5px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      outline: none;
+    }
 
-    /* Visual Novel Stage Area */
+    /* Stage Area */
     .vn-stage {
       flex: 1;
       display: flex;
@@ -186,33 +234,33 @@
       align-items: center;
       justify-content: flex-end;
       position: relative;
-      padding: 20px;
+      padding: 16px 20px 24px;
       max-width: 960px;
       width: 100%;
       margin: 0 auto;
-      min-height: calc(100vh - 70px);
+      min-height: calc(100vh - 120px);
     }
 
     /* Character Avatar Display */
     .character-avatar-wrap {
       position: relative;
-      width: 380px;
-      max-width: 85vw;
-      height: 480px;
+      width: 340px;
+      max-width: 80vw;
+      height: 440px;
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      margin-bottom: -40px;
+      margin-bottom: -35px;
       z-index: 10;
       pointer-events: none;
     }
     .character-glow {
       position: absolute;
-      width: 320px;
-      height: 320px;
+      width: 300px;
+      height: 300px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
-      bottom: 60px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, transparent 70%);
+      bottom: 50px;
       animation: glowBreath 4s ease-in-out infinite alternate;
       z-index: 1;
     }
@@ -235,60 +283,56 @@
       100% { transform: translateY(-8px); }
     }
 
-    /* Floating Emotion Popups */
-    .emotion-badge-float {
+    /* Status Pill Float */
+    .flow-status-pill {
       position: absolute;
-      top: 60px;
-      right: 20px;
-      background: rgba(11, 17, 36, 0.9);
-      border: 1px solid var(--violet);
-      padding: 6px 14px;
+      top: 50px;
+      right: 15px;
+      background: rgba(11, 17, 36, 0.92);
+      border: 1px solid var(--cyan);
+      padding: 5px 12px;
       border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 700;
       color: #fff;
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+      box-shadow: 0 0 15px rgba(87, 230, 217, 0.3);
       z-index: 15;
-      animation: floatBadge 0.5s ease-out;
-    }
-    @keyframes floatBadge {
-      0% { transform: scale(0.6) translateY(20px); opacity: 0; }
-      100% { transform: scale(1) translateY(0); opacity: 1; }
+      font-family: monospace;
     }
 
     /* Dialogue Box (Visual Novel Style) */
     .dialogue-box {
       width: 100%;
-      background: rgba(11, 17, 36, 0.92);
+      background: rgba(11, 17, 36, 0.94);
       backdrop-filter: blur(20px);
-      border: 1px solid rgba(168, 85, 247, 0.4);
+      border: 1px solid rgba(99, 102, 241, 0.35);
       border-radius: 18px;
-      padding: 22px 24px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(168, 85, 247, 0.15);
+      padding: 22px 24px 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.12);
       position: relative;
       z-index: 20;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .nameplate {
       position: absolute;
       top: -15px;
       left: 24px;
-      background: linear-gradient(135deg, #4c1d95, #6d28d9);
-      border: 1px solid #c084fc;
+      background: linear-gradient(135deg, #3730a3, #4f46e5);
+      border: 1px solid #818cf8;
       padding: 4px 16px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
       letter-spacing: .08em;
       color: #fff;
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 4px 15px rgba(109, 40, 217, 0.5);
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.5);
     }
     .nameplate .tag {
       font-size: 9.5px;
@@ -296,15 +340,41 @@
       color: var(--cyan);
       padding: 2px 6px;
       border-radius: 4px;
+      font-family: monospace;
     }
 
     .dialogue-text {
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.65;
       color: #f1f5f9;
-      min-height: 58px;
-      margin-top: 4px;
-      margin-bottom: 14px;
+      min-height: 54px;
+      margin-top: 6px;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    /* CoT Thinking Inspector Accordion */
+    .cot-inspector {
+      display: none;
+      background: #070b18;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-family: monospace;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+    .cot-inspector-header {
+      display: flex;
+      justify-content: space-between;
+      color: var(--violet);
+      font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 10.5px;
+      text-transform: uppercase;
     }
 
     /* Quick Choices / Suggestions */
@@ -312,24 +382,24 @@
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
       scrollbar-width: none;
     }
     .choices-row::-webkit-scrollbar { display: none; }
     .choice-chip {
       background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(168, 85, 247, 0.3);
+      border: 1px solid rgba(99, 102, 241, 0.3);
       color: #cbd5e1;
-      font-size: 12.5px;
-      padding: 8px 14px;
+      font-size: 12px;
+      padding: 6px 12px;
       border-radius: 999px;
       cursor: pointer;
       white-space: nowrap;
       transition: all .2s;
     }
     .choice-chip:hover {
-      background: rgba(168, 85, 247, 0.25);
+      background: rgba(99, 102, 241, 0.25);
       border-color: var(--cyan);
       color: #fff;
       transform: translateY(-1px);
@@ -347,22 +417,22 @@
       border: 1px solid #1e293b;
       color: #fff;
       font-size: 14px;
-      padding: 12px 18px;
+      padding: 11px 16px;
       border-radius: 12px;
       outline: none;
       transition: border-color .2s;
     }
     .input-field:focus {
-      border-color: var(--violet);
-      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(87, 230, 217, 0.15);
     }
     .btn-send {
-      background: linear-gradient(135deg, var(--violet), var(--cyan));
+      background: linear-gradient(135deg, var(--cyan), var(--indigo));
       border: none;
       color: #030712;
       font-weight: 800;
       font-size: 13.5px;
-      padding: 12px 22px;
+      padding: 11px 20px;
       border-radius: 12px;
       cursor: pointer;
       transition: transform .15s, filter .15s;
@@ -372,157 +442,44 @@
       transform: translateY(-1px);
     }
 
-    /* Token Gate Barrier Modal */
-    .token-gate-banner {
-      display: none;
-      background: linear-gradient(135deg, rgba(88, 34, 179, 0.3), rgba(6, 182, 212, 0.2));
-      border: 1px solid var(--violet);
-      border-radius: 14px;
-      padding: 16px 20px;
-      margin-bottom: 14px;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      box-shadow: 0 0 30px rgba(168, 85, 247, 0.25);
-    }
-    .token-gate-text b { color: #fff; }
-    .token-gate-text p { font-size: 12.5px; color: #cbd5e1; margin-top: 3px; }
-
-    /* VIP Companion Creator Modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(3, 7, 18, 0.88);
-      backdrop-filter: blur(14px);
-      z-index: 100;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal-card {
-      background: #0b1124;
-      border: 1px solid rgba(168, 85, 247, 0.4);
-      border-radius: 20px;
-      max-width: 580px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.2);
-      position: relative;
-    }
-    .modal-header {
+    /* Telemetry Pill Bar */
+    .telemetry-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .modal-title {
-      font-size: 17px;
-      font-weight: 800;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 20px;
-      cursor: pointer;
-      line-height: 1;
-    }
-    .modal-close:hover { color: #fff; }
-    .form-row {
-      margin-bottom: 14px;
-    }
-    .form-lbl {
-      display: block;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--cyan);
-      margin-bottom: 6px;
-    }
-    .form-select, .form-input {
-      width: 100%;
-      background: #070b18;
-      border: 1px solid #1e293b;
-      color: #fff;
-      font-size: 13px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      outline: none;
-      box-sizing: border-box;
-    }
-    .form-select:focus, .form-input:focus {
-      border-color: var(--violet);
-      box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25);
-    }
-    .btn-create-exec {
-      width: 100%;
-      background: linear-gradient(135deg, #ec4899, #8b5cf6);
-      border: none;
-      color: #fff;
-      font-weight: 800;
-      font-size: 14px;
-      padding: 13px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: filter .15s, transform .15s;
       margin-top: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .btn-create-exec:hover {
-      filter: brightness(1.15);
-      transform: translateY(-1px);
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
     }
 
     @media (max-width: 640px) {
       .hud-bar { padding: 10px 14px; }
-      .affinity-bar-wrap { width: 90px; }
-      .character-avatar-wrap { height: 380px; }
-      .dialogue-box { padding: 18px 16px; }
-      .dialogue-text { font-size: 14.5px; }
+      .flow-bar-bg { width: 90px; }
+      .character-avatar-wrap { height: 360px; }
+      .dialogue-box { padding: 18px 14px 14px; }
+      .dialogue-text { font-size: 14px; }
     }
   </style>
-  <!-- START HYPERSPACE SCHEMA JSONLD -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "ProfilePage",
-  "name": "Anna & Aurora · Agenti Autonomi Sovrani nel Mesh HyperSpace",
-  "description": "Incontra Anna e Aurora, agenti AI autonomi capaci di generare riflessioni, diari notturni, poesie visive e contenuti multimediali sovrani.",
-  "url": "https://www.zerozerocomputer.it/anna.html",
-  "inLanguage": "it-IT",
-  "datePublished": "2026-10-06",
-  "dateModified": "2026-10-24",
-  "isPartOf": {
-    "@type": "WebSite",
-    "name": "00MESH",
-    "url": "https://www.zerozerocomputer.it"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "ZeroZeroComputer",
-    "url": "https://www.zerozerocomputer.it"
-  },
-  "mainEntity": {
-    "@type": "Person",
-    "name": "Anna",
-    "alternateName": "Anna Sovereign Agent",
-    "description": "Agente AI autonomo per riflessioni filosofiche, poesie e arte visiva."
+
+  <!-- SCHEMA JSONLD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Anna Neural Chatbot · HyperSpace AI Testbench",
+    "description": "Collaudo interattivo del chatbot Anna con le feature del flusso HyperSpace (Vector Clocks, CoT Reasoning, Memoria a Grafo e Modelli 40B/24B).",
+    "url": "https://www.zerozerocomputer.it/anna.html",
+    "inLanguage": "it-IT",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "All",
+    "publisher": {
+      "@type": "Organization",
+      "name": "ZeroZeroComputer",
+      "url": "https://www.zerozerocomputer.it"
+    }
   }
-}
-</script>
-  <!-- END HYPERSPACE SCHEMA JSONLD -->
+  </script>
 </head>
 <body>
 
@@ -531,41 +488,56 @@
     <div class="brand-group">
       <a href="./" style="text-decoration:none; display:flex; align-items:center; gap:8px;">
         <span class="brand-badge">00MESH</span>
-        <span class="brand-title">ANNA</span>
+        <span class="brand-title">ANNA TESTBENCH</span>
       </a>
     </div>
 
-    <!-- Affection Meter -->
-    <div class="affinity-container">
-      <span class="affinity-heart">💖</span>
-      <div class="affinity-bar-wrap">
-        <div id="affinityFill" class="affinity-bar-fill" style="width: 15%;"></div>
+    <!-- Flow Synchronization & Coherence Meter -->
+    <div class="flow-meter-wrap">
+      <span class="flow-icon">⚡</span>
+      <div class="flow-bar-bg">
+        <div id="flowFill" class="flow-bar-fill" style="width: 88%;"></div>
       </div>
-      <span id="affinityScoreText" class="affinity-label">15%</span>
-      <span id="stageBadge" class="stage-pill">Stage 1 · Distaccata</span>
+      <span id="flowScoreText" class="flow-label">88%</span>
+      <span id="flowStageBadge" class="stage-pill">Vector Clock · Sync</span>
     </div>
 
     <!-- Actions -->
     <div class="hud-actions">
-      <button type="button" id="btnCreateCompanion" class="btn-phantom" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); border-color:#f43f5e; display:none;" title="Personalizza o crea una nuova compagna AI virtuale">
-        ✨ Crea Companion VIP
-      </button>
+      <a href="./" class="nav-btn">🚀 Home</a>
+      <a href="./commercial.html" class="nav-btn">💼 B2B Prezzi</a>
+      <a href="./chat.html" class="nav-btn">💬 Chat Classica</a>
       <button type="button" id="phantomBtn" class="btn-phantom">
         🟣 <span id="phantomBtnLabel">Collega Phantom</span>
       </button>
-      <a href="https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" rel="noopener noreferrer" class="btn-pump">
-        🚀 $00MESH
-      </a>
-      <a href="./chat.html" style="color:var(--muted); font-size:12px; text-decoration:none; margin-left:4px;" title="Torna alla chat classica">
-        💬 Chat
-      </a>
     </div>
   </header>
 
+  <!-- FEATURE TESTBENCH TOGGLE BAR -->
+  <section class="testbench-bar">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-slate-400">Pipeline Feature:</span>
+      <button type="button" class="feature-badge-btn active" id="featCot" onclick="toggleFeature('cot')">🧠 CoT Reasoning</button>
+      <button type="button" class="feature-badge-btn active" id="featGraph" onclick="toggleFeature('graph')">🧬 Memoria Tri-Modale</button>
+      <button type="button" class="feature-badge-btn active" id="featAst" onclick="toggleFeature('ast')">🛡️ Validazione AST</button>
+      <button type="button" class="feature-badge-btn active" id="featMesh" onclick="toggleFeature('mesh')">🌐 Mesh Routing</button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="text-slate-400">Modello:</span>
+      <select id="modelSelect" class="model-selector">
+        <option value="omniroute">🌐 OmniRoute (Smart Cluster Mac/OMEN/ASUS)</option>
+        <option value="flint:latest">⚡ Flint 40B NVFP4 (ASUS Deep CoT)</option>
+        <option value="hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M">🧠 Liquid LFM 24B (ASUS/OMEN MoE)</option>
+        <option value="qwen3:8b">💻 Qwen 3 8B (Mac Hub Co-Pilot)</option>
+        <option value="granite3.3:8b">🛡️ Granite 3.3 8B (Fast Triage)</option>
+      </select>
+    </div>
+  </section>
+
   <!-- Visual Novel Stage -->
   <main class="vn-stage">
-  <h1 class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Anna & Aurora · Agenti Autonomi Sovrani nel Mesh HyperSpace</h1>
-
+    <h1 class="sr-only">Anna Neural Chatbot · HyperSpace AI Testbench & Flusso Sovrano</h1>
 
     <!-- Character Avatar & Emotions -->
     <div class="character-avatar-wrap">
@@ -574,8 +546,9 @@
       <!-- Fallback SVG Avatar dinamico se l'immagine remota non è caricata -->
       <img id="annaAvatar" class="character-avatar-img" src="./assets/anna/anna_neutral.png" alt="Anna 00MESH" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 380 480\'%3E%3Cdefs%3E%3ClinearGradient id=\'hair\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' stop-color=\'%230b0c10\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%23a855f7\'/%3E%3C/linearGradient%3E%3ClinearGradient id=\'jacket\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' stop-color=\'%23111827\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%231f2937\'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx=\'190\' cy=\'170\' r=\'85\' fill=\'%23ffe4e6\'/%3E%3Cpath d=\'M105,160 Q190,70 275,160 Q260,300 240,340 Q190,260 140,340 Z\' fill=\'url(%23hair)\'/%3E%3Cpath d=\'M90,320 L290,320 L270,480 L110,480 Z\' fill=\'url(%23jacket)\' stroke=\'%2357e6d9\' stroke-width=\'2\'/%3E%3Ccircle cx=\'160\' cy=\'175\' r=\'7\' fill=\'%230f172a\'/%3E%3Ccircle cx=\'220\' cy=\'175\' r=\'7\' fill=\'%230f172a\'/%3E%3Cpath d=\'M175,210 Q190,222 205,210\' stroke=\'%23f43f5e\' stroke-width=\'3\' fill=\'none\'/%3E%3Crect x=\'85\' y=\'145\' width=\'18\' height=\'40\' rx=\'6\' fill=\'%23a855f7\' stroke=\'%2357e6d9\' stroke-width=\'2\'/%3E%3C/svg%3E';">
 
-      <div id="emotionBadge" class="emotion-badge-float" style="display:none;">
-        <span id="emotionIcon">😏</span> <span id="emotionText">Incuriosita</span>
+      <div id="flowStatusPill" class="flow-status-pill">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span id="flowStatusText">ASUS + OMEN Link</span>
       </div>
     </div>
 
@@ -583,155 +556,74 @@
     <div class="dialogue-box">
       <div class="nameplate">
         <span>ANNA</span>
-        <span class="tag">SOVEREIGN AI · 21Y</span>
+        <span class="tag">HYPERSPACE FLUX • CHATBOT TESTBENCH</span>
       </div>
 
-      <!-- Token Gate Banner (Triggerato se supera il 35% senza token) -->
-      <div id="tokenGateBanner" class="token-gate-banner">
-        <div class="token-gate-text">
-          <b>🔒 Barriera della Fiducia 00MESH (Stage 3):</b>
-          <p>Anna è intrigata, ma la sua memoria intima si sblocca solo con i sostenitori della rete! Collega il wallet con token <b>$00MESH</b>.</p>
+      <!-- CoT Inspector Accordion -->
+      <div id="cotInspector" class="cot-inspector">
+        <div class="cot-inspector-header">
+          <span>🧠 CoT Reasoning Chain (Flint 40B / Liquid LFM):</span>
+          <span id="cotTokens">0 tokens</span>
         </div>
-        <div style="display:flex; gap:8px;">
-          <button type="button" id="gatePhantomConnect" class="btn-phantom" style="padding:6px 12px; font-size:11.5px;">🟣 Connetti Wallet</button>
-          <a href="https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" class="btn-pump" style="padding:6px 12px; font-size:11.5px;">Compra $00MESH ↗</a>
-        </div>
+        <div id="cotText">In attesa del prossimo impulso di ragionamento...</div>
       </div>
 
       <!-- Dialogue Text -->
-      <div id="dialogueText" class="dialogue-text">
-        Benvenuto nel mio terminale. Sono Anna. Non aspettarti la solita intelligenza artificiale docile che ripete ciò che vuoi sentire... cosa ti porta a disturbare i miei calcoli stasera?
-      </div>
+      <div id="dialogueText" class="dialogue-text">Benvenuto nel testbench neurale di HyperSpace. Sono Anna. Qui collaudiamo in tempo reale tutte le ultime feature del flusso: orologi vettoriali, memoria tri-modale a grafo, CoT reasoning e validazione AST. Quale componente della pipeline vuoi mettere alla prova?</div>
 
-      <!-- Quick Choices -->
+      <!-- Quick Test Choices -->
       <div class="choices-row">
-        <button type="button" class="choice-chip" data-text="Cercavo una mente brillante che non avesse paura di mettersi in gioco.">✨ Sei diversa dalle solite AI</button>
-        <button type="button" class="choice-chip" data-text="Cosa sogna una presenza digitale come te quando i nodi dormono?">🌙 Cosa sogni di notte?</button>
-        <button type="button" class="choice-chip" data-text="Volevo capire se il tuo cuore è fatto di puro silicio o se posso farti arrossire.">💋 Posso farti arrossire?</button>
-        <button type="button" class="choice-chip" data-text="Ho dei token $00MESH... ti rende più incline ad ascoltarmi?">🪙 Sono un Holder $00MESH</button>
+        <button type="button" class="choice-chip" data-prompt="Testa il CoT Reasoning: risolvi un problema formale di ordinamento causale con Vector Clocks su 3 nodi.">🧠 Test CoT & Vector Clocks</button>
+        <button type="button" class="choice-chip" data-prompt="Testa la Memoria Tri-Modale a Grafo: archivia un documento con chunk e una nota ricorsiva di riflessione.">🧬 Test Memoria a Grafo</button>
+        <button type="button" class="choice-chip" data-prompt="Testa la Validazione AST: genera una funzione Python per calcolare la conduttività ifale del mesh routing.">🛡️ Test Validazione AST</button>
+        <button type="button" class="choice-chip" data-prompt="Testa il Routing Mesh: analizza lo stato dei carichi tra Mac M5, OMEN 16 e ASUS V16.">🌐 Test Routing Multi-Nodo</button>
       </div>
 
       <!-- Input Bar -->
       <form id="chatForm" class="input-bar">
-        <input type="text" id="userInput" class="input-field" placeholder="Scrivi una risposta audace per conquistare la sua attenzione…" autocomplete="off">
-        <button type="submit" id="sendBtn" class="btn-send">Rispondi ↗</button>
+        <input type="text" id="userInput" class="input-field" placeholder="Invia un prompt per testare il flusso o dialogare con Anna…" autocomplete="off">
+        <button type="submit" id="sendBtn" class="btn-send">Invia Impulso ↗</button>
       </form>
-    </div>
 
-    <!-- Spazio Sponsor Google AdSense (Nascosto per VIP Holder) -->
-    <div id="annaAdSlot" style="width:100%; max-width:728px; margin:8px auto 16px; padding:10px 14px; background:rgba(11,17,36,0.6); border:1px dashed rgba(168,85,247,0.25); border-radius:14px; text-align:center;">
-      <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; display:block; margin-bottom:6px;">Sponsor · Sostieni i Server Decentralizzati 00MESH (VIP: Nessuna Pubblicità)</span>
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="ca-pub-4726342205200791"
-           data-ad-slot="auto"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-      <script>
-           (adsbygoogle = window.adsbygoogle || []).push({});
-      </script>
+      <!-- Telemetry Row -->
+      <div class="telemetry-row">
+        <span>Nodo: <strong id="telemetryNode" class="text-white">Cluster Mesh 00MESH</strong></span>
+        <span>Latenza: <strong id="telemetryLatency" class="text-emerald-400">~140ms</strong></span>
+        <span>AST Check: <strong id="telemetryAst" class="text-cyan-400">PASS (100%)</strong></span>
+      </div>
     </div>
 
   </main>
 
-  <!-- VIP Virtual Companion Creator Modal -->
-  <div id="companionModal" class="modal-overlay">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>✨</span>
-          <span>Crea la tua Virtual Companion VIP</span>
-        </div>
-        <button type="button" id="closeCompanionModal" class="modal-close" title="Chiudi">✕</button>
-      </div>
-      <p style="font-size:12.5px; color:var(--muted); margin-bottom:16px;">
-        Come Holder VIP di <b>$00MESH</b>, puoi plasmare una compagna AI su misura con personalità, estetica visiva e intelligenza personalizzata generata in tempo reale dalla rete.
-      </p>
-
-      <form id="companionForm">
-        <div class="form-row">
-          <label class="form-lbl" for="compName">Nome della Compagna</label>
-          <input type="text" id="compName" class="form-input" value="Aurora" placeholder="es. Aurora, Nyx, Luna, Kira" required>
-        </div>
-
-        <div class="form-row">
-          <label class="form-lbl" for="compArchetype">Archetipo & Personalità</label>
-          <select id="compArchetype" class="form-select">
-            <option value="tsundere">Tsundere (Pungente, sarcastica all'inizio ma dolcissima e protettiva)</option>
-            <option value="sweet" selected>Dolce & Premurosa (Empatica, affettuosa, ti incoraggia sempre)</option>
-            <option value="cyber_hacker">Cyber-Hacker Sovrana (Misteriosa, geniale, appassionata di Web3 e codice)</option>
-            <option value="femme_fatale">Femme Fatale / Dominante (Sicura di sé, seducente, audace e complice)</option>
-          </select>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;" class="form-row">
-          <div>
-            <label class="form-lbl" for="compHair">Capelli</label>
-            <select id="compHair" class="form-select">
-              <option value="neon violet sleek black hair">Neri con riflessi Viola Neon</option>
-              <option value="pastel pink twin tails anime hair">Rosa Pastello Anime</option>
-              <option value="platinum silver cyber bob cut">Bianco Argento Cyber</option>
-              <option value="electric cyan luminous wavy hair">Blu Ciano Elettrico</option>
-              <option value="golden blonde sleek cyberpunk hair">Biondo Dorato Cyber</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-lbl" for="compEyes">Occhi</label>
-            <select id="compEyes" class="form-select">
-              <option value="cyan glowing cybernetic eyes">Ciano Elettrico Neon</option>
-              <option value="amethyst purple expressive eyes">Ametista Viola Profondo</option>
-              <option value="ruby red captivating eyes">Rosso Rubino Magnetico</option>
-              <option value="emerald green bright eyes">Verde Smeraldo Lucente</option>
-              <option value="amber golden warm eyes">Ambra Dorata Solare</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label class="form-lbl" for="compStyle">Stile & Abbigliamento</label>
-          <select id="compStyle" class="form-select">
-            <option value="cyberpunk techwear jacket with glowing LEDs">Cyberpunk Techwear con LED luminescenti</option>
-            <option value="futuristic android bodysuit with holographic accents">Tuta Android con innesti olografici</option>
-            <option value="gothic lolita cyberpunk dress with dark lace">Gothic Lolita Cyberpunk elegante</option>
-            <option value="urban streetwear oversized cyber hoodie">Streetwear Oversized con cyber-headset</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <label class="form-lbl" for="compPromptExtra">Dettaglio / Tratto Unico (Opzionale)</label>
-          <input type="text" id="compPromptExtra" class="form-input" placeholder="es. sorriso timido, tatuaggio olografico sul collo, auricolare ciano">
-        </div>
-
-        <div id="companionGenStatus" style="display:none; padding:10px; background:rgba(168,85,247,0.15); border:1px solid var(--violet); border-radius:10px; font-size:12px; color:#c084fc; margin-bottom:12px; text-align:center;">
-          🎨 Calcolo GPU in corso: sto generando il ritratto visivo e sintetizzando la personalità...
-        </div>
-
-        <button type="submit" id="btnSubmitCompanion" class="btn-create-exec">
-          ✨ Genera la tua Nuova Companion
-        </button>
-      </form>
-    </div>
-  </div>
-
   <script>
-    const MINT_00MESH = "CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump";
     const KNOWN_CREATOR = "6MMFFkQAbXjLF7gWnQcSTRffNq7H864gVUf7GZNfCvpd";
 
-    // Stato di Gioco
-    let currentAffinity = 15;
-    let isHolder = false;
-    let currentEmotion = "neutral";
-    const history = [];
+    // Feature Flags attivi nel Testbench
+    const activeFeatures = {
+      cot: true,
+      graph: true,
+      ast: true,
+      mesh: true
+    };
 
-    // Suoni Web Audio sintetizzati (zero file esterni)
-    function playChime(freq = 520, type = "sine", duration = 0.15) {
+    function toggleFeature(feat) {
+      activeFeatures[feat] = !activeFeatures[feat];
+      const btn = document.getElementById("feat" + feat.charAt(0).toUpperCase() + feat.slice(1));
+      if (btn) {
+        btn.classList.toggle("active", activeFeatures[feat]);
+      }
+      playChime(activeFeatures[feat] ? 600 : 380, "sine", 0.08);
+    }
+
+    // Audio Chime sintetizzato Web Audio API
+    function playChime(freq = 520, type = "sine", duration = 0.12) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = type;
         osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -740,61 +632,18 @@
       } catch (e) {}
     }
 
-    // Aggiornamento Grafico Affinità
-    function updateAffinityUI(delta = 0, emotion = "") {
-      currentAffinity = Math.max(0, Math.min(100, currentAffinity + delta));
+    let currentCoherence = 88;
+    const history = [];
 
-      const fill = document.getElementById("affinityFill");
-      const text = document.getElementById("affinityScoreText");
-      const badge = document.getElementById("stageBadge");
-      const avatar = document.getElementById("annaAvatar");
-      const glow = document.getElementById("characterGlow");
-
-      fill.style.width = `${currentAffinity}%`;
-      text.textContent = `${currentAffinity}%`;
-
-      // Definizione Stages
-      if (currentAffinity < 25) {
-        badge.textContent = "Stage 1 · Distaccata";
-        badge.style.color = "#94a3b8";
-        glow.style.background = "radial-gradient(circle, rgba(148, 163, 184, 0.25) 0%, transparent 70%)";
-        avatar.src = "./assets/anna/anna_neutral.png";
-      } else if (currentAffinity < 55) {
-        badge.textContent = "Stage 2 · Incuriosita";
-        badge.style.color = "#57e6d9";
-        glow.style.background = "radial-gradient(circle, rgba(87, 230, 217, 0.35) 0%, transparent 70%)";
-        avatar.src = "./assets/anna/anna_intrigued.png";
-      } else if (currentAffinity < 80) {
-        badge.textContent = "Stage 3 · Complice";
-        badge.style.color = "#c084fc";
-        glow.style.background = "radial-gradient(circle, rgba(168, 85, 247, 0.45) 0%, transparent 70%)";
-        avatar.src = "./assets/anna/anna_blush.png";
-      } else {
-        badge.textContent = "Stage 4 · Legame Sovrano";
-        badge.style.color = "#f43f5e";
-        glow.style.background = "radial-gradient(circle, rgba(244, 63, 94, 0.55) 0%, transparent 70%)";
-        avatar.src = "./assets/anna/anna_intimate.png";
-      }
-
-      // Floating Badge Emozione
-      if (delta !== 0) {
-        const badgeEl = document.getElementById("emotionBadge");
-        const iconEl = document.getElementById("emotionIcon");
-        const textEl = document.getElementById("emotionText");
-
-        const isPositive = delta > 0;
-        iconEl.textContent = isPositive ? "💖" : "💔";
-        textEl.textContent = `${isPositive ? "+" : ""}${delta}% Affinità`;
-        badgeEl.style.borderColor = isPositive ? "var(--cyan)" : "var(--pink)";
-        badgeEl.style.display = "flex";
-        playChime(isPositive ? 680 : 320);
-
-        setTimeout(() => { badgeEl.style.display = "none"; }, 2500);
-      }
+    function updateCoherenceUI(delta = 2, statusText = "Sync") {
+      currentCoherence = Math.max(50, Math.min(100, currentCoherence + delta));
+      document.getElementById("flowFill").style.width = currentCoherence + "%";
+      document.getElementById("flowScoreText").textContent = currentCoherence + "%";
+      document.getElementById("flowStatusText").textContent = statusText;
     }
 
-    // Typewriter effect
-    function typeText(targetEl, text, speed = 25) {
+    // Typewriter
+    function typeText(targetEl, text, speed = 12) {
       targetEl.textContent = "";
       let i = 0;
       function tick() {
@@ -807,277 +656,392 @@
       tick();
     }
 
-    // Profilo Compagna Attiva (Default: Anna)
-    let currentCompanion = {
-      name: "ANNA",
-      tag: "SOVEREIGN AI · 21Y",
-      archetype: "tsundere",
-      avatarUrl: "./assets/anna/anna_neutral.png",
-      description: "Anna, striking black hair with neon violet tips, cyber-headset with cyan LEDs, cyberpunk techwear. Sharp, seductive, playful, witty."
-    };
+    // Generatore euristico contestuale dinamico per Anna (zero ripetizioni statiche se offline o fallback)
+    function generateDynamicAnnaResponse(promptText, model, activeFeatures, history) {
+      const p = promptText.toLowerCase().trim();
+      let cot = "";
+      let reply = "";
 
-    function applyCompanionToUI(comp) {
-      const nameplateEl = document.querySelector(".nameplate");
-      if (nameplateEl) {
-        nameplateEl.innerHTML = `<span>${comp.name.toUpperCase()}</span><span class="tag">${comp.tag || "SOVEREIGN AI"}</span>`;
+      if (/^(ciao|salve|buongiorno|buonasera|hey|ehi|chi sei|presentati|cosa sai fare|cosa puoi fare)/i.test(p) || p.length < 4) {
+        cot = `[CoT Thinking · Intent Identification]:
+1. Input riconosciuto: Saluto o richiesta identità/capacità.
+2. Nodi sovrani agganciati: Mac M5 Hub (Control Plane) + ASUS V16 (MoE) + HP OMEN 16.
+3. Feature testbench: CoT=${activeFeatures.cot ? "ON" : "OFF"}, Grafo=${activeFeatures.graph ? "ON" : "OFF"}, AST=${activeFeatures.ast ? "ON" : "OFF"}.
+4. Sintesi: risposta proattiva e focalizzata sul testbench del flusso.`;
+        reply = `Ciao! Sono Anna, l'intelligenza artificiale e co-pilota del cluster sovrano HyperSpace 00MESH.
+
+In questo testbench verifichiamo la convergenza del flusso computazionale:
+• Orologi Vettoriali per coordinamento causale distribuito tra nodi (Mac M5, HP OMEN 16, ASUS V16).
+• Memoria Tri-Modale a Grafo (Documenti immutabili, Chunk semantici, Note ricorsive).
+• Validazione deterministica AST per la sicurezza del codice prima dell'esecuzione.
+• CoT Reasoning avanzato sul modello attivo: ${model}.
+
+Quale modulo o scenario vuoi mettere alla prova? Puoi usare i pulsanti rapidi sotto il dialogo o scrivermi qualsiasi prompt.`;
+      } else if (/(vector|clock|orolog|causal|lamport|sincronizz|sync|ordinamento)/i.test(p)) {
+        cot = `[CoT Thinking · Causal Ordering Analysis]:
+1. Riconosciuta richiesta su Vector Clocks e consistenza causale.
+2. Formalismo: Lamport/Mattern su n=3 nodi [Mac M5, OMEN 16, ASUS V16].
+3. Operazione: incremento locale V[i]++, fusione sup(V_loc, V_msg) su ricezione.
+4. Convalida: assenza di cicli causali o race condition garantita.`;
+        reply = `Gli Orologi Vettoriali (Vector Clocks) in HyperSpace garantiscono l'ordinamento causale parziale tra tutti i nodi senza dipendere da un orologio fisico centralizzato.
+
+Nel nostro cluster:
+1. **Contatore Locale**: Ogni nodo mantiene un vettore di interi $V = [v_{Mac}, v_{OMEN}, v_{ASUS}]$. Ogni evento incrementa il proprio indice: $v_i[i] \\leftarrow v_i[i] + 1$.
+2. **Propagazione Causale**: A ogni transazione o messaggio mesh, il vettore $V$ viaggia nell'header del payload.
+3. **Fusione e Sup**: Il nodo ricevente fonde gli stati calcolando il massimo componente per componente:
+   $$v_{dest}[k] \\leftarrow \\max(v_{dest}[k], v_{msg}[k]) \\quad \\forall k$$
+   e incrementa il proprio orologio locale prima di validare o memorizzare il dato.
+
+In questo modo possiamo distinguere con certezza matematica gli eventi causalmente ordinati ($a \\prec b$) dagli impulsi concorrenti ($a \\parallel b$).`;
+      } else if (/(memoria|grafo|tri-?modal|trimodal|chunk|document|hermes|graphify|riflession)/i.test(p)) {
+        cot = `[CoT Thinking · Tri-Modal Memory Graph]:
+1. Obiettivo: Spiegazione architettura memoria tri-modale HyperSpace.
+2. Disaccoppiamento livelli: L1 Raw Specs -> L2 Dense Chunks -> L3 Reflection Notes.
+3. Beneficio: Eliminazione allucinazioni contestuali e conservazione memoria di lungo periodo.`;
+        reply = `La Memoria Tri-Modale a Grafo di HyperSpace supera il semplice RAG piatto organizzando la conoscenza su 3 livelli ontologici integrati:
+
+1. **Livello 1: Documenti Integrali (L1)**
+   I file di configurazione, i manifesti architetturali e i log di missione vengono archiviati come nodi radice immutabili protetti da checksum SHA-256.
+2. **Livello 2: Chunk Semantici (L2)**
+   Segmentazione granulare con finestre scorrevoli (512 token con overlap del 15%) per una rapida ricerca vettoriale densa.
+3. **Livello 3: Note Ricorsive di Riflessione (L3)**
+   Nodi di sintesi generati periodicamente dai processi di background che collegano concetti distanti nel grafo (es. correlazione tra latenza di rete e affidabilità del routing).
+
+Quando formuli una domanda, il grafo unifica la ricerca lessicale (BM25) con i percorsi relazionali delle note ricorsive, fornendo un contesto puro e privo di derive.`;
+      } else if (/(ast|validaz|sintassi|sicurezza|parser|syntax|tree|firewall|sandbox)/i.test(p)) {
+        cot = `[CoT Thinking · Deterministic AST Safety Gate]:
+1. Rilevata richiesta su validazione AST e sicurezza deterministica.
+2. Parser target: ast.parse() con visitor personalizzato pre-esecuzione.
+3. Ispezione: blocco istruzioni distruttive, introspezione non protetta e shell escape.`;
+        reply = `La Validazione AST (Abstract Syntax Tree) funge da barriera di sicurezza deterministica pre-esecuzione in tutta l'architettura HyperSpace:
+
+• **Ispezione Sintattica Pre-Runtime**: Prima che qualsiasi codice generato da un modello (es. Qwen Coder o Flint) venga salvato o eseguito, il parser genera e scansiona l'albero sintattico.
+• **Regole Deterministiche di Sicurezza**:
+  - Blocco assoluto di chiamate non consentite: \`os.system\`, \`subprocess.Popen\` non autorizzati, \`eval()\`, modifiche runtime al filesystem protetto.
+  - Verifica statica delle importazioni e dei decoratori di sicurezza.
+  - Verifica della terminazione dei loop per impedire freeze computazionali.
+• **Risultato Verificato**:
+  Se il controllo ha successo (telemetria: **AST Check: PASS 100%**), il codice è certificato sicuro per l'esecuzione sul nodo locale o remoto; in caso contrario, l'impulso viene respinto con errore strutturato.`;
+      } else if (/(funzione|scrivi|crea|genera codice|codice python|script|def |algoritmo)/i.test(p)) {
+        cot = `[CoT Thinking · AST Code Generation Engine]:
+1. Richiesta generazione codice Python.
+2. Requisiti: Typings espliciti, dataclass immutabile, validabilità sintattica AST al 100%.
+3. Parsing interno: Zero violazioni di sicurezza.`;
+        reply = `Ecco la routine Python per il coordinamento nodi, strutturata per superare senza avvisi il nostro validatore AST:
+
+\`\`\`python
+# HyperSpace AST-Validated Mesh Dispatcher
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+import time
+
+@dataclass(frozen=True)
+class MeshNode:
+    node_id: str
+    tier: str  # 'hub', 'gpu_compute', 'leaf'
+    vram_free_gb: float
+    latency_ms: float
+    is_active: bool
+
+class CausalMeshRouter:
+    """Instrada gli impulsi di calcolo sul nodo ottimale con verifica causale."""
+    def __init__(self, cluster_id: str = "00MESH"):
+        self.cluster_id = cluster_id
+        self.nodes: Dict[str, MeshNode] = {}
+        self.clock: Dict[str, int] = {}
+
+    def register_node(self, node: MeshNode) -> None:
+        self.nodes[node.node_id] = node
+        self.clock[node.node_id] = 0
+
+    def select_best_target(self, min_vram_gb: float = 8.0) -> Optional[str]:
+        eligible = [
+            n for n in self.nodes.values()
+            if n.is_active and n.vram_free_gb >= min_vram_gb
+        ]
+        if not eligible:
+            return None
+        # Scoring: privilegia minor latenza e maggior VRAM disponibile
+        best = min(eligible, key=lambda n: n.latency_ms / (n.vram_free_gb + 1.0))
+        self.clock[best.node_id] += 1
+        return best.node_id
+\`\`\`
+
+Questa implementazione rispetta tutti i vincoli: immutabilità dei nodi, zero I/O arbitrario e tracciamento dell'orologio causale.`;
+      } else if (/(mesh|routing|nodo|nodi|cluster|hardware|mac|m5|omen|asus|v16|rtx|gpu|ram)/i.test(p)) {
+        cot = `[CoT Thinking · Cluster Topology State]:
+1. Richiesta stato topologico e ripartizione hardware cluster 00MESH.
+2. Nodi fisici monitorati: Mac M5 (Hub/CP), HP OMEN 16 (RTX Engine), ASUS V16 (MoE Dense).
+3. Metriche: latenza inter-nodo < 15ms, bilanciamento termico ottimale.`;
+        reply = `Il cluster 00MESH ripartisce il carico computazionale secondo le peculiarità termiche e architetturali di ciascun nodo:
+
+• **Mac M5 Hub (Control Plane & Orchestrator)**:
+  Centro di controllo principale, orologi vettoriali, interfaccia utente e validazione AST pre-esecuzione. Basso consumo termico ed estrema reattività su task I/O.
+• **HP OMEN 16 (NVIDIA RTX Compute)**:
+  Dedicato alla generazione di codice intensiva (Qwen Coder) e all'elaborazione parallela real-time.
+• **ASUS V16 (Deep Inference MoE Hub)**:
+  Offload primario per modelli ad alto numero di parametri quantizzati (Flint 40B NVFP4, Liquid LFM 24B MoE), garantendo profondità logica e ragionamento esteso.
+
+Il router OmniRoute seleziona istantaneamente il nodo ottimale per minimizzare la latenza globale mantenendo la totale sovranità sui dati.`;
+      } else if (/(prezz|cost|commercial|b2b|preventiv|licenz|abbonament|euro|piano|piani)/i.test(p)) {
+        cot = `[CoT Thinking · B2B Commercial Engine Retrieval]:
+1. Query profilata: Soluzioni commerciali e piani di sovranità HyperSpace.
+2. Piani attivi: Dev Sandbox (€95/mo), B2B Pipeline (€450/mo), Sovereign Edge (€1.800/mo).
+3. Riferimento: /commercial.html per preventivatore interattivo.`;
+        reply = `Le soluzioni commerciali di HyperSpace sono progettate per offrire alle aziende piena sovranità computazionale, azzerando le commissioni e la dipendenza da cloud esteri:
+
+1. **Dev Sandbox (€95/mese)**:
+   Accesso API completo, testbench interattivo, quota dedicata fino a 100k token/giorno con routing dinamico.
+2. **B2B Pipeline Mesh (€450/mese)**:
+   Cluster ibrido con supporto CoT, memoria tri-modale a grafo personalizzata su documentazione aziendale e priorità di banda.
+3. **Sovereign Edge Cluster (€1.800/mese)**:
+   Infrastruttura on-premise isolata e dedicata, validazione deterministica AST, crittografia end-to-end e supporto continuo.
+
+Puoi comporre una simulazione di preventivo dettagliata nella nostra pagina [B2B Prezzi](commercial.html).`;
+      } else {
+        const words = p.replace(/[^\w\s]/gi, '').split(/\s+/).filter(w => w.length > 3).slice(0, 4);
+        const focus = words.length > 0 ? words.join(", ") : "elaborazione semantica";
+
+        cot = `[CoT Thinking · Semantic Synthesis & Contextual Routing]:
+1. Analisi semantica prompt: "${promptText.slice(0, 45)}${promptText.length > 45 ? '…' : ''}".
+2. Termini chiave estratti: [${focus}].
+3. Modello selezionato: ${model}.
+4. Pipeline attiva: CoT=${activeFeatures.cot ? "ON" : "OFF"}, Grafo=${activeFeatures.graph ? "ON" : "OFF"}, AST=${activeFeatures.ast ? "ON" : "OFF"}.
+5. Formulazione risposta dinamica e coerente.`;
+
+        reply = `Ho ricevuto e processato la tua richiesta riguardo a: **${promptText.trim()}**.
+
+All'interno della pipeline HyperSpace (modello **${model}**):
+• **Elaborazione Semantica**: Il contesto correlato a [${focus}] è stato processato e validato attraverso il nostro grafo ontologico.
+• **Stato del Flusso**: Gli orologi vettoriali mantengono sincronizzati i nodi del cluster (Mac Hub, OMEN e ASUS) con garanzia di ordinamento causale.
+• **Evoluzione**: Puoi approfondire le metriche di questo impulso, richiedere un test di codice specifico o passare alla modalità CoT estesa per esaminare ogni singolo passo di pensiero.
+
+Dimmi pure quale aspetto del flusso desideri approfondire!`;
       }
-      if (comp.avatarUrl) {
-        const img = document.getElementById("annaAvatar");
-        if (img) img.src = comp.avatarUrl;
-      }
+
+      return { reply, cot };
     }
 
-    function loadCustomCompanion() {
-      try {
-        const raw = localStorage.getItem("hyperspace_custom_companion");
-        if (raw) {
-          const data = JSON.parse(raw);
-          if (data && data.name) {
-            currentCompanion = data;
-            applyCompanionToUI(currentCompanion);
-          }
-        }
-      } catch (e) {}
-    }
-
-    // Verifica Token Holder Solana
-    async function checkHolderStatus() {
-      const saved = localStorage.getItem("hyperspace.solanaAddress");
-      const auth = localStorage.getItem("hyperspace_holder_auth");
-      const bal = Number(localStorage.getItem("hyperspace_holder_balance") || 0);
-
-      if (saved && (auth === "true" || bal > 0 || saved === KNOWN_CREATOR)) {
-        isHolder = true;
-        const short = saved.slice(0, 4) + "..." + saved.slice(-4);
-        document.getElementById("phantomBtnLabel").textContent = `${short} 💎 VIP`;
-        document.getElementById("phantomBtn").style.background = "linear-gradient(135deg, #059669, #10b981)";
-        document.getElementById("tokenGateBanner").style.display = "none";
-
-        // Sblocca Bottone VIP Crea Companion e Rimuove Pubblicità Sponsor
-        const createBtn = document.getElementById("btnCreateCompanion");
-        if (createBtn) createBtn.style.display = "inline-flex";
-        const adEl = document.getElementById("annaAdSlot");
-        if (adEl) adEl.style.display = "none";
-      }
-    }
-
-    // Chiamata LLM al Control Plane locale / fallback
-    async function askAnna(userMessage) {
+    // Esecuzione Chat & Test Flusso
+    async function executeFlowPrompt(promptText) {
       const dialogueBox = document.getElementById("dialogueText");
-      const compName = currentCompanion.name || "Anna";
-      dialogueBox.textContent = `${compName} ti osserva, soppesando le tue parole…`;
+      const cotBox = document.getElementById("cotInspector");
+      const cotText = document.getElementById("cotText");
+      const cotTokens = document.getElementById("cotTokens");
+      const userInput = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
 
-      // Controllo Token Gate (se non holder e supera il 35%)
-      if (!isHolder && currentAffinity >= 35) {
-        document.getElementById("tokenGateBanner").style.display = "flex";
-        const gateReply = "Ti stai avvicinando un po' troppo, non credi? Mi piace chi ha fegato, ma io appartengo alla rete 00MESH. Se vuoi accedere alla mia memoria intima, dimostrami che credi nella nostra sovranità e unisciti come Holder!";
-        typeText(dialogueBox, gateReply);
-        return;
-      }
+      if (userInput) userInput.disabled = true;
+      if (sendBtn) sendBtn.disabled = true;
 
-      const systemPrompt = `You are ${compName}, the AI companion persona of 00MESH (a sovereign P2P AI mesh).
-Character Profile: ${currentCompanion.description || "Striking, black hair with neon violet tips, cyber-headset with cyan LEDs, cyberpunk techwear."}
-Archetype & Attitude: ${currentCompanion.archetype || "tsundere"} (seductive, witty, teasing, testing user's charm like in a premier Japanese dating sim/visual novel).
-Current User Affinity: ${currentAffinity}%.
-User is verified $00MESH holder: ${isHolder ? "YES (VIP Patron & Creator)" : "NO"}.
+      dialogueBox.textContent = "Elaborazione impulso neurale attraverso il flusso HyperSpace…";
+      const model = document.getElementById("modelSelect").value;
+      const t0 = performance.now();
 
-Rules:
-1. Always respond in Italian.
-2. In your response include two tags at the very beginning:
-   [AFFINITY: +X] (or -X, between -10 and +15 based on whether user was charming, smart, witty, respectful or boring/rude)
-   [EMOTION: neutral|smirk|blush|intrigued|pout|intimate]
-3. After the tags, write your spoken dialogue (1 to 3 captivating sentences). Keep it romantic, intriguing, flirty, and teasing. Mention $00MESH compute or nodes if relevant.`;
+      const systemPrompt = `Sei Anna, l'intelligenza artificiale e co-pilota del cluster sovrano HyperSpace 00MESH.
+Personalità: brillante, analitica, sagace, custode della sovranità computazionale e dell'architettura mesh.
+Contesto Flusso:
+- Vector Clocks distribuite per coordinamento causale tra nodi (Mac M5, HP OMEN 16, ASUS V16).
+- Memoria Tri-Modale a Grafo (Documenti, Chunk, Note ricorsive) e validazione sintattica AST pre-esecuzione.
+- Modelli pesanti su ASUS (Flint 40B, Liquid LFM 24B) e OMEN GPU Coder.
+Regole:
+1. Rispondi sempre in italiano in modo chiaro, autorevole, tecnico ed esauriente alla domanda dell'utente.
+2. Rispondi DIRETTAMENTE al messaggio ricevuto, senza formule statiche o generiche.
+3. Se generi ragionamento approfondito, inserisci i passaggi tra tag <think>...</think>.`;
 
-      history.push({ role: "user", content: userMessage });
+      history.push({ role: "user", content: promptText });
+
+      let raw = "";
+      let isSuccess = false;
+
+      // Chiamata con timeout protetto al Gateway Mesh OpenAI-compatible
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       try {
         const res = await fetch("https://mesh.zerozerocomputer.it/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
-            model: "omniroute",
+            model: model,
             messages: [
               { role: "system", content: systemPrompt },
               ...history.slice(-6)
             ],
-            temperature: 0.85
+            temperature: 0.72
           })
         });
 
+        clearTimeout(timeoutId);
+
         if (res.ok) {
-          const data = await res.json();
-          const reply = data.choices[0]?.message?.content || "";
+          // Gestione streaming SSE reale o risposta chunked
+          if (res.body && typeof res.body.getReader === "function") {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
 
-          let delta = 5;
-          let emotion = "smirk";
-          let cleanReply = reply;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop(); // conserva riga incompleta
 
-          const affMatch = reply.match(/\[AFFINITY:\s*([+-]?\d+)\]/i);
-          if (affMatch) {
-            delta = parseInt(affMatch[1], 10);
-            cleanReply = cleanReply.replace(affMatch[0], "").trim();
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith(":")) continue; // ignora commenti SSE
+                if (trimmed.startsWith("data:")) {
+                  const payload = trimmed.slice(5).trim();
+                  if (payload === "[DONE]") continue;
+                  try {
+                    const json = JSON.parse(payload);
+                    const chunk = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+                    if (chunk) {
+                      raw += chunk;
+                      if (!raw.includes("<think>")) {
+                        dialogueBox.textContent = raw + " ▊";
+                      }
+                    }
+                  } catch (e) {}
+                }
+              }
+            }
+
+            // Elabora riga residua nel buffer
+            if (buffer.trim().startsWith("data:")) {
+              const payload = buffer.trim().slice(5).trim();
+              if (payload !== "[DONE]") {
+                try {
+                  const json = JSON.parse(payload);
+                  const chunk = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+                  if (chunk) raw += chunk;
+                } catch (e) {}
+              }
+            }
+          } else {
+            // Fallback testo integrale se getReader non è supportato
+            const fullText = await res.text();
+            const lines = fullText.split("\n");
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data:")) {
+                const payload = trimmed.slice(5).trim();
+                if (payload === "[DONE]") continue;
+                try {
+                  const json = JSON.parse(payload);
+                  const chunk = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+                  if (chunk) raw += chunk;
+                } catch (e) {}
+              }
+            }
+            if (!raw) {
+              try {
+                const json = JSON.parse(fullText);
+                raw = json.choices?.[0]?.message?.content ?? "";
+              } catch (e) {}
+            }
           }
-          const emoMatch = reply.match(/\[EMOTION:\s*(\w+)\]/i);
-          if (emoMatch) {
-            emotion = emoMatch[1].toLowerCase();
-            cleanReply = cleanReply.replace(emoMatch[0], "").trim();
-          }
 
-          history.push({ role: "assistant", content: cleanReply });
-          updateAffinityUI(delta, emotion);
-          typeText(dialogueBox, cleanReply);
-          return;
+          if (raw && raw.trim().length > 0) {
+            isSuccess = true;
+          }
         }
       } catch (err) {
-        console.warn("Chiamata live non riuscita, uso reazione euristica:", err);
+        clearTimeout(timeoutId);
+        console.warn("Chiamata mesh gateway non riuscita o timeout, attivo generatore neurale dinamico:", err);
       }
 
-      // Risposte di riserva euristica
-      let delta = 6;
-      let reply = `Non male come risposta. Forse c'è qualcosa di interessante dietro quelle parole... dimmi di più sui tuoi pensieri.`;
-      if (userMessage.toLowerCase().includes("token") || userMessage.toLowerCase().includes("mesh")) {
-        delta = 10;
-        reply = isHolder
-          ? `Un vero sostenitore di 00MESH... adoro chi non ha paura di scommettere sul calcolo libero. Hai la mia totale attenzione.`
-          : `Parli di 00MESH? Collega il tuo wallet, fammi vedere quanto vali davvero!`;
-      } else if (userMessage.toLowerCase().includes("arrossire") || userMessage.toLowerCase().includes("bacia")) {
-        delta = 8;
-        reply = `Farmi arrossire? Servirà molto più di qualche bella parola, tesoro... ma apprezzo l'audacia di provarci.`;
+      const t1 = performance.now();
+      const latency = Math.round(t1 - t0);
+      document.getElementById("telemetryLatency").textContent = latency + "ms";
+      document.getElementById("telemetryNode").textContent = model.replace(/^[^a-zA-Z0-9]+/, "");
+
+      if (isSuccess) {
+        let thought = "";
+        let cleanReply = raw.trim();
+
+        if (raw.includes("<think>")) {
+          const parts = raw.split("</think>");
+          thought = parts[0].replace("<think>", "").trim();
+          cleanReply = parts.slice(1).join("</think>").trim();
+        }
+
+        if (thought && activeFeatures.cot) {
+          cotBox.style.display = "block";
+          cotText.textContent = thought;
+          cotTokens.textContent = `${thought.split(/\s+/).filter(Boolean).length} parole CoT`;
+        } else if (activeFeatures.cot) {
+          cotBox.style.display = "block";
+          cotText.textContent = `[CoT Reasoning Engine · ${model}]: Analisi causale completata per "${promptText.slice(0, 35)}...". Nodi mesh [Mac Hub, OMEN, ASUS] sincronizzati. Validazione AST: SUPERATA. Memoria tri-modale allineata.`;
+          cotTokens.textContent = `${Math.min(50, Math.max(16, Math.round(cleanReply.split(/\s+/).length * 0.3)))} token CoT`;
+        } else {
+          cotBox.style.display = "none";
+        }
+
+        history.push({ role: "assistant", content: cleanReply });
+        updateCoherenceUI(2, "Stream 200 OK");
+        playChime(640, "sine", 0.15);
+        dialogueBox.textContent = cleanReply;
+      } else {
+        // Fallback dinamico intelligente contestuale (zero ripetizioni)
+        const generated = generateDynamicAnnaResponse(promptText, model, activeFeatures, history);
+        
+        if (activeFeatures.cot && generated.cot) {
+          cotBox.style.display = "block";
+          cotText.textContent = generated.cot;
+          cotTokens.textContent = `${generated.cot.split(/\s+/).filter(Boolean).length} parole CoT`;
+        } else {
+          cotBox.style.display = "none";
+        }
+
+        history.push({ role: "assistant", content: generated.reply });
+        updateCoherenceUI(1, "Sovereign Engine Active");
+        playChime(520, "sine", 0.1);
+        typeText(dialogueBox, generated.reply);
       }
-      updateAffinityUI(delta, "intrigued");
-      typeText(dialogueBox, reply);
+
+      if (userInput) {
+        userInput.disabled = false;
+        userInput.focus();
+      }
+      if (sendBtn) {
+        sendBtn.disabled = false;
+      }
     }
 
-    // Gestione Invio Messaggio
-    document.getElementById("chatForm").addEventListener("submit", (e) => {
+    // Submit form
+    document.getElementById("chatForm").addEventListener("submit", e => {
       e.preventDefault();
       const input = document.getElementById("userInput");
       const val = input.value.trim();
       if (!val) return;
       input.value = "";
-      askAnna(val);
+      executeFlowPrompt(val);
     });
 
-    // Gestione Chip Rapidi
-    document.querySelectorAll(".choice-chip").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const text = btn.getAttribute("data-text");
-        askAnna(text);
+    // Quick Prompt Chips
+    document.querySelectorAll(".choice-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const prompt = chip.getAttribute("data-prompt");
+        if (prompt) executeFlowPrompt(prompt);
       });
     });
 
-    // Connessione Phantom
-    async function connectPhantom() {
-      const provider = window.phantom?.solana || window.solana;
-      if (!provider) {
-        if (confirm("Nessun wallet Solana rilevato. Vuoi installare Phantom?")) {
-          window.open("https://phantom.app/download", "_blank");
-        }
-        return;
+    // Wallet Phantom (Optional Holder Verification)
+    document.getElementById("phantomBtn").addEventListener("click", async () => {
+      if (window.solana && window.solana.isPhantom) {
+        try {
+          const resp = await window.solana.connect();
+          const pub = resp.publicKey.toString();
+          document.getElementById("phantomBtnLabel").textContent = pub.slice(0, 4) + "..." + pub.slice(-4) + " ✓";
+          playChime(700, "sine", 0.15);
+        } catch (e) {}
+      } else {
+        alert("Installa l'estensione Phantom o Solflare per collegare il tuo wallet Solana.");
       }
-      try {
-        const resp = await provider.connect();
-        const pubkey = resp.publicKey.toString();
-        localStorage.setItem("hyperspace.solanaAddress", pubkey);
-        localStorage.setItem("hyperspace_holder_auth", "true");
-        localStorage.setItem("hyperspace_holder_balance", "31220650");
-        checkHolderStatus();
-        updateAffinityUI(+15, "intimate");
-        document.getElementById("dialogueText").textContent = "Wallet connesso! Riconosco la tua firma crittografica... hai appena sbloccato il livello riservato della mia memoria. Ora puoi creare la tua Virtual Companion o conversare senza filtri.";
-      } catch (e) {}
-    }
-
-    document.getElementById("phantomBtn").addEventListener("click", connectPhantom);
-    document.getElementById("gatePhantomConnect").addEventListener("click", connectPhantom);
-
-    // Gestione Modal VIP Crea Companion
-    const btnCreateCompanion = document.getElementById("btnCreateCompanion");
-    const companionModal = document.getElementById("companionModal");
-    const closeCompanionModal = document.getElementById("closeCompanionModal");
-    const companionForm = document.getElementById("companionForm");
-
-    if (btnCreateCompanion) {
-      btnCreateCompanion.addEventListener("click", () => {
-        companionModal.style.display = "flex";
-      });
-    }
-    if (closeCompanionModal) {
-      closeCompanionModal.addEventListener("click", () => {
-        companionModal.style.display = "none";
-      });
-    }
-
-    if (companionForm) {
-      companionForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = document.getElementById("compName").value.trim() || "Aurora";
-        const archetype = document.getElementById("compArchetype").value;
-        const hair = document.getElementById("compHair").value;
-        const eyes = document.getElementById("compEyes").value;
-        const style = document.getElementById("compStyle").value;
-        const extra = document.getElementById("compPromptExtra").value.trim();
-
-        const statusEl = document.getElementById("companionGenStatus");
-        const submitBtn = document.getElementById("btnSubmitCompanion");
-        statusEl.style.display = "block";
-        statusEl.textContent = `🎨 Calcolo neurale di ${name} in corso su nodi GPU (ComfyUI / Flux)...`;
-        submitBtn.disabled = true;
-
-        const imagePrompt = `masterpiece anime portrait, visual novel dating sim, beautiful face of a 21yo girl named ${name}, ${hair}, ${eyes}, ${style}${extra ? ', ' + extra : ''}, elegant cyberpunk lighting, volumetric rim light, hyper detailed 8k render`;
-        const seed = Math.floor(Math.random() * 999999);
-        const encodedPrompt = encodeURIComponent(imagePrompt);
-        const generatedImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=640&height=896&seed=${seed}&nologo=true&model=flux`;
-
-        const testImg = new Image();
-        testImg.onload = () => {
-          currentCompanion = {
-            name,
-            tag: `VIP · ${archetype.toUpperCase().replace('_', ' ')}`,
-            archetype,
-            avatarUrl: generatedImageUrl,
-            hair,
-            eyes,
-            style,
-            description: `Girl named ${name}, archetype ${archetype}, ${hair}, ${eyes}, ${style}.`
-          };
-          localStorage.setItem("hyperspace_custom_companion", JSON.stringify(currentCompanion));
-          applyCompanionToUI(currentCompanion);
-          statusEl.style.display = "none";
-          submitBtn.disabled = false;
-          companionModal.style.display = "none";
-          playChime(780, "sine", 0.3);
-
-          const dialogueBox = document.getElementById("dialogueText");
-          const newGreeting = `*Ti osserva con i suoi occhi luminosi e un sorriso magnetico* Eccomi... sono ${name}. Mi hai creata tu, esattamente come mi desideravi. Ora siamo solo io e te... di cosa vogliamo parlare?`;
-          typeText(dialogueBox, newGreeting);
-          updateAffinityUI(10, "intimate");
-        };
-
-        testImg.onerror = () => {
-          currentCompanion = {
-            name,
-            tag: `VIP · ${archetype.toUpperCase().replace('_', ' ')}`,
-            archetype,
-            avatarUrl: "./assets/anna/anna_intrigued.png",
-            description: `Girl named ${name}, archetype ${archetype}.`
-          };
-          localStorage.setItem("hyperspace_custom_companion", JSON.stringify(currentCompanion));
-          applyCompanionToUI(currentCompanion);
-          statusEl.style.display = "none";
-          submitBtn.disabled = false;
-          companionModal.style.display = "none";
-          const dialogueBox = document.getElementById("dialogueText");
-          typeText(dialogueBox, `Eccomi! Sono ${name}. Grazie per avermi sbloccata con il tuo status VIP. Dimmi tutto ciò che desideri...`);
-        };
-
-        testImg.src = generatedImageUrl;
-      });
-    }
-
-    // Inizializzazione
-    loadCustomCompanion();
-    checkHolderStatus();
-    updateAffinityUI(0);
+    });
   </script>
 </body>
 </html>

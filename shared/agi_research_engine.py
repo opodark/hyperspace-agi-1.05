@@ -33,11 +33,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from shared.universal_model_parser import CavemanEngine, UniversalModelParser
+from shared.causal_memory_graph import CausalMemoryGraph
 
 RESEARCH_DIR = ROOT / "data" / "research"
 PROTOTYPES_DIR = RESEARCH_DIR / "prototypes"
 DEEP_DIVES_LOG = RESEARCH_DIR / "agi_deep_dives.jsonl"
 SYNTHESIS_MD = RESEARCH_DIR / "AGI_SWARM_SYNTHESIS.md"
+CAUSAL_GRAPH_FILE = RESEARCH_DIR / "causal_memory_graph.json"
 
 RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
 PROTOTYPES_DIR.mkdir(parents=True, exist_ok=True)
@@ -76,8 +78,8 @@ RESEARCH_PILLARS = [
             "Mostra il ragionamento in <think> poi implementa una classe Python robusta `class StigmergicMeshSwarm:` "
             "con metodi `deposit_pheromone(signal_type, payload, decay_rate)`, `sense_gradient(signal_type)` e `consensus_converged()`."
         ),
-        "target_model": "flint:latest",
-        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "fallback_model": "granite3.3:8b",
     },
     {
         "id": "algorithmic_poetry_aesthetics",
@@ -105,8 +107,8 @@ RESEARCH_PILLARS = [
             "e `trace_lineage(effect_id)` per tracciare la genesi causale delle scoperte e delle decisioni dello swarm mesh.\n"
             "Mostra prima il ragionamento in <think> poi il codice completo con annotazioni di tipo."
         ),
-        "target_model": "flint:latest",
-        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "fallback_model": "granite3.3:8b",
     },
     {
         "id": "modular_intellect",
@@ -122,8 +124,8 @@ RESEARCH_PILLARS = [
             "e `traverse_graph_context(query, max_hops)` pronta all'uso senza dipendenze esterne.\n"
             "Mostra prima il ragionamento in <think> poi il codice completo con annotazioni di tipo."
         ),
-        "target_model": "flint:latest",
-        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "fallback_model": "granite3.3:8b",
     },
     {
         "id": "biomimetic_nature_mesh",
@@ -138,8 +140,8 @@ RESEARCH_PILLARS = [
             "Compito: Spiega come orchestrare questi quattro meccanismi nella mesh multi-nodo e scrivi un modulo Python integrativo "
             "per monitorare l'entropia della mesh e l'efficacia del flusso."
         ),
-        "target_model": "flint:latest",
-        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "fallback_model": "granite3.3:8b",
     },
 ]
 
@@ -152,6 +154,8 @@ class AGIResearchEngine:
         self.prototypes_dir = PROTOTYPES_DIR
         self.deep_dives_log = DEEP_DIVES_LOG
         self.synthesis_md = SYNTHESIS_MD
+        self.causal_graph_file = self.data_dir / "causal_memory_graph.json"
+        self.causal_graph = CausalMemoryGraph(storage_path=self.causal_graph_file)
 
     def get_research_status(self) -> Dict[str, Any]:
         """Restituisce le statistiche e l'elenco degli studi già condotti."""
@@ -172,6 +176,7 @@ class AGIResearchEngine:
             "pillars_covered": list(set(e.get("pillar_id") for e in entries if e.get("pillar_id"))),
             "latest_study": entries[-1] if entries else None,
             "has_synthesis_document": self.synthesis_md.exists(),
+            "causal_graph_summary": self.causal_graph.export_graph_summary(),
         }
 
     def execute_study_cycle(
@@ -244,8 +249,40 @@ class AGIResearchEngine:
             except SyntaxError:
                 ast_valid = False
 
+        study_id = f"study-{topic_id}-{int(time.time())}"
+
+        # Registrazione evento causale: riferimento teorico -> inferenza di studio
+        ref_id = f"ref:{topic_id}"
+        infer_id = f"infer:{study_id}"
+        self.causal_graph.record_event(
+            cause_id=ref_id,
+            effect_id=infer_id,
+            weight=1.0,
+            metadata={
+                "domain": pillar["domain"],
+                "reference": pillar["reference"],
+                "model_used": model,
+                "elapsed_s": elapsed_s or round(time.perf_counter() - t0, 2),
+            },
+        )
+
+        # Se è stato generato un prototipo, registra l'arco causale di sintesi
+        if saved_prototype:
+            proto_id = f"proto:{saved_prototype}"
+            p_weight = 0.98 if ast_valid else 0.2
+            self.causal_graph.record_event(
+                cause_id=infer_id,
+                effect_id=proto_id,
+                weight=p_weight,
+                metadata={
+                    "ast_valid": ast_valid,
+                    "domain": pillar["domain"],
+                    "topic_id": topic_id,
+                },
+            )
+
         record = {
-            "id": f"study-{topic_id}-{int(time.time())}",
+            "id": study_id,
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "pillar_id": topic_id,
             "domain": pillar["domain"],
@@ -256,6 +293,7 @@ class AGIResearchEngine:
             "ast_valid": ast_valid,
             "prototype_file": saved_prototype,
             "findings_summary": self._extract_summary(parsed.clean_text or parsed.raw_text or raw_response),
+            "causal_lineage": self.causal_graph.trace_lineage(f"proto:{saved_prototype}" if saved_prototype else infer_id),
         }
 
         # Scrive nel journal di ricerca
@@ -267,6 +305,52 @@ class AGIResearchEngine:
 
         return record
 
+    def register_production_promotion(
+        self,
+        prototype_file: str,
+        module_name: str,
+        confidence: float = 1.0,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Registra la transizione causale da prototipo R&D validato a modulo di produzione stabile."""
+        proto_id = prototype_file if prototype_file.startswith("proto:") else f"proto:{prototype_file}"
+        prod_id = module_name if module_name.startswith("prod:") else f"prod:{module_name}"
+        event_meta = {
+            "action": "production_promotion",
+            "promoted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        if metadata:
+            event_meta.update(metadata)
+
+        event_id = self.causal_graph.record_event(
+            cause_id=proto_id,
+            effect_id=prod_id,
+            weight=confidence,
+            metadata=event_meta,
+        )
+        return event_id
+
+    def trace_component_lineage(self, component_id: str) -> Dict[str, Any]:
+        """Traccia l'intera genealogia causale (cause, conseguenze, eventi) per un componente di sistema."""
+        target = component_id
+        if not any(target.startswith(p) for p in ("prod:", "proto:", "infer:", "ref:")):
+            if target.startswith("proto_") or target.endswith(".py"):
+                target = f"proto:{target}"
+            elif target.startswith("study-"):
+                target = f"infer:{target}"
+            elif target in [p["id"] for p in RESEARCH_PILLARS]:
+                target = f"ref:{target}"
+            else:
+                target = f"prod:{target}"
+
+        return {
+            "target": target,
+            "lineage": self.causal_graph.trace_lineage(target),
+            "forward_consequences": self.causal_graph.get_forward_consequences(target),
+            "detailed_events": self.causal_graph.trace_detailed_lineage(target),
+            "graph_summary": self.causal_graph.export_graph_summary(),
+        }
+
     def _extract_summary(self, text: str) -> str:
         """Estrae i punti chiave della riflessione testuale."""
         clean = " ".join(text.split()[:80])
@@ -275,6 +359,7 @@ class AGIResearchEngine:
     def _update_synthesis_document(self, latest_record: Dict[str, Any]) -> None:
         """Aggiorna il dossier markdown consultabile dell'architettura cognitiva."""
         ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        graph_summary = self.causal_graph.export_graph_summary()
         content = [
             "# HyperSpace AGI — Dossier di Ricerca Cognitiva & Swarm Intelligence",
             "",
@@ -306,6 +391,13 @@ class AGIResearchEngine:
             f"- **Modello Utilizzato**: `{latest_record.get('model_used')}`",
             f"- **Validazione AST Python**: `{'✓ Superata (100% Valido)' if latest_record.get('ast_valid') else 'Non richiesta / Parziale'}`",
             f"- **Prototipo Generato**: `data/research/prototypes/{latest_record.get('prototype_file')}`",
+            "",
+            "## 5. Grafo di Causalità & Lineage Cognitiva (Pearl-style Stigmergic Causal Graph)",
+            f"- **Nodi Totali nel Grafo**: `{graph_summary.get('total_nodes', 0)}`",
+            f"- **Archi di Causalità Diretta/Indiretta**: `{graph_summary.get('total_edges', 0)}`",
+            f"- **Eventi Episodici Registrati**: `{graph_summary.get('total_events', 0)}`",
+            f"- **Cause Primarie / Radici**: `{', '.join(graph_summary.get('root_causes', [])) or 'Inizializzazione in corso'}`",
+            f"- **Moduli Derivati / Effetti Foglia**: `{', '.join(graph_summary.get('leaf_effects', [])) or 'Inizializzazione in corso'}`",
             "",
             "---",
             "*Documento generato autonomamente durante il turno notturno continuo di HyperSpace AGI.*",

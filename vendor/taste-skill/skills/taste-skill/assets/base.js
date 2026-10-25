@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // tasteskill / base.js — the small amount of script the motion helpers in base.css need.
 // Put this line in <head> so the hidden states only apply when scripting works:
 //   <script>document.documentElement.classList.add('js')</script>

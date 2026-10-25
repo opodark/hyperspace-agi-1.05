@@ -211,6 +211,16 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_devstudio_git_status()
         elif self.path.startswith("/api/agi-research"):
             self.handle_api_agi_research()
+        elif self.path.startswith("/api/commercial/status"):
+            self.handle_api_commercial_status()
+        elif self.path.startswith("/api/commercial/pillars"):
+            self.handle_api_commercial_pillars()
+        elif self.path.startswith("/api/commercial/packages"):
+            self.handle_api_commercial_packages()
+        elif self.path.startswith("/api/commercial/leads"):
+            self.handle_api_commercial_leads()
+        elif self.path.startswith("/api/commercial/arcade/scores"):
+            self.handle_api_commercial_arcade_scores()
         else:
             super().do_GET()
 
@@ -250,6 +260,12 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_nightly_shift_trigger()
         elif self.path.startswith("/api/nightly-shift/daemon"):
             self.handle_api_nightly_shift_daemon()
+        elif self.path.startswith("/api/commercial/pitch/generate"):
+            self.handle_api_commercial_pitch_generate()
+        elif self.path.startswith("/api/commercial/quote/calculate"):
+            self.handle_api_commercial_quote_calculate()
+        elif self.path.startswith("/api/commercial/arcade/score"):
+            self.handle_api_commercial_arcade_score_submit()
         else:
             self.send_error(404, "Endpoint non trovato")
 
@@ -1711,6 +1727,99 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             "interval": interval,
             "message": f"Demone notturno sovrano OMEN avviato (intervallo: {interval}s)"
         })
+
+    def handle_api_commercial_status(self):
+        try:
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            self.send_json({"status": "ok", "financial": engine.get_financial_status()})
+        except Exception as exc:
+            self.send_json({"error": f"Errore commercial status: {exc}"}, status=500)
+
+    def handle_api_commercial_pillars(self):
+        try:
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            self.send_json({"status": "ok", "pillars": engine.get_commercial_pillars()})
+        except Exception as exc:
+            self.send_json({"error": f"Errore commercial pillars: {exc}"}, status=500)
+
+    def handle_api_commercial_packages(self):
+        try:
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            self.send_json({"status": "ok", "packages": engine.get_packages()})
+        except Exception as exc:
+            self.send_json({"error": f"Errore commercial packages: {exc}"}, status=500)
+
+    def handle_api_commercial_leads(self):
+        try:
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            self.send_json({"status": "ok", "leads": engine.get_leads()})
+        except Exception as exc:
+            self.send_json({"error": f"Errore commercial leads: {exc}"}, status=500)
+
+    def handle_api_commercial_arcade_scores(self):
+        try:
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            self.send_json({"status": "ok", "scores": engine.get_arcade_scores()})
+        except Exception as exc:
+            self.send_json({"error": f"Errore arcade scores: {exc}"}, status=500)
+
+    def handle_api_commercial_pitch_generate(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            sector = body.get("sector", "PMI e Studi")
+            company = body.get("company_name", "")
+            contact = body.get("contact_person", "")
+
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            res = engine.generate_pitch(sector=sector, company_name=company, contact_person=contact)
+            self.send_json({"status": "ok", "pitch": res})
+        except Exception as exc:
+            self.send_json({"error": f"Errore generazione pitch: {exc}"}, status=500)
+
+    def handle_api_commercial_quote_calculate(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            sector = body.get("sector", "Studi e PMI")
+            workstations = int(body.get("workstations", 5))
+            on_prem = bool(body.get("on_premise", True))
+            agents = int(body.get("agents", 2))
+            tokens_m = float(body.get("tokens_millions", 2.0))
+
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            quote = engine.calculate_custom_quote(
+                target_sector=sector,
+                workstations_count=workstations,
+                on_premise_hardware=on_prem,
+                autonomous_agents_count=agents,
+                tokens_monthly_millions=tokens_m
+            )
+            self.send_json({"status": "ok", "quote": quote})
+        except Exception as exc:
+            self.send_json({"error": f"Errore calcolo preventivo: {exc}"}, status=500)
+
+    def handle_api_commercial_arcade_score_submit(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            player = body.get("player", "SovereignPlayer")
+            score = int(body.get("score", 0))
+            game = body.get("game", "neural_invaders")
+
+            from shared.commercial_engine import CommercialEngine
+            engine = CommercialEngine()
+            res = engine.record_arcade_score(player=player, score=score, game=game)
+            self.send_json({"status": "ok", "result": res})
+        except Exception as exc:
+            self.send_json({"error": f"Errore submit arcade score: {exc}"}, status=500)
 
     def _split_thought(self, text: str) -> tuple[str, str]:
         if "</think>" in text:

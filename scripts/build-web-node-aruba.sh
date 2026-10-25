@@ -51,8 +51,9 @@ fi
 if [[ -d "$REPO_ROOT/web-node/apps" ]]; then
   mkdir -p "$TARGET/apps"
   cp -R "$REPO_ROOT/web-node/apps/." "$TARGET/apps/"
-  # Sicurezza: rimuovi console di amministrazione e sviluppo riservate esclusivamente al Creatore locale
+  # Sicurezza & Privacy: rimuovi console di amministrazione, devstudio e laboratorio R&D interno riservati esclusivamente al Creatore locale
   rm -f "$TARGET/apps/playground/devstudio.html"
+  rm -f "$TARGET/apps/playground/research.html"
 fi
 
 # Copia tutti i sorgenti JS

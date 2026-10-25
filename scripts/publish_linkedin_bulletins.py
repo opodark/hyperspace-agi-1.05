@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 LinkedIn Bulletin Post Generator & Publisher for HyperSpace 00MESH.
 Formats and manages daily posts based on network bulletins, Telegram, and Moltbook updates.

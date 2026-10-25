@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import assert from 'node:assert/strict';
 import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';

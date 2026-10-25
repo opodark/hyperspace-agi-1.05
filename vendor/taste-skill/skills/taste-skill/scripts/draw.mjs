@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
 // tasteskill / draw — deal an art direction from the research library.
 //
 // The script chooses, not the model: a model asked to pick a direction returns the category

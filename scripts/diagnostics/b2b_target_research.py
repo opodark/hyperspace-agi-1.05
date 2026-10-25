@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 B2B Target Research & Intelligence for HyperSpace 00MESH.
 Safely scouts potential business clients and partners across 3 key target verticals:

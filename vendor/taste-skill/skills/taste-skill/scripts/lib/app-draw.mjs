@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // tasteskill / draw --app — deal a style for an app screen (dashboard, admin, settings, inbox).
 //
 //   node draw.mjs --app --kind <kind> --brief "one line" [--screens overview,list,detail,settings]

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Turns probe() metrics into findings. Each finding: { level: 'FAIL'|'WARN', id, message, fix }.
 // FAIL = a banned tell or a broken page; the work is not done while one remains.
 // WARN = usually wrong; keep only with a reason you could say out loud to a designer.

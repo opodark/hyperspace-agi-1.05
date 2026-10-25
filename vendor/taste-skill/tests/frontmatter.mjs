@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
 // Every skill must load in every agent. Claude Code and Codex read SKILL.md frontmatter with a strict
 // YAML parser and silently drop a skill whose frontmatter fails to parse (an unquoted "word: word" in
 // a description is enough), so this check parses each one the same way and fails loudly.

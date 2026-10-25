@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # Symlink taste-skill skills into agent skill directories.
 #
 # Unlike `npx skills add`, this links instead of copying, so `git pull`

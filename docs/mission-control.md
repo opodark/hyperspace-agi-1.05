@@ -225,3 +225,27 @@ senza impronta richiedono una nuova approvazione.
 Questi hook non selezionano automaticamente le skill e non ne eseguono il testo.
 Il collegamento comune fra skill approvate, capacità e missioni resta lavoro
 successivo, insieme al benchmark con/senza skill.
+
+## Integrazione Grafo di Causalità (CausalMemoryGraph)
+
+Dalla release 1.05, `MissionController` si integra con `shared/causal_memory_graph.py`
+per fornire una spiegazione causale formale a ogni missione:
+
+1. **Decomposizione e Dipendenze**:
+   Ogni task è collegato all'obiettivo `goal:<mission_id>` $\rightarrow$ `task:<mission_id>:<task_id>`
+   e alle proprie dipendenze DAG `task:...:upstream` $\rightarrow$ `task:...:downstream`.
+2. **Esecuzione & Prove**:
+   Ogni tentativo del worker registra l'arco `task:...` $\rightarrow$ `exec:<mission_id>:<task_id>:<attempt>`
+   con modello, nodo hardware e token. Gli artefatti prodotti sono conseguenze causali
+   dirette `exec:...` $\rightarrow$ `artifact:<mission_id>:<path>`.
+3. **Verifiche & Replan**:
+   Il verdetto del verifier (`pass`, `retry`, `replan`, `fail`) genera l'arco
+   `exec:...` $\rightarrow$ `verdict:...`. Se si verifica un replan, `replan:<mission_id>:<replan_count>`
+   collega la bocciatura alle nuove task generate.
+4. **Root-Cause Analysis Autonoma (`diagnose_root_cause`)**:
+   In caso di fallimento della missione o di un task, il controller risale la catena
+   causale a ritroso (`trace_lineage`) per individuare l'esatto nodo o modello
+   responsabile dell'errore (evitando il replanning cieco).
+5. **Sottografo di Missione (`export_mission_causal_subgraph`)**:
+   Estrae l'insieme isolato di nodi, archi e metadati della singola missione
+   per il monitoraggio grafico e l'audit.
