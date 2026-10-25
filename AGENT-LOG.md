@@ -8631,3 +8631,36 @@ Su richiesta dell'utente ("quello che ha raccolto agent reach è interessante...
    - Creato [`tests/test_mission_causal_graph.py`](tests/test_mission_causal_graph.py) con 5 test specifici (**5/5 passed**).
    - Suite completa congiunta (Mission Control, Causal Graph, AGI R&D, Promoted Modules, Biomimetic, ModularIntellect, OMEN, B2B, Scout): **78/78 passed (100% GREEN)**.
    - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 13:30 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Consolidamento e Arricchimento dei 3 Pilastri R&D Selezionati (ModularIntellect, E-Literature & Stigmergic Swarm)
+
+1. **Obiettivo dell'Intervento**:
+   - Accordo operativo con l'utente: rimandare i pilastri bio-mimetici (micelio e calcolo entropia) in attesa di metriche di carico più dense su cluster esteso, e consolidare subito i pilastri **3** (ModularIntellect), **4** (Algorithmic Aesthetics & Poesia) e **5** (Swarm Stigmergico).
+   - Portate le feature più avanzate dai prototipi sintetizzati con LFM 24B su ASUS direttamente nei rispettivi moduli di produzione in `shared/`.
+
+2. **Miglioramenti Implementati nei Moduli di Produzione**:
+   - **Pilastro 3 — ModularIntellect ([`shared/modular_intellect_engine.py`](shared/modular_intellect_engine.py))**:
+     - Implementato [`traverse_graph_context(query, max_hops=2)`](shared/modular_intellect_engine.py): navigazione relazionale a grafo con BFS multi-salto (`PART_OF`, `CONTINUES_TO`, `REFERENCES`) per superare il limite del RAG piatto e raccogliere catene di pensiero dense e associative.
+   - **Pilastro 4 — Algorithmic Aesthetics & E-Literature ([`shared/neuro_symbolic_poetry.py`](shared/neuro_symbolic_poetry.py))**:
+     - Aggiunta la metrica prosodica italiana [`count_syllables(text)`](shared/neuro_symbolic_poetry.py) per il conteggio sillabico.
+     - Implementato il supporto alla forma metrica del **Sonetto a 14 versi endecasillabi** (due quartine + due terzine) in `generate_poem(form="sonnet")`.
+     - Arricchito [`extract_visual_prompt()`](shared/neuro_symbolic_poetry.py) con vincoli tipografici espliciti per la generazione visiva ComfyUI (*Playfair Display 24pt bold*, *Garamond 12pt italic*, layout centrato e ombre ad alto contrasto).
+   - **Pilastro 5 — Swarm AI & Consenso Stigmergico ([`shared/stigmergic_mesh_swarm.py`](shared/stigmergic_mesh_swarm.py))**:
+     - Implementato [`compute_gradient_field(signal_type)`](shared/stigmergic_mesh_swarm.py): calcolo matematico della forza media dei feromoni attivi pesata per freschezza, varianza di dispersione nel cluster e individuazione del nodo focale (`hotspot_node`).
+
+3. **Verifica & Test Suite**:
+   - Aggiornati [`tests/test_modular_intellect_integration.py`](tests/test_modular_intellect_integration.py) e [`tests/test_promoted_rd_modules.py`](tests/test_promoted_rd_modules.py).
+   - Suite completa mirata: **80/80 passed (100% GREEN)** in 0.67s.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 13:45 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Esecuzione Live: Sonetto Metrico e Note Ricorsive per Anna
+
+1. **Esecuzione Dimostrativa**:
+   - Creato ed eseguito script dimostrativo [`demo_anna_sonnet_and_notes.py`](file:///Users/opo/.gemini/antigravity/brain/5b41dea2-c0ef-4cc3-ae67-e9790425a821/scratch/demo_anna_sonnet_and_notes.py) orchestrando la composizione neuro-simbolica e il grafo associativo ricorsivo.
+   - **Sonetto (14 versi endecasillabi)** generato da [`NeuroSymbolicPoetryEngine`](shared/neuro_symbolic_poetry.py) armonizzando i temi della mattinata (pannelli solari, cento watt PD di budget energetico, risveglio emotivo di Anna, legami simbiotici della mesh).
+   - **Specifica Tipografica ComfyUI** estratta con parametri tipografici: *Playfair Display 24pt bold*, *Garamond 12pt italic*, composizione centrata ad alto contrasto.
+   - **Memoria Ricorsiva a Grafo (ModularIntellect)**: Ingestione documento episodico con scomposizione in 6 chunk relazionali; aggiunta di Nota di Riflessione Livello 1 (`REFERENCES` sui chunk energetici) e Nota di Meta-Riflessione Livello 2 (`REFLECTS_ON` sulla riflessione L1).
+   - **Navigazione BFS Multi-Hop**: Query `100 watt` espansa a 2 hop, esplorando 9 nodi con successo (Hop 0: Chunk + Riflessione L1, Hop 1: Meta-Riflessione L2 + Documento + Chunk adiacenti, Hop 2: Chiusura sui chunk poetici).
+   - Tutti i test d'integrazione e di licenza confermati al 100% GREEN.

@@ -128,6 +128,38 @@ class StigmergicMeshSwarm:
         results.sort(key=lambda x: x["strength"], reverse=True)
         return results
 
+    def compute_gradient_field(self, signal_type: str) -> Dict[str, Any]:
+        """
+        Calcola l'analisi del campo gradiente stigmergico (ispirata dal prototipo LFM 24B):
+        - intensità media pesata per freschezza
+        - varianza e dispersione del segnale nel cluster
+        - nodo focale di convergenza (hotspot)
+        """
+        signals = self.sense_gradient(signal_type)
+        if not signals:
+            return {
+                "signal_type": signal_type,
+                "average_strength": 0.0,
+                "variance": 0.0,
+                "hotspot_node": None,
+                "active_signals_count": 0,
+                "signals": [],
+            }
+
+        strengths = [s["strength"] for s in signals]
+        avg = sum(strengths) / len(strengths)
+        variance = sum((s - avg) ** 2 for s in strengths) / len(strengths) if len(strengths) > 1 else 0.0
+        hotspot = signals[0]["node_id"]
+
+        return {
+            "signal_type": signal_type,
+            "average_strength": round(avg, 4),
+            "variance": round(variance, 4),
+            "hotspot_node": hotspot,
+            "active_signals_count": len(signals),
+            "signals": signals,
+        }
+
     def decay_pheromones(self, decay_rate: float = 0.05) -> int:
         """
         Applica il decadimento a tutti i feromoni attivi.

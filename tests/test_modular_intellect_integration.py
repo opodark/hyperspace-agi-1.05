@@ -72,6 +72,30 @@ class TestModularIntellectIntegration(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["id"], "chunk_a")
 
+    def test_traverse_graph_context_multi_hop_bfs(self):
+        # Catena: doc -> chunk_0 -> chunk_1 -> note
+        doc_id = "doc_neuro"
+        self.store.add_node(doc_id, "document", "Reti Neurali Cognitive")
+        self.store.add_node("c0", "chunk", "Introduzione ai grafi di conoscenza relazionali")
+        self.store.add_node("c1", "chunk", "Meccanismo di propagazione del gradiente")
+        self.store.add_edge("c0", doc_id, "PART_OF")
+        self.store.add_edge("c0", "c1", "CONTINUES_TO")
+
+        # Nota che referenzia c1
+        self.store.create_reflective_note("n_refl", "La propagazione richiede stabilità del tasso di apprendimento.", ["c1"])
+
+        # Esegue la traversata a 2 hop cercando "conoscenza"
+        traversed = self.store.traverse_graph_context("conoscenza", max_hops=2)
+        node_ids = [n["id"] for n in traversed]
+
+        # c0 è il punto di partenza (hop 0)
+        self.assertIn("c0", node_ids)
+        # doc_neuro e c1 sono a 1 hop
+        self.assertIn("doc_neuro", node_ids)
+        self.assertIn("c1", node_ids)
+        # n_refl è a 2 hop (collegata a c1 via REFERENCES)
+        self.assertIn("n_refl", node_ids)
+
     def test_graph_traversal_navigator_lookups_parsing(self):
         model_reply = (
             "Review dei frammenti completata.\n"

@@ -51,6 +51,28 @@ class TestNeuroSymbolicPoetryEngine(unittest.TestCase):
         self.assertEqual(prompt_data["theme"], "cybercore")
         self.assertIn("cyberpunk", prompt_data["positive_prompt"])
 
+    def test_generate_poem_sonnet_14_lines(self):
+        poem = self.engine.generate_poem(form="sonnet")
+        # Deve contenere 14 versi (escluse le righe vuote tra quartine e terzine)
+        verse_lines = [l for l in poem.strip().split("\n") if l.strip()]
+        self.assertEqual(len(verse_lines), 14)
+        self.assertIn("torre di controllo", poem)
+
+    def test_count_syllables_prosodic(self):
+        # "luce" -> 2 sillabe
+        self.assertEqual(self.engine.count_syllables("luce"), 2)
+        # "memoria" -> 3-4 sillabe
+        self.assertGreaterEqual(self.engine.count_syllables("memoria"), 3)
+
+    def test_extract_visual_prompt_typography_constraints(self):
+        prompt_data = self.engine.extract_visual_prompt()
+        self.assertIn("typography", prompt_data)
+        typo = prompt_data["typography"]
+        self.assertEqual(typo["title_font"], "Playfair Display")
+        self.assertEqual(typo["title_size_pt"], 24)
+        self.assertEqual(typo["body_font"], "Garamond")
+        self.assertIn("Playfair Display", prompt_data["positive_prompt"])
+
 
 class TestStigmergicMeshSwarm(unittest.TestCase):
     def setUp(self):
@@ -75,6 +97,18 @@ class TestStigmergicMeshSwarm(unittest.TestCase):
         # Il segnale con intensità maggiore deve essere in cima al gradiente
         self.assertGreater(gradient[0]["strength"], gradient[1]["strength"])
         self.assertEqual(gradient[0]["node_id"], "omen-16")
+
+    def test_compute_gradient_field_hotspot_and_variance(self):
+        self.swarm.deposit_pheromone("calcolo", {"importanza": 0.90}, node_id="omen-16")
+        self.swarm.deposit_pheromone("calcolo", {"importanza": 0.30}, node_id="asus-v16")
+        self.swarm.deposit_pheromone("calcolo", {"importanza": 0.60}, node_id="mac-m5")
+
+        field = self.swarm.compute_gradient_field("calcolo")
+        self.assertEqual(field["signal_type"], "calcolo")
+        self.assertEqual(field["hotspot_node"], "omen-16")
+        self.assertEqual(field["active_signals_count"], 3)
+        self.assertGreater(field["average_strength"], 0.5)
+        self.assertGreater(field["variance"], 0.0)
 
     def test_decay_pheromones_evaporation(self):
         self.swarm.deposit_pheromone("allerta", {"importanza": 0.5}, decay_rate=0.6, node_id="node-1")

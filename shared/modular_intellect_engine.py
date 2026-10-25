@@ -261,6 +261,47 @@ class TripleModalGraphStore:
                 results.append(item)
             return results
 
+    def traverse_graph_context(
+        self,
+        query: str,
+        max_hops: int = 2,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Navigazione a grafo relazionale per superare i limiti di RAG piatto:
+        1. Trova i nodi iniziali che matchano la query semantica/lessicale.
+        2. Esegue una BFS fino a `max_hops` esplorando gli archi uscenti ed entranti (PART_OF, CONTINUES_TO, REFERENCES).
+        3. Restituisce tutti i nodi raggiungibili ordinati per distanza e rilevanza contestuale.
+        """
+        initial_nodes = self.search_nodes(query, limit=limit)
+        if not initial_nodes:
+            return []
+
+        visited: Set[str] = set()
+        results: List[Dict[str, Any]] = []
+        queue: List[Tuple[str, int]] = [(node["id"], 0) for node in initial_nodes]
+
+        while queue:
+            curr_id, depth = queue.pop(0)
+            if curr_id in visited or depth > max_hops:
+                continue
+            visited.add(curr_id)
+
+            node_data = self.get_node(curr_id)
+            if node_data:
+                node_data["hop_depth"] = depth
+                results.append(node_data)
+
+            if depth < max_hops:
+                out_conns = self.get_connections(curr_id, "out")
+                in_conns = self.get_connections(curr_id, "in")
+                for c in out_conns + in_conns:
+                    neighbor = c["neighbor_id"]
+                    if neighbor not in visited:
+                        queue.append((neighbor, depth + 1))
+
+        return results
+
     def get_stats(self) -> Dict[str, Any]:
         """Restituisce le metriche strutturali del grafo tri-modale."""
         with sqlite3.connect(self.db_path) as conn:

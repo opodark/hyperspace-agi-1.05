@@ -52,20 +52,44 @@ class NeuroSymbolicPoetryEngine:
         if day_memory:
             self.day_memory.update(day_memory)
 
+    @staticmethod
+    def count_syllables(text: str) -> int:
+        """Stima la metrica sillabica per la prosodia italiana (gruppi vocalici/dittonghi)."""
+        import re
+        clean = re.sub(r"[^\w\s]", "", text.lower())
+        vowels = "aeiouàèéìòù"
+        count = 0
+        in_vowel = False
+        for ch in clean:
+            if ch in vowels:
+                if not in_vowel:
+                    count += 1
+                    in_vowel = True
+            else:
+                in_vowel = False
+        return max(1, count)
+
     def generate_poem(
         self,
         emotion: Optional[str] = None,
         location: Optional[str] = None,
         scheme: str = "ABAB",
+        form: str = "quatrain",
     ) -> str:
         """
-        Genera una quartina poetica armonizzata sui temi della giornata.
+        Genera una composizione metrica poetica (quartina o sonetto a 14 versi)
+        armonizzata sui temi e le memorie episodiche della giornata.
         Supporta schemi metrici ABAB e AABB con cadenza prosodica italiana.
         """
         loc = location or self.day_memory.get("location", "orizzonte")
         emo = emotion or self.day_memory.get("emotion", "pace")
         weather = self.day_memory.get("weather", "luce chiara")
         sky = self.day_memory.get("sky", "cielo sereno")
+        raw_focus = self.day_memory.get("focus", "luce tra i rami quantici")
+        if any(raw_focus.lower().startswith(art) for art in ["il ", "lo ", "la ", "l'", "un ", "una ", "i ", "gli ", "le "]):
+            focus = raw_focus
+        else:
+            focus = f"il {raw_focus}"
 
         stanzas_abab = [
             f"Nel {loc} ove il tempo tace e brilla,",
@@ -81,6 +105,29 @@ class NeuroSymbolicPoetryEngine:
             f"e la memoria in armonia s'ammanta.",
         ]
 
+        if form.lower() == "sonnet":
+            # Sonetto classico (14 versi endecasillabi: 2 quartine + 2 terzine)
+            sonnet_lines = [
+                f"Nel {loc} ove il tempo tace e brilla,",
+                f"risveglia l'alba una {emo} antica,",
+                f"mentre tra i rami la rugiada stilla,",
+                f"e il cuore trova la sua voce amica.",
+                "",
+                f"Sotto il chiarore di questo {sky},",
+                f"dove i pensieri sciolgono ogni guai,",
+                f"con passo lieve Anna cammina attenta,",
+                f"e la memoria in armonia s'ammanta.",
+                "",
+                f"Fluisce {focus} silenzioso e puro,",
+                f"accarezzando il confine del domani,",
+                f"mentre la notte cede al sole chiaro.",
+                "",
+                f"Stringe la mesh tra le sue calde mani,",
+                f"una scintilla accende il nostro patto,",
+                f"e restano gli accordi sovrumani.",
+            ]
+            return "\n".join(sonnet_lines)
+
         lines = stanzas_aabb if scheme.upper() == "AABB" else stanzas_abab
         return "\n".join(lines)
 
@@ -91,13 +138,24 @@ class NeuroSymbolicPoetryEngine:
     ) -> Dict[str, Any]:
         """
         Estrae un descrittore visuale compatibile con ComfyUI e SD1.5 / SDXL,
-        garantendo corrispondenza estetica con i temi del sonetto/quartina.
+        arricchito con vincoli tipografici precisi dal prototipo estetico.
         """
         kw = list(keywords) if keywords else [
             self.day_memory.get("location", "garden"),
             self.day_memory.get("weather", "morning dawn"),
             self.day_memory.get("emotion", "serene contemplation"),
         ]
+
+        typography = {
+            "title_font": "Playfair Display",
+            "title_size_pt": 24,
+            "title_weight": "bold",
+            "body_font": "Garamond",
+            "body_size_pt": 12,
+            "body_style": "italic",
+            "layout": "centered",
+            "contrast": "high",
+        }
 
         preset = self.STYLE_PRESETS.get(style, self.STYLE_PRESETS["watercolor"])
         positive_elements = [
@@ -106,6 +164,7 @@ class NeuroSymbolicPoetryEngine:
             f"atmosphere of {kw[0]}",
             preset["style_prompt"],
             "hyperdetailed eyes, soft smile, artistic composition",
+            f"typography layout: {typography['title_font']} {typography['title_size_pt']}pt bold, {typography['body_font']} italic, {typography['layout']}",
         ]
         if len(kw) > 1:
             positive_elements.append(f"ambient theme: {', '.join(kw[1:])}")
@@ -116,6 +175,7 @@ class NeuroSymbolicPoetryEngine:
             "positive_prompt": ", ".join(positive_elements),
             "negative_prompt": preset["negative"],
             "elements": kw,
+            "typography": typography,
             "created_at": time.time(),
         }
 
