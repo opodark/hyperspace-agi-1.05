@@ -13,8 +13,8 @@ from scripts.diagnostics.b2b_target_research import TARGET_QUERIES, DISALLOWED_D
 def test_linkedin_bulletin_generator():
     res = generate_bulletin_posts()
     assert res is not None
-    assert res["total_posts"] == 3
-    assert len(res["posts"]) == 3
+    assert res["total_posts"] >= 3
+    assert len(res["posts"]) >= 3
     
     # Verify presence of Target 1, 3, and 4
     targets_str = " ".join([p["target"] for p in res["posts"]])

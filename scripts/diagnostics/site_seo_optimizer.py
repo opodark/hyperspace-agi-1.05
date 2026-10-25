@@ -49,9 +49,19 @@ def run_geo_audit(target_url: str = DEFAULT_TARGET_URL) -> dict:
     if code != 0:
         return {"ok": False, "error": err or out}
 
-    # Extract score (works for both visual and plain text modes)
-    score_match = re.search(r"(\d{1,3})\s*/\s*100", out)
-    score = int(score_match.group(1)) if score_match else None
+    # Extract final score (works for visual banner, final block, and plain text modes)
+    score = None
+    m_banner = re.search(r"^\s*(\d{1,3})\s*/\s*100\s+(FOUNDATION|GOOD|EXCELLENT|CRITICAL)", out, re.MULTILINE)
+    if m_banner:
+        score = int(m_banner.group(1))
+    else:
+        m_final = re.search(r"FINAL GEO SCORE.*?(\d{1,3})\s*/\s*100", out, re.DOTALL)
+        if m_final:
+            score = int(m_final.group(1))
+        else:
+            all_m = re.findall(r"(\d{1,3})\s*/\s*100", out)
+            if all_m:
+                score = int(all_m[-1])
 
     # Parse priority next steps / top fixes
     fixes = []

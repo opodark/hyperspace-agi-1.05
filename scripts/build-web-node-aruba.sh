@@ -29,8 +29,8 @@ if [[ -f "$REPO_ROOT/web-node/.htaccess" ]]; then
   cp "$REPO_ROOT/web-node/.htaccess" "$TARGET/.htaccess"
 fi
 
-# Copia ads.txt per Google AdSense, sitemap.xml e file di discovery per Agenti AI (llms.txt, robots.txt, ai-agent.json, sitemap.xml)
-for root_file in ads.txt llms.txt robots.txt ai-agent.json sitemap.xml; do
+# Copia ads.txt per Google AdSense, sitemap.xml e file di discovery per Agenti AI (llms.txt, robots.txt, ai-agent.json, sitemap.xml, og-image.png)
+for root_file in ads.txt llms.txt robots.txt ai-agent.json sitemap.xml og-image.png logo.png; do
   if [[ -f "$REPO_ROOT/web-node/$root_file" ]]; then
     cp "$REPO_ROOT/web-node/$root_file" "$TARGET/$root_file"
   fi

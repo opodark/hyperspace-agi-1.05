@@ -69,3 +69,64 @@ def test_harvest_trend_mock():
         assert len(res) == 1
         assert res[0]["title"] == "AI Trend 2026"
         assert "Nuova architettura neurale" in res[0]["snippet"]
+
+
+def test_harvest_arxiv_mock():
+    mock_atom_xml = """<?xml version='1.0' encoding='UTF-8'?>
+    <feed xmlns="http://www.w3.org/2005/Atom">
+      <entry>
+        <id>http://arxiv.org/abs/2112.07236v1</id>
+        <title>Logics in fungal mycelium networks</title>
+        <summary>The living mycelium networks are capable of efficient sensorial fusion.</summary>
+      </entry>
+    </feed>
+    """.encode("utf-8")
+
+    class MockResp:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def read(self):
+            return mock_atom_xml
+
+    with patch("urllib.request.urlopen", return_value=MockResp()):
+        items = harvest_trend("arxiv", "mycelium network")
+        assert len(items) == 1
+        assert items[0]["channel"] == "arxiv"
+        assert "Logics in fungal mycelium networks" in items[0]["title"]
+        assert "sensorial fusion" in items[0]["snippet"]
+        assert items[0]["url"] == "http://arxiv.org/abs/2112.07236v1"
+
+
+def test_harvest_scholar_mock():
+    mock_crossref_json = json.dumps({
+        "status": "ok",
+        "message": {
+            "items": [
+                {
+                    "title": ["Quorum sensing in bacterial swarms"],
+                    "DOI": "10.1038/nature12345",
+                    "container-title": ["Nature Reviews Microbiology"]
+                }
+            ]
+        }
+    }).encode("utf-8")
+
+    class MockResp:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def read(self):
+            return mock_crossref_json
+
+    # Mock agent-reach to empty/failure to trigger open science fallback
+    with patch("scripts.diagnostics.trend_scout_reach.run_agent_reach", return_value={"ok": False}):
+        with patch("urllib.request.urlopen", return_value=MockResp()):
+            items = harvest_trend("scholar", "bacterial quorum sensing")
+            assert len(items) == 1
+            assert items[0]["channel"] == "scholar"
+            assert "Quorum sensing in bacterial swarms" in items[0]["title"]
+            assert "Nature Reviews Microbiology" in items[0]["snippet"]
+            assert "10.1038/nature12345" in items[0]["url"]

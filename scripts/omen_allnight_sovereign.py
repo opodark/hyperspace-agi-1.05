@@ -148,6 +148,9 @@ def _log(tag: str, msg: str, node: str = "OMEN-16"):
         pass
 
 
+_log_stream = _log
+
+
 def is_thermal_safe() -> bool:
     """Verifica se la GPU OMEN o il sistema sono in allerta termica."""
     if THERMAL_FLAG.exists():
@@ -156,13 +159,74 @@ def is_thermal_safe() -> bool:
     return True
 
 
+def _is_asus_available() -> bool:
+    """Verifica rapida (2.5s) se il nodo ASUS Ollama è online e raggiungibile."""
+    try:
+        req = urllib.request.Request(f"{ASUS_OLLAMA_URL}/api/tags")
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
 def execute_omen_prompt(
     prompt: str,
     model: str,
     timeout: int = 90,
     node_url: str = OMEN_NODE_URL,
 ) -> Dict[str, Any]:
-    """Invia un prompt con firma ECDSA crittografica al nodo OMEN 16."""
+    """Invia un prompt al cluster sovrano con routing intelligente e fallback resiliente.
+    
+    - Modelli 40B (flint): tenta prioritariamente ASUS se online; se non disponibile,
+      esegue direttamente su HP OMEN 16 con timeout esteso (240s) accettando offload CPU/RAM.
+    - Modelli 24B/8B/9B: esegue su HP OMEN 16 con firma ECDSA crittografica; gestisce
+      retry in caso di nodo temporaneamente occupato (503).
+    """
+    is_flint = "flint" in model.lower()
+    is_heavy = is_flint or "24b" in model.lower() or "40b" in model.lower()
+
+    # 1. Routing prioritario carichi pesanti (40B flint, 24B LFM) su ASUS se disponibile (48GB RAM)
+    if (is_heavy or is_flint) and _is_asus_available():
+        t0 = time.perf_counter()
+        asus_timeout = max(timeout, 380) if is_flint else max(timeout, 150)
+        try:
+            _log_stream("ROUTING", f"Inoltro prompt ({model}) verso ASUS Ollama (timeout {asus_timeout}s)...", node="ASUS-V16")
+            mesh_payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
+            mesh_req = urllib.request.Request(
+                f"{ASUS_OLLAMA_URL}/api/generate",
+                data=mesh_payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(mesh_req, timeout=asus_timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            resp_str = data.get("response", "")
+            thinking_str = data.get("thinking", "")
+            if thinking_str and resp_str:
+                full_resp = f"<think>\n{thinking_str}\n</think>\n\n{resp_str}"
+            elif resp_str:
+                full_resp = resp_str
+            else:
+                full_resp = f"<think>\n{thinking_str}\n</think>" if thinking_str else ""
+            elapsed = round(time.perf_counter() - t0, 2)
+            return {
+                "status": "ok",
+                "model": model,
+                "elapsed_s": elapsed,
+                "response": full_resp,
+                "routed_via": "ASUS_OLLAMA",
+            }
+        except Exception as exc_asus:
+            _log_stream("ROUTING", f"ASUS non ha risposto ({exc_asus}): failover automatico su HP OMEN 16...", node="OMEN-16")
+
+    # 2. Esecuzione su HP OMEN 16 (via Node API :8081/execute con firma ECDSA)
+    effective_timeout = max(timeout, 240) if is_flint else timeout
+    if is_flint:
+        _log_stream(
+            "ROUTING",
+            f"ASUS non disponibile: esecuzione 40B ({model}) su HP OMEN 16 (CPU/GPU offload, timeout {effective_timeout}s)...",
+            node="OMEN-16",
+        )
+
     identity = generate_or_load_identity()
     task_id = f"omen-allnight-{int(time.time() * 1000)}"
     payload = json.dumps({
@@ -181,21 +245,42 @@ def execute_omen_prompt(
         )
     )
 
+    max_retries = 5
+    last_exc = None
     t0 = time.perf_counter()
-    req = urllib.request.Request(f"{node_url}/execute", data=payload, headers=hdrs)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        elapsed = round(time.perf_counter() - t0, 2)
-        return {
-            "status": "ok",
-            "model": model,
-            "elapsed_s": elapsed,
-            "response": data.get("response", ""),
-        }
-    except Exception as exc:
-        # Fallback di rete resiliente su Ollama della Mesh (es. per modelli 40B Flint o 24B LFM)
+
+    for attempt in range(max_retries):
+        req = urllib.request.Request(f"{node_url}/execute", data=payload, headers=hdrs)
         try:
+            with urllib.request.urlopen(req, timeout=effective_timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            resp_str = data.get("response", "")
+            if resp_str.startswith("[OLLAMA ERROR]") or "Internal Server Error" in resp_str:
+                raise RuntimeError(resp_str)
+            elapsed = round(time.perf_counter() - t0, 2)
+            return {
+                "status": "ok",
+                "model": model,
+                "elapsed_s": elapsed,
+                "response": resp_str,
+                "routed_via": "OMEN_NODE",
+            }
+        except urllib.error.HTTPError as http_err:
+            last_exc = http_err
+            if http_err.code == 503 and attempt < max_retries - 1:
+                # Nodo occupato da altro task: attesa slot libero
+                _log_stream("QUEUE", f"Nodo occupato (503): attesa slot libero ({attempt + 1}/{max_retries})...", node="OMEN-16")
+                time.sleep(5.0)
+                continue
+            break
+        except Exception as exc:
+            last_exc = exc
+            break
+
+    # 3. Fallback secondario su ASUS se non era flint ed è online
+    if not is_flint and _is_asus_available():
+        try:
+            _log_stream("ROUTING", f"Fallback secondario su ASUS Ollama per {model}...", node="ASUS-V16")
             mesh_payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode("utf-8")
             mesh_req = urllib.request.Request(
                 f"{ASUS_OLLAMA_URL}/api/generate",
@@ -210,15 +295,18 @@ def execute_omen_prompt(
                 "model": model,
                 "elapsed_s": elapsed,
                 "response": data.get("response", ""),
+                "routed_via": "ASUS_FALLBACK",
             }
-        except Exception as exc_mesh:
-            elapsed = round(time.perf_counter() - t0, 2)
-            return {
-                "status": "error",
-                "model": model,
-                "elapsed_s": elapsed,
-                "error": f"OMEN: {exc} | Mesh: {exc_mesh}",
-            }
+        except Exception:
+            pass
+
+    elapsed = round(time.perf_counter() - t0, 2)
+    return {
+        "status": "error",
+        "model": model,
+        "elapsed_s": elapsed,
+        "error": f"OMEN: {last_exc}",
+    }
 
 
 # =============================================================================

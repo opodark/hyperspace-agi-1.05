@@ -70,6 +70,22 @@ RESEARCH_PILLARS = [
         "domain": "OMEN RTX 3070, Mac M5 MPS, WAL Checkpoints & Watchdog Termico",
         "target_model": "Liquid LFM 2.5 24B",
     },
+    {
+        "id": "symbolic_causal_mesh",
+        "name": "Causal AI & Memoria Stigmergica FTS5",
+        "color": "#f59e0b",  # Ambra
+        "icon": "🔗",
+        "domain": "Grafo di Causalità, Vector Clocks, Hermes FTS5 & Lineage Swarm",
+        "target_model": "flint:latest",
+    },
+    {
+        "id": "modular_intellect",
+        "name": "ModularIntellect & Memoria Tri-Modale a Grafo",
+        "color": "#3b82f6",  # Blu Cobalto
+        "icon": "🧩",
+        "domain": "Chunks PART_OF/CONTINUES_TO, Note Ricorsive & Graph Traversal",
+        "target_model": "flint:latest",
+    },
 ]
 
 

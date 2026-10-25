@@ -94,6 +94,53 @@ RESEARCH_PILLARS = [
         "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
         "fallback_model": "granite3.3:8b",
     },
+    {
+        "id": "symbolic_causal_mesh",
+        "domain": "Causal AI & Stigmergic Memory Distillation",
+        "reference": "J. Pearl Causal Reasoning & Stigmergic Graph Vector Clocks",
+        "prompt": (
+            "Sei l'ingegnere dei sistemi causali e della memoria distribuita di HyperSpace AGI.\n"
+            "Sviluppa un'architettura che unisca la memoria episodica di Hermes FTS5 con un grafo di causalità tra agenti eterogenei.\n\n"
+            "Compito: Implementa una classe Python `class CausalMemoryGraph:` con metodi `record_event(cause_id, effect_id, weight)` "
+            "e `trace_lineage(effect_id)` per tracciare la genesi causale delle scoperte e delle decisioni dello swarm mesh.\n"
+            "Mostra prima il ragionamento in <think> poi il codice completo con annotazioni di tipo."
+        ),
+        "target_model": "flint:latest",
+        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+    },
+    {
+        "id": "modular_intellect",
+        "domain": "ModularIntellect: Memoria Tri-Modale a Grafo & Note Ricorsive",
+        "reference": "LuckCow/ModularIntellect (Triple-Modal Memory, Relational Graph Traversal & Alignment Auditing)",
+        "prompt": (
+            "Sei l'architetto della memoria cognitiva di HyperSpace AGI. Analizza l'architettura ModularIntellect (LuckCow/ModularIntellect):\n"
+            "1. Memoria Tri-Modale: Documenti/Chunks (PART_OF, CONTINUES_TO), Interazioni (conversazioni), e Note di auto-riflessione (REFERENCES).\n"
+            "2. Note Ricorsive: capacità dell'agente di produrre note che referenziano altre note per creare astrazioni e pensieri complessi.\n"
+            "3. Navigazione a Grafo (GraphDB Traversal): superamento dei limiti di contesto dei LLM esplorando le relazioni a salti anziché RAG piatto.\n"
+            "4. Alignment Auditor: supervisione deontologica e costituzionale delle azioni autonome.\n\n"
+            "Compito: Implementa una classe Python `class SovereignModularIntellect:` con metodi `store_experience(kind, content, refs)` "
+            "e `traverse_graph_context(query, max_hops)` pronta all'uso senza dipendenze esterne.\n"
+            "Mostra prima il ragionamento in <think> poi il codice completo con annotazioni di tipo."
+        ),
+        "target_model": "flint:latest",
+        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+    },
+    {
+        "id": "biomimetic_nature_mesh",
+        "domain": "Biomimicry Computing: Micelio, Quorum Sensing & Gossip Epidemico",
+        "reference": "Nature-Inspired Swarm: Physarum Polycephalum Hyphal Routing, Bacterial Quorum Consensus & Kleptoparasitic Work Stealing",
+        "prompt": (
+            "Sei il bio-architetto della rete distribuita HyperSpace AGI. Analizza come applicare i principi biologici alla mesh sovrana:\n"
+            "1. Micelio e Muffe Mucillaginose (Physarum): rinforzo conduttivo dei cammini di flusso e potatura (pruning) delle connessioni ad alta latenza.\n"
+            "2. Quorum Sensing Batterico: secrezione di autoinduttori per raggiungere una densità critica prima di eseguire compiti pesanti (MoE 40B, WAL compaction).\n"
+            "3. Virus ed Epidemic Gossip: replicazione rapida esponenziale di stati immutabili con filtro antigenico contro payload corrotti o invalidi.\n"
+            "4. Cleptoparassitismo Simbiotico: nodi edge leggeri che rubano cicli di calcolo idle da host potenti senza deadlock.\n\n"
+            "Compito: Spiega come orchestrare questi quattro meccanismi nella mesh multi-nodo e scrivi un modulo Python integrativo "
+            "per monitorare l'entropia della mesh e l'efficacia del flusso."
+        ),
+        "target_model": "flint:latest",
+        "fallback_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+    },
 ]
 
 
@@ -151,16 +198,18 @@ class AGIResearchEngine:
         raw_response = ""
         elapsed_s = 0.0
         if omen_executor_fn:
-            res = omen_executor_fn(pillar["prompt"], model=model, timeout=120)
-            if res.get("status") == "ok":
+            res = omen_executor_fn(pillar["prompt"], model=model, timeout=240)
+            if res.get("status") == "ok" and not res.get("response", "").startswith("[OLLAMA ERROR]"):
                 raw_response = res.get("response", "")
                 elapsed_s = res.get("elapsed_s", 0.0)
             else:
-                # Fallback al modello secondario
+                # Fallback al modello secondario (es. LFM2.5 24B o Granite 8B)
                 fallback = pillar.get("fallback_model", "granite3.3:8b")
-                res = omen_executor_fn(pillar["prompt"], model=fallback, timeout=90)
+                res = omen_executor_fn(pillar["prompt"], model=fallback, timeout=120)
                 raw_response = res.get("response", "")
                 elapsed_s = res.get("elapsed_s", 0.0)
+                if res.get("status") == "ok":
+                    model = fallback
         else:
             raw_response = (
                 "<think>Analisi preliminare dei 5 assiomi di Aleksander</think>\n"

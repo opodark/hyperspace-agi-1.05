@@ -76,6 +76,24 @@ BULLETINS = [
             "#MSP #ITSupport #HelpDesk #SystemAdministrator #RemoteMonitoring #EdgeAI #CyberSecurity #HyperSpace #ZeroZeroComputer"
         ),
         "cta_url": "https://www.zerozerocomputer.it"
+    },
+    {
+        "id": "bulletin_autonomous_rd_swarm",
+        "title": "R&D Autonoma Sovrana: Feromoni Digitali, Vector Clocks e la Fine dei Master Centralizzati",
+        "target": "Target 5: Tech Leaders, AI Engineers, Ricercatori AGI & Founder",
+        "summary": "Coordinamento stigmergico tra nodi eterogenei, causalità distribuita con Vector Clocks e validazione di prototipi tramite Abstract Syntax Tree (AST) ed esecuzione sicura.",
+        "text": (
+            "La maggior parte delle architetture multi-agente attuali soffre di un collo di bottiglia strutturale: un orchestratore centrale che prende decisioni per tutti.\n\n"
+            "In natura le colonie di formiche o gli sciami non hanno un server centrale che assegna i task. Funzionano per STIGMERGIA: ogni entità lascia una traccia nell'ambiente che decade nel tempo.\n\n"
+            "Stanotte il nostro cluster HyperSpace AGI ha compiuto un salto fondamentale:\n\n"
+            "1. Feromoni Digitali: i nodi (Mac M5, HP OMEN RTX 3070, ASUS V16) depositano tracce d'attenzione e scoperte nella memoria condivisa Hermes. I segnali decadono fisiologicamente nel tempo, guidando gli altri agenti verso i gradienti di massima priorità senza bottleneck centrali.\n\n"
+            "2. Vector Clocks Distribuiti: per evitare divergenze e conflitti temporali, ogni nodo aggiorna orologi vettoriali logici. Il consenso sulla convergenza dell'architettura emerge matematicamente prima di toccare la produzione.\n\n"
+            "3. Validazione AST & Sintesi Notturna: modelli ad alta capacità (da 8B fino a 40B MoE) esplorano la letteratura scientifica, generano ipotesi di codice e le sottopongono a compilazione AST formale. Se l'albero sintattico fallisce, il sistema effettua un pivot concettuale in autonomia.\n\n"
+            "Mentre dormiamo, la mesh lavora, corregge, distilla e fa evolvere il proprio codice in modo 100% sovrano, on-premise e verificabile.\n\n"
+            "Laboratorio R&D e log live in chiaro: https://www.zerozerocomputer.it/apps/playground/research.html\n\n"
+            "#ArtificialIntelligence #AGI #SwarmIntelligence #DistributedSystems #Stigmergy #VectorClocks #AutonomousAgents #BuildInPublic #OpenSource #ZeroZeroComputer"
+        ),
+        "cta_url": "https://www.zerozerocomputer.it/apps/playground/research.html"
     }
 ]
 
@@ -98,12 +116,13 @@ def generate_bulletin_posts():
         
     logger.info(f"Salvati {len(BULLETINS)} post LinkedIn in {OUTPUT_FILE}")
     
-    # Crea un piano di pubblicazione per i prossimi 3 giorni
+    # Crea un piano di pubblicazione progressivo per i giorni successivi
     schedule_plan = []
     days_labels = ["Giorno 1 (Oggi)", "Giorno 2 (Domani)", "Giorno 3 (Dopodomani)"]
     for idx, post in enumerate(BULLETINS):
+        slot = days_labels[idx] if idx < len(days_labels) else f"Giorno {idx + 1}"
         schedule_plan.append({
-            "slot": days_labels[idx],
+            "slot": slot,
             "bulletin_id": post["id"],
             "target": post["target"],
             "title": post["title"],

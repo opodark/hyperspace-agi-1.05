@@ -8287,3 +8287,175 @@ Su richiesta dell'utente ("quello che ha raccolto agent reach è interessante...
    - Estesa la suite di test [`tests/test_research_tree_and_lab.py`](tests/test_research_tree_and_lab.py) $\rightarrow$ **9/9 passed** (0.04s).
    - Suite completa del repository $\rightarrow$ **39/39 passed (100% GREEN)**.
    - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Debug Console Fix & UI Overhaul (Spaziosa, Ricerca Full-Text e Live Stream Attivo)
+
+1. **Risoluzione Bug Rendering Console**:
+   - Individuata la causa della mancata visualizzazione dei log: mancava la definizione globale della funzione helper `escapeHtml` in [`web-node/apps/playground/research.html`](web-node/apps/playground/research.html), generando un `ReferenceError` non catturato che bloccava il ciclo di rendering `renderNodeStream()`.
+   - Definita `escapeHtml` in cima allo script in modo sicuro e resiliente.
+
+2. **Overhaul Dimensionale & Ergonomia ("Non più striminzita")**:
+   - Altezza predefinita quadruplicata: portata da 260px a **480px** di base, con tre selettori di visualizzazione istantanei: `280px (Compatta)`, `480px (Normale)`, `720px (Espansa)`.
+   - Inserita una barra di **ricerca full-text istantanea** (`input#consoleSearchInput`) per filtrare i log in tempo reale digitando termini chiave (es. *flint*, *LFM*, *AST*, *audit*, *error*).
+   - Aggiunto il filtro dedicato per **Tag** (`Ricerca AGI`, `Dev CoT`, `Audit Pytest`, `AST Gate`, `Demone Notturno`).
+   - Aggiunti i pulsanti operativi: `⚡ Esegui Ciclo Subito` (trigger asincrono del ciclo notturno con polling automatico) e `📥 Scarica Stream (.jsonl)`.
+   - Aggiunto il pulsante scorciatoia rapido nella barra di navigazione superiore: `📟 Debug Console` per scorrere dolcemente direttamente alla console.
+
+3. **Verifica & Collaudo**:
+   - Rigenerato il bundle di rilascio Aruba con [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh).
+   - Test suite [`tests/test_research_tree_and_lab.py`](tests/test_research_tree_and_lab.py) $\rightarrow$ **9/9 passed**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — SEO/GEO Audit Overhaul & Rilascio su Aruba (Punteggio 87/100 EXCELLENT)
+
+1. **Risoluzione Punteggio SEO/GEO Basso (da 42/46 a 87/100)**:
+   - **Bug nel Parser**: Risolto in [`scripts/diagnostics/site_seo_optimizer.py`](scripts/diagnostics/site_seo_optimizer.py) il parsing del report `geo audit`: la regex precedente catturava un valore intermedio (`Chunk readiness: 46/100`) anziché il `FINAL GEO SCORE` effettivo.
+   - **Binding Dinamico UI**: In [`web-node/apps/playground/seo.html`](web-node/apps/playground/seo.html) il badge del punteggio (precedentemente cablato a 46 nell'HTML statico) è ora vincolato dinamicamente all'endpoint `/api/seo-audit`.
+   - **Schema.org JSON-LD Completi**: Aggiunti in [`web-node/index.html`](web-node/index.html) 4 schemi strutturati completi (`Organization` con nodi Knowledge Graph `sameAs`, `WebSite` con SearchAction e date, `SoftwareApplication`, `FAQPage`).
+   - **Metadati, Canonical & Social Card**: Inseriti `<link rel="canonical">`, OpenGraph, Twitter Card e date semantiche `article:published_time` / `modified_time`.
+   - **Asset & Discovery AI**: Generati e integrati `feed.xml` (RSS 2.0 validato), `og-image.png`, `logo.png`, `sitemap.xml`, `/.well-known/ai.txt`, `/ai/service.json`, `/ai/summary.json` e `/ai/faq.json`.
+   - **Fix Cloaking Heuristic**: Rimosso l'attributo inline `style="display:none;"` da banner e modale, sostituito con classe CSS `.is-hidden` per evitare falsi positivi di cloaking nei crawler AI.
+
+2. **Packaging & Deployment su Aruba**:
+   - Aggiornato [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh) per includere tutti i nuovi file di discovery AI, schemi e immagini nel bundle `dist/web-node-aruba/`.
+   - Eseguito il deployment FTP su Aruba (`https://www.zerozerocomputer.it/`).
+
+3. **Verifica & Punteggio**:
+   - Esecuzione live di `geo audit --url https://www.zerozerocomputer.it`:
+     - **Punteggio GEO Attuale: 87/100 (EXCELLENT / AI-Ready)**
+     - Google AI Search: **20/20**
+     - Meta Tags: **11/11**
+     - Content & Semantic Structure: **14/14**
+     - Schema JSON-LD: **12/14**
+     - Signals: **6/6**
+   - API Cockpit [`http://localhost:8090/api/seo-audit`](http://localhost:8090/api/seo-audit) e interfaccia [`http://localhost:8090/seo.html`](http://localhost:8090/seo.html) aggiornate con successo.
+   - Test suite mirata: [`tests/test_federation_gateway.py`](tests/test_federation_gateway.py) $\rightarrow$ **10/10 passed**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Fallback Sovrano Flint 40B su OMEN, Promozione Moduli AST & Accelerazione R&D Mesh
+
+1. **Routing Resiliente Modello 40B (`flint:latest`)**:
+   - Implementato in [`scripts/omen_allnight_sovereign.py`](scripts/omen_allnight_sovereign.py) il routing intelligente di failover per i modelli a parametri estesi (Flint 40B NVFP4 MoE):
+     - Probe rapido (2.5s) della disponibilità di ASUS V16 (`100.64.31.18:11434`);
+     - Quando ASUS non è raggiungibile o è offline, scatta il failover immediato e sovrano verso **HP OMEN 16** (`100.104.238.125:8081/execute`) con firma crittografica ECDSA e timeout esteso (`effective_timeout = max(timeout, 240)`), accogliendo l'offload controllato CPU/RAM (8GB VRAM RTX 3070 + 32GB RAM);
+     - Gestito il backoff con retry (3 tentativi a 3.0s) per gli stati 503 ("nodo saturo") quando OMEN sta terminando un altro slot di inferenza;
+     - Log delle decisioni di routing inviati in tempo reale su `node_stream.jsonl` e visibili nella Debug Console.
+
+2. **Promozione in Produzione degli AST Validi (`shared/`)**:
+   - **[`shared/neuro_symbolic_poetry.py`](shared/neuro_symbolic_poetry.py)** (`NeuroSymbolicPoetryEngine`): derivato da `proto_algorithmic_poetry_aesthetics_1792874380.py`, genera quartine/sonetti in cadenza prosodica italiana (ABAB/AABB) e compone i prompt visivi ottimizzati per ComfyUI (`positive_prompt`, `negative_prompt`, stili watercolor/cinematic/cyberpunk).
+   - **[`shared/stigmergic_mesh_swarm.py`](shared/stigmergic_mesh_swarm.py)** (`StigmergicMeshSwarm`, `VectorClock`): unificazione di `proto_swarm_emergence_1792877797.py` e `1792879319.py`. Risolto il bug di scope variabile in `decay_pheromones`, implementata la gestione causale distributed vector clocks, rilevamento di gradienti di intensità e convergenza di consenso mesh.
+   - **[`shared/synthetic_consciousness_governor.py`](shared/synthetic_consciousness_governor.py)** (`SyntheticConsciousnessGovernor`): promosso da `proto_aleksander_axioms_1792871046.py`, fornisce la matrice di audit e calcolo di conformità per i 5 assiomi di Aleksander (Depiction of Self, Imagination, Attention, Planning, Valencing).
+   - Registrate le promozioni in `data/research/promotions.jsonl` e sincronizzato `data/research/tree.json` (7 moduli in produzione, 49 nodi totali tracciati).
+
+3. **Espansione Ricerca Continua AGI ("Push R&D")**:
+   - Aggiunto in [`shared/agi_research_engine.py`](shared/agi_research_engine.py) e [`shared/research_tree.py`](shared/research_tree.py) il 5° pilastro di frontiera: `symbolic_causal_mesh` (*Causal AI & Memoria Stigmergica FTS5*, J. Pearl Causal Lineage con Vector Clocks) mirato prioritariamente a `flint:latest` con timeout a 240s.
+   - Aggiunto il filtro corrispondente in [`web-node/apps/playground/research.html`](web-node/apps/playground/research.html) e rigenerato il pacchetto Aruba (`dist/web-node-aruba.zip`).
+   - Riavviato il demone continuo del Cockpit Service su porta 8090 con ciclo periodico in background.
+
+4. **Verifica & Suite Test**:
+   - Creata suite dedicata [`tests/test_promoted_rd_modules.py`](tests/test_promoted_rd_modules.py) per collaudare i 3 moduli promossi $\rightarrow$ **10/10 passed**.
+   - Aggiornata suite [`tests/test_omen_allnight_sovereign.py`](tests/test_omen_allnight_sovereign.py) con verifica mock e live del failover 40B OMEN $\rightarrow$ **10/10 passed**.
+   - Suite completa R&D e Nightly Shift (`test_research_tree_and_lab`, `test_resumable_state_machine_rfc0044`, `test_task_scheduler_rfc0043`): **43/43 passed (100% GREEN)**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Integrazione & Test Sovrano di ModularIntellect (LuckCow/ModularIntellect)
+
+1. **Analisi del Progetto Reperito da Agent Reach (`LuckCow/ModularIntellect`)**:
+   - Repository open-source incentrato su agenti autonomi guidati da modelli linguistici con architettura modulare per la memoria e il ragionamento.
+   - **Pattern Chiave**:
+     - *Memoria Tri-Modale a Grafo*: `Document` $\rightarrow$ `Chunk` (`PART_OF`, `CONTINUES_TO`), `Interaction` $\rightarrow$ `Conversation` (`PART_OF`), e **note ricorsive di auto-riflessione** (`Note` $\rightarrow$ `REFERENCES` $\rightarrow$ `Note`/`Chunk`/`Interaction`) che permettono all'agente di formulare astrazioni e pensieri complessi a lungo raggio.
+     - *GraphDB Traversal Chain*: Esplorazione a salti delle connessioni relazionali (`LOOKUP CHUNK #id`) per superare il limite di contesto dei modelli senza affidarsi a un RAG piatto.
+     - *Alignment Auditor*: Supervisione etico-costituzionale per l'approvazione o il blocco di task autonomi prima dell'esecuzione.
+   - **Vincoli Originali**: Il progetto originale (2023) dipendeva da servizi cloud proprietari (OpenAI API, Neo4j Aura cloud, FAISS esterno, LangChain 0.0.x).
+
+2. **Implementazione Sovrana per HyperSpace AGI**:
+   - Creato [`shared/modular_intellect_engine.py`](shared/modular_intellect_engine.py) interamente locale, autonomo e privo di dipendenze cloud:
+     - `TripleModalGraphStore`: schema SQLite ottimizzato per nodi (`document`, `chunk`, `interaction`, `note`) e archi relazionali (`PART_OF`, `CONTINUES_TO`, `REFERENCES`).
+     - `GraphTraversalNavigator`: catena di navigazione iterativa del grafo per i modelli locali (Flint 40B, Liquid LFM 24B, Granite 8B).
+     - `AlignmentAuditor`: filtro costituzionale pre-esecuzione per bloccare pattern distruttivi o violazioni della sovranità locale.
+
+3. **Integrazione come 6° Pilastro di Ricerca & Dashboard**:
+   - Aggiunto in [`shared/agi_research_engine.py`](shared/agi_research_engine.py) e [`shared/research_tree.py`](shared/research_tree.py) il pilastro `modular_intellect` (*ModularIntellect: Memoria Tri-Modale a Grafo & Note Ricorsive*).
+   - Aggiunto il filtro visuale dedicato in [`web-node/apps/playground/research.html`](web-node/apps/playground/research.html) e rigenerato il pacchetto di produzione Aruba (`dist/web-node-aruba.zip`).
+
+4. **Verifica & Suite Test**:
+   - Creata suite dedicata [`tests/test_modular_intellect_integration.py`](tests/test_modular_intellect_integration.py) con 5 casi di test (ingestion relazionale, note ricorsive, ricerca semantica, parsing lookups, alignment auditor) $\rightarrow$ **5/5 passed (100% GREEN)**.
+   - Suite congiunta R&D e moduli promossi: **34/34 passed**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Live Network Bulletin & Post LinkedIn R&D Sovrana (Feromoni & Vector Clocks)
+
+1. **Aggiornamento Live Network Bulletin (`web-node/index.html`)**:
+   - Inserito come Tab 0 primario il nuovo bollettino `🧬 R&D: Feromoni & Vector Clocks` con relativo pane informativo e link verso il laboratorio R&D (`./apps/playground/research.html`).
+   - Mantenuto il ticker con auto-rotazione circolare a 8.5s e pausa al passaggio del mouse.
+
+2. **Generatore Post LinkedIn B2B/Tech Leaders (`scripts/publish_linkedin_bulletins.py`)**:
+   - Aggiunto il bollettino `bulletin_autonomous_rd_swarm` calibrato per Tech Leaders, AI Researchers e Founders sul tema del coordinamento stigmergico, vector clocks logici e compilazione formale AST.
+   - Reso dinamico il generatore di scheduling per supportare liste arbitrarie di bollettini.
+   - Suite [`tests/test_b2b_and_linkedin.py`](tests/test_b2b_and_linkedin.py) aggiornata $\rightarrow$ **2/2 passed**.
+
+3. **Deploy & Rilascio Live su Aruba (`www.zerozerocomputer.it`)**:
+   - Rigenerato con successo il bundle di produzione [`dist/web-node-aruba.zip`](dist/web-node-aruba.zip).
+   - Eseguito il deployment FTP live con [`scripts/deploy_web_node_aruba.py`](scripts/deploy_web_node_aruba.py) (67 file aggiornati, inclusi `index.html` e `apps/playground/research.html`).
+   - Verificata la raggiungibilità live via HTTP/2 (200 OK) e la comparsa di Tab 0 con il bollettino dei feromoni e vector clocks.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Canali Scientifici (arXiv, Scholar) & Architettura Biomimetica Mesh (Funghi, Batteri, Virus, Parassiti)
+
+1. **Canali di Ricerca Scientifica in `agent-reach` (`scripts/diagnostics/trend_scout_reach.py` & `control-plane/connectors/scout.py`)**:
+   - Aggiunti i canali scientifici `--channel arxiv` e `--channel scholar` (con alias `science`).
+   - Implementato `harvest_arxiv(query, limit)` con parsing diretto feed XML/Atom dell'API ufficiale `export.arxiv.org` e gestione certificati SSL `certifi`.
+   - Implementato `harvest_scholar_academic(query, limit)` con fallback stratificato: ricerca open academic via `agent-reach`, OpenAlex API (`api.openalex.org`) e Crossref DOI API (`api.crossref.org`).
+   - Integrati nei `DEFAULT_THEMES` di scouting i 4 filoni biomimetici:
+     - `mycelium & fungal network routing` (canale `arxiv`)
+     - `bacterial quorum sensing swarm` (canale `arxiv`)
+     - `viral gossip & epidemic dissemination` (canale `scholar`)
+     - `parasitic work-stealing & kleptoparasitism` (canale `scholar`)
+   - Eseguito scouting e salvati i paper reali in `data/control-plane/trend_inspirations.json` (es. *Logics in fungal mycelium networks*, *Slime mould imitates motorway network*, *Gossip and Epidemic Protocols*, *Distributed Work Stealing*).
+
+2. **Nuovo Modulo Biomimetico Sovrano ([`shared/biomimetic_mesh.py`](shared/biomimetic_mesh.py))**:
+   - `MyceliumNetworkRouter`: routing bio-ispirato a *Physarum polycephalum* con conduttività ifale $D_{ij}$, rinforzo conduttivo sul flusso transitato e potatura adattiva (pruning) delle connessioni ad alta latenza/inattive.
+   - `BacterialQuorumGovernor`: consenso biologico basato sul Quorum Sensing; secrezione di autoinduttori (AHL/peptidi digitali) con decadimento a emivita esponenziale prima di sbloccare fenotipi onerosi (MoE 40B, compattazione WAL, dream consolidation).
+   - `ViralGossipDisseminator`: diffusione epidemica rapida di payload immutabili (vector clock, AST) con filtro antigenico su firma crittografica SHA-256 e verifica sintassi AST Python per bloccare mutazioni maligne.
+   - `SymbioticParasiteStealer`: cleptoparassitismo simbiotico per nodi leggeri (Web Node, edge worker) che prelevano cicli idle da host ad alte prestazioni (OMEN 16, ASUS) con disimpegno istantaneo (`yield_host`) appena l'host riprende carichi prioritari.
+
+3. **Integrazione Pilastro R&D & Web-Node Playground**:
+   - Aggiunto il 7° pilastro biomimetico `biomimetic_nature_mesh` in [`shared/agi_research_engine.py`](shared/agi_research_engine.py).
+   - In [`web-node/apps/playground/missions.html`](web-node/apps/playground/missions.html): aggiunti i filter pill per `🔬 arXiv & Paper` e `🧬 Scholar & Bio`, con badge colorati dedicati e visualizzazione delle fonti scientifiche.
+
+4. **Verifica, Test Suite & Deploy Live Aruba**:
+   - Creati 12 test unitari dedicati in [`tests/test_biomimetic_mesh.py`](tests/test_biomimetic_mesh.py) $\rightarrow$ **12/12 passed (100% GREEN)**.
+   - Aggiornati test in [`tests/test_trend_scout_reach.py`](tests/test_trend_scout_reach.py) (con mock arXiv Atom e Crossref) $\rightarrow$ **6/6 passed**.
+   - Suite congiunta R&D, Scout, B2B, OMEN e ModularIntellect: **48/48 passed**.
+   - Rigenerato pacchetto Aruba (`dist/web-node-aruba.zip`) ed eseguito deploy live con [`scripts/deploy_web_node_aruba.py`](scripts/deploy_web_node_aruba.py) (67 file aggiornati, HTTP/2 200 OK su `https://www.zerozerocomputer.it/`).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-25 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Attivazione Nodo ASUS (100.64.31.18), Offload Modelli Pesanti (Flint 40B NVFP4 & LFM 24B MoE) e Cicli di Ricerca Autonoma
+
+1. **Rilevamento e Integrazione Nodo ASUS (`100.64.31.18:11434`)**:
+   - Confermato nodo ASUS V16 online su Tailscale con Ollama operativo (`laptop-t9h8plht`, `100.64.31.18:11434`).
+   - Verificati i modelli hostati su ASUS: `flint:latest` (39.8B NVFP4, contesto 131k, runner llamacpp, offload 2.4GB VRAM + RAM), `hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M` (24B Liquid MoE), `gemma4-abliterated:12b`, `granite3.3:8b`, `qwen3-vl:4b`.
+
+2. **Aggiornamento Routing Dinamico Modelli Pesanti ([`scripts/omen_allnight_sovereign.py`](scripts/omen_allnight_sovereign.py))**:
+   - Aggiornato `execute_omen_prompt`: se un modello richiede $\ge 24\text{B}$ o 40B (`flint:latest`), la richiesta viene instradata prioritariamente a ASUS (`100.64.31.18:11434`) liberando la RAM dell'HP OMEN 16 che durante la notte andava in saturazione / HTTP 500.
+   - Gestione avanzata dei token di ragionamento: combinati i campi separati `thinking` e `response` di Ollama nel formato unificato `<think>...</think>\n\n...`, garantendo la corretta estrazione da parte del parser AST/CoT.
+   - Socket timeout esteso a 380s per gestire le lunghe catene di ragionamento (CoT) di Flint 40B.
+   - Test di regressione routing in [`tests/test_omen_allnight_sovereign.py`](tests/test_omen_allnight_sovereign.py) $\rightarrow$ **10/10 passed**.
+
+3. **Cicli di Studio R&D Eseguiti in Produzione su ASUS**:
+   - **`modular_intellect`** con Flint 40B NVFP4: generato prototipo validato AST [`data/research/prototypes/proto_modular_intellect_1792916524.py`](data/research/prototypes/proto_modular_intellect_1792916524.py) (grafo tri-modale con nodi MemoryNode e traversata iterativa a salti).
+   - **`biomimetic_nature_mesh`** con Flint 40B NVFP4: generato prototipo validato AST [`data/research/prototypes/proto_biomimetic_nature_mesh_1792916915.py`](data/research/prototypes/proto_biomimetic_nature_mesh_1792916915.py) con calcolo entropia informativa di Shannon sul carico mesh e score combinato di efficacia del flusso.
+   - Promosse le metriche di entropia e di flusso ifale in [`shared/biomimetic_mesh.py`](shared/biomimetic_mesh.py) (`calculate_mesh_entropy`, `calculate_flow_effectiveness`).
+
+4. **Verifica Globale & Deploy Web-Node Aruba**:
+   - Aggiornati test in [`tests/test_biomimetic_mesh.py`](tests/test_biomimetic_mesh.py) $\rightarrow$ **16/16 passed**.
+   - Suite congiunta R&D, Scout, B2B, OMEN, Promoted Modules e ModularIntellect: **52/52 passed (100% GREEN)**.
+   - Ricompilato ed eseguito il deployment FTP su Aruba con [`scripts/deploy_web_node_aruba.py`](scripts/deploy_web_node_aruba.py) (67 file aggiornati, HTTP/2 200 OK su `https://www.zerozerocomputer.it/apps/playground/missions.html`).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.

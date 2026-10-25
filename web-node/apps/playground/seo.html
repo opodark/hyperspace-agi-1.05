@@ -59,10 +59,10 @@
         <div>
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Punteggio GEO & SEO Globale</span>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">Livello Base Attivo</span>
+            <span id="geo-score-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">In Valutazione...</span>
           </div>
           <div class="flex items-baseline gap-3 mt-4">
-            <span class="text-5xl font-black text-emerald-400">46</span>
+            <span id="global-geo-score" class="text-5xl font-black text-emerald-400">--</span>
             <span class="text-slate-400 text-lg">/ 100</span>
           </div>
           <p class="text-xs text-slate-300 mt-3 leading-relaxed">
@@ -325,6 +325,14 @@
         const resp = await fetch('/api/seo-audit');
         if (resp.ok) {
           const data = await resp.json();
+          if (data.geo_score) {
+            const scoreEl = document.getElementById('global-geo-score');
+            if (scoreEl) scoreEl.textContent = data.geo_score;
+            const badgeEl = document.getElementById('geo-score-badge');
+            if (badgeEl) {
+              badgeEl.textContent = data.geo_score >= 80 ? 'Livello Eccellente' : data.geo_score >= 68 ? 'Livello Buono' : 'Livello Base';
+            }
+          }
           if (data.pages && data.pages.length > 0) {
             PAGES_DATA = data.pages;
             const avg = Math.round(PAGES_DATA.reduce((acc, p) => acc + p.score, 0) / PAGES_DATA.length);

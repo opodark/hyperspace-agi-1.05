@@ -113,6 +113,40 @@ class TestOmenAllnightSovereign(unittest.TestCase):
         self.assertGreaterEqual(st["total_studies"], 1)
         self.assertTrue(st["has_synthesis_document"])
 
+    @patch("scripts.omen_allnight_sovereign._is_asus_available", return_value=False)
+    @patch("urllib.request.urlopen")
+    def test_flint_40b_routes_to_omen_when_asus_offline(self, mock_urlopen, mock_asus_check):
+        from scripts.omen_allnight_sovereign import execute_omen_prompt
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({"response": "OK"}).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        res = execute_omen_prompt("Test prompt 40B", model="flint:latest", timeout=60)
+        self.assertEqual(res["status"], "ok")
+        self.assertEqual(res["routed_via"], "OMEN_NODE")
+        # Verifica che la chiamata sia andata a OMEN (:8081) e non ad ASUS
+        req_arg = mock_urlopen.call_args[0][0]
+        self.assertIn("100.104.238.125:8081", req_arg.full_url)
+
+    @patch("scripts.omen_allnight_sovereign._is_asus_available", return_value=True)
+    @patch("urllib.request.urlopen")
+    def test_flint_40b_routes_to_asus_when_online(self, mock_urlopen, mock_asus_check):
+        from scripts.omen_allnight_sovereign import execute_omen_prompt
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({"response": "OK"}).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        res = execute_omen_prompt("Test prompt 40B", model="flint:latest", timeout=60)
+        self.assertEqual(res["status"], "ok")
+        self.assertEqual(res["routed_via"], "ASUS_OLLAMA")
+        # Verifica che la chiamata sia andata ad ASUS (:11434)
+        req_arg = mock_urlopen.call_args[0][0]
+        self.assertIn("100.64.31.18:11434", req_arg.full_url)
+
 
 if __name__ == "__main__":
     unittest.main()

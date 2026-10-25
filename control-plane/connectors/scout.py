@@ -67,8 +67,8 @@ class ScoutConnector(BaseConnector):
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "topic": {"type": "string", "description": "Tema da esplorare (es. 'quantum consciousness', 'generative poetry')."},
-                            "channel": {"type": "string", "description": "Canale di ricerca: 'web', 'reddit', 'youtube', 'github'.", "default": "web"}
+                            "topic": {"type": "string", "description": "Tema da esplorare (es. 'quantum consciousness', 'generative poetry', 'mycelium network routing')."},
+                            "channel": {"type": "string", "description": "Canale di ricerca: 'web', 'reddit', 'youtube', 'github', 'arxiv', 'scholar'.", "default": "web"}
                         },
                         "required": ["topic"]
                     }
@@ -128,6 +128,18 @@ class ScoutConnector(BaseConnector):
     def _harvest(self, topic: str, channel: str = "web") -> str:
         topic = str(topic or "").strip()
         ch = str(channel or "web").strip().lower()
+
+        # Supporto canali scientifici dedicati (arXiv, Google Scholar, OpenAlex)
+        if ch in ("arxiv", "scholar", "science", "google_scholar"):
+            try:
+                from scripts.diagnostics.trend_scout_reach import harvest_trend
+                items = harvest_trend(ch, topic, limit=3)
+                summaries = [it.get("summary") or it.get("title") for it in items if it.get("summary") or it.get("title")]
+                if summaries:
+                    return json.dumps({"ok": True, "topic": topic, "channel": ch, "harvested": summaries, "items": items}, ensure_ascii=False)
+            except Exception as e:
+                pass
+
         res = self._call_reach([ch, "search", topic, "--limit", "3"])
         if res.get("ok"):
             items = []
@@ -138,7 +150,7 @@ class ScoutConnector(BaseConnector):
                 if summary:
                     items.append(summary)
             return json.dumps({"ok": True, "topic": topic, "channel": ch, "harvested": items}, ensure_ascii=False)
-        
+
         # Fallback ricerca web se reach CLI non risponde
         return json.dumps({"ok": False, "error": "Scouting fallito o agent-reach non raggiungibile"})
 

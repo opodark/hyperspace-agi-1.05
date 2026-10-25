@@ -248,8 +248,10 @@
         </div>
 
         <!-- Filter Pills -->
-        <div class="flex items-center gap-2 text-xs" id="scoutTopicFilters">
+        <div class="flex items-center gap-2 text-xs flex-wrap" id="scoutTopicFilters">
           <button type="button" onclick="filterScoutByChannel('all')" class="filter-pill-scout px-3 py-1 rounded-full bg-cyan-500/20 text-brand-cyan border border-cyan-500/40 font-medium">Tutti i Canali</button>
+          <button type="button" onclick="filterScoutByChannel('arxiv')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">🔬 arXiv & Paper</button>
+          <button type="button" onclick="filterScoutByChannel('scholar')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">🧬 Scholar & Bio</button>
           <button type="button" onclick="filterScoutByChannel('reddit')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">Reddit</button>
           <button type="button" onclick="filterScoutByChannel('youtube')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">YouTube</button>
           <button type="button" onclick="filterScoutByChannel('github')" class="filter-pill-scout px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">GitHub</button>
@@ -776,6 +778,8 @@
 
       container.innerHTML = filtered.map(item => {
         const channelColors = {
+          arxiv: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80',
+          scholar: 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80',
           reddit: 'bg-orange-950/80 text-orange-400 border-orange-800/80',
           youtube: 'bg-red-950/80 text-red-400 border-red-800/80',
           github: 'bg-purple-950/80 text-purple-300 border-purple-800/80',

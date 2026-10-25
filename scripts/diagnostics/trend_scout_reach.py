@@ -23,12 +23,16 @@ from pathlib import Path
 DEFAULT_OUT_PATH = Path("data/control-plane/trend_inspirations.json")
 AGENT_REACH_BIN = os.getenv("AGENT_REACH_BIN") or shutil.which("agent-reach") or "/Users/opo/.local/bin/agent-reach"
 
-# Default thematic queries for dream & creative inspiration
+# Default thematic queries for dream, creative inspiration & biomimetic mesh research
 DEFAULT_THEMES = [
     {"topic": "artificial intelligence philosophy", "channel": "reddit", "query": "synthetic consciousness philosophy"},
     {"topic": "generative art & poetry", "channel": "web", "query": "generative art algorithmic poetry aesthetics"},
     {"topic": "cosmic space exploration", "channel": "youtube", "query": "space exploration cosmos discovery 2026"},
     {"topic": "open agent architectures", "channel": "github", "query": "autonomous agent architectures open source"},
+    {"topic": "mycelium & fungal network routing", "channel": "arxiv", "query": "mycelium fungal network routing p2p slime mold"},
+    {"topic": "bacterial quorum sensing swarm", "channel": "arxiv", "query": "bacterial quorum sensing decentralized consensus swarm"},
+    {"topic": "viral gossip & epidemic dissemination", "channel": "scholar", "query": "viral epidemic gossip protocol distributed networks"},
+    {"topic": "parasitic work-stealing & kleptoparasitism", "channel": "scholar", "query": "kleptoparasitism distributed work stealing agent load balancing"},
 ]
 
 _CLEAN_SPACES = re.compile(r"\s+")
@@ -71,9 +75,155 @@ def clean_snippet(text: str, max_chars: int = 240) -> str:
     return text[:max_chars].rstrip()
 
 
+def harvest_arxiv(query: str, limit: int = 3) -> list[dict]:
+    """Harvest scientific preprint papers from arXiv API with OpenAlex / Crossref fallback."""
+    items = []
+    # 1. Try official arXiv API
+    try:
+        import urllib.request
+        import urllib.parse
+        import ssl
+        import xml.etree.ElementTree as ET
+        import certifi
+
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        q = urllib.parse.quote(query)
+        url = f"https://export.arxiv.org/api/query?search_query=all:{q}&start=0&max_results={limit}"
+        req = urllib.request.Request(url, headers={"User-Agent": "HyperSpace-BioScout/1.0 (mailto:scout@zerozerocomputer.it)"})
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
+            xml_text = resp.read().decode("utf-8")
+        root = ET.fromstring(xml_text)
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        for entry in root.findall("atom:entry", ns):
+            title = clean_snippet((entry.find("atom:title", ns).text or "").replace("\n", " "), max_chars=140)
+            summary = clean_snippet((entry.find("atom:summary", ns).text or "").replace("\n", " "), max_chars=280)
+            link = (entry.find("atom:id", ns).text or "").strip()
+            if title:
+                items.append({
+                    "channel": "arxiv",
+                    "title": title,
+                    "snippet": summary,
+                    "summary": f"[arXiv] {title}: {summary}",
+                    "url": link,
+                    "ts": int(time.time()),
+                })
+        if items:
+            return items
+    except Exception:
+        pass
+
+    # 2. Fallback to OpenAlex / Crossref
+    return harvest_scholar_academic(query, limit=limit, channel_label="arxiv")
+
+
+def harvest_scholar_academic(query: str, limit: int = 3, channel_label: str = "scholar") -> list[dict]:
+    """Harvest academic papers from OpenAlex / Crossref and agent-reach academic web search."""
+    items = []
+    # 1. Try agent-reach if accessible
+    try:
+        raw = run_agent_reach(["web", "search", f"scholar {query}", "--limit", str(limit)], timeout=15)
+        if raw.get("ok") and raw.get("items"):
+            for it in raw.get("items") or []:
+                title = clean_snippet(it.get("title", ""), max_chars=140)
+                snippet = clean_snippet(it.get("text", ""), max_chars=280)
+                if title or snippet:
+                    items.append({
+                        "channel": channel_label,
+                        "title": title,
+                        "snippet": snippet,
+                        "summary": f"[{channel_label.upper()}] {title}: {snippet}" if title and snippet else (title or snippet),
+                        "url": it.get("url", ""),
+                        "ts": int(time.time()),
+                    })
+            if items:
+                return items
+    except Exception:
+        pass
+
+    # 2. Try OpenAlex open science API
+    try:
+        import urllib.request
+        import urllib.parse
+        import ssl
+        import certifi
+
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        q = urllib.parse.quote(query)
+        url = f"https://api.openalex.org/works?search={q}&per_page={limit}&mailto=scout@zerozerocomputer.it"
+        req = urllib.request.Request(url, headers={"User-Agent": "HyperSpace-BioScout/1.0 (mailto:scout@zerozerocomputer.it)"})
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for r in data.get("results", []):
+            title = clean_snippet(r.get("title") or "", max_chars=140)
+            url = r.get("doi") or r.get("id") or ""
+            inv = r.get("abstract_inverted_index")
+            abstract = ""
+            if inv:
+                words = []
+                for word, positions in inv.items():
+                    for p in positions:
+                        words.append((p, word))
+                words.sort()
+                abstract = clean_snippet(" ".join(w[1] for w in words), max_chars=280)
+            if title:
+                items.append({
+                    "channel": channel_label,
+                    "title": title,
+                    "snippet": abstract or title,
+                    "summary": f"[{channel_label.upper()}] {title}: {abstract}" if abstract else title,
+                    "url": url,
+                    "ts": int(time.time()),
+                })
+        if items:
+            return items
+    except Exception:
+        pass
+
+    # 3. Try Crossref DOI open API
+    try:
+        import urllib.request
+        import urllib.parse
+        import ssl
+        import certifi
+
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        q = urllib.parse.quote(query)
+        url = f"https://api.crossref.org/works?query={q}&rows={limit}&mailto=scout@zerozerocomputer.it"
+        req = urllib.request.Request(url, headers={"User-Agent": "HyperSpace-BioScout/1.0 (mailto:scout@zerozerocomputer.it)"})
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for it in data.get("message", {}).get("items", []):
+            titles = it.get("title") or []
+            title = clean_snippet(titles[0] if titles else "", max_chars=140)
+            doi = it.get("DOI") or ""
+            container = (it.get("container-title") or [""])[0]
+            url = f"https://doi.org/{doi}" if doi else ""
+            if title:
+                items.append({
+                    "channel": channel_label,
+                    "title": title,
+                    "snippet": f"Pubblicato su {container}" if container else title,
+                    "summary": f"[{channel_label.upper()}] {title} ({container})" if container else title,
+                    "url": url,
+                    "ts": int(time.time()),
+                })
+        if items:
+            return items
+    except Exception:
+        pass
+
+    return items
+
+
 def harvest_trend(channel: str, query: str, limit: int = 3) -> list[dict]:
     """Harvest snippets from a single channel query."""
-    args = [channel, "search", query, "--limit", str(limit)]
+    ch = str(channel or "web").strip().lower()
+    if ch == "arxiv":
+        return harvest_arxiv(query, limit=limit)
+    elif ch in ("scholar", "google_scholar", "science"):
+        return harvest_scholar_academic(query, limit=limit, channel_label="scholar")
+
+    args = [ch, "search", query, "--limit", str(limit)]
     raw = run_agent_reach(args, timeout=25)
     items = []
     if not raw.get("ok"):
@@ -84,7 +234,7 @@ def harvest_trend(channel: str, query: str, limit: int = 3) -> list[dict]:
         if title or snippet:
             summary = f"{title}: {snippet}" if title and snippet else (title or snippet)
             items.append({
-                "channel": channel,
+                "channel": ch,
                 "title": title,
                 "snippet": snippet,
                 "summary": summary,
@@ -149,7 +299,7 @@ def main():
     parser = argparse.ArgumentParser(description="HyperSpace Trend Scout via Agent-Reach")
     parser.add_argument("--doctor", action="store_true", help="Esegui agent-reach doctor")
     parser.add_argument("--query", "-q", type=str, help="Query personalizzata da cercare")
-    parser.add_argument("--channel", "-c", type=str, default="web", choices=["web", "youtube", "reddit", "github", "v2ex"], help="Canale da interrogare")
+    parser.add_argument("--channel", "-c", type=str, default="web", choices=["web", "youtube", "reddit", "github", "v2ex", "arxiv", "scholar", "science"], help="Canale da interrogare")
     parser.add_argument("--limit", "-l", type=int, default=3, help="Numero massimo di risultati")
     parser.add_argument("--save", action="store_true", help="Salva l'output in data/control-plane/trend_inspirations.json")
     parser.add_argument("--json", action="store_true", help="Stampa l'output grezzo in JSON")
