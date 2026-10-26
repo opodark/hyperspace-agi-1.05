@@ -18,6 +18,7 @@ Produce:
 from __future__ import annotations
 
 import ast
+from dataclasses import asdict, is_dataclass
 import datetime
 import json
 import os
@@ -293,7 +294,10 @@ class AGIResearchEngine:
             "ast_valid": ast_valid,
             "prototype_file": saved_prototype,
             "findings_summary": self._extract_summary(parsed.clean_text or parsed.raw_text or raw_response),
-            "causal_lineage": self.causal_graph.trace_lineage(f"proto:{saved_prototype}" if saved_prototype else infer_id),
+            "causal_lineage": [
+                asdict(e) if is_dataclass(e) else (e.__dict__ if hasattr(e, "__dict__") else str(e))
+                for e in self.causal_graph.trace_lineage(f"proto:{saved_prototype}" if saved_prototype else infer_id)
+            ],
         }
 
         # Scrive nel journal di ricerca

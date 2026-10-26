@@ -2,74 +2,128 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.zerozerocomputer.it/</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://www.zerozerocomputer.it/chi-siamo.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
     <loc>https://www.zerozerocomputer.it/progetto.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/guide.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/guide-architettura-mesh.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.zerozerocomputer.it/anna.html</loc>
-    <lastmod>2026-10-24</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>https://www.zerozerocomputer.it/guide-webgpu-browser.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.zerozerocomputer.it/chat.html</loc>
-    <lastmod>2026-10-24</lastmod>
-    <changefreq>daily</changefreq>
+    <loc>https://www.zerozerocomputer.it/guide-vector-clocks.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.zerozerocomputer.it/ai.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <loc>https://www.zerozerocomputer.it/guide-memoria-tri-modale.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/guide-validazione-ast.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/guide-tokenomics-depin.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/guide-configurazione-nodo.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/contatti.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/apps/playground/commercial.html</loc>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://www.zerozerocomputer.it/token.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.zerozerocomputer.it/join.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.zerozerocomputer.it/chat.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.zerozerocomputer.it/anna.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.zerozerocomputer.it/privacy-policy.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.zerozerocomputer.it/terms.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.zerozerocomputer.it/cookie-policy.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.zerozerocomputer.it/data-deletion.html</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.2</priority>
-  </url>
-  <url>
-    <loc>https://www.zerozerocomputer.it/debug.html</loc>
-    <lastmod>2026-10-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
   </url>
 </urlset>

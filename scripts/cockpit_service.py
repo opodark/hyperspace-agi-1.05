@@ -116,6 +116,16 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(content)
                 return
+        if self.path in ("/arcade", "/arcade.html"):
+            arcade_file = REPO_ROOT / "web-node" / "apps" / "playground" / "arcade.html"
+            if arcade_file.exists():
+                content = arcade_file.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
         if self.path in ("/dialogues", "/dialogues.html"):
             dlg_file = REPO_ROOT / "web-node" / "apps" / "playground" / "dialogues.html"
             if dlg_file.exists():
@@ -653,6 +663,26 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             })
             return
 
+        # Context injection dinamico per R&D e prototipi
+        rd_context = ""
+        if re.search(r"\b(prototip|ricerc|ast|promozion|promuov|aleksander|causal|swarm|modular)\b", prompt, re.IGNORECASE):
+            try:
+                from shared.research_tree import ResearchTreeManager
+                rtm = ResearchTreeManager()
+                tree = rtm.get_tree()
+                protos = rtm.list_prototypes()
+                promoted = [p for p in protos if p.get("is_promoted")]
+                unpromoted = [p for p in protos if not p.get("is_promoted") and p.get("ast_valid") and p.get("size_bytes", 0) > 2000]
+                rd_context = (
+                    f"\n[CONTESTO R&D LAB LIVE]\n"
+                    f"- Statistiche albero R&D: {tree.get('stats', {})}\n"
+                    f"- Moduli già in produzione in shared/: {[p['filename'] + ' -> ' + str(p.get('promoted_target')) for p in promoted[:6]]}\n"
+                    f"- Prototipi AST validati pronti per promozione: {[p['filename'] + ' (' + p.get('pillar_id', '') + ')' for p in unpromoted[:6]]}\n"
+                    f"- Script per automazione promozione: scripts/diagnostics/promote_research_prototype.py\n"
+                )
+            except Exception:
+                pass
+
         system_instruction = (
             "Sei HyperDev Assistant, il pair programmer sovrano di HyperSpace AGI.\n"
             "Regole fondamentali da AGENTS.md:\n"
@@ -660,6 +690,7 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             "- Rispondi in modo conciso, professionale e operativo in italiano.\n"
             "- Se proponi compiti o piani, organizza i passi chiaramente in una lista numerata.\n"
             "- Se proponi modifiche al codice, usa blocchi ```diff ... ``` o codice completo.\n"
+            f"{rd_context}"
         )
         full_prompt = f"{system_instruction}\nRichiesta sviluppatore:\n{prompt}"
 

@@ -75,6 +75,9 @@
     .neon-green {
       text-shadow: 0 0 10px rgba(57, 255, 20, 0.8);
     }
+    .neon-cyan {
+      text-shadow: 0 0 10px rgba(87, 230, 217, 0.8);
+    }
     .pulse-glow {
       animation: pulseGlow 2.2s infinite;
     }
@@ -92,13 +95,13 @@
       <div class="w-4 h-4 rounded-full bg-arcade-gold shadow-[0_0_15px_#f59e0b] pulse-glow"></div>
       <div>
         <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2 font-arcade text-arcade-gold neon-gold text-sm md:text-base">
-          HYPERSPACE NEURAL ARCADE <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950/90 border border-purple-600 text-purple-300 font-mono">Night Shift Build</span>
+          HYPERSPACE NEURAL ARCADE <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950/90 border border-purple-600 text-purple-300 font-mono">Mesh Cluster Build</span>
         </h1>
         <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
-          <span>Sala Giochi Retro & Laboratorio Creativo dei Nodi di Calcolo</span>
+          <span>Sala Giochi Retro & Cantiere Creativo Multi-Nodo</span>
           <span class="text-slate-600">•</span>
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] font-mono">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Engine 2D Canvas: ATTIVO
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Tri-Node Cluster: ATTIVO
           </span>
         </div>
       </div>
@@ -127,40 +130,49 @@
   <!-- MAIN CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
 
-    <!-- NIGHT SHIFT ARCHITECTURAL BANNER -->
-    <section class="p-4 rounded-2xl bg-gradient-to-r from-purple-950/50 via-slate-900/90 to-amber-950/40 border border-purple-500/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <!-- TRI-NODE CLUSTER ARCHITECTURAL BANNER -->
+    <section class="p-4 rounded-2xl bg-gradient-to-r from-purple-950/50 via-slate-900/90 to-amber-950/40 border border-purple-500/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div class="flex items-center gap-3">
-        <span class="text-2xl">🌙</span>
+        <span class="text-3xl">🕹️</span>
         <div>
           <h2 class="text-sm font-bold text-white font-mono flex items-center gap-2">
-            Cantiere Notturno Autonomo dei Nodi (OMEN 16 + ASUS V16)
+            Motore Arcade Neurale Distribuito (Mac M5 Hub + HP OMEN 16 + ASUS V16)
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">
-            Questa sala giochi è una pagina dedicata in costante espansione. Durante il turno notturno i modelli MoE generano nuovi livelli, fisica dei proiettili, logiche arcade e sonoro retrò.
+            Tutti i 3 giochi sono implementati con fisica Canvas 2D nativa, sintesi sonora chiptune procedurale (Web Audio API) e gamification commerciale: ogni partita sblocca token di inferenza gratuiti.
           </p>
         </div>
       </div>
-      <div class="font-mono text-xs text-slate-400 shrink-0 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span> Turno Notte: <strong class="text-purple-300">ATTIVO</strong>
+      <div class="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+        <span class="px-2.5 py-1 rounded-lg bg-slate-950/90 border border-emerald-500/30 text-emerald-300 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Mac Hub: <strong class="text-white">:8090</strong>
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-950/90 border border-amber-500/30 text-amber-300 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span> OMEN 16: <strong class="text-white">RTX 3070</strong>
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-slate-950/90 border border-cyan-500/30 text-cyan-300 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span> ASUS V16: <strong class="text-white">Flint 40B</strong>
+        </span>
       </div>
     </section>
 
-    <!-- SELECTOR TABS PER I GIOCHI -->
+    <!-- SELECTOR TABS PER I 3 GIOCHI -->
     <div class="flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
       <div class="flex flex-wrap gap-2">
         <button onclick="selectGame('invaders')" id="tabInvaders" class="px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2">
-          <span>👾 Neural Invaders</span>
+          <span>👾 1. Neural Invaders</span>
         </button>
         <button onclick="selectGame('pong')" id="tabPong" class="px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2">
-          <span>🏓 Pong vs AGI</span>
+          <span>🏓 2. Pong vs AGI</span>
         </button>
-        <button onclick="selectGame('runner')" id="tabRunner" class="px-4 py-2 rounded-xl bg-slate-900/60 text-slate-500 border border-slate-800/60 hover:text-slate-300 transition flex items-center gap-2">
-          <span>⚡ Vector Matrix (In Lavorazione Notturna)</span>
+        <button onclick="selectGame('matrix')" id="tabMatrix" class="px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2">
+          <span>⚡ 3. Vector Matrix Runner</span>
         </button>
       </div>
 
-      <div class="text-[11px] text-slate-400 font-mono">
-        Crediti Guadagnati: <span id="tokensWonTotal" class="text-emerald-400 font-bold">0 Token</span>
+      <div class="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+        <span>Crediti Totali Guadagnati:</span>
+        <span id="tokensWonTotal" class="text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/80">0 Token</span>
       </div>
     </div>
 
@@ -169,11 +181,14 @@
       
       <!-- THE CANVAS CABINET (8 cols) -->
       <div class="lg:col-span-8 arcade-cabinet rounded-2xl p-4 flex flex-col items-center">
-        <!-- SCORE HEADER -->
+        <!-- SCORE & TELEMETRY HEADER -->
         <div class="w-full flex justify-between items-center px-4 py-2 text-xs font-arcade text-arcade-gold border-b border-amber-900/60 mb-2">
-          <span>SCORE: <span id="liveScore" class="text-white">0000</span></span>
+          <div class="flex items-center gap-3">
+            <span>SCORE: <span id="liveScore" class="text-white">0000</span></span>
+            <span class="text-cyan-400 text-[10px] hidden sm:inline" id="gameParamLabel">LVL: <strong class="text-white" id="gameParamVal">1</strong></span>
+          </div>
           <span class="text-emerald-400">TOKENS: <span id="liveTokens">0</span></span>
-          <span class="text-rose-400">VITE: <span id="liveLives">❤️❤️❤️</span></span>
+          <span class="text-rose-400" id="liveLivesContainer">VITE: <span id="liveLives">❤️❤️❤️</span></span>
         </div>
 
         <!-- CRT CANVAS -->
@@ -181,26 +196,31 @@
           <canvas id="gameCanvas" width="760" height="420" class="w-full max-w-full block"></canvas>
 
           <!-- OVERLAY MODAL -->
-          <div id="gameOverlay" class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-6 text-center space-y-4">
+          <div id="gameOverlay" class="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-4">
             <h3 class="text-xl md:text-2xl font-black font-arcade text-arcade-gold neon-gold" id="overlayHeading">
               NEURAL INVADERS
             </h3>
             <p class="text-xs text-slate-300 max-w-md font-mono" id="overlayText">
-              Difendi il cluster dagli overhead di latenza e dai colli di bottiglia! Usa <strong class="text-arcade-gold">← / →</strong> (o A / D) per muoverti e <strong class="text-arcade-gold">SPAZIO</strong> per sparare impulsi token.
+              Difendi il cluster dagli overhead di latenza e dai colli di bottiglia! Usa <strong class="text-arcade-gold">← / →</strong> (o A / D) per muoverti e <strong class="text-arcade-gold">SPAZIO</strong> per sparare impulsi token. Al 3° round affronta il Monolithic Cloud Boss!
             </p>
-            <button onclick="startGame()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-arcade-gold to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black font-arcade text-xs tracking-wider transition shadow-lg shadow-amber-500/30">
-              INSERT COIN / START GAME
-            </button>
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+              <button onclick="startGame()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-arcade-gold to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black font-arcade text-xs tracking-wider transition shadow-lg shadow-amber-500/30">
+                INSERT COIN / START GAME
+              </button>
+            </div>
+            <div class="text-[10px] font-mono text-slate-500 mt-2" id="overlayFooterHint">
+              Supporta Tastiera (frecce / WASD / Spazio) e Touch screen.
+            </div>
           </div>
         </div>
 
         <!-- ON-SCREEN CONTROLS (TOUCH & CLICK) -->
-        <div class="w-full flex justify-between items-center pt-3 px-2 text-xs font-mono text-slate-400">
+        <div class="w-full flex justify-between items-center pt-3 px-2 text-xs font-mono text-slate-400" id="controlsBar">
           <div class="flex gap-2">
-            <button id="ctrlLeft" class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 active:bg-amber-600 active:text-black">◀ SINISTRA</button>
-            <button id="ctrlRight" class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 active:bg-amber-600 active:text-black">DESTRA ▶</button>
+            <button id="ctrlBtn1" class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 active:bg-amber-600 active:text-black transition">◀ SINISTRA</button>
+            <button id="ctrlBtn2" class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 active:bg-amber-600 active:text-black transition">DESTRA ▶</button>
           </div>
-          <button id="ctrlFire" class="px-6 py-2 rounded-lg bg-amber-500/20 text-arcade-gold border border-amber-500/40 active:bg-amber-500 active:text-black font-bold">🔥 FUOCO (SPAZIO)</button>
+          <button id="ctrlAction" class="px-6 py-2 rounded-lg bg-amber-500/20 text-arcade-gold border border-amber-500/40 active:bg-amber-500 active:text-black font-bold transition">🔥 FUOCO (SPAZIO)</button>
         </div>
       </div>
 
@@ -214,7 +234,7 @@
             <span class="text-[10px] text-slate-500 font-mono">TOP SCORES</span>
           </div>
           <p class="text-xs text-slate-400 mb-4 font-mono">
-            I migliori piloti del cluster guadagnano token di calcolo gratuiti per testare i modelli.
+            I piloti del cluster guadagnano token di calcolo per testare i modelli MoE. 1 Token ogni 40 Punti!
           </p>
 
           <div class="space-y-2 font-mono text-xs" id="arcadeLeaderboard">
@@ -236,13 +256,43 @@
 
     </div>
 
+    <!-- SPECS & MECCANICHE DEI GIOCHI -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs mt-2">
+      <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+        <h4 class="text-arcade-gold font-bold flex items-center gap-2 font-arcade text-[11px] mb-2">
+          👾 1. Neural Invaders
+        </h4>
+        <p class="text-slate-400 text-[11px]">
+          Spara agli overhead di latenza e alle fatture cloud. Raccogli power-up <strong class="text-cyan-300">GPU Boost</strong> e affronta al 3° livello il <strong>Monolithic Cloud Boss</strong> con laser radiali.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+        <h4 class="text-cyan-400 font-bold flex items-center gap-2 font-arcade text-[11px] mb-2">
+          🏓 2. Pong vs AGI
+        </h4>
+        <p class="text-slate-400 text-[11px]">
+          Rally testa a testa contro la racchetta neurale simulata. L'AGI calcola la traiettoria con predizione euristica e spin di risposta. Primo a 5 punti vince il match.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+        <h4 class="text-purple-400 font-bold flex items-center gap-2 font-arcade text-[11px] mb-2">
+          ⚡ 3. Vector Matrix
+        </h4>
+        <p class="text-slate-400 text-[11px]">
+          Cyber-runner a prospettiva vettoriale pseudo-3D. Schiva le barriere di <strong class="text-rose-400">Latency Wall</strong> e raccogli i <strong class="text-emerald-400">Sovereign Tokens</strong> accelerando nella matrice.
+        </p>
+      </div>
+    </section>
+
   </main>
 
   <!-- FOOTER -->
   <footer class="border-t border-slate-800/80 bg-slate-950/90 py-6 px-6 mt-12 text-center text-xs text-slate-500 font-mono">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
       <div>
-        HyperSpace Neural Arcade • Cantiere Notturno dei Nodi • Zero Zero Computer
+        HyperSpace Neural Arcade • Cantiere Multi-Nodo Sovrano • Zero Zero Computer
       </div>
       <div class="flex items-center gap-4 text-slate-400">
         <a href="/commercial.html" class="hover:text-arcade-gold">💼 Soluzioni B2B</a>
@@ -252,60 +302,118 @@
     </div>
   </footer>
 
-  <!-- SCRIPT ENGINE RETRO CON AUDIO SINTETIZZATO & LOOP -->
+  <!-- SCRIPT ENGINE RETRO CON AUDIO SINTETIZZATO & TUTTI I 3 GIOCHI -->
   <script>
+    // -------------------------------------------------------------
+    // 1. SINTETIZZATORE CHIPTUNE PROCEDURALE (WEB AUDIO API)
+    // -------------------------------------------------------------
     let audioCtx = null;
     let soundEnabled = true;
 
     function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
     }
 
-    function playBeep(freq, type = 'square', duration = 0.1, gainVal = 0.1) {
-      if (!soundEnabled) return;
-      try {
-        initAudio();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
-    }
+    const ArcadeAudio = {
+      playTone(freq, type = 'square', duration = 0.1, gainVal = 0.1, rampToFreq = null) {
+        if (!soundEnabled) return;
+        try {
+          initAudio();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          if (rampToFreq) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, rampToFreq), audioCtx.currentTime + duration);
+          }
+          gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        } catch (e) {}
+      },
+
+      laser() {
+        this.playTone(850, 'sawtooth', 0.08, 0.08, 220);
+      },
+
+      explosion() {
+        this.playTone(160, 'sawtooth', 0.22, 0.18, 40);
+      },
+
+      ping(isHigh = true) {
+        this.playTone(isHigh ? 680 : 440, 'sine', 0.07, 0.15);
+      },
+
+      powerup() {
+        if (!soundEnabled) return;
+        [523, 659, 784, 1046].forEach((f, idx) => {
+          setTimeout(() => this.playTone(f, 'square', 0.08, 0.12), idx * 45);
+        });
+      },
+
+      scorePoint() {
+        if (!soundEnabled) return;
+        this.playTone(587, 'square', 0.08, 0.12);
+        setTimeout(() => this.playTone(880, 'square', 0.15, 0.15), 90);
+      },
+
+      gameOver() {
+        if (!soundEnabled) return;
+        [392, 349, 311, 261].forEach((f, idx) => {
+          setTimeout(() => this.playTone(f, 'sawtooth', 0.18, 0.18), idx * 110);
+        });
+      },
+
+      victory() {
+        if (!soundEnabled) return;
+        [523, 659, 784, 1046, 1318].forEach((f, idx) => {
+          setTimeout(() => this.playTone(f, 'triangle', 0.12, 0.15), idx * 80);
+        });
+      }
+    };
 
     function toggleArcadeSound() {
       soundEnabled = !soundEnabled;
       document.getElementById('txtSound').textContent = soundEnabled ? 'ON' : 'OFF';
-      if (soundEnabled) playBeep(520, 'sine', 0.15, 0.2);
+      if (soundEnabled) ArcadeAudio.ping(true);
     }
 
-    // GESTIONE GIOCHI & CANVAS
-    let currentGame = 'invaders';
+    // -------------------------------------------------------------
+    // 2. STATO GLOBALE CANVAS & ENGINE
+    // -------------------------------------------------------------
+    let currentGame = 'invaders'; // 'invaders' | 'pong' | 'matrix'
     let isRunning = false;
     let isOver = false;
     let animId = null;
     let score = 0;
     let lives = 3;
+    let currentWave = 1;
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    let player = { x: 380, y: 380, width: 36, height: 20, speed: 6.5, color: '#fbbf24' };
-    let bullets = [];
-    let enemies = [];
-    let particles = [];
-    let stars = [];
-    let enemySpeed = 1.3;
-    let spawnTimer = 0;
+    // Input Tastiera
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        if (isRunning) e.preventDefault();
+      }
+      if (e.code === 'Space' && isRunning) {
+        handleFireAction();
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-    // Genera stelle di sfondo
-    for (let i = 0; i < 70; i++) {
+    // Background Stars per l'effetto spaziale/neon
+    let stars = [];
+    for (let i = 0; i < 75; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -314,177 +422,23 @@
       });
     }
 
-    const enemyCatalog = [
-      { text: "⚡ LATENCY SPIKE", color: "#f59e0b", points: 80 },
-      { text: "☁️ CLOUD INVOICE", color: "#f43f5e", points: 100 },
-      { text: "💾 MEMORY LEAK", color: "#a855f7", points: 120 },
-      { text: "⚠️ SERVER TIMEOUT", color: "#ef4444", points: 150 },
-      { text: "🔥 OVERHEATING", color: "#fb923c", points: 90 }
-    ];
-
-    const keys = {};
-    window.addEventListener('keydown', e => {
-      keys[e.code] = true;
-      if (e.code === 'Space' && isRunning) {
-        e.preventDefault();
-        shoot();
-      }
-    });
-    window.addEventListener('keyup', e => { keys[e.code] = false; });
-
-    document.getElementById('ctrlLeft').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowLeft'] = true; });
-    document.getElementById('ctrlLeft').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowLeft'] = false; });
-    document.getElementById('ctrlRight').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowRight'] = true; });
-    document.getElementById('ctrlRight').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowRight'] = false; });
-    document.getElementById('ctrlFire').addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
-
-    function selectGame(gameId) {
-      currentGame = gameId;
-      document.getElementById('tabInvaders').className = gameId === 'invaders' ? 'px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
-      document.getElementById('tabPong').className = gameId === 'pong' ? 'px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
-      resetGameState();
-    }
-
-    function shoot() {
-      if (!isRunning || isOver) return;
-      bullets.push({ x: player.x, y: player.y - 10, width: 4, height: 12, speed: 9, color: '#39ff14' });
-      playBeep(700, 'square', 0.05, 0.1);
-    }
-
-    function startGame() {
-      document.getElementById('gameOverlay').classList.add('hidden');
-      resetGameState();
-      isRunning = true;
-      playBeep(520, 'sine', 0.15, 0.2);
-      if (animId) cancelAnimationFrame(animId);
-      gameLoop();
-    }
-
-    function resetGameState() {
-      score = 0;
-      lives = 3;
-      isOver = false;
-      bullets = [];
-      enemies = [];
-      particles = [];
-      player.x = canvas.width / 2;
-      player.y = canvas.height - 35;
-      updateUI();
-    }
-
-    function updateUI() {
-      document.getElementById('liveScore').textContent = score.toString().padStart(4, '0');
-      const tokensWon = Math.floor(score / 40);
-      document.getElementById('liveTokens').textContent = tokensWon;
-      document.getElementById('tokensWonTotal').textContent = tokensWon + ' Token';
-      document.getElementById('liveLives').textContent = '❤️'.repeat(Math.max(0, lives));
-    }
-
-    function spawnEnemy() {
-      const type = enemyCatalog[Math.floor(Math.random() * enemyCatalog.length)];
-      const x = Math.random() * (canvas.width - 130) + 20;
-      enemies.push({
-        x: x,
-        y: -20,
-        width: 110,
-        height: 22,
-        label: type.text,
-        color: type.color,
-        points: type.points,
-        speed: enemySpeed + Math.random() * 0.5
-      });
-    }
-
-    function createExplosion(x, y, color) {
-      for (let i = 0; i < 16; i++) {
+    // Particelle per esplosioni ed effetti neon
+    let particles = [];
+    function createExplosion(x, y, color, count = 16) {
+      for (let i = 0; i < count; i++) {
         particles.push({
           x: x, y: y,
-          vx: (Math.random() - 0.5) * 6,
-          vy: (Math.random() - 0.5) * 6,
+          vx: (Math.random() - 0.5) * 7,
+          vy: (Math.random() - 0.5) * 7,
           size: Math.random() * 3 + 1,
           color: color,
           alpha: 1
         });
       }
-      playBeep(200, 'sawtooth', 0.15, 0.2);
+      ArcadeAudio.explosion();
     }
 
-    function gameLoop() {
-      ctx.fillStyle = '#060814';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Stelle
-      ctx.fillStyle = '#ffffff';
-      for (let s of stars) {
-        s.y += s.speed;
-        if (s.y > canvas.height) s.y = 0;
-        ctx.globalAlpha = s.speed * 0.7;
-        ctx.fillRect(s.x, s.y, s.size, s.size);
-      }
-      ctx.globalAlpha = 1;
-
-      if (isRunning && !isOver) {
-        if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > player.width / 2) player.x -= player.speed;
-        if ((keys['ArrowRight'] || keys['KeyD']) && player.x < canvas.width - player.width / 2) player.x += player.speed;
-
-        spawnTimer++;
-        if (spawnTimer % 65 === 0) spawnEnemy();
-
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          const b = bullets[i];
-          b.y -= b.speed;
-          if (b.y < -10) { bullets.splice(i, 1); continue; }
-
-          ctx.fillStyle = b.color;
-          ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
-
-          for (let j = enemies.length - 1; j >= 0; j--) {
-            const e = enemies[j];
-            if (b.x > e.x && b.x < e.x + e.width && b.y > e.y && b.y < e.y + e.height) {
-              createExplosion(b.x, b.y, e.color);
-              score += e.points;
-              updateUI();
-              enemies.splice(j, 1);
-              bullets.splice(i, 1);
-              break;
-            }
-          }
-        }
-
-        for (let i = enemies.length - 1; i >= 0; i--) {
-          const e = enemies[i];
-          e.y += e.speed;
-
-          ctx.fillStyle = '#0e1224';
-          ctx.strokeStyle = e.color;
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(e.x, e.y, e.width, e.height);
-          ctx.fillRect(e.x, e.y, e.width, e.height);
-
-          ctx.fillStyle = e.color;
-          ctx.font = '9px "Press Start 2P", monospace';
-          ctx.fillText(e.label, e.x + 6, e.y + 15);
-
-          if (e.y > canvas.height - 20) {
-            enemies.splice(i, 1);
-            lives--;
-            playBeep(120, 'sawtooth', 0.2, 0.25);
-            updateUI();
-            if (lives <= 0) { gameOver(); return; }
-          }
-        }
-
-        // Nave giocatore
-        ctx.fillStyle = player.color;
-        ctx.beginPath();
-        ctx.moveTo(player.x, player.y - 12);
-        ctx.lineTo(player.x - 18, player.y + 10);
-        ctx.lineTo(player.x, player.y + 4);
-        ctx.lineTo(player.x + 18, player.y + 10);
-        ctx.closePath();
-        ctx.fill();
-      }
-
+    function renderParticles() {
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
@@ -496,31 +450,737 @@
         ctx.fillRect(p.x, p.y, p.size, p.size);
       }
       ctx.globalAlpha = 1;
+    }
+
+    // -------------------------------------------------------------
+    // 3. GIOCO 1: NEURAL INVADERS (+ BOSS FIGHT AL 3° LIVELLO)
+    // -------------------------------------------------------------
+    let invPlayer = { x: 380, y: 380, width: 36, height: 20, speed: 6.5, color: '#fbbf24', rapidFire: 0 };
+    let invBullets = [];
+    let invEnemies = [];
+    let invBossBullets = [];
+    let invSpawnTimer = 0;
+    let invBoss = null;
+
+    const enemyCatalog = [
+      { text: "⚡ LATENCY SPIKE", color: "#f59e0b", points: 80 },
+      { text: "☁️ CLOUD INVOICE", color: "#f43f5e", points: 100 },
+      { text: "💾 MEMORY LEAK", color: "#a855f7", points: 120 },
+      { text: "⚠️ SERVER TIMEOUT", color: "#ef4444", points: 150 },
+      { text: "🔥 OVERHEATING", color: "#fb923c", points: 90 }
+    ];
+
+    function initInvaders() {
+      invPlayer.x = canvas.width / 2;
+      invPlayer.y = canvas.height - 35;
+      invPlayer.rapidFire = 0;
+      invBullets = [];
+      invEnemies = [];
+      invBossBullets = [];
+      invBoss = null;
+      invSpawnTimer = 0;
+      currentWave = 1;
+      lives = 3;
+    }
+
+    function spawnInvEnemy() {
+      if (invBoss) return;
+      // Al punteggio > 800 e wave 2, spawna il Boss
+      if (score >= 800 && currentWave === 1) {
+        currentWave = 2;
+      }
+      if (score >= 1800 && !invBoss && currentWave === 2) {
+        currentWave = 3;
+        spawnBoss();
+        return;
+      }
+
+      const type = enemyCatalog[Math.floor(Math.random() * enemyCatalog.length)];
+      const x = Math.random() * (canvas.width - 130) + 20;
+      invEnemies.push({
+        x: x,
+        y: -22,
+        width: 110,
+        height: 22,
+        label: type.text,
+        color: type.color,
+        points: type.points,
+        speed: 1.2 + (currentWave * 0.4) + Math.random() * 0.4
+      });
+    }
+
+    function spawnBoss() {
+      invBoss = {
+        x: canvas.width / 2 - 100,
+        y: 40,
+        width: 200,
+        height: 55,
+        hp: 35,
+        maxHp: 35,
+        speed: 2.2,
+        dir: 1,
+        fireTimer: 0
+      };
+      ArcadeAudio.powerup();
+    }
+
+    function updateInvaders() {
+      if ((keys['ArrowLeft'] || keys['KeyA']) && invPlayer.x > invPlayer.width / 2) invPlayer.x -= invPlayer.speed;
+      if ((keys['ArrowRight'] || keys['KeyD']) && invPlayer.x < canvas.width - invPlayer.width / 2) invPlayer.x += invPlayer.speed;
+
+      invSpawnTimer++;
+      if (invSpawnTimer % Math.max(30, 60 - currentWave * 10) === 0) {
+        spawnInvEnemy();
+      }
+
+      // Proiettili giocatore
+      for (let i = invBullets.length - 1; i >= 0; i--) {
+        const b = invBullets[i];
+        b.y -= b.speed;
+        if (b.y < -10) { invBullets.splice(i, 1); continue; }
+
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
+
+        // Collisione con nemici standard
+        for (let j = invEnemies.length - 1; j >= 0; j--) {
+          const e = invEnemies[j];
+          if (b.x > e.x && b.x < e.x + e.width && b.y > e.y && b.y < e.y + e.height) {
+            createExplosion(b.x, b.y, e.color, 12);
+            score += e.points;
+            updateUI();
+            invEnemies.splice(j, 1);
+            invBullets.splice(i, 1);
+            break;
+          }
+        }
+
+        // Collisione con Boss
+        if (invBoss && b.x > invBoss.x && b.x < invBoss.x + invBoss.width && b.y > invBoss.y && b.y < invBoss.y + invBoss.height) {
+          invBoss.hp--;
+          createExplosion(b.x, b.y, '#f43f5e', 8);
+          invBullets.splice(i, 1);
+          score += 25;
+          updateUI();
+          if (invBoss.hp <= 0) {
+            createExplosion(invBoss.x + 100, invBoss.y + 25, '#fbbf24', 40);
+            score += 1000;
+            invBoss = null;
+            currentWave = 4;
+            ArcadeAudio.victory();
+            updateUI();
+          }
+          continue;
+        }
+      }
+
+      // Nemici standard
+      for (let i = invEnemies.length - 1; i >= 0; i--) {
+        const e = invEnemies[i];
+        e.y += e.speed;
+
+        ctx.fillStyle = '#0e1224';
+        ctx.strokeStyle = e.color;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(e.x, e.y, e.width, e.height);
+        ctx.fillRect(e.x, e.y, e.width, e.height);
+
+        ctx.fillStyle = e.color;
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.fillText(e.label, e.x + 6, e.y + 15);
+
+        if (e.y > canvas.height - 20) {
+          invEnemies.splice(i, 1);
+          lives--;
+          ArcadeAudio.playTone(120, 'sawtooth', 0.2, 0.25);
+          updateUI();
+          if (lives <= 0) { gameOver("Cluster sommerso da colli di bottiglia!"); return; }
+        }
+      }
+
+      // Boss Logic
+      if (invBoss) {
+        invBoss.x += invBoss.speed * invBoss.dir;
+        if (invBoss.x <= 20 || invBoss.x + invBoss.width >= canvas.width - 20) {
+          invBoss.dir *= -1;
+        }
+
+        // Render Boss Body
+        ctx.fillStyle = '#1c0e2d';
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(invBoss.x, invBoss.y, invBoss.width, invBoss.height);
+        ctx.fillRect(invBoss.x, invBoss.y, invBoss.width, invBoss.height);
+
+        ctx.fillStyle = '#f43f5e';
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.fillText("MONOLITHIC CLOUD BOSS", invBoss.x + 12, invBoss.y + 25);
+
+        // Barra Vita Boss
+        const hpPct = Math.max(0, invBoss.hp / invBoss.maxHp);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(invBoss.x + 10, invBoss.y + 35, invBoss.width - 20, 10);
+        ctx.fillStyle = hpPct > 0.4 ? '#39ff14' : '#ef4444';
+        ctx.fillRect(invBoss.x + 10, invBoss.y + 35, (invBoss.width - 20) * hpPct, 10);
+
+        // Fuoco del Boss
+        invBoss.fireTimer++;
+        if (invBoss.fireTimer % 55 === 0) {
+          invBossBullets.push({ x: invBoss.x + 30, y: invBoss.y + invBoss.height, speed: 4 });
+          invBossBullets.push({ x: invBoss.x + invBoss.width - 30, y: invBoss.y + invBoss.height, speed: 4 });
+          ArcadeAudio.laser();
+        }
+      }
+
+      // Proiettili del Boss
+      for (let i = invBossBullets.length - 1; i >= 0; i--) {
+        const bb = invBossBullets[i];
+        bb.y += bb.speed;
+
+        ctx.fillStyle = '#f43f5e';
+        ctx.fillRect(bb.x - 3, bb.y, 6, 12);
+
+        if (bb.x > invPlayer.x - 18 && bb.x < invPlayer.x + 18 && bb.y > invPlayer.y - 12 && bb.y < invPlayer.y + 10) {
+          invBossBullets.splice(i, 1);
+          lives--;
+          createExplosion(invPlayer.x, invPlayer.y, '#fbbf24', 15);
+          updateUI();
+          if (lives <= 0) { gameOver("Colpito dal raggio del Cloud Boss!"); return; }
+        } else if (bb.y > canvas.height + 15) {
+          invBossBullets.splice(i, 1);
+        }
+      }
+
+      // Nave Giocatore
+      ctx.fillStyle = invPlayer.color;
+      ctx.beginPath();
+      ctx.moveTo(invPlayer.x, invPlayer.y - 12);
+      ctx.lineTo(invPlayer.x - 18, invPlayer.y + 10);
+      ctx.lineTo(invPlayer.x, invPlayer.y + 4);
+      ctx.lineTo(invPlayer.x + 18, invPlayer.y + 10);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // -------------------------------------------------------------
+    // 4. GIOCO 2: PONG VS AGI (SIMULATORE NEURALE HEURISTIC PONG)
+    // -------------------------------------------------------------
+    let pongPlayer = { y: 175, height: 70, width: 12, speed: 6.5, score: 0 };
+    let pongAGI = { y: 175, height: 70, width: 12, speed: 4.8, score: 0 };
+    let pongBall = { x: 380, y: 210, vx: 5.5, vy: 2.5, radius: 7, speed: 6.0 };
+    let pongTrail = [];
+
+    function initPong() {
+      pongPlayer.y = canvas.height / 2 - pongPlayer.height / 2;
+      pongPlayer.score = 0;
+      pongAGI.y = canvas.height / 2 - pongAGI.height / 2;
+      pongAGI.score = 0;
+      resetPongBall(1);
+      pongTrail = [];
+    }
+
+    function resetPongBall(dir = 1) {
+      pongBall.x = canvas.width / 2;
+      pongBall.y = canvas.height / 2;
+      pongBall.speed = 6.0;
+      const angle = (Math.random() * 0.8 - 0.4);
+      pongBall.vx = dir * pongBall.speed * Math.cos(angle);
+      pongBall.vy = pongBall.speed * Math.sin(angle);
+    }
+
+    function updatePong() {
+      // Movimento Giocatore (W / S, o Frecce Su / Giù)
+      if ((keys['ArrowUp'] || keys['KeyW']) && pongPlayer.y > 10) pongPlayer.y -= pongPlayer.speed;
+      if ((keys['ArrowDown'] || keys['KeyS']) && pongPlayer.y < canvas.height - pongPlayer.height - 10) pongPlayer.y += pongPlayer.speed;
+
+      // Logica Neurale AGI (ASUS Flint 40B Sim)
+      // L'AGI predice l'intercetta della palla con un leggero lag euristico
+      const targetY = pongBall.y - pongAGI.height / 2;
+      if (pongBall.vx > 0) {
+        if (pongAGI.y + pongAGI.height / 2 < pongBall.y - 6) {
+          pongAGI.y += Math.min(pongAGI.speed, Math.abs(targetY - pongAGI.y));
+        } else if (pongAGI.y + pongAGI.height / 2 > pongBall.y + 6) {
+          pongAGI.y -= Math.min(pongAGI.speed, Math.abs(targetY - pongAGI.y));
+        }
+      } else {
+        // Ritorna lentamente verso il centro quando la palla si allontana
+        const centerY = canvas.height / 2 - pongAGI.height / 2;
+        pongAGI.y += (centerY - pongAGI.y) * 0.03;
+      }
+      pongAGI.y = Math.max(10, Math.min(canvas.height - pongAGI.height - 10, pongAGI.y));
+
+      // Fisica Palla
+      pongTrail.push({ x: pongBall.x, y: pongBall.y });
+      if (pongTrail.length > 7) pongTrail.shift();
+
+      pongBall.x += pongBall.vx;
+      pongBall.y += pongBall.vy;
+
+      // Rimbalzo bordi superiore/inferiore
+      if (pongBall.y - pongBall.radius <= 0) {
+        pongBall.y = pongBall.radius;
+        pongBall.vy *= -1;
+        ArcadeAudio.ping(false);
+      } else if (pongBall.y + pongBall.radius >= canvas.height) {
+        pongBall.y = canvas.height - pongBall.radius;
+        pongBall.vy *= -1;
+        ArcadeAudio.ping(false);
+      }
+
+      // Rimbalzo Racchetta Giocatore (Sinistra: x = 25)
+      const pX = 25;
+      if (pongBall.vx < 0 && pongBall.x - pongBall.radius <= pX + pongPlayer.width && pongBall.x + pongBall.radius >= pX) {
+        if (pongBall.y >= pongPlayer.y && pongBall.y <= pongPlayer.y + pongPlayer.height) {
+          // Calcola angolo basato sul punto di impatto
+          const relativeIntersectY = (pongPlayer.y + (pongPlayer.height / 2)) - pongBall.y;
+          const normalizedIntersect = relativeIntersectY / (pongPlayer.height / 2);
+          const bounceAngle = normalizedIntersect * (Math.PI / 4); // Max 45 gradi
+
+          pongBall.speed = Math.min(13.0, pongBall.speed + 0.35);
+          pongBall.vx = pongBall.speed * Math.cos(bounceAngle);
+          pongBall.vy = -pongBall.speed * Math.sin(bounceAngle);
+          score += 30;
+          updateUI();
+          ArcadeAudio.ping(true);
+          createExplosion(pX + pongPlayer.width, pongBall.y, '#fbbf24', 6);
+        }
+      }
+
+      // Rimbalzo Racchetta AGI (Destra: x = canvas.width - 25 - width)
+      const agiX = canvas.width - 25 - pongAGI.width;
+      if (pongBall.vx > 0 && pongBall.x + pongBall.radius >= agiX && pongBall.x - pongBall.radius <= agiX + pongAGI.width) {
+        if (pongBall.y >= pongAGI.y && pongBall.y <= pongAGI.y + pongAGI.height) {
+          const relativeIntersectY = (pongAGI.y + (pongAGI.height / 2)) - pongBall.y;
+          const normalizedIntersect = relativeIntersectY / (pongAGI.height / 2);
+          const bounceAngle = normalizedIntersect * (Math.PI / 4);
+
+          pongBall.speed = Math.min(13.0, pongBall.speed + 0.35);
+          pongBall.vx = -pongBall.speed * Math.cos(bounceAngle);
+          pongBall.vy = -pongBall.speed * Math.sin(bounceAngle);
+          ArcadeAudio.ping(false);
+          createExplosion(agiX, pongBall.y, '#57e6d9', 6);
+        }
+      }
+
+      // Punto Giocatore
+      if (pongBall.x > canvas.width + 10) {
+        pongPlayer.score++;
+        score += 200;
+        ArcadeAudio.scorePoint();
+        resetPongBall(-1);
+        updateUI();
+        if (pongPlayer.score >= 5) {
+          gameOver("VITTORIA! Hai battuto il modello AGI a Pong!");
+          return;
+        }
+      }
+
+      // Punto AGI
+      if (pongBall.x < -10) {
+        pongAGI.score++;
+        ArcadeAudio.playTone(150, 'sawtooth', 0.25, 0.2);
+        resetPongBall(1);
+        updateUI();
+        if (pongAGI.score >= 5) {
+          gameOver("Match perso contro l'AGI. Riprova!");
+          return;
+        }
+      }
+
+      // RENDER PONG FIELD
+      // Linea di metà campo
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 10]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Punteggi sul tabellone retro
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '28px "Press Start 2P", monospace';
+      ctx.fillText(pongPlayer.score.toString(), canvas.width / 2 - 80, 50);
+      ctx.fillStyle = '#57e6d9';
+      ctx.fillText(pongAGI.score.toString(), canvas.width / 2 + 50, 50);
+
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText("TU", canvas.width / 2 - 70, 75);
+      ctx.fillText("AGI", canvas.width / 2 + 55, 75);
+
+      // Scia palla
+      for (let i = 0; i < pongTrail.length; i++) {
+        const t = pongTrail[i];
+        ctx.fillStyle = '#f59e0b';
+        ctx.globalAlpha = (i + 1) / (pongTrail.length * 2);
+        ctx.fillRect(t.x - 4, t.y - 4, 8, 8);
+      }
+      ctx.globalAlpha = 1;
+
+      // Palla
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(pongBall.x - pongBall.radius, pongBall.y - pongBall.radius, pongBall.radius * 2, pongBall.radius * 2);
+
+      // Racchetta Giocatore
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(pX, pongPlayer.y, pongPlayer.width, pongPlayer.height);
+
+      // Racchetta AGI
+      ctx.fillStyle = '#57e6d9';
+      ctx.fillRect(agiX, pongAGI.y, pongAGI.width, pongAGI.height);
+    }
+
+    // -------------------------------------------------------------
+    // 5. GIOCO 3: VECTOR MATRIX RUNNER (CYBERPUNK HIGH SPEED RUNNER)
+    // -------------------------------------------------------------
+    let matrixShip = { x: 380, lane: 2, targetX: 380, speed: 10 };
+    let matrixObstacles = [];
+    let matrixTokens = [];
+    let matrixDistance = 0;
+    let matrixSpeed = 5.5;
+    let matrixSpawnTimer = 0;
+
+    const lanesX = [180, 280, 380, 480, 580];
+
+    function initMatrix() {
+      matrixShip.lane = 2;
+      matrixShip.x = lanesX[2];
+      matrixShip.targetX = lanesX[2];
+      matrixObstacles = [];
+      matrixTokens = [];
+      matrixDistance = 0;
+      matrixSpeed = 5.5;
+      matrixSpawnTimer = 0;
+      lives = 3;
+    }
+
+    function spawnMatrixObstacle() {
+      const lane = Math.floor(Math.random() * lanesX.length);
+      const isToken = Math.random() > 0.45;
+
+      if (isToken) {
+        matrixTokens.push({
+          lane: lane,
+          z: 0.05,
+          color: '#39ff14',
+          label: 'SOVEREIGN TOKEN'
+        });
+      } else {
+        const types = [
+          { text: 'LATENCY WALL', color: '#f43f5e' },
+          { text: 'FIREWALL GATE', color: '#f59e0b' },
+          { text: 'DEADLOCK', color: '#a855f7' }
+        ];
+        const t = types[Math.floor(Math.random() * types.length)];
+        matrixObstacles.push({
+          lane: lane,
+          z: 0.05,
+          color: t.color,
+          label: t.text
+        });
+      }
+    }
+
+    function updateMatrix() {
+      // Controlli Sterzata
+      if ((keys['ArrowLeft'] || keys['KeyA']) && matrixShip.lane > 0 && !keys._leftPressed) {
+        matrixShip.lane--;
+        matrixShip.targetX = lanesX[matrixShip.lane];
+        keys._leftPressed = true;
+        ArcadeAudio.ping(false);
+      }
+      if (!keys['ArrowLeft'] && !keys['KeyA']) keys._leftPressed = false;
+
+      if ((keys['ArrowRight'] || keys['KeyD']) && matrixShip.lane < lanesX.length - 1 && !keys._rightPressed) {
+        matrixShip.lane++;
+        matrixShip.targetX = lanesX[matrixShip.lane];
+        keys._rightPressed = true;
+        ArcadeAudio.ping(false);
+      }
+      if (!keys['ArrowRight'] && !keys['KeyD']) keys._rightPressed = false;
+
+      // Interpolazione morbida
+      matrixShip.x += (matrixShip.targetX - matrixShip.x) * 0.25;
+
+      matrixDistance += Math.floor(matrixSpeed);
+      score += 1;
+      if (matrixDistance % 400 === 0) {
+        matrixSpeed = Math.min(11.0, matrixSpeed + 0.3);
+      }
+
+      matrixSpawnTimer++;
+      if (matrixSpawnTimer % Math.max(25, Math.floor(55 - matrixSpeed * 2.5)) === 0) {
+        spawnMatrixObstacle();
+      }
+
+      // RENDER GRIGLIA PSEUDO-3D PROSPETTICA
+      const horizonY = 120;
+      ctx.strokeStyle = '#1e1b4b';
+      ctx.lineWidth = 1.5;
+
+      // Linee di corsia prospettiche verso il punto di fuga
+      for (let lx of lanesX) {
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, horizonY);
+        ctx.lineTo(lx, canvas.height);
+        ctx.stroke();
+      }
+
+      // Linee orizzontali in movimento
+      const gridOffset = (matrixDistance * 1.5) % 40;
+      for (let y = horizonY; y < canvas.height; y += 25) {
+        const renderY = y + gridOffset;
+        if (renderY > canvas.height) continue;
+        const alpha = (renderY - horizonY) / (canvas.height - horizonY);
+        ctx.strokeStyle = `rgba(168, 85, 247, ${alpha * 0.4})`;
+        ctx.beginPath();
+        ctx.moveTo(60, renderY);
+        ctx.lineTo(canvas.width - 60, renderY);
+        ctx.stroke();
+      }
+
+      // Aggiorna & Renderizza Token Collezionabili
+      for (let i = matrixTokens.length - 1; i >= 0; i--) {
+        const tk = matrixTokens[i];
+        tk.z += matrixSpeed * 0.0035;
+
+        const curY = horizonY + (canvas.height - horizonY) * tk.z;
+        const curX = canvas.width / 2 + (lanesX[tk.lane] - canvas.width / 2) * tk.z;
+        const size = Math.max(4, 28 * tk.z);
+
+        ctx.fillStyle = tk.color;
+        ctx.beginPath();
+        ctx.arc(curX, curY, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ritiro Token
+        if (tk.z >= 0.88 && tk.z <= 1.05 && matrixShip.lane === tk.lane) {
+          matrixTokens.splice(i, 1);
+          score += 150;
+          createExplosion(curX, curY, '#39ff14', 12);
+          ArcadeAudio.scorePoint();
+          updateUI();
+          continue;
+        }
+
+        if (tk.z > 1.15) matrixTokens.splice(i, 1);
+      }
+
+      // Aggiorna & Renderizza Ostacoli
+      for (let i = matrixObstacles.length - 1; i >= 0; i--) {
+        const obs = matrixObstacles[i];
+        obs.z += matrixSpeed * 0.0035;
+
+        const curY = horizonY + (canvas.height - horizonY) * obs.z;
+        const curX = canvas.width / 2 + (lanesX[obs.lane] - canvas.width / 2) * obs.z;
+        const width = Math.max(10, 75 * obs.z);
+        const height = Math.max(4, 24 * obs.z);
+
+        ctx.fillStyle = '#060814';
+        ctx.strokeStyle = obs.color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(curX - width / 2, curY - height / 2, width, height);
+        ctx.fillRect(curX - width / 2, curY - height / 2, width, height);
+
+        if (obs.z > 0.45) {
+          ctx.fillStyle = obs.color;
+          ctx.font = `${Math.floor(8 * obs.z)}px "Press Start 2P", monospace`;
+          ctx.fillText(obs.label, curX - width / 2 + 4, curY + 3);
+        }
+
+        // Collisione con la nave
+        if (obs.z >= 0.88 && obs.z <= 1.05 && matrixShip.lane === obs.lane) {
+          matrixObstacles.splice(i, 1);
+          lives--;
+          createExplosion(curX, curY, obs.color, 18);
+          updateUI();
+          if (lives <= 0) {
+            gameOver("Collisione fatale contro la barriera di latenza!");
+            return;
+          }
+          continue;
+        }
+
+        if (obs.z > 1.15) matrixObstacles.splice(i, 1);
+      }
+
+      // Render Nave del Giocatore (Triangolo Neon Cyberpunk)
+      const shipY = canvas.height - 45;
+      ctx.fillStyle = '#39ff14';
+      ctx.strokeStyle = '#57e6d9';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(matrixShip.x, shipY - 18);
+      ctx.lineTo(matrixShip.x - 22, shipY + 12);
+      ctx.lineTo(matrixShip.x, shipY + 5);
+      ctx.lineTo(matrixShip.x + 22, shipY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Indicatore distanza in metri
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px "Press Start 2P", monospace';
+      ctx.fillText(`${matrixDistance} m`, 20, 30);
+    }
+
+    // -------------------------------------------------------------
+    // 6. MASTER GAME LOOP & SWITCHER
+    // -------------------------------------------------------------
+    function handleFireAction() {
+      if (!isRunning || isOver) return;
+      if (currentGame === 'invaders') {
+        invBullets.push({ x: invPlayer.x, y: invPlayer.y - 10, width: 4, height: 12, speed: 9, color: '#39ff14' });
+        ArcadeAudio.laser();
+      } else if (currentGame === 'matrix') {
+        // Boost immediato
+        matrixSpeed = Math.min(14.0, matrixSpeed + 1.2);
+        ArcadeAudio.ping(true);
+      }
+    }
+
+    function selectGame(gameId) {
+      currentGame = gameId;
+      document.getElementById('tabInvaders').className = gameId === 'invaders' ? 'px-4 py-2 rounded-xl bg-amber-500/20 text-arcade-gold border border-amber-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
+      document.getElementById('tabPong').className = gameId === 'pong' ? 'px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
+      document.getElementById('tabMatrix').className = gameId === 'matrix' ? 'px-4 py-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold transition flex items-center gap-2' : 'px-4 py-2 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition flex items-center gap-2';
+      
+      const overlayH = document.getElementById('overlayHeading');
+      const overlayT = document.getElementById('overlayText');
+      const paramLabel = document.getElementById('gameParamLabel');
+      const paramVal = document.getElementById('gameParamVal');
+      const livesCont = document.getElementById('liveLivesContainer');
+      const btn1 = document.getElementById('ctrlBtn1');
+      const btn2 = document.getElementById('ctrlBtn2');
+      const btnAction = document.getElementById('ctrlAction');
+
+      if (gameId === 'invaders') {
+        overlayH.textContent = "NEURAL INVADERS";
+        overlayT.innerHTML = `Difendi il cluster dagli overhead di latenza! Usa <strong class="text-arcade-gold">← / →</strong> per muoverti e <strong class="text-arcade-gold">SPAZIO</strong> per sparare impulsi token. Al 3° livello sconfiggi il Cloud Boss!`;
+        paramLabel.textContent = "WAVE: ";
+        paramVal.textContent = "1";
+        livesCont.classList.remove('hidden');
+        btn1.textContent = "◀ SINISTRA";
+        btn2.textContent = "DESTRA ▶";
+        btnAction.textContent = "🔥 FUOCO (SPAZIO)";
+        btnAction.classList.remove('hidden');
+      } else if (gameId === 'pong') {
+        overlayH.textContent = "PONG VS AGI";
+        overlayT.innerHTML = `Sfida il modello neurale in un rally 1v1 ad alta velocità! Usa <strong class="text-cyan-300">↑ / ↓</strong> (o W / S) per muovere la tua racchetta. Il primo a 5 punti conquista la vittoria!`;
+        paramLabel.textContent = "AI LEVEL: ";
+        paramVal.textContent = "FLINT 40B";
+        livesCont.classList.add('hidden');
+        btn1.textContent = "▲ SU";
+        btn2.textContent = "GIÙ ▼";
+        btnAction.textContent = "🏓 SMASH";
+        btnAction.classList.add('hidden');
+      } else if (gameId === 'matrix') {
+        overlayH.textContent = "VECTOR MATRIX RUNNER";
+        overlayT.innerHTML = `Corri nella matrice a vettori neon! Usa <strong class="text-purple-300">← / →</strong> per cambiare corsia e schivare le barriere di latenza. Raccogli i Sovereign Tokens per moltiplicare il punteggio!`;
+        paramLabel.textContent = "SPEED: ";
+        paramVal.textContent = "NORMAL";
+        livesCont.classList.remove('hidden');
+        btn1.textContent = "◀ CORSIA SX";
+        btn2.textContent = "CORSIA DX ▶";
+        btnAction.textContent = "⚡ BOOST (SPAZIO)";
+        btnAction.classList.remove('hidden');
+      }
+
+      resetGameState();
+      document.getElementById('gameOverlay').classList.remove('hidden');
+    }
+
+    function startGame() {
+      document.getElementById('gameOverlay').classList.add('hidden');
+      resetGameState();
+      isRunning = true;
+      ArcadeAudio.ping(true);
+      if (animId) cancelAnimationFrame(animId);
+      gameLoop();
+    }
+
+    function resetGameState() {
+      score = 0;
+      lives = 3;
+      isOver = false;
+      particles = [];
+      if (currentGame === 'invaders') initInvaders();
+      else if (currentGame === 'pong') initPong();
+      else if (currentGame === 'matrix') initMatrix();
+      updateUI();
+    }
+
+    function updateUI() {
+      document.getElementById('liveScore').textContent = score.toString().padStart(4, '0');
+      const tokensWon = Math.floor(score / 40);
+      document.getElementById('liveTokens').textContent = tokensWon;
+      document.getElementById('tokensWonTotal').textContent = tokensWon + ' Token';
+      document.getElementById('liveLives').textContent = '❤️'.repeat(Math.max(0, lives));
+      
+      const paramVal = document.getElementById('gameParamVal');
+      if (currentGame === 'invaders') {
+        paramVal.textContent = currentWave.toString();
+      } else if (currentGame === 'pong') {
+        paramVal.textContent = `${pongPlayer.score} - ${pongAGI.score}`;
+      } else if (currentGame === 'matrix') {
+        paramVal.textContent = `${Math.round(matrixSpeed * 10)} km/h`;
+      }
+    }
+
+    function gameLoop() {
+      // Sfondo cosmico comune
+      ctx.fillStyle = '#060814';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Stelle in background
+      ctx.fillStyle = '#ffffff';
+      for (let s of stars) {
+        s.y += s.speed;
+        if (s.y > canvas.height) s.y = 0;
+        ctx.globalAlpha = s.speed * 0.7;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      }
+      ctx.globalAlpha = 1;
+
+      // Esecuzione del gioco attivo
+      if (isRunning && !isOver) {
+        if (currentGame === 'invaders') updateInvaders();
+        else if (currentGame === 'pong') updatePong();
+        else if (currentGame === 'matrix') updateMatrix();
+      }
+
+      // Render particelle comune
+      renderParticles();
 
       animId = requestAnimationFrame(gameLoop);
     }
 
-    function gameOver() {
+    function gameOver(reason = "Run completata!") {
       isOver = true;
       isRunning = false;
       const tok = Math.floor(score / 40);
       document.getElementById('overlayHeading').textContent = "RUN COMPLETATA!";
       document.getElementById('overlayText').innerHTML = `
-        Punteggio: <strong class="text-arcade-gold text-lg">${score}</strong><br>
-        Hai sbloccato <strong class="text-emerald-400 font-bold">${tok} Token</strong> per testare i modelli.<br>
+        <span class="text-rose-400 font-bold">${reason}</span><br><br>
+        Punteggio Finale: <strong class="text-arcade-gold text-lg">${score}</strong><br>
+        Hai sbloccato <strong class="text-emerald-400 font-bold">${tok} Token</strong> per testare i modelli MoE del cluster.<br>
         Salva il tuo punteggio nella Hall of Fame.
       `;
       document.getElementById('gameOverlay').classList.remove('hidden');
-      playBeep(180, 'square', 0.35, 0.25);
+      ArcadeAudio.gameOver();
     }
 
-    // LEADERBOARD
+    // -------------------------------------------------------------
+    // 7. HALL OF FAME & API INTERACTION
+    // -------------------------------------------------------------
     let highscores = [
-      { player: "CyberPilot", score: 4820, tokens: 120 },
-      { player: "FlintMaster", score: 3950, tokens: 90 },
-      { player: "ByteSurfer", score: 2740, tokens: 60 },
-      { player: "MeshNode", score: 1980, tokens: 40 },
-      { player: "LiquidMind", score: 1500, tokens: 25 }
+      { player: "CyberPilot", score: 4820, tokens: 120, game: "invaders" },
+      { player: "FlintMaster", score: 3950, tokens: 90, game: "pong" },
+      { player: "ByteSurfer", score: 2740, tokens: 60, game: "matrix" },
+      { player: "MeshNode", score: 1980, tokens: 40, game: "invaders" },
+      { player: "LiquidMind", score: 1500, tokens: 25, game: "pong" }
     ];
 
     function renderLeaderboard() {
@@ -556,10 +1216,10 @@
         }
       } catch (e) {}
 
-      highscores.unshift({ player: name, score: pts, tokens: Math.floor(pts / 40) });
+      highscores.unshift({ player: name, score: pts, tokens: Math.floor(pts / 40), game: currentGame });
       highscores.sort((a, b) => b.score - a.score);
       renderLeaderboard();
-      alert(`✓ Record salvato: ${name} (${pts} pts)!`);
+      alert(`✓ Record salvato in locale: ${name} (${pts} pts)!`);
     }
 
     async function loadApiLeaderboard() {
@@ -568,14 +1228,62 @@
         if (res.ok) {
           const data = await res.json();
           if (data.scores && data.scores.length > 0) {
-            highscores = data.scores.map(s => ({ player: s.player, score: s.score, tokens: s.tokens_won }));
+            highscores = data.scores.map(s => ({
+              player: s.player,
+              score: s.score,
+              tokens: s.tokens_won,
+              game: s.game || "invaders"
+            }));
           }
         }
       } catch (e) {}
       renderLeaderboard();
     }
 
+    // Touch & Button Listeners per i controlli a schermo
+    const b1 = document.getElementById('ctrlBtn1');
+    const b2 = document.getElementById('ctrlBtn2');
+    const bAction = document.getElementById('ctrlAction');
+
+    b1.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (currentGame === 'invaders') keys['ArrowLeft'] = true;
+      else if (currentGame === 'pong') keys['ArrowUp'] = true;
+      else if (currentGame === 'matrix') {
+        if (matrixShip.lane > 0) { matrixShip.lane--; matrixShip.targetX = lanesX[matrixShip.lane]; ArcadeAudio.ping(false); }
+      }
+    });
+    b1.addEventListener('touchend', e => {
+      e.preventDefault();
+      keys['ArrowLeft'] = false;
+      keys['ArrowUp'] = false;
+    });
+
+    b2.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (currentGame === 'invaders') keys['ArrowRight'] = true;
+      else if (currentGame === 'pong') keys['ArrowDown'] = true;
+      else if (currentGame === 'matrix') {
+        if (matrixShip.lane < lanesX.length - 1) { matrixShip.lane++; matrixShip.targetX = lanesX[matrixShip.lane]; ArcadeAudio.ping(false); }
+      }
+    });
+    b2.addEventListener('touchend', e => {
+      e.preventDefault();
+      keys['ArrowRight'] = false;
+      keys['ArrowDown'] = false;
+    });
+
+    bAction.addEventListener('touchstart', e => {
+      e.preventDefault();
+      handleFireAction();
+    });
+    bAction.addEventListener('click', () => {
+      handleFireAction();
+    });
+
+    // Inizializzazione onLoad
     window.addEventListener('DOMContentLoaded', () => {
+      selectGame('invaders');
       loadApiLeaderboard();
     });
   </script>

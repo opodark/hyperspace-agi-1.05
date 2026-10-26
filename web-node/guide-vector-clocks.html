@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="Guida Algoritmica: Consistenza Causale e Orologi Vettoriali. Scopri la matematica di Lamport e Mattern applicata alla sincronizzazione dei cluster distribuiti 00MESH.">
+  <link rel="canonical" href="https://www.zerozerocomputer.it/guide-vector-clocks.html">
+  
+  <meta property="og:site_name" content="Zero Zero Computer · Guide Tecniche">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://www.zerozerocomputer.it/guide-vector-clocks.html">
+  <meta property="og:title" content="Consistenza Causale e Orologi Vettoriali nei Sistemi Distribuiti">
+  <meta property="og:description" content="Studio formale sugli orologi logici e vettoriali per ordinare eventi in cluster P2P senza server centrali.">
+  <meta property="og:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Vector Clocks & Consistenza Causale · Zero Zero Computer">
+  <meta name="twitter:description" content="Guida alla sincronizzazione distribuita nei cluster eterogenei.">
+  <meta name="twitter:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta name="author" content="Zero Zero Computer">
+  <meta name="date" content="2026-10-26">
+
+  <title>Consistenza Causale e Orologi Vettoriali nei Sistemi Distribuiti · 00MESH</title>
+
+  <!-- Google Consent Mode v2 & AdSense -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
+    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
+    gtag('consent', 'default', {
+      'ad_storage': _consentState,
+      'ad_user_data': _consentState,
+      'ad_personalization': _consentState,
+      'analytics_storage': _consentState
+    });
+    function loadAdSenseAfterConsent() {
+      if (document.getElementById('adsense-script')) return;
+      const s = document.createElement('script');
+      s.id = 'adsense-script';
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    }
+    if (_savedConsent === 'granted') {
+      loadAdSenseAfterConsent();
+    }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Consistenza Causale e Orologi Vettoriali nei Sistemi Distribuiti Eterogenei",
+    "description": "Trattazione teorica e pratica sugli orologi vettoriali per l'ordinamento parziale degli eventi nei nodi di calcolo mesh decentralizzati.",
+    "author": {
+      "@type": "Organization",
+      "name": "Zero Zero Computer",
+      "url": "https://www.zerozerocomputer.it/"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Zero Zero Computer",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.zerozerocomputer.it/logo.png"
+      }
+    },
+    "datePublished": "2026-10-26",
+    "dateModified": "2026-10-26"
+  }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b18;
+      --panel: #0d1428ee;
+      --line: #263454;
+      --text: #f4f6ff;
+      --muted: #9ba9c7;
+      --cyan: #57e6d9;
+      --violet: #9a7cff;
+      --ok: #70e6aa;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font: 16px/1.7 Inter, ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(circle at 15% 5%, #253160 0, transparent 32%),
+                  radial-gradient(circle at 85% 15%, #38224c 0, transparent 28%),
+                  var(--bg);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      background: rgba(7, 11, 24, 0.88);
+      border-bottom: 1px solid var(--line);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 750;
+      letter-spacing: .02em;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #83fff0;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #57e6d988;
+      position: relative;
+    }
+    .mark:after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all .15s;
+    }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .btn-cta {
+      background: linear-gradient(135deg, var(--cyan), #3b82f6);
+      color: #070b18;
+      font-weight: 800;
+      padding: 7px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .article-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 44px 20px 80px;
+    }
+    .breadcrumbs {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .breadcrumbs a { color: var(--cyan); text-decoration: none; }
+    .article-header { margin-bottom: 36px; }
+    h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.25;
+      color: #fff;
+      font-weight: 850;
+      letter-spacing: -.02em;
+      margin: 12px 0 16px;
+    }
+    .article-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--muted);
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .article-body h2 {
+      font-size: 24px;
+      color: #fff;
+      margin: 40px 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 8px;
+    }
+    .article-body h3 {
+      font-size: 19px;
+      color: var(--cyan);
+      margin: 28px 0 12px;
+    }
+    .article-body p { color: #cbd5e1; margin-bottom: 20px; }
+    .article-body ul, .article-body ol {
+      color: #cbd5e1;
+      margin-bottom: 22px;
+      padding-left: 24px;
+    }
+    .article-body li { margin-bottom: 8px; }
+    blockquote {
+      background: rgba(13, 21, 42, 0.7);
+      border-left: 4px solid var(--cyan);
+      padding: 16px 22px;
+      margin: 26px 0;
+      border-radius: 0 12px 12px 0;
+      font-style: italic;
+      color: #f1f5f9;
+    }
+    pre {
+      background: #040711;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      overflow-x: auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 13.5px;
+      color: #e2e8f0;
+      margin: 24px 0;
+    }
+    code {
+      font-family: ui-monospace, Menlo, monospace;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.9em;
+      color: var(--cyan);
+    }
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+    th, td { padding: 12px 14px; border: 1px solid var(--line); }
+    th { background: rgba(13, 21, 42, 0.9); color: #fff; font-weight: 700; }
+    td { color: #cbd5e1; }
+    .author-card {
+      margin-top: 60px;
+      padding: 28px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 40px 20px 60px;
+      background: rgba(7, 11, 24, 0.95);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
+    .footer-links a { color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="./" class="brand">
+      <i class="mark"></i>
+      <span>Zero Zero Computer</span>
+    </a>
+    <div class="nav-actions">
+      <a href="./" class="nav-link">Home</a>
+      <a href="./progetto.html" class="nav-link">Architettura</a>
+      <a href="./guide.html" class="nav-link" style="color:var(--cyan);font-weight:700;">📚 Guide & Articoli</a>
+      <a href="./chi-siamo.html" class="nav-link">🏢 Chi Siamo</a>
+      <a href="./contatti.html" class="nav-link">📬 Contatti</a>
+      <a href="./apps/playground/commercial.html" class="nav-link" style="color:#fbbf24;">💼 B2B Prezzi</a>
+      <a href="./chat.html" class="btn-cta">💬 Chat Sovrana</a>
+    </div>
+  </div>
+</header>
+
+<main class="article-wrap">
+  <nav class="breadcrumbs">
+    <a href="./">Home</a> &gt; <a href="./guide.html">Guide Tecniche</a> &gt; <span>Vector Clocks & Consistenza Causale</span>
+  </nav>
+
+  <header class="article-header">
+    <span style="color:var(--cyan);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Algoritmi Distribuiti & Teoria della Computazione</span>
+    <h1>Consistenza Causale e Orologi Vettoriali nei Sistemi Distribuiti Eterogenei</h1>
+    <div class="article-meta">
+      <span>Autore: <strong>Team Ingegneristico Zero Zero Computer</strong></span>
+      <span>Data: <strong>26 Ottobre 2026</strong></span>
+      <span>Tempo di Lettura: <strong>10 minuti</strong></span>
+      <span>Topic: <strong>Vector Clocks, Lamport, Mattern, CRDT, 00MESH Synchronization</strong></span>
+    </div>
+  </header>
+
+  <!-- Spazio Pubblicitario Sponsor Editoriale (Consent Mode v2) -->
+  <div style="margin:24px 0 36px;padding:12px;background:rgba(11,17,36,0.6);border:1px dashed rgba(148,163,184,0.25);border-radius:12px;text-align:center;">
+    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;display:block;margin-bottom:8px;">Annuncio Pubblicitario · Sostiene la Divulgazione Scientifica Indipendente</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-4726342205200791"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <article class="article-body">
+    <p>
+      In un sistema distribuito su larga scala privo di un'autorità centrale, stabilire l'ordine cronologico degli eventi è uno dei problemi più complessi dell'informatica teorica. Affidarsi agli orologi fisici locali dei computer tramite il protocollo Network Time Protocol (NTP) si rivela sistematicamente fallimentare: oscillazioni dei cristalli di quarzo, latenze di rete asimmetriche e correzioni dei secondi intercalari introducono derive temporali (clock skew) che possono compromettere l'integrità dei dati.
+    </p>
+
+    <blockquote>
+      "Nei sistemi distribuiti, il tempo non è un valore scalare assoluto indicato da una lancetta, ma una relazione causale parziale tra eventi: un evento A può causare B, oppure A e B possono accadere in modo del tutto concorrente."
+    </blockquote>
+
+    <h2>1. Il Limite degli Orologi Logici di Lamport</h2>
+    <p>
+      Nel fondamentale articolo del 1978 <em>"Time, Clocks, and the Ordering of Events in a Distributed System"</em>, Leslie Lamport introdusse la relazione di "happened-before" ($\prec$):
+    </p>
+    <ul>
+      <li>Se $a$ e $b$ sono eventi dello stesso processo e $a$ accade prima di $b$, allora $a \prec b$.</li>
+      <li>Se $a$ è l'invio di un messaggio da parte di un processo e $b$ è la ricezione di quel messaggio da parte di un altro processo, allora $a \prec b$.</li>
+      <li>Se $a \prec b$ e $b \prec c$, allora $a \prec c$ (proprietà transitiva).</li>
+    </ul>
+    <p>
+      Tuttavia, l'orologio scalare di Lamport soffre di un grave limite teorico: dato un timestamp logico $L(a) &lt; L(b)$, <strong>non è possibile dedurre che $a \prec b$</strong>; gli eventi potrebbero essere concorrenti ($a \parallel b$) ma ricevere timestamp numerici diversi per pura casualità dell'incremento locale.
+    </p>
+
+    <h2>2. Gli Orologi Vettoriali (Mattern &amp; Fidge, 1988)</h2>
+    <p>
+      Per superare questo limite e consentire l'isomorfismo tra ordine causale e timestamp, Friedemann Mattern e Colin Fidge hanno introdotto gli <strong>Orologi Vettoriali (Vector Clocks)</strong>. In un cluster con $N$ nodi attivi, ogni nodo $i$ mantiene un vettore di $N$ interi:
+    </p>
+    <pre><code>V_i = [v_1, v_2, ..., v_N]</code></pre>
+
+    <h3>Le Tre Regole Fondamentali di Aggiornamento</h3>
+    <ol>
+      <li><strong>Inizializzazione</strong>: Al momento dell'avvio della rete, ogni nodo imposta tutte le coordinate del proprio vettore a zero: $V_i[k] = 0 \quad \forall k \in \{1, ..., N\}$.</li>
+      <li><strong>Evento Locale</strong>: Prima di eseguire una transazione, emettere un token o aggiornare la memoria a grafo, il nodo incrementa la propria coordinata:
+        <br><code>V_i[i] = V_i[i] + 1</code>
+      </li>
+      <li><strong>Messaggio e Fusione Causale</strong>: Quando il nodo $i$ invia un messaggio mesh al nodo $j$, allega una copia del proprio vettore $V_i$. Il nodo ricevente $j$ aggiorna il proprio orologio calcolando il massimo elemento per elemento (estremo superiore o <em>sup</em>):
+        <br><code>V_j[k] = max(V_j[k], V_msg[k])  ∀ k</code>
+        <br>e incrementa successivamente il proprio indice locale: <code>V_j[j] = V_j[j] + 1</code>.
+      </li>
+    </ol>
+
+    <h2>3. La Condizione di Precedenza Causale Rigorosa</h2>
+    <p>
+      Grazie alla struttura vettoriale, possiamo confrontare due eventi $a$ e $b$ con vettori $V(a)$ e $V(b)$ in modo matematicamente certo:
+    </p>
+    <pre><code>V(a) &lt;= V(b)  &lt;==&gt;  (∀ k, V(a)[k] &lt;= V(b)[k])
+V(a) &lt; V(b)   &lt;==&gt;  (V(a) &lt;= V(b)  AND  ∃ k tale che V(a)[k] &lt; V(b)[k])
+
+Teorema Fondamentale:
+a ≺ b  &lt;===&gt;  V(a) &lt; V(b)
+a || b &lt;===&gt;  NOT(V(a) &lt; V(b)) AND NOT(V(b) &lt; V(a))</code></pre>
+
+    <p>
+      Se non sussiste né $V(a) &lt; V(b)$ né $V(b) &lt; V(a)$, gli eventi sono <strong>concorrenti</strong> ($a \parallel b$). In questo caso il sistema sa con certezza che le due operazioni sono avvenute in rami paralleli della rete senza influenzarsi a vicenda.
+    </p>
+
+    <h2>4. Implementazione Reale nel Cluster 00MESH</h2>
+    <p>
+      Nel cluster HyperSpace, composto dal Mac M5 (Hub Control Plane), dalla workstation HP OMEN 16 (GPU RTX Code Engine) e dall'ASUS V16 (MoE Deep Inference), ogni transizione di stato della memoria e ogni prompt di dialogo con Anna viene coordinato attraverso il modulo <code>VectorClock</code>:
+    </p>
+
+    <pre><code># Implementazione Python AST-Validated del Vector Clock in HyperSpace
+from typing import Dict, List, Tuple
+
+class SovereignVectorClock:
+    def __init__(self, node_id: str, cluster_nodes: List[str]):
+        self.node_id = node_id
+        self.clock: Dict[str, int] = {n: 0 for n in cluster_nodes}
+
+    def tick(self) -> Dict[str, int]:
+        """Avanza il contatore logico del nodo corrente."""
+        self.clock[self.node_id] += 1
+        return dict(self.clock)
+
+    def merge_message(self, received_clock: Dict[str, int]) -> Dict[str, int]:
+        """Fonde causalmente l'orologio del payload mesh calcolando il sup."""
+        for nid, val in received_clock.items():
+            self.clock[nid] = max(self.clock.get(nid, 0), val)
+        self.clock[self.node_id] += 1
+        return dict(self.clock)
+
+    def compare_causality(self, other: Dict[str, int]) -> str:
+        """Restituisce: 'PRECEDES' (a ≺ b), 'SUCCEEDS' (b ≺ a), o 'CONCURRENT' (a || b)."""
+        all_keys = set(self.clock.keys()).union(other.keys())
+        is_less_or_equal = all(self.clock.get(k, 0) <= other.get(k, 0) for k in all_keys)
+        is_strictly_less = any(self.clock.get(k, 0) < other.get(k, 0) for k in all_keys)
+        
+        is_greater_or_equal = all(self.clock.get(k, 0) >= other.get(k, 0) for k in all_keys)
+        is_strictly_greater = any(self.clock.get(k, 0) > other.get(k, 0) for k in all_keys)
+
+        if is_less_or_equal and is_strictly_less:
+            return "PRECEDES"
+        if is_greater_or_equal and is_strictly_greater:
+            return "SUCCEEDS"
+        return "CONCURRENT"</code></pre>
+
+    <h2>5. Risoluzione dei Conflitti senza Deadlock né Server Centrali</h2>
+    <p>
+      Quando due nodi operano in modo concorrente su note della memoria a grafo (ad esempio se il Mac Hub riassume un log mentre l'OMEN convalida una patch di codice), 00MESH adotta una struttura a <strong>Conflict-Free Replicated Data Types (CRDT)</strong>:
+    </p>
+    <ul>
+      <li>Le operazioni concorrenti non bloccano l'esecuzione con lock distribuiti complessi e fragili (come il two-phase commit).</li>
+      <li>I rami concorrenti vengono archiviati come nodi biforcati nel grafo di memoria.</li>
+      <li>Il ciclo notturno di consolidamento (Nightly Consolidation) applica una funzione di merge deterministica, unificando le evidenze senza perdita di informazioni.</li>
+    </ul>
+
+    <h2>Conclusioni</h2>
+    <p>
+      L'adozione degli orologi vettoriali rappresenta l'architrave su cui poggia l'intera sovranità computazionale di 00MESH. Essa garantisce che centinaia di nodi eterogenei possano dialogare, inferire modelli linguistici e scambiarsi token senza dover mai interrogare un server di sincronizzazione centralizzato.
+    </p>
+  </article>
+
+  <div class="author-card">
+    <div style="font-size:38px;">🏢</div>
+    <div>
+      <h3 style="margin:0 0 4px;color:#fff;font-size:17px;">Zero Zero Computer · Laboratorio di Ingegneria</h3>
+      <p style="margin:0;color:#94a3b8;font-size:13.5px;line-height:1.5;">
+        Fondata nel 2003 · Sede a Verbania (VB), Italia. Implementiamo protocolli formali per sistemi distribuiti e architetture computazionali cooperativi.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div style="font-weight:750;color:#fff;margin-bottom:6px;">Zero Zero Computer</div>
+      <div>Verbania (VB), Italia · Ingegneria: <a href="https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/" target="_blank" rel="noopener noreferrer" style="color:#57e6d9;text-decoration:none;">A. Marinoni</a> & <a href="https://www.linkedin.com/in/guido-cipolla-329b48182/" target="_blank" rel="noopener noreferrer" style="color:#c084fc;text-decoration:none;">G. Cipolla</a></div>
+      <div style="margin-top:4px;">© 2003–2026 Zero Zero Computer. Tutti i diritti riservati.</div>
+    </div>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./chi-siamo.html">Chi Siamo</a>
+      <a href="./guide.html">Guide & Documentazione</a>
+      <a href="./contatti.html">Contatti</a>
+      <a href="https://www.linkedin.com/company/zerozerocomputer" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);font-weight:600;">💼 LinkedIn</a>
+      <a href="./privacy-policy.html">Privacy Policy</a>
+      <a href="./cookie-policy.html">Cookie Policy</a>
+      <a href="./terms.html">Termini e Condizioni</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie Banner GDPR -->
+<div id="zzcCookieBanner" role="dialog" aria-live="polite" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;max-width:960px;margin:0 auto;background:#0b1328f5;border:1px solid #2b3f66;border-radius:16px;padding:18px 22px;z-index:9999;backdrop-filter:blur(12px);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;font-size:13px;color:#cbd5e1;line-height:1.55;">
+      <strong style="color:#fff;font-size:14px;display:block;margin-bottom:4px;">🍪 Rispetto della tua Privacy (GDPR)</strong>
+      Utilizziamo cookie tecnici essenziali e, previo tuo consenso, cookie pubblicitari Google AdSense su questo articolo divulgativo. Consulta la nostra <a href="./cookie-policy.html" style="color:var(--cyan);text-decoration:underline;">Cookie Policy</a>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="cookieRejectBtn" type="button" style="padding:10px 16px;font-size:12.5px;border-radius:10px;border:1px solid #2b3f66;background:#111d38;color:#cbd5e1;cursor:pointer;font-weight:700;">Solo Tecnici</button>
+      <button id="cookieAcceptBtn" type="button" style="padding:10px 18px;font-size:12.5px;border-radius:10px;border:none;background:linear-gradient(115deg,var(--cyan),var(--violet));color:#070b18;cursor:pointer;font-weight:800;">Accetta</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const b = document.getElementById('zzcCookieBanner');
+    const a = document.getElementById('cookieAcceptBtn');
+    const r = document.getElementById('cookieRejectBtn');
+    if (!localStorage.getItem('zzc_cookie_consent') && b) b.style.display = 'block';
+    if (a) a.addEventListener('click', () => {
+      localStorage.setItem('zzc_cookie_consent', 'granted');
+      if (typeof gtag === 'function') gtag('consent', 'update', {'ad_storage':'granted','ad_user_data':'granted','ad_personalization':'granted','analytics_storage':'granted'});
+      if (typeof loadAdSenseAfterConsent === 'function') loadAdSenseAfterConsent();
+      if (b) b.style.display = 'none';
+    });
+    if (r) r.addEventListener('click', () => {
+      localStorage.setItem('zzc_cookie_consent', 'denied');
+      if (typeof gtag === 'function') gtag('consent', 'update', {'ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied','analytics_storage':'denied'});
+      if (b) b.style.display = 'none';
+    });
+  })();
+</script>
+
+</body>
+</html>

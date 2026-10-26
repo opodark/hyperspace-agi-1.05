@@ -38,7 +38,8 @@ done
 if [[ -d "$REPO_ROOT/web-node/.well-known" ]]; then
   mkdir -p "$TARGET/.well-known"
   cp -R "$REPO_ROOT/web-node/.well-known/." "$TARGET/.well-known/"
-elif [[ -f "$REPO_ROOT/web-node/ai-agent.json" ]]; then
+fi
+if [[ -f "$REPO_ROOT/web-node/ai-agent.json" ]]; then
   mkdir -p "$TARGET/.well-known"
   cp "$REPO_ROOT/web-node/ai-agent.json" "$TARGET/.well-known/ai-agent.json"
 fi
@@ -81,8 +82,8 @@ window.HYPERSPACE_JOIN = Object.freeze({
 });
 EOF
 
-# Genera cartelle per URL puliti senza estensione (es. /privacy-policy/, /cookie-policy/, /terms/, /deletion/, /chat/, /ai/, /join/, /anna/, /token/)
-for ep in privacy-policy privacy cookie-policy terms deletion data-deletion chat ai join anna token; do
+# Genera cartelle per URL puliti senza estensione (es. /chi-siamo/, /contatti/, /guide/, /privacy-policy/, ecc.)
+for ep in privacy-policy privacy cookie-policy terms deletion data-deletion chat ai join anna token chi-siamo contatti guide guide-architettura-mesh guide-webgpu-browser guide-vector-clocks guide-memoria-tri-modale guide-validazione-ast guide-tokenomics-depin guide-configurazione-nodo; do
   if [[ -f "$TARGET/$ep.html" ]]; then
     mkdir -p "$TARGET/$ep"
     cp "$TARGET/$ep.html" "$TARGET/$ep/index.html"

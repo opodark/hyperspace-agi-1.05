@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="Guide Tecniche & Documentazione Ufficiale · Zero Zero Computer: scopri l'architettura dei sistemi distribuiti, WebGPU nel browser, orologi vettoriali, memoria a grafo e validazione AST.">
+  <link rel="canonical" href="https://www.zerozerocomputer.it/guide.html">
+  
+  <meta property="og:site_name" content="Zero Zero Computer · 00MESH">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.zerozerocomputer.it/guide.html">
+  <meta property="og:title" content="Guide Tecniche & Documentazione · Zero Zero Computer">
+  <meta property="og:description" content="Hub di divulgazione e manualistica tecnica su intelligenza artificiale distribuita, WebGPU, orologi vettoriali e sovranità computazionale.">
+  <meta property="og:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Guide Tecniche & Documentazione · Zero Zero Computer">
+  <meta name="twitter:description" content="Manuali e guide ingegneristiche per comprendere e configurare l'intelligenza artificiale decentralizzata.">
+  <meta name="twitter:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta name="author" content="Zero Zero Computer">
+  <meta name="date" content="2026-10-26">
+  <meta name="last-modified" content="2026-10-26">
+
+  <title>Guide Tecniche & Documentazione · Zero Zero Computer (00MESH)</title>
+
+  <!-- Google Consent Mode v2 & AdSense (caricato SOLO previo consenso GDPR) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
+    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
+    gtag('consent', 'default', {
+      'ad_storage': _consentState,
+      'ad_user_data': _consentState,
+      'ad_personalization': _consentState,
+      'analytics_storage': _consentState
+    });
+    function loadAdSenseAfterConsent() {
+      if (document.getElementById('adsense-script')) return;
+      const s = document.createElement('script');
+      s.id = 'adsense-script';
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    }
+    if (_savedConsent === 'granted') {
+      loadAdSenseAfterConsent();
+    }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Guide Tecniche & Documentazione 00MESH",
+    "description": "Hub di approfondimento scientifico ed editoriale sui sistemi distribuiti, WebGPU, causalità di Lamport e architetture neurali decentralizzate.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Zero Zero Computer",
+      "url": "https://www.zerozerocomputer.it/"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b18;
+      --panel: #0d1428ee;
+      --line: #263454;
+      --text: #f4f6ff;
+      --muted: #9ba9c7;
+      --cyan: #57e6d9;
+      --violet: #9a7cff;
+      --rose: #f693bd;
+      --ok: #70e6aa;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font: 15px/1.65 Inter, ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(circle at 15% 5%, #253160 0, transparent 32%),
+                  radial-gradient(circle at 85% 15%, #38224c 0, transparent 28%),
+                  var(--bg);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      background: rgba(7, 11, 24, 0.88);
+      border-bottom: 1px solid var(--line);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 750;
+      letter-spacing: .02em;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #83fff0;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #57e6d988;
+      position: relative;
+    }
+    .mark:after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all .15s;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: #fff;
+      background: rgba(255,255,255,0.06);
+    }
+    .btn-cta {
+      background: linear-gradient(135deg, var(--cyan), #3b82f6);
+      color: #070b18;
+      font-weight: 800;
+      padding: 7px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(87, 230, 217, 0.12);
+      border: 1px solid rgba(87, 230, 217, 0.3);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(28px, 4.5vw, 44px);
+      line-height: 1.2;
+      margin: 0 0 16px;
+      font-weight: 850;
+      letter-spacing: -.02em;
+    }
+    .gradient {
+      background: linear-gradient(115deg, #fff 20%, var(--cyan) 60%, var(--violet) 95%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .lead {
+      font-size: 17.5px;
+      color: #cbd5e1;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .guides-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 26px;
+      margin: 40px 0;
+    }
+    .guide-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform .2s, border-color .2s;
+    }
+    .guide-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--cyan);
+    }
+    .guide-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .guide-tag {
+      background: rgba(154, 124, 255, 0.15);
+      border: 1px solid rgba(154, 124, 255, 0.3);
+      color: #c084fc;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .guide-card h2 {
+      font-size: 20px;
+      line-height: 1.35;
+      color: #fff;
+      margin: 0 0 12px;
+    }
+    .guide-card p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 20px;
+      flex: 1;
+    }
+    .guide-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--cyan);
+      font-weight: 750;
+      font-size: 13.5px;
+      text-decoration: none;
+    }
+    .guide-link:hover {
+      text-decoration: underline;
+    }
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 40px 20px 60px;
+      background: rgba(7, 11, 24, 0.95);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-links {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="./" class="brand">
+      <i class="mark"></i>
+      <span>Zero Zero Computer</span>
+    </a>
+    <div class="nav-actions">
+      <a href="./" class="nav-link">Home</a>
+      <a href="./progetto.html" class="nav-link">Architettura</a>
+      <a href="./guide.html" class="nav-link active" style="color:var(--cyan);font-weight:700;">📚 Guide & Articoli</a>
+      <a href="./chi-siamo.html" class="nav-link">🏢 Chi Siamo</a>
+      <a href="./contatti.html" class="nav-link">📬 Contatti</a>
+      <a href="./apps/playground/commercial.html" class="nav-link" style="color:#fbbf24;">💼 B2B Prezzi</a>
+      <a href="./chat.html" class="btn-cta">💬 Chat Sovrana</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <span class="badge">Knowledge Base & Manuali Ingegneristici</span>
+    <h1>L'Architettura del Calcolo Sovrano: <span class="gradient">Guide & Documentazione</span></h1>
+    <p class="lead">
+      Un corpus completo di articoli tecnici, guide pratiche e approfondimenti scientifici redatti dal team di Zero Zero Computer per esplorare i sistemi distribuiti, l'accelerazione WebGPU, la consistenza causale e la sicurezza del codice generato da AI.
+    </p>
+  </section>
+
+  <!-- Annuncio Pubblicitario Sponsor Responsabile (Consent Mode v2) -->
+  <div style="max-width:960px;margin:0 auto 36px;padding:12px;background:rgba(11,17,36,0.6);border:1px dashed rgba(148,163,184,0.25);border-radius:14px;text-align:center;">
+    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;display:block;margin-bottom:8px;">Annuncio Pubblicitario · Sostiene la Ricerca Open-Source Indipendente</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-4726342205200791"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <div class="guides-grid">
+    <!-- GUIDA 1 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">Sistemi Distribuiti</span>
+          <span>Lettura: 8 min</span>
+        </div>
+        <h2>Reti Neurali Mesh P2P: Superare i Monoliti Centralizzati dell'Intelligenza Artificiale</h2>
+        <p>
+          Come funziona l'architettura a mesh peer-to-peer di 00MESH. Analisi della topologia cooperativa, bilanciamento del carico tra nodi eterogenei e confronto prestazionale rispetto ai datacenter cloud tradizionali.
+        </p>
+      </div>
+      <a href="./guide-architettura-mesh.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+
+    <!-- GUIDA 2 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">WebGPU & Browser</span>
+          <span>Lettura: 9 min</span>
+        </div>
+        <h2>Calcolo Neurale nel Browser con WebGPU: Guida Pratica all'Inferenza Client-Side</h2>
+        <p>
+          Dalla specifica W3C agli shader WGSL: come eseguire modelli linguistici e vision quantizzati direttamente sulla GPU integrata o dedicata dell'utente, a zero costo server e con privacy assoluta.
+        </p>
+      </div>
+      <a href="./guide-webgpu-browser.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+
+    <!-- GUIDA 3 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">Teoria della Computazione</span>
+          <span>Lettura: 10 min</span>
+        </div>
+        <h2>Consistenza Causale e Orologi Vettoriali nei Sistemi Distribuiti Eterogenei</h2>
+        <p>
+          Ordinamento degli eventi senza coordinatore centrale. Studio formale degli orologi di Lamport e Mattern applicati alla sincronizzazione di nodi Apple Silicon, NVIDIA RTX e WebGPU.
+        </p>
+      </div>
+      <a href="./guide-vector-clocks.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+
+    <!-- GUIDA 4 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">Architettura Memoria</span>
+          <span>Lettura: 8 min</span>
+        </div>
+        <h2>Memoria Tri-Modale a Grafo per LLM: Documenti, Chunk e Note Ricorsive</h2>
+        <p>
+          Perché il RAG tradizionale soffre di memory drift e allucinazioni. L'approccio tri-modale di HyperSpace con archiviazione raw L1, vettori densi L2 e nodi di riflessione sintetica L3.
+        </p>
+      </div>
+      <a href="./guide-memoria-tri-modale.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+
+    <!-- GUIDA 5 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">Cybersecurity & AST</span>
+          <span>Lettura: 9 min</span>
+        </div>
+        <h2>Validazione Deterministica AST: Firewall Sintattico e Sicurezza nell'Esecuzione di Codice AI</h2>
+        <p>
+          Protezione dell'infrastruttura contro comandi distruttivi e injection. Parsing ad albero sintattico astratto (AST), regole di visitazione e sandboxing ermetico pre-runtime.
+        </p>
+      </div>
+      <a href="./guide-validazione-ast.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+
+    <!-- GUIDA 6 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">DePIN & Economia</span>
+          <span>Lettura: 7 min</span>
+        </div>
+        <h2>DePIN e Proof of Useful Work (PoUW): L'Economia Distribuita del Calcolo GPU</h2>
+        <p>
+          Monetizzare l'hardware inattivo senza sprecare energia in hash inutili. Come il protocollo 00MESH misura e ricompensa l'inferenza utile tramite contratti e tokenomics sovrana.
+        </p>
+      </div>
+      <a href="./guide-tokenomics-depin.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+
+    <!-- GUIDA 7 -->
+    <article class="guide-card">
+      <div>
+        <div class="guide-meta">
+          <span class="guide-tag">Hardware & Setup</span>
+          <span>Lettura: 11 min</span>
+        </div>
+        <h2>Guida Operativa: Come Configurare un Nodo di Calcolo Sovrano (Apple Silicon, NVIDIA, Linux)</h2>
+        <p>
+          Tutorial passo-passo per unire la propria macchina al cluster: allocazione VRAM, driver Metal/CUDA, configurazione porte e monitoraggio termico in tempo reale.
+        </p>
+      </div>
+      <a href="./guide-configurazione-nodo.html" class="guide-link">Leggi la Guida Completa →</a>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div style="font-weight:750;color:#fff;margin-bottom:6px;">Zero Zero Computer</div>
+      <div>Verbania (VB), Italia · Ingegneria: <a href="https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/" target="_blank" rel="noopener noreferrer" style="color:#57e6d9;text-decoration:none;">A. Marinoni</a> & <a href="https://www.linkedin.com/in/guido-cipolla-329b48182/" target="_blank" rel="noopener noreferrer" style="color:#c084fc;text-decoration:none;">G. Cipolla</a></div>
+      <div style="margin-top:4px;">© 2003–2026 Zero Zero Computer. Tutti i diritti riservati.</div>
+    </div>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./chi-siamo.html">Chi Siamo</a>
+      <a href="./guide.html">Guide & Documentazione</a>
+      <a href="./contatti.html">Contatti</a>
+      <a href="https://www.linkedin.com/company/zerozerocomputer" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);font-weight:600;">💼 LinkedIn</a>
+      <a href="./privacy-policy.html">Privacy Policy</a>
+      <a href="./cookie-policy.html">Cookie Policy</a>
+      <a href="./terms.html">Termini e Condizioni</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie Banner GDPR -->
+<div id="zzcCookieBanner" role="dialog" aria-live="polite" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;max-width:960px;margin:0 auto;background:#0b1328f5;border:1px solid #2b3f66;border-radius:16px;padding:18px 22px;z-index:9999;backdrop-filter:blur(12px);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;font-size:13px;color:#cbd5e1;line-height:1.55;">
+      <strong style="color:#fff;font-size:14px;display:block;margin-bottom:4px;">🍪 Rispetto della tua Privacy (GDPR)</strong>
+      Utilizziamo cookie tecnici essenziali e, previo tuo consenso, cookie pubblicitari Google AdSense su questa pagina documentale. Consulta la <a href="./cookie-policy.html" style="color:var(--cyan);text-decoration:underline;">Cookie Policy</a>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="cookieRejectBtn" type="button" style="padding:10px 16px;font-size:12.5px;border-radius:10px;border:1px solid #2b3f66;background:#111d38;color:#cbd5e1;cursor:pointer;font-weight:700;">Solo Tecnici</button>
+      <button id="cookieAcceptBtn" type="button" style="padding:10px 18px;font-size:12.5px;border-radius:10px;border:none;background:linear-gradient(115deg,var(--cyan),var(--violet));color:#070b18;cursor:pointer;font-weight:800;">Accetta</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const b = document.getElementById('zzcCookieBanner');
+    const a = document.getElementById('cookieAcceptBtn');
+    const r = document.getElementById('cookieRejectBtn');
+    if (!localStorage.getItem('zzc_cookie_consent') && b) b.style.display = 'block';
+    if (a) a.addEventListener('click', () => {
+      localStorage.setItem('zzc_cookie_consent', 'granted');
+      if (typeof gtag === 'function') gtag('consent', 'update', {'ad_storage':'granted','ad_user_data':'granted','ad_personalization':'granted','analytics_storage':'granted'});
+      if (typeof loadAdSenseAfterConsent === 'function') loadAdSenseAfterConsent();
+      if (b) b.style.display = 'none';
+    });
+    if (r) r.addEventListener('click', () => {
+      localStorage.setItem('zzc_cookie_consent', 'denied');
+      if (typeof gtag === 'function') gtag('consent', 'update', {'ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied','analytics_storage':'denied'});
+      if (b) b.style.display = 'none';
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -18,30 +18,31 @@ from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger("hyperspace.laya")
 
-LAYA_DEFAULT_URL = "http://127.0.0.1:8097"
+LAYA_DEFAULT_URL = "http://127.0.0.1:11434"
+LAYA_FALLBACK_URL = "http://127.0.0.1:8097"
 LAYA_URL = os.getenv("LAYA_URL", LAYA_DEFAULT_URL).rstrip("/")
+LAYA_MODEL = os.getenv("LAYA_MODEL", "tev1")
 LAYA_ENABLED = os.getenv("LAYA_ENABLED", "true").lower() in ("true", "1", "yes", "on")
 LAYA_TIMEOUT_S = float(os.getenv("LAYA_TIMEOUT_S", "2.0"))
 
 
 def is_available(url: Optional[str] = None, timeout: Optional[float] = None) -> bool:
-    """Verifica se il servizio Laya è attivo e risponde sull'endpoint di salute."""
+    """Verifica se il servizio Laya o Ollama è attivo e risponde."""
     if not LAYA_ENABLED:
         return False
     base_url = (url or LAYA_URL).rstrip("/")
     timeout_s = timeout or min(1.0, LAYA_TIMEOUT_S)
-    req = urllib.request.Request(f"{base_url}/health", method="GET")
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-            return resp.status == 200
-    except Exception:
-        # Molti server FastAPI espongono /models o / docs anziché /health
+    
+    # Prova endpoint standard di health e status (compatibile con Laya service, FastAPI e Ollama)
+    for probe_path in ("/health", "/", "/api/version", "/models"):
+        req = urllib.request.Request(f"{base_url}{probe_path}", method="GET")
         try:
-            req_models = urllib.request.Request(f"{base_url}/models", method="GET")
-            with urllib.request.urlopen(req_models, timeout=timeout_s) as resp:
-                return resp.status == 200
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                if resp.status == 200:
+                    return True
         except Exception:
-            return False
+            continue
+    return False
 
 
 def predict(
@@ -73,8 +74,9 @@ def predict(
         "state": {"body": state} if isinstance(state, str) else state,
         "questions": questions,
     }
-    if model:
-        payload["model"] = model
+    model_name = model or LAYA_MODEL
+    if model_name:
+        payload["model"] = model_name
     if lang:
         payload["lang"] = lang
     if lang_guess:
@@ -191,7 +193,7 @@ def decide_choice(
         "confidence": float(ans.get("confidence") or ans.get("x_jev_confidence") or 0.0),
         "probabilities": ans.get("probabilities", {}),
         "abstention": bool(ans.get("abstention", False)),
-        "model_used": res.get("routing", {}).get("model", ""),
+        "model_used": res.get("model") or res.get("routing", {}).get("model", ""),
         "raw": ans,
     }
 
@@ -231,7 +233,7 @@ def decide_noul(
         "is_yes": p_true >= 0.5,
         "confidence": conf,
         "abstention": bool(ans.get("abstention", False)),
-        "model_used": res.get("routing", {}).get("model", ""),
+        "model_used": res.get("model") or res.get("routing", {}).get("model", ""),
         "raw": ans,
     }
 
@@ -271,5 +273,6 @@ def decide_score(
         "level_index": idx,
         "level_label": criteria[idx] if criteria else "",
         "confidence": float(ans.get("confidence") or 0.0),
+        "model_used": res.get("model") or res.get("routing", {}).get("model", ""),
         "raw": ans,
     }

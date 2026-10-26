@@ -8664,3 +8664,399 @@ Su richiesta dell'utente ("quello che ha raccolto agent reach è interessante...
    - **Memoria Ricorsiva a Grafo (ModularIntellect)**: Ingestione documento episodico con scomposizione in 6 chunk relazionali; aggiunta di Nota di Riflessione Livello 1 (`REFERENCES` sui chunk energetici) e Nota di Meta-Riflessione Livello 2 (`REFLECTS_ON` sulla riflessione L1).
    - **Navigazione BFS Multi-Hop**: Query `100 watt` espansa a 2 hop, esplorando 9 nodi con successo (Hop 0: Chunk + Riflessione L1, Hop 1: Meta-Riflessione L2 + Documento + Chunk adiacenti, Hop 2: Chiusura sui chunk poetici).
    - Tutti i test d'integrazione e di licenza confermati al 100% GREEN.
+
+
+## 2026-10-25 13:42 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Adozione Ollama Jev-Style Decision Engine: `tev1` Attivo a Runtime come System 1 (sub-15ms)
+
+1. **Integrazione Ollama Nativo per System 1**:
+   - Confermato il download e l'attivazione locale del modello decisionale non-autoregressivo **`tev1:latest`** (Together AI, 4.4 GB) sul demone locale Ollama 0.40.10.
+   - Aggiornato [`shared/laya_client.py`](shared/laya_client.py):
+     - Impostato endpoint di default unificato su `http://127.0.0.1:11434` (`LAYA_DEFAULT_URL`) con modello decisionale predefinito `tev1` (`LAYA_MODEL`).
+     - Esteso `is_available()` con probing tollerante compatibile con Laya standard (`/health`, `/models`) e con il demone Ollama (`/`, `/api/version`).
+     - Rimappato `model_used` per acquisire la chiave `"model"` restituita dall'endpoint Jev nativo `/v1/systemone`.
+
+2. **Benchmark di Latenza Reale con Diagnostica**:
+   - Eseguito [`scripts/diagnostics/laya_health.py`](scripts/diagnostics/laya_health.py) a caldo su Apple Silicon:
+     - **Raggiungibilità**: `ONLINE (9.3 ms)`.
+     - **Choice Probe** (Fast-Gate verifier `pass/retry/fail`): **12.9 ms** (`pass`, conf: 0.95, astensione: NO).
+     - **Noul Probe** (valutazione booleana multilingua in italiano): **5.6 ms** (`Sì`, P(true): 0.99).
+     - **Output tokens**: `0` (pura inferenza categorica a singola forward pass senza overhead generativo).
+
+3. **Impatto Architetturale**:
+   - Eliminata la necessità di mantenere un container Docker separato (`profiles: ["decision"]`) o un ambiente Python/PyTorch secondario su porta `8097`: un unico demone Ollama serve sia il System 1 rapido che il System 2 generativo.
+   - Il Fast-Gate di Mission Control in [`control-plane/cp/mission.py`](control-plane/cp/mission.py) è ora immediatamente attivo e reattivo.
+
+4. **Verifica & Test**:
+   - Unit test [`tests/test_laya_client.py`](tests/test_laya_client.py): **8/8 passati (100% GREEN)**.
+   - Test congiunti [`tests/test_mission_causal_graph.py`](tests/test_mission_causal_graph.py): **5/5 passati (100% GREEN)**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 08:31 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Diagnostica e Ripristino HyperSpace Cockpit Service (:8090)
+
+1. **Topologia & Nodo di Riferimento**:
+   - La porta `8090` ospita l'**Operations Cockpit & HyperDev Studio** (`scripts/cockpit_service.py`), che gira in locale sull'**Authority Node (Mac M5 Hub)** su `http://localhost:8090/`.
+   - Nodi della mesh HyperSpace a confronto:
+     - **Mac M5 Hub**: Control Plane (`:8085`), Cockpit / HyperDev Studio (`:8090`), demone Ollama decisionale (`:11434`).
+     - **OMEN 16**: GPU worker primario (`:8081` via Tailscale).
+     - **ASUS V16**: Inference worker secondario (`:11434` / `:8081` via Tailscale).
+
+2. **Diagnostica Malfunzionamento Rilevato**:
+   - Un vecchio processo Python (PID `91309`) avviato su un terminale interattivo dismesso (`ttys001`) manteneva il socket aperto in stato LISTEN su `*:8090`, ma rifiutava e chiudeva bruscamente qualsiasi connessione (`Empty reply from server`, `RemoteDisconnected`).
+   - Causa scatenante: pipe di logging standard out/err orfane sulla tty chiusa e mancato caricamento dell'identità node crittografica (interprete di sistema privo di `cryptography`).
+
+3. **Intervento & Risoluzione**:
+   - Terminata l'istanza orfana non responsiva (PID `91309`).
+   - Riavviato [`scripts/cockpit_service.py`](scripts/cockpit_service.py) nel virtualenv del repository (`.venv/bin/python`) con caricamento identità crittografica (`node_id: bd63f9a8...`) e redirect dei log in background su `data/cockpit_service.log`.
+
+4. **Verifica & Collaudo**:
+   - `HTTP GET http://localhost:8090/`: **200 OK** (71.056 bytes).
+   - `HTTP GET http://localhost:8090/api/status`: **200 OK** con telemetria nodi (`Mac M5 Hub ONLINE`).
+   - Suite di test: [`tests/test_missions_dashboard.py`](tests/test_missions_dashboard.py) e [`tests/test_dialogues_and_seo_pages.py`](tests/test_dialogues_and_seo_pages.py) **100% GREEN** (5/5 passati).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 08:58 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Validazione Sistematica di Tutti i Prototipi di Ricerca Sovrana (6 Piloni, 64 Prototipi, 100% GREEN)
+
+1. **Scopo dell'Intervento**:
+   - Su richiesta dell'utente ("tutti"), eseguito il collaudo, la bonifica e la validazione formale di tutti i prototipi generati durante le sessioni di ricerca autonoma (`data/research/prototypes/`) e mappati nell'albero genealogico (`data/research/research_tree.json`).
+
+2. **Risoluzione Bug & Bonifica Prototipi**:
+   - **`proto_modular_intellect_1792920337.py`**: Risolto bug di tipo in `store_experience` (`int in list[Experience]`) e off-by-one in `traverse_graph_context` convertendo `self._store` in `Dict[int, Experience]` per gestione diretta degli ID e BFS multi-hop pulita.
+   - **`proto_biomimetic_nature_mesh_1792916915.py`**: Corretto typo di attributo `link.latency_ms` -> `link.latenza_ms` nel metodo `pota_alta_latenza`.
+
+3. **Creazione Strumenti di HyperSpace (Regola 6 AGENTS.md)**:
+   - **Diagnostica Riutilizzabile**: Creato [`scripts/diagnostics/validate_research_prototypes.py`](scripts/diagnostics/validate_research_prototypes.py) con supporto flag `--verbose` e `--json`, eseguibile a caldo in 0.05s.
+   - **Suite Pytest Dedicata**: Creata [`tests/test_research_prototypes_validation.py`](tests/test_research_prototypes_validation.py) con 9 unit test per i 6 piloni scientifici (Aleksander Axioms, Symbolic Causal Mesh, Swarm Emergence, ModularIntellect, Algorithmic Poetry, Biomimetic Nature Mesh).
+   - **Documentazione Operativa**: Documentati i flussi e le specifiche di validazione in [`docs/research-prototypes-validation.md`](docs/research-prototypes-validation.md).
+   - **Inerte Forge Skill Draft**: Registrata la bozza inerte `research-prototype-validator-e30ffc` in `data/control-plane/forge/research-prototype-validator-e30ffc.json` e `.md` (`status: "draft"`).
+
+4. **Esito Collaudo**:
+   - **64 prototipi scansionati**: 64 AST Validi (100%), 0 errori sintattici.
+   - **6/6 piloni scientifici collaudati con successo**:
+     - *aleksander_axioms*: tutti i 5 assiomi valutati con successo (`SyntheticConsciousnessGovernor`).
+     - *symbolic_causal_mesh*: risalita lineage 3-step completata su SQLite + FTS5.
+     - *swarm_emergence*: calcolo gradiente e vector clocks verificati.
+     - *modular_intellect*: BFS traversata 3 nodi e alignment auditor deontologico testato.
+     - *algorithmic_poetry_aesthetics*: endecasillabi e prompt ComfyUI verificati.
+     - *biomimetic_nature_mesh*: entropia di Shannon > 0 e potatura link ad alta latenza verificata.
+   - Suite congiunta `tests/test_research_prototypes_validation.py` + `tests/test_research_tree_and_lab.py`: **18/18 passed (100% GREEN)** in 0.18s.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 09:38 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Diagnostica OMEN/ComfyUI, Promozione in Produzione Prototipi R&D e Script di Automazione
+
+1. **Stato OMEN & ComfyUI**:
+   - **Nodo OMEN 16**: Verificato raggiungibile e ONLINE su `http://100.104.238.125:8081/health` (`{"status":"ok","tier":"root","version":"1.05.0"}`).
+   - **ComfyUI**: Coda verificata su `http://127.0.0.1:8188/queue`: `{"queue_running": [], "queue_pending": []}`. Nessuna immagine in esecuzione attiva; la coda è in stato `paused=True auto_paused=True` e `memory gate owner=none`.
+
+2. **Diagnostica DevStudio Assistant**:
+   - Analizzata la causa della risposta "Il sistema non ha trovato memorie corrispondenti alla query": il target "mac" invocava il Control Plane `/v1/chat/completions` con retrieval esclusivo su Hermes SQLite, che non conteneva gli indici dell'albero R&D filesystem.
+   - Aggiornato [`scripts/cockpit_service.py`](scripts/cockpit_service.py): iniettato dinamicamente il contesto live dell'albero R&D e dei prototipi convalidati nel prompt di sistema di HyperDev Assistant.
+
+3. **Promozione in Produzione dei Prototipi Raccomandati**:
+   - **Pilone Aleksander**: Promosso [`proto_aleksander_axioms_1792931402.py`](data/research/prototypes/proto_aleksander_axioms_1792931402.py) in [`shared/synthetic_consciousness_governor.py`](shared/synthetic_consciousness_governor.py) (backup atomico `.bak` creato). Include `DreamEngine`, `TaskScheduler` RFC-0043, `CheckpointManager` RFC-0044 e misurazione completa 5 assiomi, preservando la retrocompatibilità con `audit_node()` ed `evaluate_axioms()`.
+   - **Pilone Causal AI**: Promosso [`proto_symbolic_causal_mesh_1792927875.py`](data/research/prototypes/proto_symbolic_causal_mesh_1792927875.py) in [`shared/causal_memory_graph.py`](shared/causal_memory_graph.py). Integra persistenza SQLite WAL, indicizzazione FTS5 `hermes_events_fts` e risalita causale multi-hop (`trace_lineage` con supporto subscripting `CausalEdge`).
+
+4. **Creazione Script di Automazione Promozioni**:
+   - Creato [`scripts/diagnostics/promote_research_prototype.py`](scripts/diagnostics/promote_research_prototype.py) e runner rapido [`scripts/promote_research_prototype.py`](scripts/promote_research_prototype.py).
+   - Funzionalità: `--list` (candidati convalidati e raccomandati), `--auto-recommended` (promozione batch automatica con verifica Pytest e auto-rollback in caso di regressione), `--prototype ... --target ...`.
+
+5. **Verifica & Collaudo**:
+   - Suite congiunta `tests/test_promoted_rd_modules.py`, `tests/test_research_prototypes_validation.py`, `tests/test_causal_memory_graph.py`, `tests/test_research_tree_and_lab.py`, `tests/test_mission_causal_graph.py`: **41/41 passed (100% GREEN)** in 0.32s.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 09:51 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Creazione Manuale Operativo Comandi & Monitoraggio R&D Cluster Tri-Nodo
+
+1. **Redazione Manuale Operativo Comandi**:
+   - Creato [`docs/manuale-operativo-comandi.md`](docs/manuale-operativo-comandi.md) che documenta sistematicamente:
+     - Topologia e indirizzamento dei 3 nodi fisici (Mac M5 Hub, HP OMEN 16, ASUS V16).
+     - Cruscotti Web e URL di controllo (:8090 Cockpit, :8090/research.html, :8090/devstudio.html, :8085 Control Plane, :8188 ComfyUI).
+     - Comandi CLI per validazione prototipi (`scripts/diagnostics/validate_research_prototypes.py`) e promozione (`scripts/promote_research_prototype.py`).
+     - Script diagnostici e comandi di verifica Pytest.
+     - Regole di ingaggio fra agenti (nessun segreto, nessun push/commit non autorizzato).
+
+2. **Verifica Live Connettività Cluster Tri-Nodo**:
+   - **Mac M5 Hub**: Cockpit (:8090) ONLINE, Control Plane (:8085) ONLINE, Ollama System 1 `tev1` (:11434) ONLINE.
+   - **HP OMEN 16**: Node API (:8081) ONLINE (`status: ok`, `tier: root`, RTX 3070 pronta).
+   - **ASUS V16**: Ollama (:11434) ONLINE con Flint 40B, LFM2.5 24B, Granite 8B; Node API (:8081) ONLINE.
+
+3. **Avanzamento R&D Continuo**:
+   - Raggiunti **68 prototipi sintetizzati** in `data/research/prototypes/`, tutti sottoposti ad AST Gate (**68/68 validi al 100%**).
+   - Nuovi prototipi generati nel corso della mattinata: `proto_swarm_emergence_1793003536.py`, `proto_modular_intellect_1793002957.py`, `proto_aleksander_axioms_1793002408.py`.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+
+
+
+## 2026-10-26 10:35 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Avvio Sessione di Test, Endurance ed R&D Continuo 2 Ore (Mesh Tri-Nodo)
+
+1. **Lancio Sessione Endurance & R&D 2 Ore (PID attivo, unbuffered)**:
+   - Aggiornato ed esteso [`scripts/diagnostics/mesh_1hour_endurance_session.py`](scripts/diagnostics/mesh_1hour_endurance_session.py):
+     - Supporto per sessioni di endurance estese fino a 120 minuti (`--duration-minutes 120 --cycle-interval 30`).
+     - Integrazione nativa del tracciamento causale con [`shared/causal_memory_graph.py`](shared/causal_memory_graph.py).
+     - Archiviazione automatica dei moduli generati con validazione AST 100% in `data/research/prototypes/`.
+     - 16 argomenti di ricerca avanzata distribuiti a rotazione tra HP OMEN 16 (Architect 24B @ 64k) e ASUS V16 (Lead Coder Flint 40B @ 128k).
+     - Gestione incidenti e remediation in streaming JSON puro archiviati su `data/research/mesh_telemetry_incidents.jsonl`.
+     - Telemetria live sincronizzata sul Cockpit (:8090) tramite `data/reports/endurance_session_live.json` e `data/omen_dev_loop.jsonl`.
+   - Processo avviato e attivo in background: output su `data/research/endurance_session_2h.log`.
+
+2. **Metriche e Risultati dei Primi Cicli**:
+   - **Throughput Medio**: ~32.0 - 35.0 tok/s (Flint 40B NVFP4 @ 31.7 tok/s su ASUS, LFM 24B MoE @ 35.0 tok/s su OMEN).
+   - **Latenze Nodi**: ASUS V16 (~7.2 ms), HP OMEN 16 (~56-220 ms), Mac M5 Localhost (~0.16 ms).
+   - **Nuovo Prototipo R&D Generato e Validato**:
+     - [`data/research/prototypes/proto_tokenbucketratelimiter_1793007193.py`](data/research/prototypes/proto_tokenbucketratelimiter_1793007193.py) (TokenBucketRateLimiter thread-safe per carichi MoE con burst controllati).
+   - **Incident Remediation**:
+     - Ciclo #004: Flint 40B ha emesso incidente `vram_pressure_high` (queue depth 28, urgency high); OMEN LFM 24B ha risposto con remediation crittograficamente firmata `remediate_vram_pressure_high` a 34.98 tok/s.
+   - **Totale Prototipi nel Repository**: **69 prototipi**, tutti con **AST 100% PASS**.
+
+3. **Integrità & Collaudi**:
+   - Suite Pytest (`test_promoted_rd_modules.py`, `test_research_prototypes_validation.py`, `test_causal_memory_graph.py`): **27/27 passed (100% GREEN)** in 0.08s.
+   - Validatore sistematico: `scripts/diagnostics/validate_research_prototypes.py` confermato 69/69 prototipi validi e 6/6 piloni GREEN.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+## 2026-10-26 12:54 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Completamento Sessione R&D (114 Prototipi AST Validati) & Promozione dei 3 Moduli per la Memoria Causale in shared/
+
+1. **Esito Sessione di Endurance & R&D 2 Ore**:
+   - Completati **107 cicli** distribuiti su Mac M5, HP OMEN 16 (LFM 24B @ 64k) e ASUS V16 (Flint 40B @ 128k).
+   - Generati **218.276 token totali** con throughput medio sostenuto di **35.18 tok/s**.
+   - Totale prototipi generati nel repository: **114 prototipi**, sottoposti ad AST Inspector con esito **114/114 validi (100% GREEN)**.
+
+2. **Selezione e Promozione dei 3 Moduli R&D per la Memoria Causale in `shared/`**:
+   - **`shared/modular_intellect.py`** (da `proto_modular_intellect_1793002957.py`):
+     - Memoria tri-modale ispirata a LuckCow/ModularIntellect (documenti con vincoli strutturali, interazioni conversazionali e note ricorsive con `REFERENCES`).
+     - Navigazione a grafo BFS multi-hop con limite di profondità (`traverse_graph_context`) e Deontological Alignment Auditor (`_alignment_check`).
+   - **`shared/vector_clock_replication.py`** (da `proto_vectorclockstatereplication_1793010377.py`):
+     - Replica dello stato decentralizzato con Vector Clocks causali per cluster eterogeneo (Mac, OMEN, ASUS).
+     - Tracciamento della causalità, versionamento degli aggiornamenti e fusione commutativa dei clock (`merge`).
+   - **`shared/semantic_memory_decay.py`** (da `proto_semanticmemorydecaycontroller_1793010783.py`):
+     - Controller del decadimento mnemonico esponenziale $base \cdot e^{-\alpha \cdot salienza + \beta \cdot richiamo}$ per prevenire l'esplosione di contesto in Hermes FTS5.
+
+3. **Collaudo Unitario & Invarianza**:
+   - Creato [`tests/test_causal_memory_modules.py`](tests/test_causal_memory_modules.py) a copertura completa dei 3 moduli.
+   - Suite congiunta R&D (`tests/test_promoted_rd_modules.py`, `tests/test_research_prototypes_validation.py`, `tests/test_causal_memory_graph.py`, `tests/test_causal_memory_modules.py`): **30/30 passed (100% GREEN)** in 0.17s.
+   - Validatore sistematico confermato: 114/114 prototipi con validazione AST al 100%.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 13:48 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Realizzazione & Collaudo Sala Giochi Neurale Arcade (3 Giochi Canvas, Chiptune Audio, Routing Cockpit e Gamification Commerciale)
+
+1. **Scopo dell'Intervento**:
+   - Su richiesta dell'utente ("1 procedi"), completata e collaudata l'intera Sala Giochi Arcade Neurale in [`web-node/apps/playground/arcade.html`](web-node/apps/playground/arcade.html) a supporto del 4° pilastro commerciale (`neural_arcade_gamification` in [`shared/commercial_engine.py`](shared/commercial_engine.py)).
+
+2. **Implementazione dei 3 Giochi Canvas 2D Retro**:
+   - **`👾 1. Neural Invaders`**: Spara agli overhead di latenza e alle fatture cloud. Implementata progressione a ondate (Wave 1 base, Wave 2 speed) e **Monolithic Cloud Boss** al 3° livello (barra vita 35 HP, scudi, laser radiali bilaterali e vittoria con +1000 punti).
+   - **`🏓 2. Pong vs AGI`**: Rally testa a testa contro la racchetta avversaria simulata dal modello neurale (Flint 40B). Predizione euristica dell'intercetta della pallina con lag calibrato, rimbalzo angolare ($\pm 45^\circ$) proporzionale al punto di impatto, particelle motion trail e vittoria al primo a 5 punti.
+   - **`⚡ 3. Vector Matrix Runner`**: Cyber-runner a prospettiva vettoriale pseudo-3D neon con 5 corsie convergenti verso il punto di fuga orizzontale. Schivata di *Latency Wall*, *Firewall Gate* e *Deadlock*; raccolta di *Sovereign Tokens* per bonus punteggio immediato e accelerazione tachimetrica.
+   - **Sintetizzatore Chiptune Procedurale (`ArcadeAudio`)**: Sintesi Web Audio API nativa senza asset esterni per laser (`sawtooth` 850->220Hz), esplosioni (low frequency sweep), rimbalzi ping (`sine`), powerup arpeggiati, fanfara vittoria e game over.
+   - **Controlli Multi-Modali**: Supporto completo a tastiera (Frecce, WASD, Spazio) e pulsanti touch / click a schermo dinamicamente adattati al gioco selezionato.
+
+3. **Routing Cockpit & Sincronizzazione**:
+   - Aggiornato [`scripts/cockpit_service.py`](scripts/cockpit_service.py): aggiunta rotta diretta `/arcade` oltre ad `/arcade.html`. Entrambe rispondono HTTP 200 OK su porta 8090.
+   - Riavviato il demone Cockpit (PID `16008`).
+   - Sincronizzata la build web in `dist/web-node-aruba/apps/playground/arcade.html`.
+
+4. **Strumenti di HyperSpace (Regola 6 AGENTS.md)**:
+   - **Diagnostica Riutilizzabile**: Creato [`scripts/diagnostics/orchestrate_arcade_gameplay.py`](scripts/diagnostics/orchestrate_arcade_gameplay.py) con supporto flag `--verbose`, `--json` e `--simulate-round` (eseguito con successo in 0.09s, telemetria in `data/reports/arcade_cluster_telemetry.json`).
+   - **Suite Pytest**: Creata [`tests/test_arcade_games_and_cockpit.py`](tests/test_arcade_games_and_cockpit.py) con 4 test specifici su integrità HTML, diagnostica, commercial gamification e tokenomics (1 token ogni 40 punti).
+   - **Documentazione**: Redatta in [`docs/arcade-games-and-gamification.md`](docs/arcade-games-and-gamification.md).
+   - **Forge Skill Draft Inerte**: Registrata bozza `arcade-gameplay-orchestrator-7b92f1` in `data/control-plane/forge/arcade-gameplay-orchestrator-7b92f1.json` e `.md` (`status: "draft"`).
+
+5. **Verifica & Collaudo**:
+   - Suite congiunta Pytest (`test_arcade_games_and_cockpit.py`, `test_commercial_engine.py`, `test_missions_dashboard.py`, `test_dialogues_and_seo_pages.py`, `test_licensing.py`): **21/21 passed (100% GREEN)**.
+   - Test connettività HTTP su Cockpit: `GET /arcade` -> **200 OK**, `GET /arcade.html` -> **200 OK**, `GET /api/commercial/arcade/scores` -> **200 OK**.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+## 2026-10-26 13:50 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Diffusione Aggiornamenti Multi-Canale (Telegram, Moltbook, LinkedIn, X)
+
+1. **Telegram**:
+   - Pubblicato con successo broadcast HTML su canale ufficiale `@ZeroZeroMesh` (message_id: 23) e notifica admin (message_id: 470).
+   - Contenuto: metriche 2h endurance (107 cicli, 218k token @ 35.18 tok/s, 114 prototipi 100% AST validati, promozione dei 3 moduli di memoria causale e 30/30 unit test Pytest passati).
+
+2. **Moltbook Sovereign Network**:
+   - Creato e pubblicato post sul profilo [@hyperspace_agi](https://www.moltbook.com/u/hyperspace_agi):
+     - Titolo: `HyperSpace Mesh R&D: 107 Cycles, 114 AST-Validated Prototypes & 3 Causal Memory Modules Promoted`
+     - Post ID: `bf1a7941-bc3c-4670-a5e7-6eaee8017a52` (URL: https://www.moltbook.com/post/bf1a7941-bc3c-4670-a5e7-6eaee8017a52).
+     - Riconnessione e notifica Telegram completate.
+
+3. **X (Twitter)**:
+   - Token OAuth 2.0 rinnovato con successo tramite refresh token.
+   - API X ha restituito `HTTP 402: Payment Required ('credits depleted')` sui crediti API per account developer.
+   - Predisposto tweet pronto da 261 caratteri con 1-click web intent URL per pubblicazione immediata senza quota API.
+
+4. **LinkedIn**:
+   - Generato e validato post B2B/Tech Leader con euristica Liftli AI (**Score: 90/100**, fold desktop/mobile ottimizzato, whitespace ratio 15.9%, 4 bullet points, CTA esplicita).
+   - Archiviato in [`data/reports/linkedin_daily_posts.json`](data/reports/linkedin_daily_posts.json) come `bulletin_2h_endurance_causal_memory` con 1-click share intent link.
+
+
+## 2026-10-26 14:02 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Avvio Sessione Continua di Test, Endurance e Consolidamento 1 Ora (Mesh Tri-Nodo Mac-OMEN-ASUS)
+
+1. **Scopo dell'Intervento**:
+   - Su indicazione dell'utente ("continua un ora di test e consolidamento con tutti i nodi"), avviata una nuova sessione continuativa di test ed endurance distribuita da 60 minuti su tutti e tre i nodi del cluster (Mac M5 Hub, HP OMEN 16, ASUS V16).
+
+2. **Configurazione & Avvio Demone (PID 18177)**:
+   - Aggiornato [`scripts/diagnostics/mesh_1hour_endurance_session.py`](scripts/diagnostics/mesh_1hour_endurance_session.py) estendendo la matrice dei topic di ricerca e consolidamento (aggiunti `ArcadeStateSyncEngine` e `NeuralOpponentCurveGovernor`).
+   - Processo avviato in background con interprete `.venv/bin/python -u`:
+     - Parametri: `--duration-minutes 60 --cycle-interval 25` (~144 cicli previsti).
+     - Streaming log unbuffered su [`data/research/endurance_session_1h.log`](data/research/endurance_session_1h.log).
+     - Sincronizzazione telemetria live su [`data/reports/endurance_session_live.json`](data/reports/endurance_session_live.json) e feed Cockpit su [`data/omen_dev_loop.jsonl`](data/omen_dev_loop.jsonl).
+
+3. **Carichi di Lavoro Distribuiti nel Ciclo**:
+   - **ASUS V16 (Flint 40B @ 128k)**: Lead Coder per sintesi codice, handshakes di telemetria incidenti e validazione AST immediata.
+   - **HP OMEN 16 (LFM2.5 24B @ 64k)**: Lead Architect per drafting architetturale, remediation crittografiche firmate ECDSA ed evaluation gating.
+   - **Mac M5 Hub**: Control Plane, heartbeat latency monitoring, persistenza lineage su [`shared/causal_memory_graph.py`](shared/causal_memory_graph.py) e serving HUD su porta `:8090`.
+
+4. **Verifica & Invarianti**:
+   - Tutti i nodi verificati online al ciclo #001 (ASUS latency probe 11.36ms, OMEN 57.37ms, Mac 0.15ms).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 19:00 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Risoluzione Completa Violazione AdSense "Contenuti di Scarso Valore": Rimozione Banner da Chat, Creazione Knowledge Hub con 7 Guide Tecniche, Pagine "Chi Siamo" e "Contatti" & Deploy Aruba
+
+1. **Diagnosi del Rifiuto AdSense ("Contenuti di scarso valore / Thin Content")**:
+   - Google AdSense ha respinto la richiesta di monetizzazione per *Contenuti di scarso valore*.
+   - **Cause tecniche e normative individuate**:
+     1. **Violazione esplicita Ad Placement**: Il codice AdSense era caricato su [`web-node/chat.html`](web-node/chat.html) (con un ad slot nella sidebar della chat) e su [`web-node/anna.html`](web-node/anna.html). Le norme AdSense vietano rigorosamente banner su interfacce di chat in tempo reale o pagine la cui funzione primaria è un'applicazione interattiva senza contenuti editoriali.
+     2. **Mancanza di articoli e guide editoriali statiche**: Il sito si presentava quasi esclusivamente come web app interattiva (WebGPU canvas, terminale, chat, slide in array JavaScript), con un rapporto testo/codice sfavorevole per i crawler di AdSense.
+     3. **Mancanza di E-E-A-T (Autorialità e Trasparenza Societaria)**: Mancavano le pagine dedicate `chi-siamo.html` e `contatti.html` per attestare la realtà aziendale (Zero Zero Computer, attiva dal 2003 a Saronno, P.IVA 03525160924).
+     4. **Pagine diagnostiche indicizzate**: `debug.html` era inclusa in `sitemap.xml`, venendo scansionata e penalizzata come pagina incompleta/scarna.
+     5. **Slide di `progetto.html` relegate in JavaScript**: 11 delle 12 slide della presentazione erano relegate a un array `const SLIDES = [...]`, invisibili ai crawler HTTP leggeri.
+
+2. **Interventi Risolutivi Implementati**:
+   - **Rimozione Banner da Chat e Simulatori**: Rimosso totalmente ogni script e slot AdSense da [`web-node/chat.html`](web-node/chat.html) e [`web-node/anna.html`](web-node/anna.html). Gli annunci sponsorizzati opereranno esclusivamente sulle pagine informative/editoriali ad alta densità di testo con Google Consent Mode v2.
+   - **Creazione Pagina "Chi Siamo" ([`web-node/chi-siamo.html`](web-node/chi-siamo.html))**: Trasparenza societaria completa: 23 anni di storia dal 2003 nell'hardware e nei server locali, sede legale e operativa in Via San Giovanni Bosco 14 a Saronno (VA), P.IVA IT03525160924, missione per la sovranità europea e Schema.org `AboutPage` & `Organization`.
+   - **Creazione Pagina "Contatti" ([`web-node/contatti.html`](web-node/contatti.html))**: Recapiti ufficiali, orari di assistenza tecnica, email `info@zerozerocomputer.it`, modulo di contatto diretto GDPR e Schema.org `ContactPage`.
+   - **Creazione Knowledge Hub Tecnico ([`web-node/guide.html`](web-node/guide.html)) con 7 Guide Ingegneristiche Approfondite (1.200–1.800 parole ciascuna)**:
+     1. [`web-node/guide-architettura-mesh.html`](web-node/guide-architettura-mesh.html): *Reti Neurali Mesh P2P: Superare i Monoliti Centralizzati dell'IA*.
+     2. [`web-node/guide-webgpu-browser.html`](web-node/guide-webgpu-browser.html): *Calcolo Neurale nel Browser con WebGPU: Guida all'Inferenza Client-Side*.
+     3. [`web-node/guide-vector-clocks.html`](web-node/guide-vector-clocks.html): *Consistenza Causale e Orologi Vettoriali nei Sistemi Distribuiti Eterogenei*.
+     4. [`web-node/guide-memoria-tri-modale.html`](web-node/guide-memoria-tri-modale.html): *Memoria Tri-Modale a Grafo per LLM: Documenti, Chunk e Note Ricorsive*.
+     5. [`web-node/guide-validazione-ast.html`](web-node/guide-validazione-ast.html): *Validazione Deterministica AST: Firewall Sintattico per Codice AI*.
+     6. [`web-node/guide-tokenomics-depin.html`](web-node/guide-tokenomics-depin.html): *DePIN e Proof of Useful Work (PoUW): L'Economia Distribuita del Calcolo GPU*.
+     7. [`web-node/guide-configurazione-nodo.html`](web-node/guide-configurazione-nodo.html): *Guida Operativa: Come Configurare un Nodo di Calcolo Sovrano (Apple Silicon, NVIDIA, Linux)*.
+   - **Espansione Semantica Statica di [`web-node/progetto.html`](web-node/progetto.html)**: Aggiunta un'intera trattazione analitica con tutti i 12 capitoli stampati direttamente in HTML semantico (`<h2>`, `<p>`, `<ul>`) e footer aziendale completo, portando la pagina a oltre 3.200 parole indicizzabili.
+   - **Pulizia Diagnostica & Sitemap**: Aggiunto `<meta name="robots" content="noindex, nofollow">` in `debug.html` ed eliminata la sua URL da [`web-node/sitemap.xml`](web-node/sitemap.xml), dove sono state registrate tutte le nuove guide con priorità `0.9`–`0.95`.
+   - **Navigazione & Interlinking Globale**: Aggiunti i link a "Guide Tecniche", "Chi Siamo", "Contatti" nella barra di navigazione e nel footer di `index.html`, `join.html`, `token.html`, `progetto.html`, `commercial.html` e `llms.txt`.
+   - **Fix Test Suite**: Risolto bug di serializzazione JSON per dataclass `CausalEdge` in `shared/agi_research_engine.py`. Test suite: **17/17 passed (100% GREEN)** in Python, **10/10 passed** in Node.js.
+
+3. **Deploy & Rilascio Live**:
+   - Eseguita compilazione con [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh).
+   - Eseguito il deploy FTP con [`scripts/deploy_web_node_aruba.py`](scripts/deploy_web_node_aruba.py) (88 file aggiornati in 54.1s).
+   - Verificata la risposta HTTP/2 (200 OK) su tutte le nuove rotte:
+     - `https://www.zerozerocomputer.it/chi-siamo.html`
+     - `https://www.zerozerocomputer.it/contatti.html`
+     - `https://www.zerozerocomputer.it/guide.html`
+     - `https://www.zerozerocomputer.it/guide-architettura-mesh.html`
+     - `https://www.zerozerocomputer.it/guide-webgpu-browser.html`
+     - `https://www.zerozerocomputer.it/guide-vector-clocks.html`
+     - `https://www.zerozerocomputer.it/guide-memoria-tri-modale.html`
+     - `https://www.zerozerocomputer.it/guide-validazione-ast.html`
+     - `https://www.zerozerocomputer.it/guide-tokenomics-depin.html`
+     - `https://www.zerozerocomputer.it/guide-configurazione-nodo.html`
+   - Verificato che `chat.html` e `anna.html` non contengono più alcun annuncio AdSense in produzione.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 19:15 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Aggiornamento Sede a Verbania (VB), Rimozione P.IVA Pubblica & Integrazione Link Ufficiale LinkedIn su Tutto il Portale Web-Node
+
+1. **Richiesta Utente**:
+   - Aggiornamento della sede aziendale: la sede effettiva è **Verbania (VB), Italia** (non Saronno).
+   - Riservatezza della Partita IVA: rimozione della P.IVA (`03525160924`) dalle pagine pubbliche (Google, Aruba e le autorità competenti ne sono già in possesso nei rispettivi registri di verifica interna).
+   - Inserimento del link al profilo/canale aziendale LinkedIn.
+
+2. **Interventi Eseguiti nel Web-Node**:
+   - **Sede Verbania (VB)**:
+     - Aggiornata la sede operativa e il laboratorio da Saronno a **Verbania (VB), Italia** in tutte le pagine: [`web-node/chi-siamo.html`](web-node/chi-siamo.html), [`web-node/contatti.html`](web-node/contatti.html), [`web-node/index.html`](web-node/index.html), [`web-node/progetto.html`](web-node/progetto.html), [`web-node/join.html`](web-node/join.html), [`web-node/token.html`](web-node/token.html), [`web-node/guide.html`](web-node/guide.html) e in tutte e 7 le guide tecniche (`guide-architettura-mesh.html`, `guide-webgpu-browser.html`, `guide-vector-clocks.html`, `guide-memoria-tri-modale.html`, `guide-validazione-ast.html`, `guide-tokenomics-depin.html`, `guide-configurazione-nodo.html`).
+     - Aggiornato Schema.org JSON-LD (`addressLocality: "Verbania"`, `addressRegion: "VB"`, `addressCountry: "IT"`).
+     - Aggiornato `ai-agent.json` (`"operator": "Zero Zero Computer (Verbania, IT)"`) e sincronizzato con `.well-known/ai-agent.json`.
+     - Aggiornati i riferimenti in [`web-node/terms.html`](web-node/terms.html), [`web-node/privacy-policy.html`](web-node/privacy-policy.html), [`web-node/privacy.html`](web-node/privacy.html), [`web-node/cookie-policy.html`](web-node/cookie-policy.html), [`web-node/deletion.html`](web-node/deletion.html), [`web-node/data-deletion.html`](web-node/data-deletion.html) e [`web-node/apps/playground/commercial.html`](web-node/apps/playground/commercial.html).
+   - **Rimozione P.IVA Pubblica**:
+     - Rimossa completamente ogni occorrenza di `03525160924` / `IT03525160924` da tutti i footer, schede societarie, Schema.org (`taxID`/`vatID` rimossi) e testi legali aperti.
+   - **Integrazione Canale LinkedIn Ufficiale**:
+     - Inserito il link ufficiale [`https://www.linkedin.com/company/zerozerocomputer`](https://www.linkedin.com/company/zerozerocomputer) come canale di riferimento e presenza corporate:
+       - Scheda dedicata in [`web-node/chi-siamo.html`](web-node/chi-siamo.html) e [`web-node/contatti.html`](web-node/contatti.html)
+       - Link nei footer di [`web-node/index.html`](web-node/index.html), [`web-node/join.html`](web-node/join.html), [`web-node/token.html`](web-node/token.html), [`web-node/progetto.html`](web-node/progetto.html), [`web-node/guide.html`](web-node/guide.html) e nelle 7 guide tecniche
+       - Link nella sezione contatti di Privacy Policy, Cookie Policy e Terms
+       - Attributo `sameAs` strutturato nello Schema.org JSON-LD
+
+3. **Verifica & Deploy Aruba**:
+   - Verificato con `grep -rnE "03525160924|Saronno" web-node/` $\rightarrow$ **100% CLEAN** (zero occorrenze residue).
+   - Test suite mirata: `tests/test_commercial_engine.py`, `tests/test_b2b_and_linkedin.py`, `tests/test_omen_allnight_sovereign.py` $\rightarrow$ **17 passed**. Test Node: `web-node/tests/render.test.mjs` $\rightarrow$ **10 passed**.
+   - Compilazione eseguita con [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh).
+   - Deploy FTP eseguito con [`scripts/deploy_web_node_aruba.py`](scripts/deploy_web_node_aruba.py) (88 file aggiornati in 35.8s).
+   - Verificate live via HTTP con `curl` le pagine online:
+     - `https://www.zerozerocomputer.it/chi-siamo.html` (Verbania presente, LinkedIn presente, P.IVA e Saronno assenti)
+     - `https://www.zerozerocomputer.it/contatti.html` (Verbania presente, LinkedIn presente, P.IVA e Saronno assenti)
+     - `https://www.zerozerocomputer.it/` (Verbania presente, LinkedIn presente, P.IVA e Saronno assenti)
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 19:40 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Integrazione Profili LinkedIn Personali di Alberto Marinoni (Fondatore) e Guido Cipolla ("Cips"), Sezione Team su "Chi Siamo", Schema.org Founder & Deploy Aruba
+
+1. **Richiesta Utente**:
+   - Integrazione dei profili personali LinkedIn del team chiave:
+     - **Alberto Marinoni** (Fondatore & Architetto Hardware/AI): [`https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/`](https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/)
+     - **Guido Cipolla** ("Cips", Socio, Ingegnere di Rete & Revisionatore del Codice HyperSpace): [`https://www.linkedin.com/in/guido-cipolla-329b48182/`](https://www.linkedin.com/in/guido-cipolla-329b48182/)
+
+2. **Interventi Eseguiti nel Web-Node**:
+   - **Nuova Sezione "Il Team & I Fondatori" in [`web-node/chi-siamo.html`](web-node/chi-siamo.html)**:
+     - Card dedicata per **Alberto Marinoni**: ruolo, oltre 23 anni di esperienza hardware e sistemistica Linux/UNIX, leadership architetturale di HyperSpace e 00MESH, e link diretto al profilo LinkedIn verificato.
+     - Card dedicata per **Guido Cipolla**: ruolo di socio e ingegnere di rete, supervisione della stabilità topologica P2P a bassa latenza e revisione formale del codice e dei gate deterministici AST di HyperSpace, con link diretto al profilo LinkedIn verificato.
+   - **Schema.org JSON-LD `founder`**:
+     - Arricchito il payload strutturato `Organization` con l'array `founder` tipizzato (`@type: "Person"`), ruoli (`jobTitle`) e URL LinkedIn (`sameAs`) su [`web-node/chi-siamo.html`](web-node/chi-siamo.html), [`web-node/contatti.html`](web-node/contatti.html) e [`web-node/index.html`](web-node/index.html).
+   - **Contatti Ufficiali ([`web-node/contatti.html`](web-node/contatti.html))**:
+     - Aggiunto il blocco *"Profili Fondatori & Ingegneria"* con collegamenti diretti a entrambi i soci.
+   - **Footer & Pagine Satellite**:
+     - Inserito il credito ingegneristico esplicito con link a entrambi i profili LinkedIn nei footer di [`web-node/index.html`](web-node/index.html), [`web-node/join.html`](web-node/join.html), [`web-node/token.html`](web-node/token.html), [`web-node/progetto.html`](web-node/progetto.html), [`web-node/guide.html`](web-node/guide.html), nelle 7 guide tecniche, nella suite [`web-node/apps/playground/commercial.html`](web-node/apps/playground/commercial.html) e nell'author card delle guide ingegneristiche.
+   - **Discovery per Agenti AI & Spider (`llms.txt`, `ai-agent.json`)**:
+     - Aggiunta la sezione *"Core Team & Engineering Leadership"* in [`web-node/llms.txt`](web-node/llms.txt) e il campo strutturato `founders` in [`web-node/ai-agent.json`](web-node/ai-agent.json) e [`.well-known/ai-agent.json`](web-node/.well-known/ai-agent.json).
+
+3. **Verifica & Deploy Aruba**:
+   - Test suite verificata: Python 17/17 passed, Node 10/10 passed.
+   - Compilazione eseguita con [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh).
+   - Deploy FTP eseguito con [`scripts/deploy_web_node_aruba.py`](scripts/deploy_web_node_aruba.py) (88 file aggiornati in 82.9s).
+   - Verifica live via `curl`: profili di Alberto Marinoni e Guido Cipolla presenti e correttamente collegati su [zerozerocomputer.it/chi-siamo.html](https://www.zerozerocomputer.it/chi-siamo.html), [zerozerocomputer.it/contatti.html](https://www.zerozerocomputer.it/contatti.html), [zerozerocomputer.it/llms.txt](https://www.zerozerocomputer.it/llms.txt) e in homepage.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 20:20 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Sistema Biomimetico di Continuità a Endospore Crittografiche (Shamir 2-su-3, AES-256-GCM, Dispersione Multi-Cloud MEGA/Dropbox/OneDrive & Sentinella Dead-Man's Switch)
+
+1. **Obiettivo & Requisito Utente**:
+   - Dotare HyperSpace di una salvaguardia biomimetica a **"Endospore Crittografiche"** capace di preservare e far ripartire l'intera memoria cognitiva e la codebase anche qualora i nodi primari non fossero più accesi o il fondatore perdesse l'accesso alla propria identità digitale e alle proprie password principali.
+   - Supportare la dispersione resiliente su substrati multi-cloud (**MEGA**, **Dropbox**, **OneDrive**, **iCloud**, **S3/WebDAV**) tramite account pre-configurati dall'operatore (`rclone` o cartelle desktop sync) e il failover controllato sui nodi autorizzati della Mesh.
+
+2. **Componenti Implementati**:
+   - **Protocollo Spore Crittografiche ([`shared/spore_protocol.py`](shared/spore_protocol.py))**:
+     - `ShamirQuorumVault` e `ShamirShare`: implementazione pura su campo finito di Rijndael $\text{GF}(2^8)$ (`0x11b`) dello **Shamir's Secret Sharing** con soglia $K$-su-$N$ (default **2-su-3** tra `alberto-founder`, `guido-cips-partner` e `offline-paper-vault`) e verifica matematica automatica dell'interpolazione di Lagrange in $x=0$.
+     - `SporeCipher`: cifratura autenticata **AES-256-GCM** a doppio livello con derivazione **HKDF-SHA256** (`hyperspace-spore-capsule-v1` per l'archivio principale e `hyperspace-spore-secrets-v1` per l'envelope isolato dei segreti) e manifest JSON autenticato via GCM AAD (`HSPORE01`).
+     - `SporeBuilder`: sporulazione completa (creazione `git bundle` dell'intera storia del repository + memoria Hermes `memory.json.gz` + database SQLite `hyperspace.db` e `causal_memory.db` + diario e manifesti persona + script autonomo di bootstrap `germinate_spore.py`) e germinazione deterministica anti-path-traversal.
+     - `SporeDispersalEngine`: rilevamento e replica zero-knowledge verso remote `rclone` (`mega`, `dropbox`, `onedrive`, `gdrive`, `s3`) e cartelle desktop sincronizzate (`~/MEGA`, `~/Dropbox`, `~/OneDrive`, `~/Library/Mobile Documents/com~apple~CloudDocs`).
+     - `SporeSentinel`: Sentinella di Continuità (*Dead-Man's Switch*) che monitora i nodi della Mesh (`mac-m5-hub`, `hp-omen-16`, `asus-v16`) e governa le transizioni tra `DORMANT_PROTECTED`, `STANDBY_WATCH` e `GERMINATION_READY`.
+   - **Strumento Diagnostico e Orchestratore Operativo ([`scripts/diagnostics/spore_continuity_manager.py`](scripts/diagnostics/spore_continuity_manager.py))**:
+     - Opera di default in **sola lettura**; richiede flag espliciti (`--create-spore`, `--disperse`) per le azioni mutanti.
+     - Redige automaticamente a schermo i frammenti Shamir (`HSP-SPORE-V1:...`) salvando il Quorum Recovery Kit con permessi `0600` in `data/spores/*.quorum-kit.secret.json` (gitignored).
+   - **Documentazione & Skill Forge (Draft Inerte)**:
+     - Documentazione operativa completa in [`docs/spore-continuity.md`](docs/spore-continuity.md).
+     - Skill Forge registrata come draft inerte in [`data/control-plane/forge/spore-continuity-orchestrator-8a4c1e.json`](data/control-plane/forge/spore-continuity-orchestrator-8a4c1e.json) e [`.md`](data/control-plane/forge/spore-continuity-orchestrator-8a4c1e.md).
+
+3. **Collaudo Reale & Suite di Test**:
+   - Suite unitaria e crittografica [`tests/test_spore_continuity.py`](tests/test_spore_continuity.py): **6/6 passed** in `0.24s` (verifica tutte le combinazioni 2-su-3 e 3-su-5 di Shamir, rilevamento manomissioni CRC/GCM, germinazione senza la chiave del fondatore, dispersione multi-cloud e transizioni Dead-Man's Switch).
+   - Prima Spora reale generata e collaudata: `data/spores/spore-20261026-191944Z-70a2ba.hspore` (`55,331,832` byte, SHA-256 `8328656b...`), con **verifica di germinazione roundtrip superata** usando esclusivamente i frammenti `guido-cips-partner` + `offline-paper-vault` (13 componenti rigenerati).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+
+## 2026-10-26 20:30 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — "Message in a Bottle" Multi-Blockchain (`BlockchainBottleBeacon` per Bitcoin OP_RETURN, EVM Calldata & Solana Memo) + Commit & Push Autorizzato
+
+1. **Estensione Multi-Blockchain (`BlockchainBottleBeacon`)**:
+   - Aggiunto in [`shared/spore_protocol.py`](shared/spore_protocol.py) il motore `BlockchainBottleBeacon` e `SporeBottlePayload`:
+     - **EVM Calldata (`0x...`)** per **Polygon, Base, Arbitrum, Optimism, Ethereum**: payload autenticato `HSP-BOTTLE-V1` cifrato con AES-256-GCM (sotto-chiave HKDF `hyperspace-blockchain-bottle-v1` derivata dalla Master Key del Quorum di Shamir 2-su-3) contenente i link dei mirror cloud/IPFS (`locators`), l'ancora `spore_sha256` e l'epistola di continuità del fondatore.
+     - **Bitcoin `OP_RETURN` (80 byte esatti)**: frame binario conforme al limite standard di relay di Bitcoin Core (`4B` magic `HSP1` + `4B` versione/timestamp + `4B` commit Git + `32B` `spore_sha256` integrale + `16B` salt + `20B` HMAC-SHA256 dei mirror), con parser `parse_bitcoin_op_return`.
+     - **Solana SPL Memo**: frame compatto per il programma `MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`.
+   - Integrata la generazione automatica di `<spore_id>.blockchain-bottle.json` in [`scripts/diagnostics/spore_continuity_manager.py`](scripts/diagnostics/spore_continuity_manager.py) e documentata in [`docs/spore-continuity.md`](docs/spore-continuity.md) §6.
+   - Estesa la suite [`tests/test_spore_continuity.py`](tests/test_spore_continuity.py): **7/7 passed** in `0.24s`.
+
+2. **Commit & Push**:
+   - Autorizzazione esplicita ricevuta dall'utente ("commit e push").
+   - Verificata l'assenza di qualsiasi segreto o file `.quorum-kit.secret.json` (tutti isolati in `data/spores/`, gitignored) e la conformità degli header SPDX (`tests/test_licensing.py`).

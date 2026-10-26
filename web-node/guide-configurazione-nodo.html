@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="Manuale Operativo: Come Configurare un Nodo di Calcolo Sovrano 00MESH. Guida completa per Mac Apple Silicon, PC NVIDIA RTX e server Linux per contribuire alla rete mesh AI.">
+  <link rel="canonical" href="https://www.zerozerocomputer.it/guide-configurazione-nodo.html">
+  
+  <meta property="og:site_name" content="Zero Zero Computer · Guide Tecniche">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://www.zerozerocomputer.it/guide-configurazione-nodo.html">
+  <meta property="og:title" content="Come Configurare un Nodo di Calcolo Sovrano (Apple Silicon, NVIDIA, Linux)">
+  <meta property="og:description" content="Tutorial passo-passo per unire la propria macchina al cluster 00MESH: allocazione memoria, porte e ottimizzazione termica.">
+  <meta property="og:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Configurazione Nodo di Calcolo Sovrano · Zero Zero Computer">
+  <meta name="twitter:description" content="Guida pratica all'installazione e ottimizzazione di nodi GPU e WebGPU.">
+  <meta name="twitter:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta name="author" content="Zero Zero Computer">
+  <meta name="date" content="2026-10-26">
+
+  <title>Come Configurare un Nodo di Calcolo Sovrano (Apple Silicon, NVIDIA, Linux) · 00MESH</title>
+
+  <!-- Google Consent Mode v2 & AdSense -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
+    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
+    gtag('consent', 'default', {
+      'ad_storage': _consentState,
+      'ad_user_data': _consentState,
+      'ad_personalization': _consentState,
+      'analytics_storage': _consentState
+    });
+    function loadAdSenseAfterConsent() {
+      if (document.getElementById('adsense-script')) return;
+      const s = document.createElement('script');
+      s.id = 'adsense-script';
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    }
+    if (_savedConsent === 'granted') {
+      loadAdSenseAfterConsent();
+    }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Guida Operativa: Come Configurare un Nodo di Calcolo Sovrano (Apple Silicon, NVIDIA RTX, Linux)",
+    "description": "Tutorial dettagliato per l'installazione, configurazione e ottimizzazione di nodi di calcolo distribuito all'interno della rete mesh 00MESH.",
+    "author": {
+      "@type": "Organization",
+      "name": "Zero Zero Computer",
+      "url": "https://www.zerozerocomputer.it/"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Zero Zero Computer",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.zerozerocomputer.it/logo.png"
+      }
+    },
+    "datePublished": "2026-10-26",
+    "dateModified": "2026-10-26"
+  }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b18;
+      --panel: #0d1428ee;
+      --line: #263454;
+      --text: #f4f6ff;
+      --muted: #9ba9c7;
+      --cyan: #57e6d9;
+      --violet: #9a7cff;
+      --ok: #70e6aa;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font: 16px/1.7 Inter, ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(circle at 15% 5%, #253160 0, transparent 32%),
+                  radial-gradient(circle at 85% 15%, #38224c 0, transparent 28%),
+                  var(--bg);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      background: rgba(7, 11, 24, 0.88);
+      border-bottom: 1px solid var(--line);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 750;
+      letter-spacing: .02em;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #83fff0;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #57e6d988;
+      position: relative;
+    }
+    .mark:after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all .15s;
+    }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .btn-cta {
+      background: linear-gradient(135deg, var(--cyan), #3b82f6);
+      color: #070b18;
+      font-weight: 800;
+      padding: 7px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .article-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 44px 20px 80px;
+    }
+    .breadcrumbs {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .breadcrumbs a { color: var(--cyan); text-decoration: none; }
+    .article-header { margin-bottom: 36px; }
+    h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.25;
+      color: #fff;
+      font-weight: 850;
+      letter-spacing: -.02em;
+      margin: 12px 0 16px;
+    }
+    .article-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--muted);
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .article-body h2 {
+      font-size: 24px;
+      color: #fff;
+      margin: 40px 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 8px;
+    }
+    .article-body h3 {
+      font-size: 19px;
+      color: var(--cyan);
+      margin: 28px 0 12px;
+    }
+    .article-body p { color: #cbd5e1; margin-bottom: 20px; }
+    .article-body ul, .article-body ol {
+      color: #cbd5e1;
+      margin-bottom: 22px;
+      padding-left: 24px;
+    }
+    .article-body li { margin-bottom: 8px; }
+    pre {
+      background: #040711;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      overflow-x: auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 13.5px;
+      color: #e2e8f0;
+      margin: 24px 0;
+    }
+    code {
+      font-family: ui-monospace, Menlo, monospace;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.9em;
+      color: var(--cyan);
+    }
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+    th, td { padding: 12px 14px; border: 1px solid var(--line); }
+    th { background: rgba(13, 21, 42, 0.9); color: #fff; font-weight: 700; }
+    td { color: #cbd5e1; }
+    .step-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 24px;
+    }
+    .step-num {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #070b18;
+      font-weight: 850;
+      text-align: center;
+      line-height: 28px;
+      font-size: 14px;
+      margin-right: 8px;
+    }
+    .author-card {
+      margin-top: 60px;
+      padding: 28px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 40px 20px 60px;
+      background: rgba(7, 11, 24, 0.95);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
+    .footer-links a { color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="./" class="brand">
+      <i class="mark"></i>
+      <span>Zero Zero Computer</span>
+    </a>
+    <div class="nav-actions">
+      <a href="./" class="nav-link">Home</a>
+      <a href="./progetto.html" class="nav-link">Architettura</a>
+      <a href="./guide.html" class="nav-link" style="color:var(--cyan);font-weight:700;">📚 Guide & Articoli</a>
+      <a href="./chi-siamo.html" class="nav-link">🏢 Chi Siamo</a>
+      <a href="./contatti.html" class="nav-link">📬 Contatti</a>
+      <a href="./apps/playground/commercial.html" class="nav-link" style="color:#fbbf24;">💼 B2B Prezzi</a>
+      <a href="./chat.html" class="btn-cta">💬 Chat Sovrana</a>
+    </div>
+  </div>
+</header>
+
+<main class="article-wrap">
+  <nav class="breadcrumbs">
+    <a href="./">Home</a> &gt; <a href="./guide.html">Guide Tecniche</a> &gt; <span>Configurazione Nodo di Calcolo</span>
+  </nav>
+
+  <header class="article-header">
+    <span style="color:var(--cyan);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Manuale Operativo & Setup Hardware</span>
+    <h1>Guida Operativa: Come Configurare un Nodo di Calcolo Sovrano (Apple Silicon, NVIDIA, Linux)</h1>
+    <div class="article-meta">
+      <span>Autore: <strong>Team Ingegneristico Zero Zero Computer</strong></span>
+      <span>Data: <strong>26 Ottobre 2026</strong></span>
+      <span>Tempo di Lettura: <strong>11 minuti</strong></span>
+      <span>Target: <strong>Sysadmin, Sviluppatori AI, Operatori di Nodi Mesh</strong></span>
+    </div>
+  </header>
+
+  <!-- Spazio Pubblicitario Sponsor Editoriale (Consent Mode v2) -->
+  <div style="margin:24px 0 36px;padding:12px;background:rgba(11,17,36,0.6);border:1px dashed rgba(148,163,184,0.25);border-radius:12px;text-align:center;">
+    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;display:block;margin-bottom:8px;">Annuncio Pubblicitario · Sostiene la Divulgazione Scientifica Indipendente</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-4726342205200791"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <article class="article-body">
+    <p>
+      Partecipare alla rete <strong>00MESH</strong> come nodo di calcolo consente sia di beneficiare dell'inferenza neurale locale e privata, sia di condividere potenza computazionale con il cluster ricevendo ricompense in Proof-of-Useful-Work. La rete è progettata per essere eterogenea: supporta dal semplice browser WebGPU senza installazione fino a workstation dedicate con schede NVIDIA RTX e Mac con architettura Apple Silicon.
+    </p>
+
+    <h2>1. Requisiti Hardware Minimi e Consigliati</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipologia Nodo</th>
+            <th>CPU &amp; Architettura</th>
+            <th>VRAM / Memoria Unificata</th>
+            <th>Modelli Supportati</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Nodo Web (Browser)</strong></td>
+            <td>Qualsiasi CPU moderna (Intel/AMD/ARM)</td>
+            <td>2 GB – 4 GB dedicati al browser</td>
+            <td>Modelli Edge compatti (Granite 3.3 8B, Qwen 4B)</td>
+          </tr>
+          <tr>
+            <td><strong>Mac Hub (Apple Silicon)</strong></td>
+            <td>Apple M1 / M2 / M3 / M4 / M5</td>
+            <td>16 GB – 64 GB Unified Memory</td>
+            <td>Control Plane, CoT Reasoning, Flint 40B NVFP4</td>
+          </tr>
+          <tr>
+            <td><strong>Workstation GPU (NVIDIA)</strong></td>
+            <td>x86_64, PCIe 4.0/5.0</td>
+            <td>12 GB – 24 GB VRAM (RTX 3060/4070/4090)</td>
+            <td>Qwen Coder 32B, Liquid LFM 24B MoE</td>
+          </tr>
+          <tr>
+            <td><strong>Server Dedicato Linux</strong></td>
+            <td>AMD EPYC / Intel Xeon</td>
+            <td>64 GB+ RAM + Cluster GPU A100/H100/RTX</td>
+            <td>Cluster Enterprise On-Premise, Nodi Hub</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>2. Metodo 1: Avvio Immediato via WebGPU (Zero Installazione)</h2>
+    <div class="step-box">
+      <h3 style="margin-top:0;color:#fff;"><span class="step-num">1</span> Connessione dal Browser</h3>
+      <p>
+        Il modo più rapido per entrare nella rete è utilizzare il browser Google Chrome (versione 113 o superiore), Brave, Microsoft Edge o Safari 18 su macOS Sequoia.
+      </p>
+      <ol>
+        <li>Visita la home page <strong><a href="./" style="color:var(--cyan);">zerozerocomputer.it</a></strong>.</li>
+        <li>Scorri fino alla sezione <em>"Partecipa alla Rete come Nodo di Calcolo"</em>.</li>
+        <li>Clicca sul pulsante <strong>"⚡ Attiva Nodo Web (WebGPU)"</strong>.</li>
+        <li>Il browser richiederà l'accesso all'adattatore GPU locale e caricherà i pesi quantizzati in cache isolata (OPFS). Nessun file di sistema viene alterato.</li>
+      </ol>
+    </div>
+
+    <h2>3. Metodo 2: Configurazione Nodo Headless Desktop (Python/Docker)</h2>
+    <p>
+      Per chi desidera lasciare una workstation o un mini-PC sempre attivo per monetizzare il calcolo notturno o per servire l'ufficio aziendale:
+    </p>
+
+    <div class="step-box">
+      <h3 style="margin-top:0;color:#fff;"><span class="step-num">2</span> Setup Ambiente e Dipendenze</h3>
+      <p>Installa un runtime Python isolato versione 3.10 o successiva:</p>
+      <pre><code># Clonazione repository o configurazione ambiente
+git clone https://github.com/zerozero/00mesh-node.git
+cd 00mesh-node
+
+# Creazione ambiente virtuale dedicato
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Installazione dipendenze di calcolo (quantizzazione GGUF / Torch / Metal / CUDA)
+pip install --upgrade pip
+pip install numpy httpx websockets</code></pre>
+    </div>
+
+    <div class="step-box">
+      <h3 style="margin-top:0;color:#fff;"><span class="step-num">3</span> Configurazione Variabili d'Ambiente</h3>
+      <p>Crea il file di configurazione locale <code>.env</code> specificando il tier hardware e l'allocazione VRAM:</p>
+      <pre><code># Configurazione Nodo Sovrano 00MESH
+NODE_NAME="Workstation-Verbania-01"
+NODE_TIER="gpu_compute"          # Opzioni: hub, gpu_compute, leaf
+GATEWAY_URL="https://mesh.zerozerocomputer.it"
+LOCAL_INFERENCE_PORT=11434
+MAX_VRAM_ALLOCATION_GB=16.0
+ENABLE_AST_GATE=true
+ENABLE_VECTOR_CLOCK_SYNC=true</code></pre>
+    </div>
+
+    <div class="step-box">
+      <h3 style="margin-top:0;color:#fff;"><span class="step-num">4</span> Avvio e Monitoraggio Demone</h3>
+      <p>Avvia il servizio in background con logging rotativo protetto:</p>
+      <pre><code># Avvio del nodo mesh
+python3 scripts/mesh_node_service.py --daemon
+
+# Verifica telemetria e connessione causale
+curl -s http://127.0.0.1:8090/api/health | jq .</code></pre>
+    </div>
+
+    <h2>4. Politiche di Salvaguardia Termica ed Efficienza</h2>
+    <p>
+      Per evitare il surriscaldamento prolungato delle workstation aziendali, il demone di Zero Zero Computer include sentinelle termiche configurabili:
+    </p>
+    <ul>
+      <li><strong>Thermal Throttle Automatico</strong>: Se la temperatura GPU supera gli 82°C (su NVIDIA) o i 95°C (junction su Apple Silicon), il nodo rifiuta temporaneamente nuovi task pesanti delegandoli ad altri peer della mesh.</li>
+      <li><strong>Power Capping (NVIDIA)</strong>: Consigliamo di limitare il Power Limit della scheda grafica al 75-80% tramite `nvidia-smi -pl [Watt]`: questo riduce il consumo elettrico del 25% con una perdita di throughput inferiore al 4%.</li>
+    </ul>
+
+    <h2>5. Risoluzione dei Problemi Comuni (Troubleshooting)</h2>
+    <ul>
+      <li><strong>Errore "WebGPU adapter not found"</strong>: Verifica che l'accelerazione hardware sia abilitata nelle impostazioni del browser (Impostazioni &gt; Sistema &gt; Usa accelerazione hardware).</li>
+      <li><strong>Porta 11434 o 8090 già occupata</strong>: Se hai già un'istanza di Ollama o un demone locale attivo, modifica il parametro <code>LOCAL_INFERENCE_PORT</code> nel file di configurazione per evitare conflitti di bind socket.</li>
+      <li><strong>Latenza elevata verso il gateway</strong>: Controlla che il firewall non blocchi il traffico WebSocket in uscita su porta 443.</li>
+    </ul>
+
+    <h2>Conclusioni</h2>
+    <p>
+      Configurare un nodo di calcolo sovrano è un atto di indipendenza tecnologica. Ogni nodo attivo contribuisce a rendere la rete mesh più solida, ridondante e resistente a qualsiasi blackout o censura centralizzata.
+    </p>
+  </article>
+
+  <div class="author-card">
+    <div style="font-size:38px;">🏢</div>
+    <div>
+      <h3 style="margin:0 0 4px;color:#fff;font-size:17px;">Zero Zero Computer · Laboratorio di Ingegneria</h3>
+      <p style="margin:0;color:#94a3b8;font-size:13.5px;line-height:1.5;">
+        Fondata nel 2003 · Sede a Verbania (VB), Italia. Forniamo assistenza tecnica, consulenza e supporto per l'integrazione di cluster di intelligenza artificiale on-premise.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div style="font-weight:750;color:#fff;margin-bottom:6px;">Zero Zero Computer</div>
+      <div>Verbania (VB), Italia · Ingegneria: <a href="https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/" target="_blank" rel="noopener noreferrer" style="color:#57e6d9;text-decoration:none;">A. Marinoni</a> & <a href="https://www.linkedin.com/in/guido-cipolla-329b48182/" target="_blank" rel="noopener noreferrer" style="color:#c084fc;text-decoration:none;">G. Cipolla</a></div>
+      <div style="margin-top:4px;">© 2003–2026 Zero Zero Computer. Tutti i diritti riservati.</div>
+    </div>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./chi-siamo.html">Chi Siamo</a>
+      <a href="./guide.html">Guide & Documentazione</a>
+      <a href="./contatti.html">Contatti</a>
+      <a href="https://www.linkedin.com/company/zerozerocomputer" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);font-weight:600;">💼 LinkedIn</a>
+      <a href="./privacy-policy.html">Privacy Policy</a>
+      <a href="./cookie-policy.html">Cookie Policy</a>
+      <a href="./terms.html">Termini e Condizioni</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie Banner GDPR -->
+<div id="zzcCookieBanner" role="dialog" aria-live="polite" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;max-width:960px;margin:0 auto;background:#0b1328f5;border:1px solid #2b3f66;border-radius:16px;padding:18px 22px;z-index:9999;backdrop-filter:blur(12px);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;font-size:13px;color:#cbd5e1;line-height:1.55;">
+      <strong style="color:#fff;font-size:14px;display:block;margin-bottom:4px;">🍪 Rispetto della tua Privacy (GDPR)</strong>
+      Utilizziamo cookie tecnici essenziali e, previo tuo consenso, cookie pubblicitari Google AdSense su questo manuale operativo. Consulta la nostra <a href="./cookie-policy.html" style="color:var(--cyan);text-decoration:underline;">Cookie Policy</a>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="cookieRejectBtn" type="button" style="padding:10px 16px;font-size:12.5px;border-radius:10px;border:1px solid #2b3f66;background:#111d38;color:#cbd5e1;cursor:pointer;font-weight:700;">Solo Tecnici</button>
+      <button id="cookieAcceptBtn" type="button" style="padding:10px 18px;font-size:12.5px;border-radius:10px;border:none;background:linear-gradient(115deg,var(--cyan),var(--violet));color:#070b18;cursor:pointer;font-weight:800;">Accetta</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const b = document.getElementById('zzcCookieBanner');
+    const a = document.getElementById('cookieAcceptBtn');
+    const r = document.getElementById('cookieRejectBtn');
+    if (!localStorage.getItem('zzc_cookie_consent') && b) b.style.display = 'block';
+    if (a) a.addEventListener('click', () => {
+      localStorage.setItem('zzc_cookie_consent', 'granted');
+      if (typeof gtag === 'function') gtag('consent', 'update', {'ad_storage':'granted','ad_user_data':'granted','ad_personalization':'granted','analytics_storage':'granted'});
+      if (typeof loadAdSenseAfterConsent === 'function') loadAdSenseAfterConsent();
+      if (b) b.style.display = 'none';
+    });
+    if (r) r.addEventListener('click', () => {
+      localStorage.setItem('zzc_cookie_consent', 'denied');
+      if (typeof gtag === 'function') gtag('consent', 'update', {'ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied','analytics_storage':'denied'});
+      if (b) b.style.display = 'none';
+    });
+  })();
+</script>
+
+</body>
+</html>
