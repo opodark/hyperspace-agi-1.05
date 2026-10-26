@@ -95,6 +95,27 @@ BULLETINS = [
             "#ArtificialIntelligence #AGI #SwarmIntelligence #DistributedSystems #Stigmergy #VectorClocks #AutonomousAgents #BuildInPublic #OpenSource #ZeroZeroComputer"
         ),
         "cta_url": "https://www.zerozerocomputer.it/apps/playground/research.html"
+    },
+    {
+        "id": "bulletin_spore_continuity_blockchain",
+        "title": "Continuità Operativa Estrema per l'IA Sovrana: Endospore Crittografiche, Quorum di Shamir (2-su-3) e Notarizzazione Multi-Blockchain",
+        "target": "Target 6: CISO, CTO, Fondatori, Ingegneri della Sicurezza & Infrastrutture Critiche",
+        "summary": "Capsule crittografiche AES-256-GCM dual-layer, suddivisione della Master Key su campo finito GF(2^8) con Shamir 2-su-3 e fari immutabili 'Message in a Bottle' su Solana, EVM e Bitcoin.",
+        "text": (
+            "Cosa succede al patrimonio cognitivo di un'infrastruttura AI aziendale se i server primari si spengono, un fornitore cloud blocca un account o il titolare perde l'accesso alle proprie credenziali digitali?\n\n"
+            "In Zero Zero Computer (Verbania), insieme a Guido Cipolla ('Cips'), abbiamo rilasciato in produzione il protocollo biomimetico di continuità di HyperSpace 00MESH (`shared/spore_protocol.py`):\n\n"
+            "1. Endospore Crittografiche (AES-256-GCM Dual-Layer):\n"
+            "Il sistema racchiude automaticamente l'intera storia del codice (`git bundle`), i database causali SQLite e la memoria cognitiva Hermes in una capsula cifrata zero-knowledge (`.hspore`), replicabile su qualsiasi storage (MEGA, Dropbox, OneDrive, S3 o server on-premise) senza che il provider possa leggerne un singolo byte.\n\n"
+            "2. Shamir's Secret Sharing su Campo Finito GF(2^8):\n"
+            "Nessuna password singola da ricordare. La Master Key a 256 bit viene divisa matematicamente in un Quorum 2-su-3 tra i soci fondatori e un vault fisico offline. Qualsiasi coppia di frammenti permette di rigenerare l'intero nodo da zero su nuovo hardware; un singolo frammento isolato rivela 0 bit di informazione.\n\n"
+            "3. 'Message in a Bottle' On-Chain (Bitcoin, EVM L2, Solana):\n"
+            "Ogni Spora genera un faro crittografico immutabile (`HSP-BOTTLE-V1`) contenente l'hash SHA-256 della capsula e i puntatori di recupero cifrati, ancorabile su Bitcoin (`OP_RETURN` 80 byte), reti EVM (Polygon, Base, Arbitrum) e Solana (SPL Memo).\n\n"
+            "4. Nuovo Knowledge Hub Ingegneristico:\n"
+            "Online ora 7 guide tecniche approfondite su Architettura Mesh P2P, WebGPU nel Browser, Orologi Vettoriali, Memoria Tri-Modale, Validazione AST e Tokenomics PoUW.\n\n"
+            "Esplora le guide: https://www.zerozerocomputer.it/guide.html\n\n"
+            "#BusinessContinuity #CyberSecurity #Cryptography #ShamirSecretSharing #SovereignAI #DistributedSystems #Blockchain #ZeroZeroComputer #HyperSpace #Verbania"
+        ),
+        "cta_url": "https://www.zerozerocomputer.it/guide.html"
     }
 ]
 

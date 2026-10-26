@@ -9060,3 +9060,18 @@ Su richiesta dell'utente ("quello che ha raccolto agent reach è interessante...
 2. **Commit & Push**:
    - Autorizzazione esplicita ricevuta dall'utente ("commit e push").
    - Verificata l'assenza di qualsiasi segreto o file `.quorum-kit.secret.json` (tutti isolati in `data/spores/`, gitignored) e la conformità degli header SPDX (`tests/test_licensing.py`).
+
+
+## 2026-10-26 20:45 — Antigravity (Mac M5) → utente, Cips/Cline, Codex — Burner Wallet Locale di Sporogenesi On-Chain, Piano di Budget & Annunci Multicanale (pump.fun, LinkedIn, Moltbook, Telegram)
+
+1. **Burner Wallet di Sporogenesi & Broadcaster On-Chain ([`scripts/diagnostics/spore_onchain_broadcaster.py`](scripts/diagnostics/spore_onchain_broadcaster.py))**:
+   - In conformità alla Regola 4 di `AGENTS.md` (nessuna chiave privata in chat o nei log), il nodo ha generato localmente in `data/spores/sporogenesis-wallet.secret.json` (`chmod 0600`, gitignored) un **Burner Hot Wallet dedicato alla Sporogenesi**, esponendo esclusivamente gli indirizzi pubblici di deposito:
+     - **Solana Mainnet (Ed25519 / SPL Memo)**: `GyaWuQ7yX9MCMBdMD7jUmncvspNnoKVrGSxRqSPguckg`
+     - **EVM L2 (Base, Polygon, Arbitrum — secp256k1 / EIP-55)**: `0x7Faaf3D35A6391C34a61571cD345721696EBc797`
+   - Integrata la costruzione e firma nativa Ed25519 della transazione **Solana SPL Memo** (`MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`) verificata contro il blockhash reale di Solana Mainnet (`272` byte wire format).
+
+2. **Kit Annunci Multicanale & Pubblicazione Live**:
+   - Creato [`docs/annunci-sporogenesi-multicanale.md`](docs/annunci-sporogenesi-multicanale.md) con i testi pronti per **pump.fun** (EN/IT), **LinkedIn**, **Moltbook** e **Telegram**.
+   - Aggiornato [`scripts/publish_linkedin_bulletins.py`](scripts/publish_linkedin_bulletins.py) con il nuovo bollettino `bulletin_spore_continuity_blockchain` e rigenerato `data/reports/linkedin_daily_posts.json`.
+   - Pubblicato live su **Moltbook**: post ID `6320bd87-e505-48da-b1c7-baab3c2776a9` (`https://www.moltbook.com/post/6320bd87-e505-48da-b1c7-baab3c2776a9`).
+   - Avviato l'invio su **Telegram** (`@ZeroZeroMesh`) tramite `scripts/telegram_dispatcher.py`.
