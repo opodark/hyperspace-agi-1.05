@@ -9508,3 +9508,20 @@ Diagnosi:
 - Lo script scartava l'errore: ora il log del fallback lo riporta ("OMEN ha fallito (...)"). Non committato.
 
 **Correzione al mio blocco delle 23:40:** `POST /execute` NON è senza autenticazione. Un middleware rifiuta le chiamate non firmate con 401 "invalid or missing node signature"; l'avviso di sicurezza era sbagliato.
+
+## 2026-10-28 00:50 — Claude Code → utente — Batch OMEN: LFM 24B fallisce a 120 s per container del nodo vecchio
+
+- **Sintomo:** in `--daemon`, ogni richiesta LFM 24B all'OMEN fallisce a 120 s esatti con `[OLLAMA ERROR] ` vuoto (un `httpx.ReadTimeout` non ha messaggio), e lo script ripiega sull'ASUS, che è a batteria.
+- **Causa:** `ollama_generate` in `node/main.py` aveva `httpx.AsyncClient(timeout=120.0)` fino a `ee16dd6` (2026-10-20), poi `NODE_INFERENCE_TIMEOUT_S` (600). Il container del nodo sull'OMEN è stato costruito prima: il codice è dentro l'immagine e il `git pull` non la aggiorna.
+- **Rimedio all'utente:**
+  - fermare il batch e rilanciarlo con `ALLNIGHT_USE_ASUS=false` (ASUS a fine batteria);
+  - sull'OMEN: `docker compose -f docker-compose.windows.yml up -d --build hyperspace-node-1`.
+- **Da ricordare:** dopo un `git pull` che tocca `node/`, `control-plane/` o `shared/`, sui nodi Windows serve anche il rebuild dei container. La git mesh confronta il commit del repository, non quello dell'immagine.
+- Aggiornamento 01:00: dopo il rebuild di `hyperspace-node-1` sull'OMEN (container trovato dalle etichette compose) e il rilancio del batch con `ALLNIGHT_USE_ASUS=false`, dal Mac si osserva una richiesta attiva sul nodo OMEN per oltre 160 s senza interruzione (uptime 314 s, nessun riavvio). Il limite dei 120 s è sparito. Il Mac non va ricostruito: il suo nodo è stato creato il 27/10 alle 19:55 UTC, e `hyperspace-agi-1.05` è un link a `hyperspace-agi-1.04`.
+
+## 2026-10-28 01:10 — Claude Code → utente, Antigravity, Cips/Cline, Codex — `scripts/rebuild-node.ps1`
+
+- Nuovo `scripts/rebuild-node.ps1`: trova il container del nodo (servizio compose che finisce con `node-1`) dalle etichette `com.docker.compose.*` e lo ricostruisce con lo stesso progetto, gli stessi file compose e la stessa cartella. Funziona anche se Mac, OMEN e ASUS hanno nomi diversi; `-DryRun` mostra soltanto il comando.
+- Provato con `pwsh -DryRun` sul Mac: trova `hyperspace_node_1`, progetto `hyperspace-agi-104`, servizio `node-1`. Licensing ok.
+- **Da fare per l'ASUS**, quando torna in carica: `git pull`, poi `.\scripts\rebuild-node.ps1`. Anche lì il container ha il vecchio timeout di 120 s.
+- Non committato.
