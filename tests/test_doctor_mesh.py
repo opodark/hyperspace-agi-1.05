@@ -144,6 +144,38 @@ class DoctorMeshTests(unittest.TestCase):
             self.assertEqual(align_role["status"], "ok")
             self.assertIn("Nodi coerenti per ruolo", align_role["detail"])
 
+    def test_graph_check_compares_remote_nodes_with_local_graph(self):
+        """Il check Graphify segnala i nodi remoti che non hanno ricevuto l'ultimo grafo."""
+        active_nodes = [
+            {"node_id": "node_omen", "alias": "omen", "endpoint": "http://127.0.0.1:8081", "public_key": "04aa"},
+            {"node_id": "node_asus", "alias": "asus", "endpoint": "http://127.0.0.1:8082", "public_key": "04bb"},
+        ]
+        graph = {"available": True, "freshness": "fresh", "communities_count": 839, "size_bytes": 1000}
+        local = {"codebase": {"git_commit": "abc", "graphify": graph}, "services": {}, "hardware": {}}
+
+        def remote(size):
+            return {
+                "channel": "encrypted_ecdh_aes_gcm",
+                "codebase": {"git_commit": "abc", "graphify": {**graph, "size_bytes": size}},
+                "services": {},
+            }
+
+        with patch("cp.doctor_mesh.collect_full_node_telemetry", return_value=local), \
+             patch("cp.doctor_mesh.poll_node_telemetry") as mock_poll:
+            mock_poll.side_effect = [remote(1000), remote(1000)]
+            checks, _ = run_mesh_codebase_and_health_checks(active_nodes, self.cp_id)
+            graph_check = next(c for c in checks if c["id"] == "mesh_graph_freshness")
+            self.assertEqual(graph_check["status"], "ok")
+            self.assertIn("2/2", graph_check["detail"])
+
+            mock_poll.side_effect = [remote(1000), remote(500)]
+            checks, _ = run_mesh_codebase_and_health_checks(active_nodes, self.cp_id)
+            graph_check = next(c for c in checks if c["id"] == "mesh_graph_freshness")
+            self.assertEqual(graph_check["status"], "warn")
+            self.assertIn("1/2", graph_check["detail"])
+            self.assertIn("asus", graph_check["detail"])
+            self.assertIn("--sync-graphify", graph_check["fix_hint"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -16,10 +16,12 @@ Uso:
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import requests
 
@@ -57,6 +59,22 @@ def get_active_mesh_nodes(cp_url: str = "http://127.0.0.1:8085") -> List[Dict[st
     except Exception:
         pass
     return []
+
+
+def _host_risolvibile(endpoint: str) -> bool:
+    """True se l'endpoint è HTTP(S) e il suo host si risolve da questa macchina.
+
+    Il CP elenca anche il nodo locale col nome interno di Docker (es. http://node-1:8084)
+    e i web node (browser://...): da qui non sono destinatari raggiungibili.
+    """
+    parsed = urlparse(endpoint)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    try:
+        socket.getaddrinfo(parsed.hostname, parsed.port or 80)
+        return True
+    except socket.gaierror:
+        return False
 
 
 def main() -> int:
@@ -135,6 +153,9 @@ def main() -> int:
         for n in nodes:
             ep = n.get("endpoint")
             pk = n.get("public_key")
+            if ep and pk and not _host_risolvibile(ep):
+                _log("SKIP", f"Nodo {n.get('alias') or n.get('node_id', '')[:8]} ({ep}): host non raggiungibile da qui (nodo interno Docker o web node).", "yellow")
+                continue
             if ep and pk:
                 targets.append({"endpoint": ep, "public_key": pk, "alias": n.get("alias") or n.get("node_id", "")[:8]})
         if not targets:

@@ -9460,3 +9460,21 @@ Prima esecuzione sull'ASUS (`laptop-t9h8plht`, utente `opoda`): watchdog attivo,
 - **Verifica:** `test_mesh_patch_watcher`, `test_codebase_journal`, `test_mesh_sync` e `test_licensing`: 21 passati. La sintassi PowerShell non l'ho potuta verificare, perché sul Mac non c'è `pwsh`.
 - **Non committato:** in attesa di conferma dell'utente.
 - Aggiornamento 21:55: con `pwsh` 7 installato sul Mac, il parser PowerShell non trova errori di sintassi in `setup-omen-247.ps1` e `mesh_node_deploy.ps1`. Le righe di comando per `cmd.exe` delle due attività, simulate, sono quotate correttamente. Restano non verificabili su macOS i cmdlet ScheduledTask/CIM.
+- Aggiornamento 22:35: dopo `git pull` e `-Start` sui due nodi Windows, `/mesh/sync/status` dà tutto ok: Mac, OMEN e ASUS a `0c0a7792`, working tree pulito, E2EE verificato su 3 nodi remoti. L'ASUS ha risposto con qualche minuto di ritardo per il riavvio di WSL/Docker.
+
+## 2026-10-27 22:45 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Prima distribuzione reale via git mesh: grafo Graphify
+
+- **Graphify rigenerato sul Mac** con `./scripts/graphify.sh` (solo AST, nessun LLM, `nice`, 16 s): 14.821 nodi, 29.279 archi, 839 community. Restano 4 avvisi di ID duplicati tra file Swift (`Foundation`, `CoreImage`, `ImageIO`), innocui.
+- **Distribuzione:** `python scripts/mesh_distribute.py --sync-graphify --all` ha consegnato il bundle cifrato E2EE ad ASUS e OMEN (`QUEUED`). `node-1` del Mac fallisce perché il nome host Docker non si risolve dall'host; non serve, il grafo del Mac è quello sorgente.
+- **Esito:** `/doctor/telemetry` di entrambi i nodi riporta `graph.json` `fresh`, 16.698.740 byte e 839 community, identico al Mac, applicato circa 30 s dopo l'invio. Questo conferma che il Mesh Patch Watcher, come attività pianificata, gira e applica su entrambi. Il check Graphify del CP è passato da `warn`/stale a `ok`/fresh.
+- **Da sistemare:**
+  - `/mesh/sync/status` non mostra lo stato Graphify dei peer: il check guarda solo il grafo locale.
+  - `mesh_distribute --all` prova anche `http://node-1:8084`, irraggiungibile dall'host, e conta 2/3.
+
+## 2026-10-27 23:00 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Git mesh: destinatari irraggiungibili saltati e grafo dei peer nello stato
+
+- **`scripts/mesh_distribute.py`:** con `--all` salta, segnalandoli come `SKIP` e non come errori, gli endpoint non HTTP (`browser://`) o con host non risolvibile da questa macchina (il `http://node-1:8084` interno di Docker). Il riepilogo conta solo i destinatari raggiungibili; nuovo rilancio con `--sync-graphify --all`: 2/2, exit 0.
+- **`control-plane/cp/mesh.py`:** `/mesh/sync/status` espone per ogni peer `graphify` (`available`, `freshness`, `communities_count`, `size_bytes`, `mtime`).
+- **`control-plane/cp/doctor_mesh.py`:** il check `mesh_graph_freshness` confronta i peer raggiungibili con il grafo locale per `size_bytes` ("nodi remoti con lo stesso grafo: N/M"); se qualcuno differisce va in `warn`, lo nomina e suggerisce `mesh_distribute.py --sync-graphify --all`.
+- **Test:** nuovo `test_graph_check_compares_remote_nodes_with_local_graph`; `test_doctor_mesh`, `test_mesh_sync_monitor`, `test_mesh_sync` e `test_licensing`: 18 passati.
+- **Deploy:** le modifiche del CP diventano visibili solo dopo il rebuild del container: `docker compose -p hyperspace-agi-104 up -d --build control-plane`. Non committato, in attesa di conferma.

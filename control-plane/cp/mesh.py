@@ -718,6 +718,7 @@ def mesh_sync_status():
             "battery_pct": batt_pct,
             "vram_gb": hw.get("vram_total_gb", 0),
             "ram_free_gb": hw.get("ram_free_gb", 0),
+            "graphify": {k: cb.get("graphify", {}).get(k) for k in ("available", "freshness", "communities_count", "size_bytes", "mtime")},
         })
 
     return jsonify({

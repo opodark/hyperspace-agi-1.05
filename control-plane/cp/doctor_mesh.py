@@ -338,6 +338,25 @@ def run_mesh_codebase_and_health_checks(
             "fix_hint": "Esegui 'graphify extract . --code-only' per mappare la base di codice.",
         })
 
+    # Il grafo arriva ai nodi remoti via mesh_distribute --sync-graphify: un nodo con
+    # un graph.json diverso da quello locale (o senza) non ha ricevuto l'ultimo bundle.
+    if local_graph.get("available"):
+        remote_reachable = [t for t in telemetries if not t.get("is_local") and t.get("channel") != "unreachable"]
+        local_size = local_graph.get("size_bytes")
+        out_of_sync = [
+            (t.get("alias") or (t.get("node_id") or "?")[:8])
+            for t in remote_reachable
+            if t.get("codebase", {}).get("graphify", {}).get("size_bytes") != local_size
+        ]
+        if remote_reachable:
+            graph_check = checks[-1]
+            aligned = len(remote_reachable) - len(out_of_sync)
+            graph_check["detail"] += f"; nodi remoti con lo stesso grafo: {aligned}/{len(remote_reachable)}"
+            if out_of_sync:
+                graph_check["status"] = "warn"
+                graph_check["detail"] += f" (diverso: {', '.join(out_of_sync)})"
+                graph_check["fix_hint"] = graph_check["fix_hint"] or "Distribuisci il grafo: python scripts/mesh_distribute.py --sync-graphify --all"
+
     # ── CHECK 5: Servizi & Decision Engine (System 1) ─────────────────────────
     laya_online = [t for t in telemetries if t.get("services", {}).get("laya", {}).get("online")]
     ollama_online = [t for t in telemetries if t.get("services", {}).get("ollama", {}).get("online")]
