@@ -32,6 +32,14 @@ function Head($m) { Write-Host ""; Write-Host "== $m ==" -ForegroundColor Cyan }
 
 $wslConfigPath = Join-Path $env:USERPROFILE ".wslconfig"
 $startupDir = [Environment]::GetFolderPath('Startup')
+$nodeName = $env:COMPUTERNAME
+
+# WSL2 dimensionato sulla macchina (OMEN e ASUS hanno RAM diverse): meta' della RAM
+# fisica, al massimo 16 GB; al massimo 8 processori logici.
+$cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+$totalRamGB = if ($cs) { [math]::Floor($cs.TotalPhysicalMemory / 1GB) } else { 16 }
+$wslMemGB = [math]::Max(4, [math]::Min(16, [math]::Floor($totalRamGB / 2)))
+$wslCpus = if ($cs) { [math]::Min(8, $cs.NumberOfLogicalProcessors) } else { 8 }
 $python = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path $python)) { $python = "python" }
 
@@ -58,7 +66,7 @@ function Register-DevLoopTask {
         -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 5) `
         -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
     Register-ScheduledTask -TaskName $devLoopTask -Action $action -Trigger $trigger `
-        -Principal $principal -Settings $settings -Force | Out-Null
+        -Principal $principal -Settings $settings -Force -ErrorAction Stop | Out-Null
 }
 
 function Test-DevLoopRunning {
@@ -68,7 +76,7 @@ function Test-DevLoopRunning {
 
 # --- STOP ---
 if ($Stop) {
-    Head "Arresto Servizi HP OMEN 24/7"
+    Head "Arresto Servizi 24/7 ($nodeName)"
     $wProcs = Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -and $_.CommandLine -match "omen_watchdog_247\.py" }
     foreach ($p in $wProcs) {
@@ -94,13 +102,13 @@ if ($Stop) {
 
 # --- CHECK ---
 if ($Check) {
-    Head "Verifica Stato HP OMEN 16 (24/7 Readiness)"
+    Head "Verifica Stato 24/7 ($nodeName, RAM ${totalRamGB}GB)"
 
     # 1. WSL2 Config
     if (Test-Path $wslConfigPath) {
         $cfg = Get-Content $wslConfigPath -Raw
-        if ($cfg -match "memory=16GB") {
-            Log "WSL2 Config: Ottimale (16GB RAM allocata in $wslConfigPath)"
+        if ($cfg -match "memory=${wslMemGB}GB") {
+            Log "WSL2 Config: Ottimale (${wslMemGB}GB RAM allocata in $wslConfigPath)"
         } else {
             Warn "WSL2 Config: presente ma con parametri diversi:`n$cfg"
         }
@@ -144,30 +152,37 @@ if ($Check) {
 }
 
 # --- CONFIGURAZIONE E SETUP ---
-Head "Configurazione HP OMEN 16 per Lavoro Continuo 24/7"
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Fail "Serve PowerShell da amministratore (tasto destro > Esegui come amministratore) per registrare il Dev Loop."
+    exit 1
+}
+
+Head "Configurazione $nodeName per Lavoro Continuo 24/7"
 
 # 1. Scrittura .wslconfig
 Log "1. Configurazione WSL2 VM (~/.wslconfig)..."
 $wslContent = @"
 [wsl2]
-memory=16GB
-processors=8
+memory=${wslMemGB}GB
+processors=$wslCpus
 swap=8GB
 localhostForwarding=true
 "@
 
 if (Test-Path $wslConfigPath) {
     $existing = Get-Content $wslConfigPath -Raw
-    if ($existing -ne $wslContent) {
+    if ($existing.Trim() -ne $wslContent.Trim()) {
         Copy-Item $wslConfigPath "$wslConfigPath.bak" -Force
         Set-Content -Path $wslConfigPath -Value $wslContent -Encoding Ascii
         Log "File $wslConfigPath aggiornato (backup in .bak)"
     } else {
-        Log "File $wslConfigPath già perfettamente allineato (16GB RAM)."
+        Log "File $wslConfigPath gia' allineato (${wslMemGB}GB RAM, $wslCpus CPU)."
     }
 } else {
     Set-Content -Path $wslConfigPath -Value $wslContent -Encoding Ascii
-    Log "Creato nuovo file $wslConfigPath (16GB RAM, 8 CPU, 8GB Swap)"
+    Log "Creato nuovo file $wslConfigPath (${wslMemGB}GB RAM su ${totalRamGB}GB, $wslCpus CPU, 8GB Swap)"
 }
 
 # 2. Hardening Energetico Powercfg
@@ -222,7 +237,7 @@ $wLnk.TargetPath = $python
 $wLnk.Arguments = "`"$watchdogScript`" --daemon --interval 30"
 $wLnk.WorkingDirectory = $Root
 $wLnk.WindowStyle = 7 # Minimized/Hidden
-$wLnk.Description = "HyperSpace OMEN 16 Thermal Watchdog & 24/7 Health Supervisor"
+$wLnk.Description = "HyperSpace Thermal Watchdog & 24/7 Health Supervisor ($nodeName)"
 $wLnk.Save()
 Log "Creato collegamento di avvio: $watchdogLnk"
 
@@ -246,9 +261,9 @@ try {
 
 # 4. Avviso Batteria & Dissipazione
 Head "PROMEMORIA SICUREZZA FISICA HARDWARE"
-Write-Host "1. BATTERIA: Nel BIOS HP (F10) o in OMEN Gaming Hub, verifica che 'Adaptive Battery Optimizer' sia ATTIVO." -ForegroundColor Yellow
-Write-Host "2. DISSIPAZIONE: Rialza il retro del laptop di 3-5 cm per mantenere la GPU RTX 3070 sotto i 75°C." -ForegroundColor Yellow
-Write-Host "3. COPERCHIO: Lascia il display leggermente socchiuso a 30° per far sfiatare il calore della tastiera." -ForegroundColor Yellow
+Write-Host "1. BATTERIA: nel BIOS o nell'utility del produttore (OMEN Gaming Hub, MyASUS) attiva la protezione/limite di carica." -ForegroundColor Yellow
+Write-Host "2. DISSIPAZIONE: Rialza il retro del laptop di 3-5 cm per mantenere la GPU sotto i 75 gradi." -ForegroundColor Yellow
+Write-Host "3. COPERCHIO: Lascia il display leggermente socchiuso a 30 gradi per far sfiatare il calore della tastiera." -ForegroundColor Yellow
 
 # 5. Avvio Immediato se richiesto
 if ($Start) {

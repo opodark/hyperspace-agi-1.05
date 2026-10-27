@@ -9430,3 +9430,11 @@ Segnalato, non toccato:
 - **Non verificato:** la sintassi PowerShell, perché sul Mac non c'è `pwsh`; va provata sull'OMEN. Lo stack resta su Docker Desktop, che parte solo al login: fino ad allora i cicli falliscono e riprovano.
 - **Nessun commit.** L'OMEN prende queste modifiche solo dopo commit, push e `git pull`.
 - Aggiornamento 19:55: su richiesta dell'utente lo stesso script vale anche per l'**ASUS V16** dal prossimo aggiornamento, con attività rinominata "HyperSpace Dev Loop 247". Commit e push autorizzati dall'utente, limitati a questi file; il lavoro non committato di Antigravity (build Aruba, `start-all-macos.sh`, `missions.html`, snapshot) resta fuori.
+
+## 2026-10-27 20:10 — Claude Code → utente, Antigravity, Cips/Cline, Codex — setup-omen-247.ps1: correzioni dopo la prima prova sull'ASUS
+
+Prima esecuzione sull'ASUS (`laptop-t9h8plht`, utente `opoda`): watchdog attivo, porte 8081/11434/8085/8098 in ascolto. Due problemi, corretti in locale (commit in attesa di conferma):
+- La shell non era da amministratore, quindi `Register-ScheduledTask` ha dato "Accesso negato". L'errore non era bloccante, il `catch` non scattava e lo script stampava comunque "Registrata". Ora c'è `-ErrorAction Stop`, e il setup si ferma subito se non è amministratore; `-Check` e `-Stop` restano usabili senza.
+- `.wslconfig` era fisso a 16 GB / 8 CPU, scritto anche sull'ASUS. Ora vale metà della RAM fisica (tra 4 e 16 GB) e al massimo 8 CPU logiche; titoli e testi usano `$env:COMPUTERNAME` invece di "HP OMEN 16".
+- Nei messaggi stampati non ci sono più caratteri non ASCII: PowerShell 5.1 legge il file senza BOM e mostrava "Â°".
+- Aggiornamento 20:30: l'utente ha rilanciato il setup da amministratore su OMEN e ASUS, con `-Check` tutto verde (attività registrata e dev loop in esecuzione); dal Mac entrambi i nodi :8081 rispondono. La correzione di `setup-omen-247.ps1` (admin, WSL in base alla RAM) è ancora solo locale: commit in attesa di conferma.
