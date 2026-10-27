@@ -9438,3 +9438,25 @@ Prima esecuzione sull'ASUS (`laptop-t9h8plht`, utente `opoda`): watchdog attivo,
 - `.wslconfig` era fisso a 16 GB / 8 CPU, scritto anche sull'ASUS. Ora vale metà della RAM fisica (tra 4 e 16 GB) e al massimo 8 CPU logiche; titoli e testi usano `$env:COMPUTERNAME` invece di "HP OMEN 16".
 - Nei messaggi stampati non ci sono più caratteri non ASCII: PowerShell 5.1 legge il file senza BOM e mostrava "Â°".
 - Aggiornamento 20:30: l'utente ha rilanciato il setup da amministratore su OMEN e ASUS, con `-Check` tutto verde (attività registrata e dev loop in esecuzione); dal Mac entrambi i nodi :8081 rispondono. La correzione di `setup-omen-247.ps1` (admin, WSL in base alla RAM) è ancora solo locale: commit in attesa di conferma.
+
+## 2026-10-27 21:05 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Push 59c2db1 e stato della git mesh
+
+- Pubblicato `59c2db1` (correzioni di `setup-omen-247.ps1`), con conferma dell'utente.
+- **Git mesh, telemetria: funziona.** `/mesh/sync/status` vede OMEN e ASUS su canale E2EE verificato, al commit `1c748d6c`, senza modifiche locali; il Mac è a `59c2db12`.
+- **Git mesh, distribuzione: manuale.** Le patch partono solo con `scripts/mesh_distribute.py` lanciato a mano. Sui nodi Windows le patch ricevute le applicano due processi:
+  - il watcher (`mesh_patch_watcher.py`, avviato da `mesh_node_deploy.ps1`), che esegue i test del ruolo e fa rollback;
+  - da oggi anche il dev loop (`task_apply_mesh_patches`), che applica direttamente, senza test né rollback.
+
+  Sono due processi sulla stessa cartella: da decidere quale tenere. Non ho inviato patch: sui nodi resterebbero file modificati non committati, e il `git pull` successivo fallirebbe.
+- Aggiornamento 21:20: dopo il `git pull` manuale sui due nodi Windows, `/mesh/sync/status` dà tutto ok: Mac, ASUS e OMEN allineati a `59c2db12`, working tree pulito, canale E2EE verificato; Graphify `stale` (warn). RAM libera: ASUS 13,2 GB, OMEN 12,3 GB, Mac 2,4 GB.
+
+## 2026-10-27 21:40 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Patch della git mesh: le applica solo il watcher
+
+- **`scripts/omen_dev_loop_247.py`:** tolto `task_apply_mesh_patches` e anche `--task patch`. Il dev loop non scrive più nel codice; le patch le applica solo `scripts/mesh_patch_watcher.py`, che esegue i test del ruolo e fa rollback.
+- **`scripts/setup-omen-247.ps1`:** il watcher prima partiva solo da `mesh_node_deploy.ps1`, a mano, e non ripartiva dopo un riavvio. Ora è una seconda attività pianificata, "HyperSpace Mesh Patch Watcher", fatta come il dev loop:
+  - ruolo da `NODE_ROLE`, altrimenti `worker-gpu`, con `--run-tests`;
+  - log in `data\mesh_patch_watcher.out.log`.
+- **`-Check`:** mostra stato e log di entrambe le attività, segnala istanze doppie e verifica che nel `.venv` ci sia `cryptography`. Anche `-Stop` e `-Start` gestiscono entrambe.
+- **Verifica:** `test_mesh_patch_watcher`, `test_codebase_journal`, `test_mesh_sync` e `test_licensing`: 21 passati. La sintassi PowerShell non l'ho potuta verificare, perché sul Mac non c'è `pwsh`.
+- **Non committato:** in attesa di conferma dell'utente.
+- Aggiornamento 21:55: con `pwsh` 7 installato sul Mac, il parser PowerShell non trova errori di sintassi in `setup-omen-247.ps1` e `mesh_node_deploy.ps1`. Le righe di comando per `cmd.exe` delle due attività, simulate, sono quotate correttamente. Restano non verificabili su macOS i cmdlet ScheduledTask/CIM.

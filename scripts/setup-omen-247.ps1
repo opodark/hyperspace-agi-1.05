@@ -48,15 +48,28 @@ $watchdogLnk = Join-Path $startupDir "HyperSpace OMEN Watchdog.lnk"
 $startTuttoScript = Join-Path $Root "scripts\start-tutto.ps1"
 $startTuttoLnk = Join-Path $startupDir "HyperSpace Start-Tutto.lnk"
 
-# Ciclo di sviluppo 24/7: attività pianificata (non un .lnk in shell:startup, che
-# parte solo al login). Parte all'accensione anche senza login, riparte se si chiude.
-# Finché lo stack Docker non è su, i cicli falliscono e riprovano al giro dopo.
-$devLoopTask = "HyperSpace Dev Loop 247"
-$devLoopScript = Join-Path $Root "scripts\omen_dev_loop_247.py"
-$devLoopOut = Join-Path $Root "data\omen_dev_loop.out.log"
+# Servizi 24/7 come attività pianificate (non .lnk in shell:startup, che partono solo
+# al login): all'accensione anche senza login, riavvio se si chiudono.
+# - Dev Loop: cicli di sviluppo/ricerca; finché lo stack Docker non è su, i cicli
+#   falliscono e riprovano al giro dopo.
+# - Mesh Patch Watcher: l'unico processo che applica al repository le patch della
+#   git mesh depositate dal nodo (con test del ruolo e rollback).
+$nodeRole = if ($env:NODE_ROLE) { $env:NODE_ROLE } else { "worker-gpu" }
+$bgTasks = @(
+    @{
+        Name  = "HyperSpace Dev Loop 247"; Label = "Dev Loop 24/7"; Match = "omen_dev_loop_247\.py"
+        Args  = "`"$(Join-Path $Root 'scripts\omen_dev_loop_247.py')`" --daemon --interval 300"
+        Out   = Join-Path $Root "data\omen_dev_loop.out.log"
+    },
+    @{
+        Name  = "HyperSpace Mesh Patch Watcher"; Label = "Mesh Patch Watcher"; Match = "mesh_patch_watcher\.py"
+        Args  = "`"$(Join-Path $Root 'scripts\mesh_patch_watcher.py')`" --patches data/node-1/mesh-patches --repo . --role $nodeRole --run-tests"
+        Out   = Join-Path $Root "data\mesh_patch_watcher.out.log"
+    }
+)
 
-function Register-DevLoopTask {
-    $cmdLine = "/c `"`"$python`" `"$devLoopScript`" --daemon --interval 300 >> `"$devLoopOut`" 2>&1`""
+function Register-BackgroundTask($t) {
+    $cmdLine = "/c `"`"$python`" $($t.Args) >> `"$($t.Out)`" 2>&1`""
     $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $cmdLine -WorkingDirectory $Root
     $trigger = New-ScheduledTaskTrigger -AtStartup
     $trigger.Delay = "PT3M"
@@ -65,13 +78,13 @@ function Register-DevLoopTask {
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
         -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 5) `
         -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
-    Register-ScheduledTask -TaskName $devLoopTask -Action $action -Trigger $trigger `
+    Register-ScheduledTask -TaskName $t.Name -Action $action -Trigger $trigger `
         -Principal $principal -Settings $settings -Force -ErrorAction Stop | Out-Null
 }
 
-function Test-DevLoopRunning {
-    [bool](Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -and $_.CommandLine -match "omen_dev_loop_247\.py" })
+function Get-BackgroundProcs($t) {
+    Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -match $t.Match }
 }
 
 # --- STOP ---
@@ -84,14 +97,14 @@ if ($Stop) {
         Log "Fermato Watchdog Termico (PID $($p.ProcessId))"
     }
 
-    if (Get-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue) {
-        Stop-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue
-    }
-    $dProcs = Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -and $_.CommandLine -match "omen_dev_loop_247\.py" }
-    foreach ($p in $dProcs) {
-        Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
-        Log "Fermato Dev Loop 24/7 (PID $($p.ProcessId)); ripartira' al prossimo avvio"
+    foreach ($t in $bgTasks) {
+        if (Get-ScheduledTask -TaskName $t.Name -ErrorAction SilentlyContinue) {
+            Stop-ScheduledTask -TaskName $t.Name -ErrorAction SilentlyContinue
+        }
+        foreach ($p in (Get-BackgroundProcs $t)) {
+            Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+            Log "Fermato $($t.Label) (PID $($p.ProcessId)); ripartira' al prossimo avvio"
+        }
     }
 
     if (Test-Path $startTuttoScript) {
@@ -129,16 +142,22 @@ if ($Check) {
     if (Test-Path $startTuttoLnk) { Log "Autostart Stack: Configurato in shell:startup" }
     else { Warn "Autostart Stack: Manca collegamento $startTuttoLnk" }
 
-    # Dev Loop 24/7
-    $task = Get-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue
-    if ($task) { Log "Attivita' Dev Loop: registrata (stato: $($task.State))" }
-    else { Warn "Attivita' Dev Loop: NON registrata (esegui lo script senza parametri, da amministratore)" }
-    if (Test-DevLoopRunning) { Log "Dev Loop 24/7: IN ESECUZIONE" }
-    else { Warn "Dev Loop 24/7: FERMO" }
-    if (Test-Path $devLoopOut) {
-        Log "Ultime righe di $devLoopOut :"
-        Get-Content $devLoopOut -Tail 5 | ForEach-Object { Write-Host "    $_" }
+    # Servizi 24/7 (attività pianificate)
+    foreach ($t in $bgTasks) {
+        $task = Get-ScheduledTask -TaskName $t.Name -ErrorAction SilentlyContinue
+        if ($task) { Log "Attivita' $($t.Label): registrata (stato: $($task.State))" }
+        else { Warn "Attivita' $($t.Label): NON registrata (esegui lo script senza parametri, da amministratore)" }
+        $procs = @(Get-BackgroundProcs $t)
+        if ($procs.Count -eq 1) { Log "$($t.Label): IN ESECUZIONE" }
+        elseif ($procs.Count -gt 1) { Warn "$($t.Label): $($procs.Count) istanze attive (dovrebbe essere una sola)" }
+        else { Warn "$($t.Label): FERMO" }
+        if (Test-Path $t.Out) {
+            Log "Ultime righe di $($t.Out) :"
+            Get-Content $t.Out -Tail 5 | ForEach-Object { Write-Host "    $_" }
+        }
     }
+    & $python -c "import cryptography" 2>$null
+    if ($LASTEXITCODE -ne 0) { Warn "Il watcher richiede 'cryptography' nel .venv: uv pip install --python `"$python`" cryptography" }
 
     # 4. Verifica Porte
     $ports = @(8081, 11434, 8188, 8098, 8085)
@@ -155,7 +174,7 @@ if ($Check) {
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Fail "Serve PowerShell da amministratore (tasto destro > Esegui come amministratore) per registrare il Dev Loop."
+    Fail "Serve PowerShell da amministratore (tasto destro > Esegui come amministratore) per registrare Dev Loop e Mesh Patch Watcher."
     exit 1
 }
 
@@ -251,12 +270,14 @@ $tLnk.Description = "HyperSpace AGI Start-Tutto Launcher"
 $tLnk.Save()
 Log "Creato collegamento di avvio: $startTuttoLnk"
 
-# Attività pianificata Dev Loop 24/7 (richiede PowerShell da amministratore)
-try {
-    Register-DevLoopTask
-    Log "Registrata attivita' pianificata '$devLoopTask' (all'accensione, anche senza login; log: $devLoopOut)"
-} catch {
-    Warn "Impossibile registrare '$devLoopTask' (serve PowerShell da amministratore): $_"
+# Attività pianificate 24/7 (richiede PowerShell da amministratore)
+foreach ($t in $bgTasks) {
+    try {
+        Register-BackgroundTask $t
+        Log "Registrata attivita' pianificata '$($t.Name)' (all'accensione, anche senza login; log: $($t.Out))"
+    } catch {
+        Warn "Impossibile registrare '$($t.Name)': $_"
+    }
 }
 
 # 4. Avviso Batteria & Dissipazione
@@ -278,13 +299,15 @@ if ($Start) {
     }
     Log "Avvio del Watchdog..."
     Start-Process -FilePath $python -ArgumentList "`"$watchdogScript`" --daemon --interval 30" -WorkingDirectory $Root -WindowStyle Hidden
-    if (Test-DevLoopRunning) {
-        Log "Dev Loop 24/7 gia' in esecuzione"
-    } elseif (Get-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue) {
-        Log "Avvio del Dev Loop 24/7 (attivita' pianificata)..."
-        Start-ScheduledTask -TaskName $devLoopTask
-    } else {
-        Warn "Dev Loop 24/7 non registrato: rilancia lo script senza -Start da amministratore"
+    foreach ($t in $bgTasks) {
+        if (@(Get-BackgroundProcs $t).Count -gt 0) {
+            Log "$($t.Label) gia' in esecuzione"
+        } elseif (Get-ScheduledTask -TaskName $t.Name -ErrorAction SilentlyContinue) {
+            Log "Avvio di $($t.Label) (attivita' pianificata)..."
+            Start-ScheduledTask -TaskName $t.Name
+        } else {
+            Warn "$($t.Label) non registrato: rilancia lo script da amministratore"
+        }
     }
     Log "Avvio dello stack HyperSpace Start-Tutto..."
     Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$startTuttoScript`"" -WorkingDirectory $Root

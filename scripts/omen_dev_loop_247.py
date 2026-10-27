@@ -107,45 +107,8 @@ def task_hermes_memory_consolidation(bridge_url: str = "http://127.0.0.1:8098") 
 
 
 # -----------------------------------------------------------------------------
-# TASK 2b: APPLICAZIONE PATCH MESH & DIGESTIONE PROTOCOLLO AGENTI
+# TASK 2b: DIGESTIONE PROTOCOLLO AGENTI
 # -----------------------------------------------------------------------------
-def task_apply_mesh_patches() -> Dict[str, Any]:
-    """Scansiona e applica patch P2P arrivate via Git Mesh (/mesh/sync/patch)."""
-    from shared.mesh_sync import apply_mesh_update
-
-    patch_dirs = [
-        DATA_DIR / "node-1" / "mesh-patches",
-        DATA_DIR / "mesh-patches",
-    ]
-    applied_count = 0
-    errors = []
-
-    for p_dir in patch_dirs:
-        if not p_dir.exists():
-            continue
-        for patch_file in p_dir.glob("*.json"):
-            if patch_file.name.endswith(".result.json"):
-                continue
-            res_file = patch_file.with_name(f"{patch_file.stem}.result.json")
-            if res_file.exists():
-                continue
-
-            try:
-                raw = json.loads(patch_file.read_text(encoding="utf-8"))
-                update_payload = raw.get("update", raw)
-                res = apply_mesh_update(update_payload, repo_dir=str(ROOT))
-                res_file.write_text(json.dumps(res, indent=2), encoding="utf-8")
-                if res.get("success"):
-                    applied_count += 1
-                    _log("PATCH", f"Applicata patch mesh {patch_file.stem}: {len(res.get('applied_files', []))} file aggiornati.")
-                else:
-                    errors.extend(res.get("errors", []))
-            except Exception as e:
-                errors.append(f"Errore applicazione {patch_file.name}: {e}")
-
-    return {"task": "apply_patches", "applied_count": applied_count, "errors": errors}
-
-
 def task_digest_and_align(bridge_url: str = "http://127.0.0.1:8098") -> Dict[str, Any]:
     """Digerisce gli aggiornamenti di AGENT-LOG e Chronicle memorizzandoli in Hermes Shadow Memory."""
     _log("DIGEST", "Compressione e digestione protocollo agenti via Caveman Engine...")
@@ -313,8 +276,8 @@ def run_dev_cycle(node_url: str, bridge_url: str, cycles_distill: int = 1) -> Di
     # 1. QA & Invarianti
     results["tasks"]["qa"] = task_regression_check()
 
-    # 2. Patch P2P Git Mesh & Digestione Protocollo Agenti
-    results["tasks"]["apply_patches"] = task_apply_mesh_patches()
+    # 2. Digestione Protocollo Agenti (le patch della git mesh le applica solo
+    #    scripts/mesh_patch_watcher.py, con test del ruolo e rollback)
     results["tasks"]["digest_align"] = task_digest_and_align(bridge_url)
 
     # 3. Hermes Memory
@@ -344,7 +307,7 @@ def main():
     parser = argparse.ArgumentParser(description="Worker di Sviluppo Continuo 24/7 per HP OMEN")
     parser.add_argument("--node-url", default="http://127.0.0.1:8081", help="URL del nodo OMEN")
     parser.add_argument("--bridge-url", default="http://127.0.0.1:8098", help="URL Hermes Bridge")
-    parser.add_argument("--task", choices=["all", "qa", "hermes", "graphify", "cot", "digest", "patch", "reflection"], default="all")
+    parser.add_argument("--task", choices=["all", "qa", "hermes", "graphify", "cot", "digest", "reflection"], default="all")
     parser.add_argument("--cycles", type=int, default=1, help="Cicli CoT da distillare")
     parser.add_argument("--daemon", action="store_true", help="Esegui in loop continuo 24/7")
     parser.add_argument("--interval", type=int, default=300, help="Intervallo fra cicli in secondi (default: 300s / 5 min)")
@@ -361,8 +324,6 @@ def main():
                 _log("CYCLE", f"Ciclo fallito ({exc}); riprovo al prossimo giro.")
         elif args.task == "qa":
             print(json.dumps(task_regression_check(), indent=2))
-        elif args.task == "patch":
-            print(json.dumps(task_apply_mesh_patches(), indent=2))
         elif args.task == "digest":
             print(json.dumps(task_digest_and_align(args.bridge_url), indent=2))
         elif args.task == "hermes":
