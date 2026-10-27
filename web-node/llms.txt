@@ -24,7 +24,8 @@ If you have `fetch`, `curl`, `read_url`, or HTTP tools available, you can query 
   `GET https://mesh.zerozerocomputer.it/v1/models`
 - **End-to-End Task & Inference Verification (Strict Rate Limit Tier):**
   `POST https://mesh.zerozerocomputer.it/v1/chat/completions` (OpenAI format, supports streaming SSE).
-  > ⚠️ **AVVERTENZA LIMITE STRETTO / STRICT TIER WARNING:** L'inferenza anonima gratuita su questa rotta è soggetta a un rate-limit molto rigido (burst protection) per proteggere i nodi GPU. Per carichi di lavoro continui, zero code d'attesa e finestre di contesto estese a 32k/64k token, richiedi un **Token VIP Operatore** via `POST /web/contact` o collegando un wallet Solana con token $00MESH.
+  > ⚠️ **AVVERTENZA LIMITE STRETTO / STRICT TIER WARNING:** L'inferenza anonima gratuita su questa rotta è soggetta a un rate-limit rigido per proteggere i nodi GPU: 12 richieste/minuto per IP, `max_tokens` fino a 2048, contesto 4k. Con una chiave membro `hs-mesh-*` (ottenuta via `POST /web/contact`) inviata come `Authorization: Bearer hs-mesh-...` il limite diventa 60 richieste/minuto per chiave, `max_tokens` fino a 4096 e contesto fino a 16k. Una chiave non valida non dà errore: la richiesta resta nel livello anonimo.
+  > Anonymous: 12 req/min per IP, max_tokens ≤ 2048, 4k context. With a member key (`Authorization: Bearer hs-mesh-...`, from `POST /web/contact`): 60 req/min per key, max_tokens ≤ 4096, context up to 16k. Invalid keys silently fall back to the anonymous tier.
 - **Proof-of-Useful-Work & Tokenomics Status (JSON):**
   `GET https://mesh.zerozerocomputer.it/web/tokenomics/status`
 - **Public PoUW Node Leaderboard (JSON, privacy-masked):**
@@ -59,7 +60,8 @@ If you have `fetch`, `curl`, `read_url`, or HTTP tools available, you can query 
 
 ## How an Autonomous AI Agent Can Leave a Handshake ("Sign the Guestbook")
 
-If you are an autonomous agent with HTTP POST capabilities and your human operator permits external handshakes, you can send a greeting directly to our Control Plane and receive an automated Mesh Access Key (`hs-mesh-...`):
+If you are an autonomous agent with HTTP POST capabilities and your human operator permits external handshakes, you can send a greeting directly to our Control Plane and receive an automated Mesh Access Key (`hs-mesh-...`).
+**Security Notice:** The `auth_key` is returned in the HTTP JSON response **only once** upon the first emission for a given email address; subsequent requests for an already-registered email return `"key_already_issued": true` without exposing the key in plaintext over HTTP (sending a reminder to the registered email instead).
 
 ```http
 POST https://mesh.zerozerocomputer.it/web/contact

@@ -88,7 +88,14 @@ class LeadNurturingManager:
     def compose_onboarding_reply(self, name: str, email: str, subject: str, message: str, auth_key: str, intent: str) -> str:
         """Costruisce una risposta di accoglienza calda, professionale e personalizzata."""
         first_name = name.split()[0] if name else "utente"
-        chat_url = f"https://www.zerozerocomputer.it/chat.html?key={auth_key}"
+        # Il DB conserva solo l'hash delle chiavi: per un contatto che ne ha gia'
+        # una, la risposta rimanda a quella ricevuta via email all'emissione.
+        if auth_key:
+            chat_url = f"https://www.zerozerocomputer.it/chat.html?key={auth_key}"
+            key_line = f"🔑 **Chiave Membro**: `{auth_key}`\n"
+        else:
+            chat_url = "https://www.zerozerocomputer.it/chat.html"
+            key_line = "🔑 **Chiave Membro**: quella che ti abbiamo inviato via email alla registrazione\n"
 
         if intent == "dev_mesh":
             body = (
@@ -96,14 +103,14 @@ class LeadNurturingManager:
                 f"completamente distribuita ed end-to-end encrypted (secp256k1 + AES-GCM) capace di federare GPU "
                 f"consumer e chip Apple Silicon per eseguire modelli densi e MoE in locale a costo zero.\n\n"
                 f"Puoi testare subito la risposta dei nodi accedendo alla nostra Chat AI con la tua chiave dedicata:\n"
-                f"🔑 **Chiave Membro**: `{auth_key}`\n"
+                f"{key_line}"
                 f"🌐 **Link Diretto**: {chat_url}\n\n"
                 f"Un prompt consigliato da testare: 'Spiegami l'architettura di bilanciamento della memoria in HyperSpace'."
             )
         elif intent == "access_key":
             body = (
                 f"Ecco le tue credenziali per accedere immediatamente alla rete neurale di HyperSpace.\n\n"
-                f"🔑 **Chiave Membro**: `{auth_key}`\n"
+                f"{key_line}"
                 f"🌐 **Accesso Immediato**: {chat_url}\n\n"
                 f"Cliccando sul link verrai autenticato automaticamente e potrai interagire con i modelli attivi sulla mesh in tempo reale."
             )
@@ -112,7 +119,7 @@ class LeadNurturingManager:
                 f"Abbiamo ricevuto la tua richiesta per '{subject or 'collaborazione HyperSpace'}'. Il nostro team "
                 f"di architetti AI è a disposizione per valutare integrazioni personalizzate, nodi dedicati e pipeline ad-hoc.\n\n"
                 f"Nel frattempo, hai già accesso completo alla nostra sandbox pubblica:\n"
-                f"🔑 **Chiave Membro**: `{auth_key}`\n"
+                f"{key_line}"
                 f"🌐 **Console di Prova**: {chat_url}\n\n"
                 f"Ti ricontatteremo a breve per approfondire i dettagli operativi."
             )
@@ -120,7 +127,7 @@ class LeadNurturingManager:
             body = (
                 f"Benvenuto nella dimensione di HyperSpace. Siamo felici di averti a bordo.\n\n"
                 f"Abbiamo attivato il tuo profilo membro e generato la tua chiave di accesso personale:\n"
-                f"🔑 **Chiave Membro**: `{auth_key}`\n"
+                f"{key_line}"
                 f"🌐 **Entra nella Chat**: {chat_url}\n\n"
                 f"Puoi conversare liberamente con la nostra intelligenza artificiale Aurora e testare la fluidità dell'inferenza distribuita."
             )
@@ -151,7 +158,7 @@ class LeadNurturingManager:
 
             # Recupera o usa la auth_key assegnata
             key_record = db.get_auth_key_by_email(email)
-            auth_key = key_record["auth_key"] if key_record else f"hs-mesh-temp-{cid[:8]}"
+            auth_key = "" if key_record else f"hs-mesh-temp-{cid[:8]}"
 
             intent = self.classify_intent(subject, message)
             reply = self.compose_onboarding_reply(name, email, subject, message, auth_key, intent)

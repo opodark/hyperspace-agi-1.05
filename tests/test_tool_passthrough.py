@@ -163,6 +163,7 @@ def carica(risposte, client_tools=True):
         "push_log": lambda *a, **k: registrato["log"].append((a, k)),
         "_call_ollama": _call_ollama,
         "_model_supports_tools": lambda modello: True,
+        "_model_thinking_only": lambda modello: False,
         # `_run_tool_loop` ora distingue gli errori di Ollama dalle risposte
         # reali: la stessa forma della funzione vera in cp/budget.py.
         "_is_error_payload": lambda p: isinstance(p, dict) and bool(p.get("error")),

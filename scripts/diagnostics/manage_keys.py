@@ -92,7 +92,7 @@ def main() -> int:
             return 0
         for k in keys:
             status_badge = "🟢 ATTIVA" if k["status"] == "active" else "🔴 REVOCATA"
-            print(f"Chiave: {k['auth_key']} | {status_badge} | Ruolo: {k['role']}")
+            print(f"Chiave: {k.get('key_hint') or '…'} | id {k['key_id']} | {status_badge} | Ruolo: {k['role']}")
             print(f"Label:  {k['label'] or '—'}  | Email: {k['email'] or '—'}")
             print(f"Creata: {k['created_at']}  | Ultimo uso: {k['last_used'] or 'mai'}")
             print("─" * 78)

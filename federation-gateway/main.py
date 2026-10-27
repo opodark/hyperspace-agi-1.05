@@ -33,6 +33,7 @@
 # verify_client_ip, usata solo dal CP: stessa primitiva, stessa disciplina
 # del resto del progetto — il gateway sa solo firmare, mai validare.
 
+import hashlib
 import json
 import os
 import threading
@@ -50,6 +51,9 @@ CP_URL = os.getenv("CP_URL", "http://control-plane:8085").rstrip("/")
 CHAT_UPSTREAM_TIMEOUT_S = max(130, int(os.getenv("GATEWAY_CHAT_TIMEOUT_S", "600")))
 GATEWAY_CHAT_MAX_TOKENS = int(os.getenv("GATEWAY_CHAT_MAX_TOKENS", "2048"))
 GATEWAY_CHAT_AUTH_MAX_TOKENS = int(os.getenv("GATEWAY_CHAT_AUTH_MAX_TOKENS", "4096"))
+GATEWAY_CHAT_MAX_CTX = 4096
+GATEWAY_CHAT_AUTH_MAX_CTX = int(os.getenv("GATEWAY_CHAT_AUTH_MAX_CTX", "16384"))
+GATEWAY_CHAT_AUTH_MAX_PER_MINUTE = int(os.getenv("GATEWAY_CHAT_AUTH_MAX_PER_MINUTE", "60"))
 
 # Whitelist esplicita (metodo, path). Aggiungere qui SOLO endpoint pensati
 # per essere pubblici by design — non aggiungere mai /config/*, /task/*,
@@ -206,6 +210,69 @@ def _rate_check(path: str, ip: str) -> bool:
         return True
 
 
+# ── CHIAVI MESH SULLA CHAT PUBBLICA ───────────────────────────────────────────
+# Una chiave hs-mesh-* (o un token web-node) da' alla chat pubblica un proprio
+# rate-limit, piu' token e piu' contesto. La presenza dell'header non basta:
+# prima di questa verifica chiunque mandasse "Authorization: x" otteneva il
+# tetto dei membri. La verita' sulle chiavi resta nel CP (/web/auth/verify);
+# qui si tiene solo l'esito, indicizzato per hash, per non chiamarlo a ogni
+# richiesta. Una chiave non valida non e' un errore: si resta nel livello
+# anonimo, come succede ai client OpenAI che mandano una api_key qualsiasi.
+_KEY_CACHE_TTL_S = 60
+_KEY_CACHE_MAX = 4096
+_key_cache_lock = threading.Lock()
+_key_cache: dict[str, tuple[bool, float]] = {}
+
+
+def _provided_mesh_key() -> str:
+    auth_hdr = request.headers.get("Authorization", "").strip()
+    if auth_hdr.lower().startswith("bearer "):
+        return auth_hdr[7:].strip()
+    return (request.headers.get("X-Hyperspace-Auth-Key")
+            or request.headers.get("X-Hyperspace-Network-Token") or "").strip()
+
+
+def _mesh_key_valid(key: str) -> bool:
+    if not key or len(key) > 512:
+        return False
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
+    now = time.time()
+    with _key_cache_lock:
+        cached = _key_cache.get(digest)
+        if cached and now - cached[1] < _KEY_CACHE_TTL_S:
+            return cached[0]
+    # Ogni chiave nuova (anche inventata) costa una chiamata al CP: la paga il
+    # rate-limit per IP della verifica, non quello della chat.
+    if not _rate_check("/web/auth/verify", _client_ip()):
+        return False
+    try:
+        r = requests.post(f"{CP_URL}/web/auth/verify", json={"token": key}, timeout=5)
+        valid = r.status_code == 200 and bool((r.json() or {}).get("authenticated"))
+    except Exception:
+        # CP irraggiungibile: niente privilegi, e niente cache dell'esito.
+        return False
+    with _key_cache_lock:
+        if len(_key_cache) >= _KEY_CACHE_MAX:
+            _key_cache.clear()
+        _key_cache[digest] = (valid, now)
+    return valid
+
+
+def _rate_check_key(key: str) -> bool:
+    """Rate-limit della chat per chiave valida, separato da quello per IP."""
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
+    now = time.time()
+    bucket = ("/v1/chat/completions#key", digest)
+    with _rate_lock:
+        recent = [t for t in _rate_hits.get(bucket, []) if now - t < 60]
+        if len(recent) >= GATEWAY_CHAT_AUTH_MAX_PER_MINUTE:
+            _rate_hits[bucket] = recent
+            return False
+        recent.append(now)
+        _rate_hits[bucket] = recent
+        return True
+
+
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"])
 def proxy(path):
     full_path = f"/{path}"
@@ -215,10 +282,20 @@ def proxy(path):
         return {"error": "not found"}, 404
 
     ip = _client_ip()
+    member_chat = False
+    if full_path == "/v1/chat/completions" and request.method == "POST":
+        member_key = _provided_mesh_key()
+        member_chat = _mesh_key_valid(member_key)
+        if member_chat and not _rate_check_key(member_key):
+            return {
+                "error": "Limite richieste per chiave superato, riprova tra un minuto.",
+                "code": "RATE_LIMIT_EXCEEDED",
+            }, 429
     # Preflight e HEAD non eseguono lavoro applicativo e non consumano il rate limit
-    if request.method not in ("OPTIONS", "HEAD") and full_path in _RATE_LIMITS and not _rate_check(full_path, ip):
+    if (request.method not in ("OPTIONS", "HEAD") and full_path in _RATE_LIMITS
+            and not member_chat and not _rate_check(full_path, ip)):
         return {
-            "error": "Limite richieste anonime superato. Per calcolo illimitato senza code, richiedi un token VIP su /web/contact o connetti un wallet $00MESH.",
+            "error": "Limite richieste anonime superato. Con una chiave membro hs-mesh-* (POST /web/contact) in Authorization: Bearer il limite sale a 60 richieste al minuto.",
             "code": "RATE_LIMIT_EXCEEDED",
             "vip_upgrade": "https://www.zerozerocomputer.it/index.html#contactSection"
         }, 429
@@ -245,26 +322,64 @@ def proxy(path):
             public_payload = request.get_json(force=True) or {}
         except Exception:
             public_payload = {}
+        if "model" in public_payload:
+            raw_m = str(public_payload.get("model") or "").strip()
+            if not raw_m or "<" in raw_m or ">" in raw_m:
+                return (
+                    {
+                        "error": {
+                            "message": f"model '{public_payload.get('model')}' not found",
+                            "type": "model_not_found",
+                            "param": "model",
+                            "code": "model_not_found",
+                        }
+                    },
+                    404,
+                )
+        client_wants_stream = bool(public_payload.get("stream", False))
         # La pagina pubblica deve avere latenza prevedibile: i tool possono
         # moltiplicare le inferenze anche per domande semplici. Il CP usa il
         # percorso nativo non-stream, che rispetta think=false e max_tokens;
-        # qui sotto la risposta JSON viene comunque esposta al browser come SSE.
+        # se il client ha chiesto stream=True (es. browser SSE), la risposta JSON
+        # viene riconfezionata come SSE con keepalive; altrimenti (default OpenAI
+        # stream=False) viene restituita come JSON standard application/json.
         public_payload["stream"] = False
         public_payload["think"] = False
-        has_auth = bool(
-            request.headers.get("Authorization") or
-            request.headers.get("X-Hyperspace-Network-Token") or
-            request.headers.get("X-Hyperspace-Auth-Key")
-        )
-        max_allowed = GATEWAY_CHAT_AUTH_MAX_TOKENS if has_auth else GATEWAY_CHAT_MAX_TOKENS
+        max_allowed = GATEWAY_CHAT_AUTH_MAX_TOKENS if member_chat else GATEWAY_CHAT_MAX_TOKENS
+        max_ctx = GATEWAY_CHAT_AUTH_MAX_CTX if member_chat else GATEWAY_CHAT_MAX_CTX
         requested_tokens = int(public_payload.get("max_tokens", max_allowed))
         public_payload["max_tokens"] = min(max_allowed, max(1, requested_tokens))
         options = public_payload.get("options") if isinstance(public_payload.get("options"), dict) else {}
-        public_payload["options"] = {**options, "num_ctx": min(4096, max(2048, int(options.get("num_ctx", 4096))))}
+        public_payload["options"] = {**options, "num_ctx": min(max_ctx, max(2048, int(options.get("num_ctx", 4096))))}
         body = json.dumps(public_payload, ensure_ascii=False).encode("utf-8")
         forward_headers["Content-Type"] = "application/json"
         forward_headers["X-Hyperspace-Tools"] = "off"
         query = request.args.to_dict(flat=False)
+
+        if not client_wants_stream:
+            try:
+                upstream = requests.request(
+                    method=method,
+                    url=f"{CP_URL}{full_path}",
+                    headers=forward_headers,
+                    data=body,
+                    params=query,
+                    timeout=(10, CHAT_UPSTREAM_TIMEOUT_S),
+                )
+            except Exception as e:
+                return {"error": {"message": f"control-plane non raggiungibile: {e}", "type": "server_error"}}, 502
+            raw_content = getattr(upstream, "content", None)
+            if not isinstance(raw_content, (bytes, bytearray)):
+                try:
+                    raw_content = json.dumps(upstream.json(), ensure_ascii=False).encode("utf-8")
+                except Exception:
+                    raw_content = b"{}"
+            return Response(
+                raw_content,
+                status=upstream.status_code,
+                headers={"Access-Control-Allow-Origin": origin, "Vary": "Origin"},
+                content_type=upstream.headers.get("Content-Type", "application/json"),
+            )
 
         def chat_stream():
             started = time.monotonic()
@@ -351,6 +466,34 @@ def _add_cors_headers(response):
     if "Access-Control-Allow-Headers" not in response.headers:
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Hyperspace-Network-Token"
     return response
+
+
+@app.route("/", methods=["GET", "OPTIONS", "HEAD"])
+def root():
+    """Root del gateway federato: reindirizza i browser al portale sovrano
+    con wallet e nodi (mesh.html) e risponde con metadati di discovery per client API."""
+    if request.method == "OPTIONS":
+        return Response("", status=204)
+    accept = request.headers.get("Accept", "")
+    if "text/html" in accept:
+        from flask import redirect
+        return redirect("https://www.zerozerocomputer.it/mesh.html", code=302)
+    return {
+        "status": "online",
+        "mesh": "00MESH",
+        "service": "federation-gateway",
+        "version": "1.05",
+        "endpoints": {
+            "portal_ui": "https://www.zerozerocomputer.it/mesh.html",
+            "chat_ui": "https://www.zerozerocomputer.it/chat.html",
+            "topology": "/web/topology",
+            "ping": "/web/ping",
+            "models": "/v1/models",
+            "chat_completions": "/v1/chat/completions",
+            "health": "/health",
+        },
+        "discovery": "https://www.zerozerocomputer.it/llms.txt",
+    }
 
 
 @app.route("/web/ping", methods=["GET", "OPTIONS", "HEAD"])

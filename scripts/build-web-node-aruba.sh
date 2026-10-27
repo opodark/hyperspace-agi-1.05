@@ -30,7 +30,7 @@ if [[ -f "$REPO_ROOT/web-node/.htaccess" ]]; then
 fi
 
 # Copia ads.txt per Google AdSense, sitemap.xml e file di discovery per Agenti AI (llms.txt, robots.txt, ai-agent.json, sitemap.xml, og-image.png)
-for root_file in ads.txt llms.txt robots.txt ai-agent.json sitemap.xml og-image.png logo.png; do
+for root_file in ads.txt llms.txt robots.txt ai-agent.json sitemap.xml og-image.png logo.png feed.xml; do
   if [[ -f "$REPO_ROOT/web-node/$root_file" ]]; then
     cp "$REPO_ROOT/web-node/$root_file" "$TARGET/$root_file"
   fi
@@ -83,7 +83,7 @@ window.HYPERSPACE_JOIN = Object.freeze({
 EOF
 
 # Genera cartelle per URL puliti senza estensione (es. /chi-siamo/, /contatti/, /guide/, /privacy-policy/, ecc.)
-for ep in privacy-policy privacy cookie-policy terms deletion data-deletion chat ai join anna token chi-siamo contatti guide guide-architettura-mesh guide-webgpu-browser guide-vector-clocks guide-memoria-tri-modale guide-validazione-ast guide-tokenomics-depin guide-configurazione-nodo; do
+for ep in mesh bulletin privacy-policy privacy cookie-policy terms deletion data-deletion chat ai join anna token chi-siamo contatti guide guide-architettura-mesh guide-webgpu-browser guide-vector-clocks guide-memoria-tri-modale guide-validazione-ast guide-tokenomics-depin guide-configurazione-nodo; do
   if [[ -f "$TARGET/$ep.html" ]]; then
     mkdir -p "$TARGET/$ep"
     cp "$TARGET/$ep.html" "$TARGET/$ep/index.html"

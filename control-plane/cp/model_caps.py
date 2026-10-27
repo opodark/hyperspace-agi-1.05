@@ -68,6 +68,50 @@ _NATIVE_CHAT_FALLBACK_OVERRIDE  = os.getenv("NATIVE_CHAT_FALLBACK_MODELS", "")
 _NATIVE_CHAT_FALLBACK_PATTERNS  = ["qwen3"]
 
 
+# ── MODELLI CHE RAGIONANO SEMPRE ──────────────────────────────────────────────
+# Alcune varianti (qwen3:4b nella build 2507 "Thinking") non hanno una modalita'
+# senza ragionamento. Con think=false Ollama non separa il ragionamento e lo
+# scrive dentro `content`: la risposta diventa "Okay, the user is saying..." e,
+# con max_tokens bassi, non arriva mai alla frase utile (verificato sulla mesh
+# pubblica il 2026-10-27). Per questi modelli il CP chiede think=true, cosi' il
+# ragionamento finisce nel suo campo, e non lo ricopia in `content`.
+# Ollama lo dichiara in /api/show: `thinking.values == [true]` (un modello
+# ibrido come qwen3:8b dichiara [false, true]). Override da env
+# THINKING_ONLY_MODELS (lista di pattern, "off" per disattivare il rilevamento).
+_THINKING_ONLY_OVERRIDE = os.getenv("THINKING_ONLY_MODELS", "")
+_THINKING_ONLY_CACHE: dict = {}
+_THINKING_ONLY_TTL_S = 600
+
+
+def _model_thinking_only(model_name: str) -> bool:
+    name = str(model_name or "").strip()
+    if not name:
+        return False
+    override = _THINKING_ONLY_OVERRIDE.strip().lower()
+    if override in {"off", "false", "none"}:
+        return False
+    if override:
+        patterns = [p.strip() for p in override.split(",") if p.strip()]
+        if patterns:
+            return any(p in name.lower() for p in patterns)
+    now = time.time()
+    cached = _THINKING_ONLY_CACHE.get(name)
+    if cached and now - cached[1] < _THINKING_ONLY_TTL_S:
+        return cached[0]
+    try:
+        import requests
+        from cp.config import OLLAMA_URL
+        r = requests.post(f"{OLLAMA_URL.rstrip('/')}/api/show", json={"model": name}, timeout=3)
+        thinking = (r.json() or {}).get("thinking") if r.ok else None
+        values = thinking.get("values") if isinstance(thinking, dict) else None
+        result = isinstance(values, list) and bool(values) and all(v is True for v in values)
+    except Exception:
+        # Ollama locale irraggiungibile o modello solo remoto: nessun cambio.
+        result = False
+    _THINKING_ONLY_CACHE[name] = (result, now)
+    return result
+
+
 def _tool_capability_reason(model_name: str) -> str:
     """Perche' questo modello riceve o non riceve i tool (diagnostica).
 

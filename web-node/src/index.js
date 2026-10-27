@@ -10,11 +10,12 @@ import { PROTOCOL_VERSION, parseTask, registrationPayload, resultPayload } from 
 import { detectCapabilities, describeEnvironment } from "./capabilities.js?v=1.05.4";
 import { TransportError, WebNodeTransport } from "./transport.js?v=1.05.4";
 import { TaskUnsupported, runTask, supportedTaskTypes } from "./task-runner.js?v=1.05.4";
+import { WorkerClient } from "./worker.js";
 import { ContactError, validateContactForm, sendContactMessage } from "./contact.js?v=1.05.4";
 import { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey, detectBridgeStatus } from "./auth.js?v=1.05.4";
 import { fetchTopology, sanitizeTopologyData } from "./topology.js?v=1.05.4";
 
-export { PROTOCOL_VERSION, TransportError, TaskUnsupported, supportedTaskTypes };
+export { PROTOCOL_VERSION, TransportError, TaskUnsupported, supportedTaskTypes, WorkerClient };
 export { detectCapabilities, describeEnvironment };
 export { ContactError, validateContactForm, sendContactMessage };
 export { AuthError, AuthManager, verifyAuthKey, getStoredAuthKey, setStoredAuthKey, clearStoredAuthKey, detectBridgeStatus };
@@ -29,13 +30,16 @@ export function newNodeId() {
 
 export class WebNode {
   constructor({ baseUrl, baseUrls, nodeId, label = "", consent = false, runtime = null,
+                capabilities = null, worker = null, useWorker = false, workerUrl = "./src/worker.js",
                 fetchImpl, env = globalThis, pollTimeoutS = 25, maxBackoffMs = 30000,
                 onState = null } = {}) {
     if (!consent) {
       throw new Error("consenso esplicito richiesto: nessuna risorsa viene condivisa senza");
     }
     this.nodeId = String(nodeId || newNodeId());
-    this.capabilities = detectCapabilities(env, { runtime });
+    this.capabilities = Array.isArray(capabilities) && capabilities.length
+      ? capabilities
+      : detectCapabilities(env, { runtime });
     this.environment = describeEnvironment(env);
     this.transport = new WebNodeTransport({ baseUrl, baseUrls, fetchImpl });
     this.registration = registrationPayload({
@@ -51,13 +55,31 @@ export class WebNode {
     this.onState = typeof onState === "function" ? onState : null;
     this.running = false;
     this.attempts = 0;
+
+    // Web Worker off-thread client
+    this.workerClient = null;
+    if (worker && (worker instanceof WorkerClient || typeof worker.runTask === "function")) {
+      this.workerClient = worker;
+    } else if (worker) {
+      this.workerClient = new WorkerClient({ worker, env });
+    } else if (useWorker) {
+      this.workerClient = new WorkerClient({ workerUrl, env });
+    }
+
     this.state = { running: false, nodeId: this.nodeId, capabilities: this.capabilities,
                    registered: false, lastTask: null, lastError: "", tasksDone: 0,
-                   tasksFailed: 0, lastResultAt: null };
+                   tasksFailed: 0, lastResultAt: null, workerActive: Boolean(this.workerClient) };
   }
 
   _emit() {
     if (this.onState) this.onState({ ...this.state });
+  }
+
+  async _executeTask(task) {
+    if (this.workerClient) {
+      return await this.workerClient.runTask(task);
+    }
+    return await runTask(task, { runtime: this.runtime });
   }
 
   async register() {
@@ -79,7 +101,7 @@ export class WebNode {
     this._emit();
     const startedAt = Date.now();
     try {
-      const result = await runTask(task, { runtime: this.runtime });
+      const result = await this._executeTask(task);
       await this.transport.sendResult(resultPayload({
         nodeId: this.nodeId, taskId: task.taskId, ok: true, result,
         durationMs: Date.now() - startedAt,
@@ -102,6 +124,10 @@ export class WebNode {
 
   async start() {
     if (this.running) return this.state;
+    if (this.workerClient && !this.workerClient.worker) {
+      this.workerClient.init();
+      this.state.workerActive = true;
+    }
     await this.register();
     this.running = true;
     this.state.running = true;
@@ -113,6 +139,10 @@ export class WebNode {
   stop() {
     this.running = false;
     this.state.running = false;
+    if (this.workerClient) {
+      this.workerClient.terminate();
+      this.state.workerActive = false;
+    }
     this._emit();
   }
 

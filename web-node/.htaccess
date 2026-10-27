@@ -10,6 +10,18 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 # Reindirizza link relativi erroneamente richiesti sotto /ai/ verso la radice
 RewriteRule ^ai/(token(\.html)?|join(\.html)?|chat(\.html)?|privacy(\.html)?|privacy-policy(\.html)?|deletion(\.html)?|data-deletion(\.html)?|progetto(\.html)?|docs/(.*)|src/(.*)|assets/(.*))$ /$1 [R=301,L]
 
+# URL puliti: la build copia ogni pagina in una cartella (join.html -> join/index.html),
+# e /join diventa /join/. Da lì i percorsi relativi della pagina (./src/index.js,
+# ./join-config.js, ./guide.html, il Web Worker ./src/worker.js) si risolvono dentro
+# la cartella e davano 404. Se il file chiesto non esiste nella cartella, si serve
+# quello della radice: le pagine con un redirect (l'indirizzo giusto resta visibile),
+# script, stili e immagini direttamente.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^[a-z0-9-]+/([a-z0-9-]+\.html)$ /$1 [R=301,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^[a-z0-9-]+/(.+)$ /$1 [L]
+
 # Supporto manifesto AI Agent in /.well-known/ai-agent.json
 RewriteRule ^\.well-known/ai-agent\.json$ /ai-agent.json [L]
 

@@ -1,0 +1,3337 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="00MESH 1.05: Portale Mesh, connettività wallet Phantom/Solflare, Proof-of-Useful-Work (PoUW), nodo WebGPU e Tokenomics $00MESH su Solana.">
+  <link rel="canonical" href="https://www.zerozerocomputer.it/mesh">
+  <!-- START HYPERSPACE SEO METADATA -->
+  <meta property="og:site_name" content="00MESH · HyperSpace AGI">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.zerozerocomputer.it/">
+  <meta property="og:title" content="00MESH 1.05 · Rete Neurale Decentralizzata & Tokenomics $00MESH">
+  <meta property="og:description" content="00MESH 1.05: Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun. Condividi calcolo ed esegui modelli AI sovrani senza censure.">
+  <meta property="og:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@ZeroZeroMesh">
+  <meta name="twitter:title" content="00MESH 1.05 · Rete Neurale Decentralizzata & Tokenomics $00MESH">
+  <meta name="twitter:description" content="00MESH 1.05: Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun. Condividi calcolo ed esegui modelli AI sovrani senza censure.">
+  <meta name="twitter:image" content="https://www.zerozerocomputer.it/og-image.png">
+  <meta name="author" content="ZeroZeroComputer · HyperSpace Sovereign Mesh">
+  <meta name="date" content="2026-10-25">
+  <meta name="last-modified" content="2026-10-25">
+  <meta property="article:published_time" content="2026-10-10T12:00:00+02:00">
+  <meta property="article:modified_time" content="2026-10-25T00:00:00+02:00">
+  <meta name="publish_date" property="og:publish_date" content="2026-10-10T12:00:00+02:00">
+  <!-- END HYPERSPACE SEO METADATA -->
+  <title>00MESH 1.05 · Rete Neurale Decentralizzata & Tokenomics $00MESH</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23070b18' stroke='%2357e6d9' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2357e6d9'/%3E%3C/svg%3E">
+  <link rel="alternate" type="application/rss+xml" title="00MESH News RSS Feed" href="/feed.xml">
+  <link rel="alternate" type="text/plain" title="LLMs & Autonomous AI Agents Discovery" href="/llms.txt">
+  <link rel="alternate" type="application/json" title="AI Agent Mesh Handshake Manifest" href="/.well-known/ai-agent.json">
+  <!-- Google Consent Mode v2 & AdSense (caricato SOLO previo consenso esplicito GDPR) -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
+    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
+    gtag('consent', 'default', {
+      'ad_storage': _consentState,
+      'ad_user_data': _consentState,
+      'ad_personalization': _consentState,
+      'analytics_storage': _consentState
+    });
+    function loadAdSenseAfterConsent() {
+      if (document.getElementById('adsense-script')) return;
+      const s = document.createElement('script');
+      s.id = 'adsense-script';
+      s.async = true;
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    }
+    if (_savedConsent === 'granted') {
+      loadAdSenseAfterConsent();
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b18;
+      --panel: #0d1428cc;
+      --card-bg: #0a1124;
+      --line: #263454;
+      --line-subtle: #19243c;
+      --text: #f4f6ff;
+      --muted: #9ba9c7;
+      --cyan: #57e6d9;
+      --cyan-glow: #57e6d988;
+      --violet: #9a7cff;
+      --solana: #9945ff;
+      --solana-green: #14f195;
+      --rose: #f693bd;
+      --ok: #70e6aa;
+      --bad: #ff8295;
+      --gold: #facc15;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 18% 4%, #253160 0, transparent 34%),
+                  radial-gradient(circle at 88% 18%, #38224c 0, transparent 29%),
+                  radial-gradient(circle at 50% 60%, #151f38 0, transparent 40%),
+                  var(--bg);
+    }
+    body:before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .22;
+      background-image: linear-gradient(#fff1 1px, transparent 1px), linear-gradient(90deg, #fff1 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, #000, transparent 75%);
+    }
+    main {
+      position: relative;
+      width: min(1080px, calc(100% - 32px));
+      margin: auto;
+      padding: 36px 0 64px;
+    }
+
+    /* Navbar */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 56px;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .brand {
+      display: flex;
+      gap: 11px;
+      align-items: center;
+      font-weight: 750;
+      letter-spacing: .02em;
+      text-decoration: none;
+      color: #fff;
+    }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #83fff0;
+      border-radius: 50%;
+      box-shadow: 0 0 24px #57e6d988;
+      position: relative;
+    }
+    .mark:after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 15px var(--cyan);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all .15s ease;
+    }
+    .nav-link:hover {
+      color: #fff;
+      background: #ffffff0d;
+    }
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 5px 11px;
+      font-size: 12px;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      border: 1px solid #70e6aa55;
+      background: #70e6aa15;
+      color: var(--ok);
+      box-shadow: 0 0 16px #70e6aa22;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 10px var(--ok);
+      animation: pulse-dot 2s cubic-bezier(.4, 0, .6, 1) infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.85)} }
+    .auth-btn {
+      width: auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #0d152a;
+      color: #dce3f7;
+      padding: 6px 15px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: none;
+      transition: all .2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .auth-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 16px #57e6d933;
+    }
+    .nav-cta-btn {
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      color: #08101d;
+      font-weight: 750;
+      border: 0;
+      border-radius: 999px;
+      padding: 7px 16px;
+      font-size: 12.5px;
+      text-decoration: none;
+      box-shadow: 0 4px 16px #57e6d933;
+      transition: all .2s ease;
+    }
+    .nav-cta-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.22fr) minmax(320px, .78fr);
+      gap: 48px;
+      align-items: center;
+      margin-bottom: 72px;
+    }
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 68px);
+      line-height: 1.02;
+      letter-spacing: -.05em;
+      margin: 14px 0 20px;
+      max-width: 760px;
+    }
+    .gradient {
+      background: linear-gradient(110deg, var(--cyan), #b2a1ff 55%, var(--rose));
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .solana-grad {
+      background: linear-gradient(110deg, var(--solana), var(--solana-green));
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      font-weight: 800;
+    }
+    .lead {
+      font-size: clamp(16px, 1.8vw, 19.5px);
+      color: #bec8df;
+      max-width: 650px;
+      margin: 0;
+      line-height: 1.55;
+    }
+    .trust {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .trust span:before {
+      content: "✓";
+      color: var(--ok);
+      margin-right: 7px;
+      font-weight: bold;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+    .hero-primary-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 24px;
+      border-radius: 12px;
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      color: #08101d;
+      font-weight: 750;
+      font-size: 14.5px;
+      text-decoration: none;
+      box-shadow: 0 10px 30px #57e6d933;
+      transition: all .2s ease;
+    }
+    .hero-primary-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 38px #57e6d955;
+    }
+    .hero-token-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 20px;
+      border-radius: 12px;
+      background: #140d2b;
+      border: 1px solid #7c3aed66;
+      color: #e9d5ff;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: 0 8px 24px #7c3aed22;
+      transition: all .2s ease;
+    }
+    .hero-token-btn:hover {
+      border-color: #a855f7;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px #7c3aed44;
+    }
+    .hero-secondary-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0d152a;
+      color: #dce3f7;
+      font-weight: 600;
+      font-size: 13.5px;
+      text-decoration: none;
+      transition: all .2s ease;
+    }
+    .hero-secondary-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+    .hero-bridge-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 20px;
+      border-radius: 12px;
+      background: linear-gradient(115deg, #10b981 0%, #06b6d4 100%);
+      color: #04131a;
+      font-weight: 750;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: 0 10px 30px #10b98133;
+      transition: all .2s ease;
+    }
+    .hero-bridge-btn:hover {
+      filter: brightness(1.12);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 38px #10b98155;
+    }
+
+    /* Chrome Extension Bridge Section */
+    .bridge-section {
+      background: linear-gradient(135deg, #0b1528 0%, #061c24 50%, #0b1426 100%);
+      border: 1px solid #10b98155;
+      border-radius: 24px;
+      padding: 36px;
+      margin-bottom: 48px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 60px #0008, 0 0 35px #10b98118;
+    }
+    .bridge-section:before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, #10b98125 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .bridge-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .bridge-header-text h3 {
+      font-size: clamp(20px, 2.4vw, 26px);
+      margin: 8px 0;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .bridge-header-text p {
+      color: #cbd5e1;
+      font-size: 14px;
+      max-width: 680px;
+      margin: 0;
+      line-height: 1.55;
+    }
+    .bridge-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      border: 1px solid #10b98166;
+      background: #10b98115;
+      color: #34d399;
+    }
+    .bridge-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .bridge-download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 26px;
+      border-radius: 12px;
+      background: linear-gradient(115deg, #10b981, #06b6d4);
+      color: #031418;
+      font-weight: 800;
+      font-size: 15px;
+      text-decoration: none;
+      box-shadow: 0 10px 28px #10b98144;
+      transition: all .2s ease;
+    }
+    .bridge-download-btn:hover {
+      filter: brightness(1.12);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px #10b98166;
+    }
+    .bridge-meta {
+      font-size: 11.5px;
+      color: var(--muted);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .bridge-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 24px;
+    }
+    .bridge-step-card {
+      background: #050b16aa;
+      border: 1px solid #1c2c48;
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      transition: all .2s ease;
+    }
+    .bridge-step-card:hover {
+      border-color: #10b98188;
+      transform: translateY(-2px);
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #10b98122;
+      border: 1px solid #10b98155;
+      color: #34d399;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .bridge-step-card h4 {
+      font-size: 15px;
+      color: #fff;
+      margin: 0 0 8px;
+    }
+    .bridge-step-card p {
+      margin: 0;
+      font-size: 12.5px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .bridge-step-card code {
+      background: #0f1c32;
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: var(--cyan);
+      font-size: 11.5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      border: 1px solid #203352;
+    }
+    .bridge-footer-banner {
+      margin-top: 22px;
+      padding: 14px 18px;
+      background: #06112088;
+      border: 1px solid #172a44;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: #94a3b8;
+    }
+    .bridge-footer-banner b {
+      color: #34d399;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: 0 28px 90px #0008;
+      backdrop-filter: blur(18px);
+    }
+    .card h2 { font-size: 21px; margin: 0 0 6px; }
+    .small { color: var(--muted); font-size: 13px; margin: 0; }
+    .field { margin-top: 18px; }
+    label { display: block; font-size: 13px; color: #c8d2e9; margin-bottom: 7px; font-weight: 500; }
+    input[type=text], input[type=email], input[type=password], textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #070b18;
+      color: var(--text);
+      border-radius: 11px;
+      padding: 12px 13px;
+      font: inherit;
+      outline: none;
+      transition: border-color .15s ease;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px #57e6d922;
+    }
+    .consent {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 10px;
+      align-items: start;
+      margin: 18px 0;
+      color: #d8def0;
+      font-size: 12.5px;
+    }
+    .consent input { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--violet); }
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font: 700 15px inherit;
+      color: #08101d;
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      cursor: pointer;
+      box-shadow: 0 10px 30px #7f7cff33;
+      transition: all .2s ease;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { cursor: not-allowed; filter: grayscale(.5); opacity: .48; }
+    .secondary {
+      margin-top: 10px;
+      color: #dce3f7;
+      background: transparent;
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+    .secondary:hover { border-color: var(--cyan); background: #0f1a34; }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      background: #080d1b;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #68738a;
+      box-shadow: 0 0 0 4px #68738a22;
+    }
+    .status.online .dot { background: var(--ok); box-shadow: 0 0 15px var(--ok); }
+    .status.error .dot { background: var(--bad); box-shadow: 0 0 15px var(--bad); }
+
+    /* Node & Token Metrics in Join Card */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .metric {
+      border: 1px solid #1b2742;
+      border-radius: 10px;
+      padding: 9px 8px;
+      text-align: center;
+      background: #070d1e;
+    }
+    .metric b { display: block; font-size: 16px; }
+    .metric span { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
+
+    .token-wallet-badge {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #130e28, #0e152e);
+      border: 1px solid #7c3aed55;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .token-balance-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .token-balance-val span {
+      font-size: 12px;
+      color: var(--solana-green);
+      font-weight: 700;
+    }
+
+    /* Access Gate Status inside Join Card */
+    .access-status-box {
+      background: #060b17;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 20px;
+      transition: all .25s ease;
+    }
+    .access-status-box.active-bridge {
+      border-color: #10b98188;
+      background: linear-gradient(135deg, #061c2488, #0b1426);
+      box-shadow: 0 0 24px #10b98122;
+    }
+    .access-status-box.active-key {
+      border-color: #57e6d988;
+      background: linear-gradient(135deg, #091f2c88, #0b1426);
+      box-shadow: 0 0 24px #57e6d922;
+    }
+    .access-status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .access-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 750;
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: .03em;
+    }
+    .access-badge.locked {
+      background: #3b1d2833;
+      border: 1px solid #f43f5e55;
+      color: #fda4af;
+    }
+    .access-badge.bridge {
+      background: #064e3b33;
+      border: 1px solid #10b98166;
+      color: #34d399;
+    }
+    .access-badge.key {
+      background: #0e3a4733;
+      border: 1px solid #06b6d466;
+      color: #38bdf8;
+    }
+    .access-chat-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 750;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all .2s ease;
+      box-sizing: border-box;
+    }
+    .access-chat-cta.bridge-btn {
+      background: linear-gradient(115deg, #10b981, #06b6d4);
+      color: #031418;
+      box-shadow: 0 8px 24px #10b98144;
+    }
+    .access-chat-cta.key-btn {
+      background: linear-gradient(115deg, var(--cyan), #ab91ff);
+      color: #08101d;
+      box-shadow: 0 8px 24px #57e6d944;
+    }
+    .access-chat-cta:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+    .access-gate-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .access-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #0a1122;
+      color: #dce3f7;
+      transition: all .15s ease;
+      width: 100%;
+      box-shadow: none;
+    }
+    .access-action-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+      background: #111a33;
+    }
+    .access-future-notice {
+      margin-top: 10px;
+      padding: 9px 11px;
+      background: #0d152a66;
+      border: 1px dashed #2a3c64;
+      border-radius: 9px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #94a3b8;
+    }
+
+    /* Section Headers */
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin: 92px 0 28px;
+    }
+    .section-head h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      letter-spacing: -.04em;
+      line-height: 1.1;
+      margin: 8px 0 0;
+    }
+    .section-head p {
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Tokenomics Grid Section */
+    .tokenomics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .token-card {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      transition: all .2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .token-card:hover {
+      border-color: #7c3aed88;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px #0008;
+    }
+    .token-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+      background: #141c38;
+      border: 1px solid #233458;
+    }
+    .token-card h3 {
+      font-size: 16px;
+      margin: 0 0 8px;
+      color: #fff;
+    }
+    .token-card p {
+      color: var(--muted);
+      font-size: 12.5px;
+      margin: 0;
+      line-height: 1.55;
+    }
+    .token-highlight {
+      font-weight: 750;
+      color: var(--cyan);
+    }
+
+    .tokenomics-banner {
+      background: linear-gradient(135deg, #110e28 0%, #0d1733 50%, #071526 100%);
+      border: 1px solid #7c3aed66;
+      border-radius: 20px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      box-shadow: 0 20px 60px #0006;
+    }
+    .tokenomics-banner-text h3 {
+      font-size: 20px;
+      margin: 0 0 6px;
+      color: #fff;
+    }
+    .tokenomics-banner-text p {
+      margin: 0;
+      color: #cbd5e1;
+      font-size: 13.5px;
+      max-width: 620px;
+    }
+    .tokenomics-banner-actions {
+      display: flex;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .pdf-download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      background: linear-gradient(115deg, #9945ff, #14f195);
+      color: #08101d;
+      font-weight: 750;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: 0 8px 24px #9945ff33;
+      transition: all .2s ease;
+    }
+    .pdf-download-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    /* AI Studio Showcase Section */
+    .studio-showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      background: #090f22;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 36px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .showcase-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0 28px;
+    }
+    .showcase-feat {
+      background: #060b18;
+      border: 1px solid #1a2744;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .showcase-feat b {
+      display: block;
+      font-size: 13.5px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .showcase-feat p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .showcase-visual {
+      background: #060a16;
+      border: 1px solid #233458;
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .mini-chat-bubble {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .mini-chat-bubble.user {
+      align-self: flex-end;
+      background: #231d42;
+      border: 1px solid #4a3e75;
+      color: #f1edff;
+      max-width: 85%;
+    }
+    .mini-chat-bubble.bot {
+      align-self: flex-start;
+      background: #0d1730;
+      border: 1px solid #1f3056;
+      color: #dce4f7;
+      max-width: 90%;
+    }
+
+    /* 3D Topology Grid */
+    .mesh-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(290px, .65fr);
+      gap: 16px;
+    }
+    .orbital {
+      position: relative;
+      min-height: 440px;
+      overflow: hidden;
+      padding: 0;
+      background: radial-gradient(circle at 50% 48%, #162447 0, transparent 48%), #080d1b;
+      border: 1px solid #233454;
+    }
+    .orbital canvas {
+      display: block;
+      width: 100%;
+      height: 440px;
+      cursor: crosshair;
+    }
+    .canvas-copy {
+      position: absolute;
+      left: 23px;
+      top: 20px;
+      pointer-events: none;
+    }
+    .canvas-copy b { display: block; font-size: 15px; letter-spacing: .03em; }
+    .canvas-copy span { color: var(--muted); font-size: 12px; }
+    .legend {
+      position: absolute;
+      bottom: 18px;
+      left: 23px;
+      display: flex;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 11px;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+    .legend span { display: inline-flex; align-items: center; }
+    .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .mesh-side { display: grid; gap: 12px; }
+    .signal {
+      padding: 20px;
+      transition: all .2s ease;
+      border: 1px solid var(--line);
+    }
+    .signal:hover {
+      border-color: #57e6d944;
+      box-shadow: 0 12px 30px #0008;
+      transform: translateY(-1px);
+    }
+    .signal .number {
+      font-size: 42px;
+      line-height: 1;
+      font-weight: 780;
+      letter-spacing: -.05em;
+    }
+    .signal p { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+    .model-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; }
+    .model-chip {
+      font-size: 10px;
+      border: 1px solid #334365;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #cbd6ef;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: #0d162a;
+    }
+    .model-chip.abliterated {
+      border-color: #9a7cff66;
+      background: #9a7cff18;
+      color: #e8ddff;
+      font-weight: 600;
+      box-shadow: 0 0 10px #9a7cff22;
+    }
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    .pill.live { color: var(--ok); border-color: #70e6aa55; background: #70e6aa0d; font-weight: 600; }
+    .pill.auth { color: var(--cyan); border-color: #57e6d955; background: #57e6d90d; font-weight: 600; }
+
+    /* Contact Form & Quick Access */
+    .contact-card { padding: 32px; margin-top: 10px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .req { color: var(--rose); }
+    .contact-actions { display: flex; align-items: center; gap: 18px; margin-top: 24px; flex-wrap: wrap; }
+    .contact-actions button { width: auto; min-width: 190px; }
+    .contact-status { font-size: 13px; color: var(--muted); transition: all .2s ease; }
+    .contact-status.ok {
+      color: var(--ok);
+      font-weight: 600;
+      padding: 8px 14px;
+      background: #70e6aa18;
+      border: 1px solid #70e6aa44;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    .contact-status.error {
+      color: var(--bad);
+      font-weight: 600;
+      padding: 8px 14px;
+      background: #ff829518;
+      border: 1px solid #ff829544;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    /* Details Section */
+    .details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 64px;
+    }
+    .detail {
+      border-top: 1px solid var(--line);
+      padding: 22px 6px;
+    }
+    .detail b { display: block; margin-bottom: 7px; font-size: 15px; color: #fff; }
+    .detail p { color: var(--muted); margin: 0; font-size: 13px; line-height: 1.55; }
+
+    /* Modal Autenticazione */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: #03060fbf;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 20px;
+    }
+    .modal-card { width: min(440px, 100%); padding: 26px; position: relative; box-shadow: 0 30px 100px #000c; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .close-btn { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px; width: auto; box-shadow: none; line-height: 1; }
+    .close-btn:hover { color: #fff; }
+    .auth-feedback { margin-top: 14px; padding: 10px 12px; border-radius: 10px; font-size: 13px; }
+    .auth-feedback.error { background: #38121a; border: 1px solid var(--bad); color: #ffc0cb; }
+    .auth-feedback.ok { background: #0d2e20; border: 1px solid var(--ok); color: #a8f5cf; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+
+    /* Footer Aziendale Zero Zero Computer */
+    .company-footer {
+      margin-top: 88px;
+      padding: 60px 0 32px;
+      border-top: 1px solid #1a2744;
+      background: #050914;
+    }
+    .footer-inner { width: min(1080px, calc(100% - 32px)); margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+    .footer-col h4 { color: #fff; font-size: 13.5px; margin: 0 0 16px; text-transform: uppercase; letter-spacing: .08em; font-weight: 750; }
+    .footer-col p { color: #9ba9c7; font-size: 13px; line-height: 1.65; margin: 0 0 8px; }
+    .footer-col a { color: #cbd5e1; text-decoration: none; transition: color .15s; }
+    .footer-col a:hover { color: var(--cyan); }
+    .footer-col ul { list-style: none; padding: 0; margin: 0; }
+    .footer-col ul li { margin-bottom: 10px; font-size: 13px; }
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 24px;
+      border-top: 1px solid #142038;
+      color: #6f7e9e;
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    @media (max-width: 960px) {
+      .tokenomics-grid { grid-template-columns: repeat(2, 1fr); }
+      .studio-showcase { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 850px) {
+      main { padding-top: 24px; }
+      .hero, .mesh-grid, .form-grid, .footer-grid { grid-template-columns: 1fr; gap: 36px; }
+      nav { margin-bottom: 44px; }
+      .section-head { align-items: start; flex-direction: column; margin-top: 65px; }
+      .details { grid-template-columns: 1fr; margin-top: 48px; }
+      .detail { padding: 17px 3px; }
+      .hero h1 { font-size: 44px; }
+      .orbital, .orbital canvas { height: 360px; min-height: 360px; }
+      .tokenomics-grid { grid-template-columns: 1fr; }
+      .showcase-features { grid-template-columns: 1fr; }
+      .bridge-steps-grid { grid-template-columns: 1fr; }
+      .bridge-header { flex-direction: column; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* Permanent Live News Bulletin & Platform Notice */
+    .news-bulletin-card {
+      background: linear-gradient(135deg, rgba(26, 14, 56, 0.92) 0%, rgba(13, 22, 46, 0.95) 50%, rgba(6, 28, 42, 0.92) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      border-radius: 18px;
+      padding: 18px 22px;
+      margin: 0 0 32px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+      position: relative;
+      overflow: hidden;
+    }
+    .news-bulletin-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #7c3aed, #57e6d9, #f43f5e);
+    }
+    .bulletin-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .bulletin-badges-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .bulletin-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(124, 58, 237, 0.5);
+    }
+    .bulletin-radar-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #57e6d9;
+      box-shadow: 0 0 8px #57e6d9;
+      display: inline-block;
+      animation: pulse-dot 1.8s infinite;
+    }
+    .platform-updating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .bulletin-meta-time {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .bulletin-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .bulletin-tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .bulletin-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    .bulletin-tab-btn.active {
+      background: rgba(87, 230, 217, 0.15);
+      border-color: #57e6d9;
+      color: #57e6d9;
+      font-weight: 700;
+    }
+    .bulletin-news-pane {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: rgba(3, 7, 18, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 18px;
+      animation: fadeInBulletin .25s ease-out;
+    }
+    .bulletin-news-pane.active {
+      display: flex;
+    }
+    @keyframes fadeInBulletin {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bulletin-news-body {
+      flex: 1;
+      min-width: 260px;
+    }
+    .bulletin-news-title {
+      font-size: 14px;
+      font-weight: 750;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .bulletin-news-desc {
+      font-size: 13px;
+      line-height: 1.55;
+      color: #cbd5e1;
+      margin: 0;
+    }
+    .bulletin-news-desc strong {
+      color: #57e6d9;
+    }
+    .bulletin-news-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 750;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all .15s;
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+    }
+    .bulletin-news-cta:hover {
+      background: #9333ea;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+    }
+    .bulletin-evolution-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 12px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px dashed rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #fde68a;
+    }
+    .is-hidden {
+      display: none !important;
+    }
+  </style>
+  <!-- START HYPERSPACE SCHEMA JSONLD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "00MESH · ZeroZeroComputer",
+  "url": "https://www.zerozerocomputer.it",
+  "logo": "https://www.zerozerocomputer.it/og-image.png",
+  "description": "Piattaforma di calcolo neurale decentralizzato, modelli AI sovrani e Proof-of-Useful-Work $00MESH con sede in Verbania (VB), Italia.",
+  "sameAs": [
+    "https://x.com/ZeroZeroMesh",
+    "https://t.me/ZeroZeroMesh",
+    "https://github.com/opodark",
+    "https://github.com/opodark/hyperspace-agi-1.05",
+    "https://www.wikidata.org/wiki/Special:Search/ZeroZeroComputer",
+    "https://it.wikipedia.org/wiki/DePIN",
+    "https://www.linkedin.com/company/zerozerocomputer",
+    "https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/",
+    "https://www.linkedin.com/in/guido-cipolla-329b48182/",
+    "https://solscan.io/token/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump",
+    "https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump"
+  ],
+  "founder": [
+    {
+      "@type": "Person",
+      "name": "Alberto Marinoni",
+      "jobTitle": "Fondatore, Sistemista Hardware & Architetto AI",
+      "sameAs": "https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/"
+    },
+    {
+      "@type": "Person",
+      "name": "Guido Cipolla",
+      "jobTitle": "Socio, Ingegnere di Rete & Revisionatore Codice HyperSpace",
+      "sameAs": "https://www.linkedin.com/in/guido-cipolla-329b48182/"
+    }
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "info@zerozerocomputer.it",
+    "contactType": "technical support"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "00MESH 1.05",
+  "url": "https://www.zerozerocomputer.it",
+  "description": "Rete neurale decentralizzata, Proof-of-Useful-Work (PoUW) e Tokenomics $00MESH su Solana/pump.fun.",
+  "datePublished": "2026-10-10",
+  "dateModified": "2026-10-25",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://www.zerozerocomputer.it/chat.html?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "00MESH",
+  "applicationCategory": "DistributedComputingApplication",
+  "operatingSystem": "macOS, Linux, Windows, Docker, WebBrowser",
+  "url": "https://www.zerozerocomputer.it",
+  "description": "Decentralized P2P AI inference mesh with work-stealing scheduling and cryptographic verification.",
+  "datePublished": "2026-10-10",
+  "dateModified": "2026-10-25",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Cos'è 00MESH?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "00MESH è un'infrastruttura di calcolo neurale decentralizzata e sovrana (DePIN) che consente di eseguire modelli di intelligenza artificiale avanzati condividendo potenza di calcolo tra computer peer-to-peer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Come funziona la Proof-of-Useful-Work (PoUW)?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "I nodi GPU (RTX 3070, RTX 5060, Apple Silicon) eseguono inferenze reali e validazione di compiti utili, ricevendo ricompense on-chain in token $00MESH."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Come si accede alla Chat Sovrana?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "È sufficiente aprire zerozerocomputer.it/chat.html oppure installare il plugin Chrome bridge per interagire in tempo reale con i modelli della rete."
+      }
+    }
+  ]
+}
+</script>
+  <!-- END HYPERSPACE SCHEMA JSONLD -->
+</head>
+<body>
+<main>
+  <!-- Navigazione Principale -->
+  <nav>
+    <a href="./" class="brand"><i class="mark"></i><span id="siteName">ZeroZeroComputer</span></a>
+    <div class="nav-actions">
+      <span class="live-badge"><i class="pulse-dot"></i><span id="navMeshStatus">MESH LIVE</span></span>
+      <a href="./" class="nav-link" style="color:#C6F432;font-weight:750;background:rgba(198,244,50,0.1);padding:4px 10px;border-radius:6px;border:1px solid rgba(198,244,50,0.35);" title="Manifesto Scientifico &amp; R&amp;D: Assiomi Aleksander, Endospore, Causal AI">🔬 Manifesto R&amp;D</a>
+      <a href="./chat.html" class="nav-link" style="color:#57e6d9;font-weight:700;">💬 Chat Sovrana</a>
+      <a href="./apps/playground/commercial.html" class="nav-link" style="color:#fbbf24;font-weight:750;" title="Soluzioni B2B, AI On-Premise & Appliance">💼 Soluzioni B2B</a>
+      <a href="./guide.html" class="nav-link" style="color:#38bdf8;font-weight:750;" title="Knowledge Hub: 7 Guide Tecniche su WebGPU, Reti Mesh e AST">📚 Guide Tecniche</a>
+      <a href="./chi-siamo.html" class="nav-link" title="La nostra storia dal 2003 a Verbania (VB)">🏢 Chi Siamo</a>
+      <a href="./contatti.html" class="nav-link" title="Recapiti ufficiali e assistenza tecnica">📬 Contatti</a>
+      <a href="./anna.html" class="nav-link" style="color:#a855f7;font-weight:750;" title="Testbench Neurale & Chatbot con le ultime feature di HyperSpace">🤖 Anna AI Testbench</a>
+      <a href="#chromeBridgeSection" class="nav-link">🔌 Estensione GPU</a>
+      <a href="./token.html" class="nav-link" style="color:#c084fc;font-weight:700;">🪙 $00MESH Token</a>
+      <a href="#chartSection" class="nav-link" style="color:#94a3b8;font-size:12px;">📈 Grafico</a>
+      <a href="#tokenomics" class="nav-link">🪙 Tokenomics</a>
+      <a href="#topology" class="nav-link">🌐 3D Mesh</a>
+      <a href="./progetto.html" class="nav-link">📖 Architettura</a>
+      <a href="#joinNodeCard" class="nav-link">⚡ Nodo Web</a>
+      <button id="openAuthModal" class="auth-btn" type="button">🔑 Chiave Rete</button>
+      <button id="navConnectPhantomBtn" class="auth-btn" type="button" style="background:linear-gradient(135deg, #5822b3, #8b5cf6); border-color:#a855f7; color:#fff; font-weight:700; cursor:pointer;" title="Connetti Phantom o Solflare per verificare i tuoi $00MESH">🟣 <span id="navPhantomBtnText">Collega Phantom</span></button>
+      <a href="./chat.html" class="nav-cta-btn">Apri Chat ↗</a>
+    </div>
+  </nav>
+
+  <!-- PERMANENT LIVE NEWS BULLETIN & PLATFORM EVOLUTION NOTICE -->
+  <aside class="news-bulletin-card" id="newsBulletin" aria-label="Bollettino Novità & Aggiornamenti Mesh">
+    <div class="bulletin-top-bar">
+      <div class="bulletin-badges-group">
+        <span class="bulletin-live-badge"><i class="bulletin-radar-dot"></i> LIVE NETWORK BULLETIN</span>
+        <span class="platform-updating-badge">🛠️ Piattaforma in Costante Aggiornamento</span>
+      </div>
+      <span class="bulletin-meta-time">Build in Public · HyperSpace 00MESH 1.05.6 (Live Mesh & SEO 100/100)</span>
+    </div>
+
+    <!-- Ticker / Quick Tab Selector -->
+    <div class="bulletin-tabs">
+      <button type="button" class="bulletin-tab-btn active" data-tab="0">💼 Soluzioni AI Sovrane B2B</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="1">💬 Dialoghi & SEO 100/100</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="2">🪙 Token $00MESH & PoUW</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="3">🧠 Modelli LFM 2.5 & Qwen</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="4">⚡ Nodo Web (WebGPU 1-Click)</button>
+      <button type="button" class="bulletin-tab-btn" data-tab="5">🔌 Estensione GPU Desktop</button>
+    </div>
+
+    <!-- News Pane 0: Soluzioni Sovrane B2B On-Premise -->
+    <div class="bulletin-news-pane active" id="paneNews0">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>💼 Soluzioni AI Sovrane On-Premise: Zero Canoni Cloud & Conformità GDPR Totale</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Potenza di calcolo locale, dati protetti in azienda e risparmio concreto:</strong> HyperSpace offre alle imprese, studi professionali, commercialisti e software house appliance e agenti autonomi eseguiti 100% on-premise su hardware dedicato. Elimina le fatture imprevedibili per token OpenAI/Microsoft e garantisci la riservatezza assoluta di contratti e bilanci in conformità con GDPR e AI Act europeo.
+        </p>
+      </div>
+      <a href="./apps/playground/commercial.html" class="bulletin-news-cta" style="background:#f59e0b;color:#000;font-weight:800;">Scopri Soluzioni B2B & Preventivi ↗</a>
+    </div>
+
+    <!-- News Pane 1: Dialoghi Agenti, TasteSkill & SEO 100/100 -->
+    <div class="bulletin-news-pane" id="paneNews1">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>💬 Dialoghi Multi-Agente a Fumetti, TasteSkill v2 & SEO 100/100</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Collaborazione cluster Mac M5 + HP OMEN:</strong> rilasciata la nuova interfaccia a vignette e fumetti interattivi per esplorare in tempo reale i log cognitivi tra agenti (senza blocchi JSON illeggibili). Integrato lo standard estetico <em>TasteSkill v2</em> e raggiunto il ranking perfetto <strong>100/100</strong> per motori di ricerca e crawler IA generativi (GEO).
+        </p>
+      </div>
+      <a href="./apps/playground/dialogues.html" class="bulletin-news-cta">Apri Dialoghi Agenti ↗</a>
+    </div>
+
+    <!-- News Pane 2: Token & Utility -->
+    <div class="bulletin-news-pane" id="paneNews2">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>🚀 Tokenomics & Calcolo Distribuito $00MESH (Solana SPL)</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Fair Launch su Pump.fun completato:</strong> fixed supply da 1B con 200M riservati alla community pool PoUW per ricompensare chi fornisce calcolo AI reale. <em>Nota: il volume delle prime 24h riflette le compravendite casuali del bot Mayhem, mentre il valore reale risiede nei nodi e nelle inferenze fornite.</em>
+        </p>
+      </div>
+      <a href="./token.html" class="bulletin-news-cta">Trasparenza Token & Roadmap ↗</a>
+    </div>
+
+    <!-- News Pane 3: Modelli Sovrani -->
+    <div class="bulletin-news-pane" id="paneNews3">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>🧠 Attivato Liquid Foundation Model (LFM 2.5 8B) & Qwen 3.5</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Aggiornamento catalogo neurale:</strong> dismesso Bonsai 2 in favore di <strong>LFM 2.5 8B DuoNeural</strong> abliterated (latenza 4.68s su HP OMEN e Mac M-Series), affiancato da sintesi ComfyUI e ricerca live SearXNG senza censure.
+        </p>
+      </div>
+      <a href="./ai.html" class="bulletin-news-cta">Accedi all'AI Studio ↗</a>
+    </div>
+
+    <!-- News Pane 4: WebGPU Browser Node -->
+    <div class="bulletin-news-pane" id="paneNews4">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>⚡ Diventa un Nodo dal Browser in 1 Clic (Zero Installazioni)</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Mining ecologico Proof-of-Useful-Work:</strong> apri la scheda di calcolo nel browser per validare micro-task ed estrazioni documentali client-side con WebGPU, accumulando punti computazionali $00MESH verificabili su registro crittografico.
+        </p>
+      </div>
+      <a href="./join.html" class="bulletin-news-cta">Accendi Nodo Web ↗</a>
+    </div>
+
+    <!-- News Pane 5: Desktop GPU Extension -->
+    <div class="bulletin-news-pane" id="paneNews5">
+      <div class="bulletin-news-body">
+        <div class="bulletin-news-title">
+          <span>🔌 Connetti la tua GPU Locale via Ollama o LM Studio</span>
+        </div>
+        <p class="bulletin-news-desc">
+          <strong>Infrastruttura peer-to-peer crittografata:</strong> connettore E2EE locale per schede NVIDIA, AMD o Apple Silicon. Instrada le richieste di inferenza della community e guadagna ricompense PoUW con moltiplicatori 1.5x–3.0x.
+        </p>
+      </div>
+      <a href="#chromeBridgeSection" class="bulletin-news-cta">Scopri Estensione GPU ↓</a>
+    </div>
+
+    <!-- Avviso permanente di costante aggiornamento -->
+    <div class="bulletin-evolution-footer">
+      <span>⚙️</span>
+      <div>
+        <strong>Piattaforma in costante aggiornamento:</strong> Zero Zero Computer sviluppa in modalità <em>Build-in-Public</em> (dal 2003 · Verbania, VB). Modelli neurali, gateway di federazione e contratti Solana evolvono quotidianamente in risposta ai contributi della community e ai carichi di rete.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Hero Section -->
+  <div class="hero">
+    <section>
+      <div class="eyebrow">00MESH 1.05 · Sovereign AI Mesh & Solana Tokenomics</div>
+      <h1>Intelligenza Sovrana.<br><span class="gradient">Calcolo Condiviso. Ricompense $00MESH.</span></h1>
+      <p class="lead">Un'infrastruttura neurale decentralizzata peer-to-peer per l'inferenza di modelli linguistici e vision sovrani. Condividi calcolo web-safe, valida task con Proof-of-Useful-Work e accumula punti computazionali $00MESH per la community pool su pump.fun.</p>
+
+      <div class="trust">
+        <span>Modelli Abliterated Senza Filtri</span>
+        <span>Proof-of-Useful-Work (PoUW)</span>
+        <span>Liquidità su Solana / pump.fun</span>
+        <span style="border-color:rgba(245, 158, 11, 0.45); color:#fde68a;">🛠️ Piattaforma in Costante Aggiornamento</span>
+      </div>
+
+      <div class="hero-actions">
+        <a href="./chat.html" class="hero-primary-btn">
+          💬 Apri Chat Estesa ↗
+        </a>
+        <a href="./anna.html" class="hero-primary-btn" style="background:linear-gradient(135deg, #4f46e5, #a855f7); border-color:#818cf8;">
+          🤖 Anna Neural Testbench (Live Flow) ↗
+        </a>
+        <a href="#chromeBridgeSection" class="hero-bridge-btn">
+          🔌 Estensione Chrome (Ollama/LM Studio) ↓
+        </a>
+        <a href="./docs/00mesh-guida-rapida.pdf" target="_blank" class="hero-secondary-btn" style="border-color:#38bdf866;color:#e0f2fe;">
+          📘 Guida Rapida & Tool (PDF) ↗
+        </a>
+        <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="hero-token-btn">
+          📜 Whitepaper Tokenomics (PDF) ↗
+        </a>
+        <a href="#joinNodeCard" class="hero-secondary-btn">
+          ⚡ Accesso Mesh & Nodo Web ↓
+        </a>
+      </div>
+    </section>
+
+    <!-- Card Collegamento Nodo Web & Accesso Rete Sovrana -->
+    <section class="card" id="joinNodeCard" aria-labelledby="joinTitle">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
+        <h2 id="joinTitle" style="margin:0;">Accesso Mesh & Calcolo Sovrano</h2>
+        <span class="live-badge" style="font-size:10.5px;padding:3px 10px;" id="nodeCardGlobalBadge">
+          <i class="pulse-dot"></i><span id="nodeCardGlobalBadgeText">Verifica Accesso…</span>
+        </span>
+      </div>
+      <p class="small" style="margin-bottom:16px;">La Chat Sovrana unificata è attiva per i nodi che forniscono calcolo neurale (Plugin Chrome) o utenti con Chiave di Rete.</p>
+
+      <!-- Banner Riconoscimento VIP Holder (Visibile quando connesso) -->
+      <div id="vipHolderBanner" hidden aria-hidden="true" style=" margin:12px 0 16px; padding:14px 16px; background:linear-gradient(135deg, rgba(88,34,179,0.35), rgba(6,182,212,0.18)); border:1px solid #a855f7; border-radius:12px; box-shadow:0 0 25px rgba(168,85,247,0.25);">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:26px;">💎</span>
+            <div>
+              <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+                RUOLO: <span style="color:#57e6d9; background:#57e6d922; padding:2px 8px; border-radius:6px; border:1px solid #57e6d955; font-size:11px; font-weight:800;">HOLDER VIP</span>
+                <span id="vipWalletShort" style="color:#c084fc; font-family:monospace; font-size:12px;"></span>
+              </div>
+              <div style="font-size:12px; color:#cbd5e1; margin-top:3px;">
+                Saldo Verificato: <b id="vipTokenAmount" style="color:#57e6d9; font-size:13px;"></b> <span style="color:#57e6d9;">$00MESH</span> on-chain · Accesso prioritario attivo!
+              </div>
+            </div>
+          </div>
+          <a href="./chat.html" class="hero-primary-btn" style="padding:7px 16px; font-size:12px; text-decoration:none;">
+            💬 Apri Chat Sovrana VIP ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- Box Stato Accesso Dinamico (Bridge / Chiave / Locked) -->
+      <div id="accessStatusBox" class="access-status-box">
+        <div class="access-status-header">
+          <span style="font-size:12px;font-weight:700;color:#e2e8f0;">Stato Chat Sovrana:</span>
+          <span id="accessStatusBadge" class="access-badge locked">🔒 Riservato ai Nodi & Chiavi</span>
+        </div>
+        <p id="accessStatusDesc" style="font-size:12px;color:var(--muted);margin:0;line-height:1.5;">
+          Per accedere alla chat sovrana attiva l'estensione Chrome GPU (Ollama/LM Studio) o inserisci una chiave di rete valida.
+        </p>
+
+        <!-- CTA se autorizzato (mostrato quando bridge o key attivo) -->
+        <div id="accessAuthorizedSection" hidden aria-hidden="true" style="margin-top:10px;">
+          <a href="./chat.html" id="accessChatBtn" class="access-chat-cta key-btn">
+            💬 Apri Chat Estesa Sovrana ↗
+          </a>
+        </div>
+
+        <!-- Azioni se NON autorizzato -->
+        <div id="accessUnauthorizedSection" style="display:block;">
+          <div class="access-gate-actions">
+            <a href="#chromeBridgeSection" class="access-action-btn">
+              🔌 Estensione Chrome GPU
+            </a>
+            <button type="button" id="cardAuthModalBtn" class="access-action-btn">
+              🔑 Chiave di Rete
+            </button>
+          </div>
+          <!-- Nota Trasparenza Pubblicità & Chat Pubblica -->
+          <div class="access-future-notice">
+            📢 <b>Chat Pubblica Gratuita in Arrivo:</b> Stiamo integrando il circuito pubblicitario AdSense. Non appena le entrate o le pool comunitarie copriranno i costi dei server di inferenza, la chat estesa sarà aperta liberamente a tutti.
+          </div>
+        </div>
+      </div>
+
+      <!-- Sezione Nodo Web Browser & Mining PoUW $00MESH -->
+      <div style="border-top:1px solid var(--line-subtle);padding-top:16px;margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:13px;font-weight:700;color:#fff;">Ospita un Nodo Web (Browser)</span>
+          <span class="pill auth" style="font-size:10px;">PoUW Reward</span>
+        </div>
+        <p class="small" style="margin-bottom:12px;">Condividi compiti web-safe (routing, embedding) dal tuo browser e accumula punti computazionali $00MESH.</p>
+
+        <div class="field" style="margin-top:10px;">
+          <label for="nodeLabel">Nome del dispositivo</label>
+          <input id="nodeLabel" type="text" maxlength="80" placeholder="es. MacBook Pro di Alberto">
+        </div>
+
+        <div class="field" style="margin-top:10px;">
+          <label for="solanaAddress">Indirizzo Solana per Snapshot (Firma Ed25519 obbligatoria)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="solanaAddress" type="text" maxlength="44" placeholder="es. Phantom / Solflare wallet…" style="flex:1;">
+            <button id="connectSolanaBtn" type="button" class="secondary" style="width:auto;margin:0;padding:11px 12px;font-size:12px;white-space:nowrap;" title="Connetti e firma con Phantom o Solflare">🟣 Firma Wallet</button>
+          </div>
+          <div id="walletSignStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+        </div>
+
+        <label class="consent" style="margin:14px 0 10px;">
+          <input id="consent" type="checkbox">
+          <span>Acconsento a condividere capacità web-safe (calcolo, embedding, routing) con la mesh HyperSpace durante la navigazione.</span>
+        </label>
+
+        <label class="consent" style="margin:0 0 12px; display:flex; align-items:flex-start; gap:8px;">
+          <input id="enableWebGpuWorker" type="checkbox" style="margin-top:3px;">
+          <span>
+            <strong>⚡ Accelerazione Neurale WebGPU (Web Worker dedicato)</strong>: esegue i compiti off-thread preservando 60 FPS e sblocca la capability <code>embed_texts</code> per task di frontiera e ricompense PoUW.
+          </span>
+        </label>
+        <div id="webGpuStatusBadge" style="font-size:11.5px;color:var(--muted);margin:-6px 0 14px 24px;display:none;"></div>
+
+        <button id="join" disabled>Entra nella mesh & Inizia Mining</button>
+        <button id="leave" class="secondary" disabled>Disconnetti nodo</button>
+
+        <div id="status" class="status" role="status">
+          <i class="dot"></i><span id="statusText">Pronto a collegarsi</span>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><b id="completed">0</b><span>task eseguiti</span></div>
+          <div class="metric"><b id="failed">0</b><span>task falliti</span></div>
+          <div class="metric"><b id="capCount">—</b><span>capacità web</span></div>
+        </div>
+
+        <!-- Saldo $00MESH Wallet Autoritativo -->
+        <div class="token-wallet-badge">
+          <div>
+            <span style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700;">Saldo Reward PoUW:</span>
+            <div class="token-balance-val" id="nodeTokenBalance">0.00 <span>$00MESH</span></div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:10.5px; color:#a855f7; font-weight:700; display:block;">+50 $00MESH Onboarding</span>
+            <span style="font-size:10px; color:var(--muted);">Solana SPL pump.fun</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SEZIONE HARDWARE BRIDGE: ESTENSIONE CHROME (OLLAMA / LM STUDIO) -->
+  <section class="bridge-section" id="chromeBridgeSection" aria-labelledby="bridgeTitle">
+    <div class="bridge-header">
+      <div class="bridge-header-text">
+        <div class="bridge-badge">🔌 00MESH Chrome Extension Bridge · v1.0.0</div>
+        <h3 id="bridgeTitle">Collega la tua GPU Locale alla Rete con 1 Click</h3>
+        <p>Hai <strong>Ollama</strong> o <strong>LM Studio</strong> installato sul tuo computer? Questa estensione Chrome si connette direttamente al tuo runtime locale (porte <code>11434</code> / <code>1234</code>) ed esegue inferenze per la rete 00MESH senza richiedere porte aperte sul router o configurazioni complesse. Guadagna punti <strong>Proof-of-Useful-Work ($00MESH)</strong> sfruttando la tua scheda video in idle.</p>
+      </div>
+      <div class="bridge-actions">
+        <a href="./assets/00mesh-chrome-bridge.zip" download="00mesh-chrome-bridge.zip" class="bridge-download-btn">
+          ⬇️ Scarica Estensione (.zip)
+        </a>
+        <div class="bridge-meta">
+          <span>📦 v1.0.0 (12 KB)</span>
+          <span>🛡️ Manifest V3</span>
+          <span>🌐 Chrome / Brave / Edge</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini-Guida in 3 Passi -->
+    <div class="bridge-steps-grid">
+      <div class="bridge-step-card">
+        <div class="step-num">1</div>
+        <h4>Scarica ed Estrai</h4>
+        <p>Scarica l'archivio <code>00mesh-chrome-bridge.zip</code> e decomprimilo in una cartella permanente del tuo computer (es. nella cartella Documenti).</p>
+      </div>
+
+      <div class="bridge-step-card">
+        <div class="step-num">2</div>
+        <h4>Apri chrome://extensions</h4>
+        <p>Nel browser Chrome, Brave o Edge digita <code>chrome://extensions/</code> nella barra degli indirizzi e attiva la levetta <strong>"Modalità sviluppatore"</strong> (in alto a destra).</p>
+      </div>
+
+      <div class="bridge-step-card">
+        <div class="step-num">3</div>
+        <h4>Carica & Connetti</h4>
+        <p>Clicca sul pulsante <strong>"Carica estensione non pacchettizzata"</strong> e seleziona la cartella estratta. Clicca sull'icona 00MESH nella barra del browser: rileverà Ollama o LM Studio e inizierà a minare!</p>
+      </div>
+    </div>
+
+    <div class="bridge-footer-banner">
+      <div>
+        ⚡ <b>Rilevamento Automatico:</b> Rileva automaticamente <code>Llama 3</code>, <code>Qwen</code>, <code>Mistral</code>, <code>DeepSeek</code> e qualsiasi modello attivo.
+      </div>
+      <div>
+        🔒 <b>Privacy Sovrana:</b> I pesi e l'inferenza girano al 100% sulla tua macchina locale. Nessuna telemetria invasiva.
+      </div>
+    </div>
+  </section>
+
+  <!-- Spazio Pubblicitario Leaderboard Google AdSense -->
+  <div class="ad-slot-wrap" style="max-width:960px; margin:28px auto 12px; padding:12px; background:rgba(11,17,36,0.6); border:1px dashed rgba(148,163,184,0.25); border-radius:14px; text-align:center;">
+    <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; display:block; margin-bottom:8px;">Annuncio Pubblicitario · Sostiene la Rete Decentralizzata</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-4726342205200791"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+
+  <!-- SEZIONE IN EVIDENZA: $00MESH TOKENOMICS -->
+  <div class="section-head" id="tokenomics">
+    <div>
+      <div class="eyebrow">Proof-of-Useful-Work & Token Economy</div>
+      <h2>La Tokenomics di 00MESH ($00MESH)</h2>
+    </div>
+    <p>1.000.000.000 di token a offerta fissa standard Solana/pump.fun. Nessuna inflazione arbitraria. 200.000.000 di $00MESH (20%) riservati interamente ai nodi e alla comunità che sostiene il calcolo.</p>
+  </div>
+
+  <div class="tokenomics-grid">
+    <div class="token-card">
+      <div class="token-card-icon">💎</div>
+      <h3>Fixed Supply: 1B $00MESH</h3>
+      <p>Nessuna diluizione. Ripartizione trasparente standard pump.fun: <span class="token-highlight">70% Bonding Curve & Fair Launch (700M)</span>, <span class="token-highlight">20% Community Mining PoUW (200M)</span>, 10% Core Dev & Ecosistema con vesting (100M).</p>
+    </div>
+
+    <div class="token-card">
+      <div class="token-card-icon">⚡</div>
+      <h3>Proof-of-Useful-Work (PoUW)</h3>
+      <p>I token non vengono sprecati in hash inutili, ma distribuiti a chi compie inferenze reali di modelli linguistici, sintesi immagini ComfyUI, embedding vettoriale e compiti agentici.</p>
+    </div>
+
+    <div class="token-card">
+      <div class="token-card-icon">🚀</div>
+      <h3>Bonus Onboarding & Moltiplicatori</h3>
+      <p><span class="token-highlight">+50 $00MESH di benvenuto</span> all'associazione del nodo/wallet. Moltiplicatori 1.5x–3.0x per task con modelli pesanti (Bonsai 2 / MoE) e ricompense per l'uptime orario.</p>
+    </div>
+
+    <div class="token-card">
+      <div class="token-card-icon">🟣</div>
+      <h3>Fair Launch su pump.fun (Solana)</h3>
+      <p>Transazioni ultra-rapide e a costo quasi nullo su Solana SPL. Snapshot periodici dei nodi registrati per distribuire la pool di liquidità a chi partecipa realmente al calcolo.</p>
+    </div>
+  </div>
+
+  <!-- Banner Whitepaper PDF -->
+  <div class="tokenomics-banner">
+    <div class="tokenomics-banner-text">
+      <h3>📄 Whitepaper Ufficiale 00MESH Tokenomics</h3>
+      <p>Consulta il documento completo di 3 pagine con le tabelle di emissione PoUW, i moltiplicatori di carico, le formule matematiche e il piano di liquidità su Solana / pump.fun.</p>
+    </div>
+    <div class="tokenomics-banner-actions">
+      <a href="./docs/hyperspace-tokenomics.pdf" target="_blank" class="pdf-download-btn">
+        Scarica Whitepaper (PDF) ↗
+      </a>
+    </div>
+  </div>
+
+  <!-- Disclaimer Legale & MiCA -->
+  <div class="token-legal-disclaimer" style="margin-top:16px; padding:16px 20px; background:#0b1329; border:1px solid #1e293b; border-radius:12px; font-size:12px; color:#94a3b8; line-height:1.6;">
+    <b style="color:#f8fafc;">⚠️ Disclaimer Legale & Conformità Regolamentare (MiCA / UE 2023/1114):</b><br/>
+    $00MESH è un utility token sperimentale e un sistema di punti computazionali a supporto della ricerca distribuita Proof-of-Useful-Work. Non costituisce strumento finanziario, investimento speculativo, quota societaria o promessa di rendimento futuro. Questo progetto è in fase testnet sperimentale. Consultare un consulente legale prima di qualunque operazione su blockchain.
+  </div>
+
+  <!-- SEZIONE GRAFICO LIVE & TRADING HUB $00MESH -->
+  <div class="section-head" id="chartSection">
+    <div>
+      <div class="eyebrow">Solana SPL · pump.fun Live Stream</div>
+      <h2>Quotazione $00MESH & Grafico in Tempo Reale</h2>
+    </div>
+    <p>Monitora candele TradingView, volumi e capitalizzazione di $00MESH in diretta streaming via DexScreener. Il token della sovereign compute mesh.</p>
+  </div>
+
+  <div class="token-card" style="margin-top:16px; border:1px solid #1e293b; background:#070d1e;">
+    <!-- Nota Trasparenza Mayhem Mode sopra il Grafico -->
+    <div style="background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+        <span style="background:#7c3aed; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; text-transform:uppercase;">Nota Mayhem Mode (Prime 24h)</span>
+        <strong style="color:#57e6d9;">Volume Bot vs Domanda Reale</strong>
+      </div>
+      Il lancio in Mayhem Mode prevede un bot di Pump.fun che compra e vende nelle prime 24 ore gonfiando volatilità e volume iniziale: questo crea rumore e candele erratiche nel grafico sottostante. Non valutare $00MESH come un memecoin da speculazione rapida: la misura reale di $00MESH sono i nodi computazionali collegati e i task AI completati. <a href="./token.html" style="color:#57e6d9; text-decoration:underline; font-weight:700;">Leggi la pagina trasparenza token & roadmap ↗</a>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">Contract Address (CA):</span>
+        <code id="caAddressText" style="background:#030712; padding:6px 10px; border-radius:8px; border:1px solid #1f2937; color:#57e6d9; font-size:13px; font-family:monospace; word-break:break-all;">CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump</code>
+        <button type="button" id="copyCaBtn" class="secondary" style="padding:6px 12px; font-size:11.5px; margin:0; cursor:pointer;" title="Copia Contract Address">📋 Copia CA</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="https://pump.fun/coin/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" rel="noopener noreferrer" class="hero-primary-btn" style="padding:8px 16px; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+          🚀 Trade su pump.fun ↗
+        </a>
+        <a href="https://dexscreener.com/solana/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump" target="_blank" rel="noopener noreferrer" class="hero-secondary-btn" style="padding:8px 16px; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+          🦅 DexScreener ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- DexScreener Live Embed -->
+    <div style="position:relative; width:100%; height:550px; border-radius:12px; overflow:hidden; border:1px solid #1e293b; background:#070b18;">
+      <iframe
+        src="https://dexscreener.com/solana/CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump?embed=1&theme=dark&trades=0&info=0"
+        style="position:absolute; width:100%; height:100%; top:0; left:0; border:0;"
+        title="00MESH Live Price Chart"
+        loading="lazy"
+      ></iframe>
+    </div>
+  </div>
+
+  <!-- SEZIONE SHOWCASE: AI STUDIO (ZERO WEBGPU, 100% MESH) -->
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Sovereign Studio · Accesso Pubblico</div>
+      <h2>AI Studio: Nessun download, tutta la potenza Mesh.</h2>
+    </div>
+    <p>Non serve scaricare gigabyte di modelli sul tuo dispositivo o avere schede video costose: l'inferenza viene servita dai nodi GPU sovrani della mesh HyperSpace.</p>
+  </div>
+
+  <div class="studio-showcase">
+    <div>
+      <span class="pill live" style="margin-bottom:12px;">Disponibile Gratis</span>
+      <h3 style="font-size:26px; margin:10px 0 12px; color:#fff;">Tutti gli strumenti AI in un'unica interfaccia sovrana.</h3>
+      <p style="color:var(--muted); font-size:14px; line-height:1.6; margin:0 0 18px;">
+        AI Studio mette a disposizione la potenza dei modelli sovrani open source ed abliterated serviti direttamente dai nodi della rete decentralizzata 00MESH, senza censure e senza abbonamenti centralizzati.
+      </p>
+
+      <div class="showcase-features">
+        <div class="showcase-feat">
+          <b>💬 Chat Senza Censure</b>
+          <p>Modelli abliterated che rispondono senza declinazioni di bias ideologico o blocchi corporate.</p>
+        </div>
+        <div class="showcase-feat">
+          <b>🎨 Generazione Immagini</b>
+          <p>Sintesi visiva istantanea digitando <code>/image</code> direttamente nella console di chat.</p>
+        </div>
+        <div class="showcase-feat">
+          <b>🔍 Ricerca Web Live</b>
+          <p>Integrazione con SearXNG per sintetizzare notizie e dati in tempo reale con fonti citate.</p>
+        </div>
+        <div class="showcase-feat">
+          <b>📄 Analisi Documenti</b>
+          <p>Trascina file PDF, TXT o Markdown per interrogare ed estrarre informazioni istantaneamente.</p>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="./chat.html" class="hero-primary-btn" style="padding:12px 22px;">
+          💬 Apri Chat Sovrana Estesa ↗
+        </a>
+        <a href="#chromeBridgeSection" class="hero-secondary-btn" style="padding:12px 18px;">
+          🔌 Collega la tua GPU Locale ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Mockup grafico interattivo -->
+    <div class="showcase-visual">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1a2744; padding-bottom:10px;">
+        <span style="font-size:12px; font-weight:700; color:var(--cyan);">✦ AI STUDIO PREVIEW</span>
+        <span class="pill" style="font-size:10px;">qwen3-8b-abliterated</span>
+      </div>
+      <div class="mini-chat-bubble user">
+        Cos'è la Proof-of-Useful-Work e come accumulo $00MESH?
+      </div>
+      <div class="mini-chat-bubble bot">
+        La <b>Proof-of-Useful-Work (PoUW)</b> premia i nodi che forniscono reale calcolo alla mesh (inferenze LLM, embedding o routing). A ogni task completato maturi punti computazionali <b>$00MESH</b> registrati nel ledger del Control Plane per la community pool su pump.fun, oltre al bonus di benvenuto di +50 $00MESH al collegamento del wallet!
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <span class="tag" style="font-size:11px;">/image prompt</span>
+        <span class="tag" style="font-size:11px;">/search query</span>
+        <span class="tag" style="font-size:11px;">📄 PDF extraction</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE TOPOLOGIA 3D LIVE -->
+  <div class="section-head" id="topology">
+    <div>
+      <div class="eyebrow">Live 3D Topology · Mesh Telemetry</div>
+      <h2>La mesh reale, a colpo d’occhio.</h2>
+    </div>
+    <p>Visualizzazione orbitale isometrica 3D sincronizzata dal vivo con i nodi attivi: ogni orbita rappresenta una macchina GPU con i suoi modelli e VRAM.</p>
+  </div>
+
+  <section class="mesh-grid">
+    <div class="card orbital">
+      <canvas id="meshCanvas" aria-label="Visualizzazione animata della mesh"></canvas>
+      <div class="canvas-copy">
+        <b>HyperSpace 3D Topology</b>
+        <span id="meshFreshness">in attesa della telemetria dal vivo…</span>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--cyan);box-shadow:0 0 9px var(--cyan)"></i> Control Plane</span>
+        <span><i style="background:#83fff0;box-shadow:0 0 9px #83fff0"></i> Nodi GPU attivi</span>
+        <span><i style="background:var(--violet);box-shadow:0 0 9px var(--violet)"></i> Modelli serviti</span>
+        <span><i style="background:var(--ok);box-shadow:0 0 9px var(--ok)"></i> Cluster Browser</span>
+      </div>
+    </div>
+    <div class="mesh-side">
+      <div class="card signal">
+        <div class="number" id="machineCount">—</div>
+        <p>macchine GPU attive nella mesh</p>
+      </div>
+      <div class="card signal">
+        <div class="number" id="modelCount">—</div>
+        <p>modelli disponibili in inferenza</p>
+        <div class="model-strip" id="modelStrip"></div>
+      </div>
+      <div class="card signal">
+        <span class="pill" id="meshHealth">connessione in corso…</span>
+        <p id="meshNote">La topologia si aggiorna in tempo reale dalla rete.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Punti di Forza e Garanzie -->
+  <section class="details">
+    <div class="detail">
+      <b>Consenso Reversibile</b>
+      <p>Nessun collegamento automatico o processo fantasma. Puoi uscire dalla mesh in qualsiasi momento o chiudere la scheda del browser.</p>
+    </div>
+    <div class="detail">
+      <b>Calcolo Web-Safe & Privacy</b>
+      <p>Il control plane assegna solo micro-task compatibili col browser, sandboxed e senza mai accedere ai file del tuo computer.</p>
+    </div>
+    <div class="detail">
+      <b>Punti Computazionali PoUW ($00MESH)</b>
+      <p>Ogni operazione eseguita correttamente genera evidenze crittografiche utili per la ripartizione dei token della community pool su pump.fun.</p>
+    </div>
+  </section>
+
+  <!-- Sezione Form di Contatto & Richiesta Chiave -->
+  <div class="section-head" id="contactSection">
+    <div>
+      <div class="eyebrow">Contatto & Supporto Tecnico</div>
+      <h2>Entra in contatto con noi.</h2>
+    </div>
+    <p>Vuoi integrare un nodo GPU dedicato, accedere via API alle nostre inferenze o richiedere una chiave di rete riservata? Scrivici direttamente.</p>
+  </div>
+
+  <section class="card contact-card" aria-labelledby="contactTitle">
+    <!-- Box rapido accesso con chiave di rete già in possesso -->
+    <div style="margin-bottom:28px; padding:22px; background:#080e1e; border:1px solid #233454; border-radius:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div style="max-width:440px;">
+        <b style="display:block; font-size:15px; color:#fff; margin-bottom:4px;">🔑 Hai già ricevuto la tua Chiave di Rete?</b>
+        <p style="margin:0; font-size:13px; color:var(--muted);">Inserisci la tua chiave per accedere istantaneamente alla Console Chat Full-Screen con i modelli della mesh.</p>
+      </div>
+      <div style="display:flex; gap:10px; width:min(440px, 100%);">
+        <input id="quickAuthKey" type="password" placeholder="es. hs-mesh-nome-xxxx" autocomplete="current-password" style="flex:1; border:1px solid #233454; background:#060a15; color:#fff; border-radius:10px; padding:11px 13px; font:inherit; font-size:13px; outline:none;">
+        <button id="quickAuthSubmit" type="button" style="width:auto; padding:11px 18px; font-size:13px; font-weight:700; border-radius:10px;">Accedi ↗</button>
+      </div>
+      <div id="quickAuthFeedback" style="width:100%; font-size:12.5px; display:none; margin-top:4px;"></div>
+    </div>
+
+    <h2 id="contactTitle" style="font-size:20px;margin-bottom:6px">Non hai ancora una chiave? Richiedila qui</h2>
+    <p class="small">Compila il modulo: riceverai la chiave di rete e l'attivazione per iniziare a usare la piattaforma.</p>
+
+    <form id="contactForm" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="contactName">Nome o alias <span class="req">*</span></label>
+          <input id="contactName" type="text" maxlength="100" placeholder="es. Maria Rossi" required>
+        </div>
+        <div class="field">
+          <label for="contactEmail">Indirizzo email <span class="req">*</span></label>
+          <input id="contactEmail" type="email" maxlength="255" placeholder="es. maria@esempio.it" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="contactSubject">Oggetto</label>
+        <input id="contactSubject" type="text" maxlength="200" value="Richiesta accesso Mesh AI & Tokenomics" placeholder="es. Accesso mesh o proposta nodo GPU">
+      </div>
+      <div class="field">
+        <label for="contactMessage">Messaggio <span class="req">*</span></label>
+        <textarea id="contactMessage" rows="4" placeholder="Scrivi qui il tuo messaggio, che tipo di nodo vuoi ospitare o quali modelli ti interessano…" required></textarea>
+      </div>
+      <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;" aria-hidden="true">
+        <label for="contactHoneypot">Anti-spam protection</label>
+        <input id="contactHoneypot" type="text" name="hs_guard_trap" tabindex="-1" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="contact-actions">
+        <button id="contactSubmit" type="submit">Invia richiesta chiave ↗</button>
+        <span id="contactStatus" class="contact-status" role="status"></span>
+      </div>
+    </form>
+  </section>
+</main>
+
+<!-- Footer Aziendale Completo Zero Zero Computer -->
+<footer class="company-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col brand-col">
+        <div class="brand"><i class="mark"></i><span style="font-size:16px;">Zero Zero Computer</span></div>
+        <p style="margin-top:14px;">Soluzioni informatiche avanzate, sistemistica, sicurezza delle reti, architetture cloud, intelligenza artificiale sovrana e calcolo distribuito.</p>
+        <p style="font-size:12.5px; color:#7e8ea8;">Esperienza e affidabilità sul campo dal 2003.</p>
+      </div>
+      <div class="footer-col contact-col">
+        <h4>Sede & Contatti</h4>
+        <p><strong>Zero Zero Computer</strong></p>
+        <p>📍 Verbania (VB), Italia</p>
+        <p>📞 Tel: <a href="tel:+393803727427">+39 380 372 7427</a></p>
+        <p>✉️ Email: <a href="mailto:info@zerozerocomputer.it">info@zerozerocomputer.it</a></p>
+        <p>💼 LinkedIn: <a href="https://www.linkedin.com/company/zerozerocomputer" target="_blank" rel="noopener noreferrer" style="color:#57e6d9;">Zero Zero Computer ↗</a></p>
+        <p style="font-size:12px;color:#94a3b8;margin-top:6px;">
+          👨‍💻 <a href="https://www.linkedin.com/in/alberto-marinoni-08a8b31b8/" target="_blank" rel="noopener noreferrer" style="color:#57e6d9;">Alberto Marinoni</a> · 🌐 <a href="https://www.linkedin.com/in/guido-cipolla-329b48182/" target="_blank" rel="noopener noreferrer" style="color:#c084fc;">Guido Cipolla</a>
+        </p>
+      </div>
+      <div class="footer-col links-col">
+        <h4>Navigazione & Risorse</h4>
+        <ul>
+          <li><a href="./guide.html" style="color:#38bdf8;font-weight:700;">📚 Guide Tecniche & Documentazione (7 Articoli)</a></li>
+          <li><a href="./chi-siamo.html">🏢 Chi Siamo · Storia dal 2003 & Sede</a></li>
+          <li><a href="./contatti.html">📬 Contatti Ufficiali & Supporto</a></li>
+          <li><a href="https://www.linkedin.com/company/zerozerocomputer" target="_blank" rel="noopener noreferrer" style="color:#57e6d9;">💼 Pagina LinkedIn Ufficiale</a></li>
+          <li><a href="./progetto.html">📖 Architettura 00MESH 1.05</a></li>
+          <li><a href="./apps/playground/commercial.html" style="color:#fbbf24;font-weight:700;">💼 Soluzioni B2B & Prezzi</a></li>
+          <li><a href="./token.html" style="color:#c084fc;font-weight:700;">🪙 $00MESH Token & Trasparenza Mayhem</a></li>
+          <li><a href="./chat.html">💬 Chat Sovrana Estesa (Multi-Modello)</a></li>
+          <li><a href="./docs/00mesh-guida-rapida.pdf" target="_blank">📘 Guida Rapida & Tool (PDF Illustrato)</a></li>
+          <li><a href="./docs/hyperspace-tokenomics.pdf" target="_blank">📜 Whitepaper Tokenomics ($00MESH PDF)</a></li>
+          <li><a href="./privacy-policy.html">🔒 Informativa sulla Privacy (GDPR)</a></li>
+          <li><a href="./cookie-policy.html">🍪 Cookie Policy</a></li>
+          <li><a href="./terms.html">⚖️ Termini e Condizioni</a></li>
+          <li><a href="./deletion.html">🗑️ Cancellazione Dati Utente</a></li>
+          <li><a href="./llms.txt" target="_blank">🍾 Beacon per Agenti AI (llms.txt)</a></li>
+          <li><a href="#" id="reopenCookieBanner">⚙️ Preferenze Cookie</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2003–2026 Zero Zero Computer. Tutti i diritti riservati. Verbania (VB), Italia</span>
+      <span>00MESH: Sovereign AI & Proof-of-Useful-Work ($00MESH on Solana). Ultimo aggiornamento: <time datetime="2026-10-25" itemprop="dateModified">25 Ottobre 2026</time></span>
+    </div>
+  </div>
+</footer>
+
+<!-- Banner Consenso Cookie Preventivo GDPR / Garante Privacy / Consent Mode v2 -->
+<div id="zzcCookieBanner" role="dialog" aria-live="polite" aria-label="Informativa e consenso cookie" class="is-hidden" style="position:fixed;bottom:16px;left:16px;right:16px;max-width:960px;margin:0 auto;background:#0b1328f5;border:1px solid #2b3f66;border-radius:16px;padding:18px 22px;z-index:9999;box-shadow:0 18px 48px rgba(0,0,0,0.65);backdrop-filter:blur(12px);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;font-size:13px;color:#cbd5e1;line-height:1.55;">
+      <strong style="color:#fff;font-size:14px;display:block;margin-bottom:4px;">🍪 Rispetto della tua Privacy & Consenso Cookie (GDPR)</strong>
+      Utilizziamo strumenti tecnici strettamente necessari al funzionamento del nodo web e, <strong>solo previo tuo consenso esplicito</strong>, cookie pubblicitari di terze parti (Google AdSense) sulle pagine informative. Nessuno script pubblicitario viene caricato prima della tua scelta. Leggi la <a href="./privacy-policy.html" style="color:#57e6d9;text-decoration:underline;">Privacy Policy</a> e la <a href="./cookie-policy.html" style="color:#57e6d9;text-decoration:underline;">Cookie Policy</a>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="cookieRejectBtn" type="button" class="secondary" style="width:auto;margin:0;padding:10px 16px;font-size:12.5px;border-radius:10px;">Solo Cookie Tecnici (Rifiuta)</button>
+      <button id="cookieAcceptBtn" type="button" style="width:auto;margin:0;padding:10px 18px;font-size:12.5px;border-radius:10px;">Accetta Cookie Pubblicitari</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const banner = document.getElementById('zzcCookieBanner');
+    const acceptBtn = document.getElementById('cookieAcceptBtn');
+    const rejectBtn = document.getElementById('cookieRejectBtn');
+    const reopenLink = document.getElementById('reopenCookieBanner');
+    const current = localStorage.getItem('zzc_cookie_consent');
+    if (!current && banner) {
+      banner.style.display = 'block';
+    }
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', () => {
+        localStorage.setItem('zzc_cookie_consent', 'granted');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            'ad_storage': 'granted',
+            'ad_user_data': 'granted',
+            'ad_personalization': 'granted',
+            'analytics_storage': 'granted'
+          });
+        }
+        if (typeof loadAdSenseAfterConsent === 'function') {
+          loadAdSenseAfterConsent();
+        }
+        if (banner) banner.style.display = 'none';
+      });
+    }
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', () => {
+        localStorage.setItem('zzc_cookie_consent', 'denied');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            'ad_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
+            'analytics_storage': 'denied'
+          });
+        }
+        if (banner) banner.style.display = 'none';
+      });
+    }
+    if (reopenLink) {
+      reopenLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (banner) banner.style.display = 'block';
+      });
+    }
+  })();
+</script>
+
+<!-- Dialog modale per Autenticazione con chiave di rete -->
+<div id="authModal" class="modal-backdrop is-hidden">
+  <div class="card modal-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="modal-head">
+      <h3 id="authTitle" style="margin:0">Accesso alla Mesh</h3>
+      <button id="closeAuthModal" class="close-btn" type="button" aria-label="Chiudi finestra">✕</button>
+    </div>
+    <p class="small">Inserisci una chiave di rete valida per sbloccare l'accesso diretto ai modelli LLM distribuiti della mesh HyperSpace.</p>
+    <div class="field">
+      <label for="authKeyInput">Chiave di accesso (Access Key)</label>
+      <input id="authKeyInput" type="password" placeholder="es. hs-mesh-nome-xxxx" autocomplete="current-password">
+    </div>
+    <div id="authFeedback" class="auth-feedback is-hidden"></div>
+    <div class="modal-actions">
+      <button id="submitAuthKey" type="button">Verifica e Accedi</button>
+      <button id="logoutAuthKey" class="secondary is-hidden" type="button">Esci</button>
+    </div>
+  </div>
+</div>
+
+<script src="./join-config.js?v=1.05.5"></script>
+<script src="./src/anna-mascot.js?v=1.05.5"></script>
+<script type="module">
+  import { WebNode, WorkerClient, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology, detectBridgeStatus } from "./src/index.js?v=1.05.5";
+
+  const $ = id => document.getElementById(id);
+  const config = window.HYPERSPACE_JOIN || {};
+  const configuredGateways = Array.isArray(config.gatewayUrls) && config.gatewayUrls.length
+    ? config.gatewayUrls : [config.gatewayUrl];
+  const gatewayUrls = configuredGateways.map(value => String(value || "").replace(/\/+$/, "")).filter(Boolean);
+  let gatewayUrl = gatewayUrls[0] || "";
+
+  if ($("siteName")) $("siteName").textContent = config.siteName || "ZeroZeroComputer";
+
+  // Identità Nodo e Token Wallet
+  const nodeId = localStorage.getItem("hyperspace.publicNodeId") || newNodeId();
+  localStorage.setItem("hyperspace.publicNodeId", nodeId);
+
+  $("nodeLabel").value = localStorage.getItem("hyperspace.publicNodeLabel") || "";
+  if ($("solanaAddress")) {
+    $("solanaAddress").value = localStorage.getItem("hyperspace.solanaAddress") || "";
+  }
+
+  // Codifica Base58 per la firma Ed25519 di Solana
+  const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  function toBase58(bytes) {
+    let digits = [0];
+    for (let i = 0; i < bytes.length; i++) {
+      let carry = bytes[i];
+      for (let j = 0; j < digits.length; j++) {
+        carry += digits[j] << 8;
+        digits[j] = carry % 58;
+        carry = (carry / 58) | 0;
+      }
+      while (carry > 0) {
+        digits.push(carry % 58);
+        carry = (carry / 58) | 0;
+      }
+    }
+    let str = "";
+    for (let k = 0; k < bytes.length && bytes[k] === 0; k++) str += "1";
+    for (let q = digits.length - 1; q >= 0; q--) str += B58_ALPHABET[digits[q]];
+    return str;
+  }
+
+  let walletAuthProof = null;
+  async function signAndLinkSolanaWallet() {
+    const statusEl = $("walletSignStatus");
+    const provider = window.solana || window.solflare;
+    if (!provider || typeof provider.signMessage !== "function") {
+      if (statusEl) {
+        statusEl.style.color = "var(--bad)";
+        statusEl.textContent = "⚠️ Installa l'estensione Phantom o Solflare per firmare la prova crittografica Ed25519.";
+      }
+      return null;
+    }
+    try {
+      const resp = await provider.connect();
+      const pubkey = (resp && resp.publicKey ? resp.publicKey : provider.publicKey).toString();
+      if ($("solanaAddress")) $("solanaAddress").value = pubkey;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const message = `00MESH-auth:${nodeId}:${timestamp}`;
+      const encoded = new TextEncoder().encode(message);
+      const signed = await provider.signMessage(encoded, "utf8");
+      const sigBytes = signed.signature || signed;
+      const signature = toBase58(sigBytes);
+      walletAuthProof = { solana_address: pubkey, signature, timestamp };
+      localStorage.setItem("hyperspace.solanaAddress", pubkey);
+      if (statusEl) {
+        statusEl.style.color = "var(--ok)";
+        statusEl.textContent = "✓ Firma Ed25519 verificata dal wallet (" + pubkey.slice(0, 4) + "..." + pubkey.slice(-4) + ")";
+      }
+      // Riconoscimento saldo $00MESH e stato VIP automatico
+      handlePhantomConnect(false);
+      return walletAuthProof;
+    } catch (err) {
+      if (statusEl) {
+        statusEl.style.color = "var(--bad)";
+        statusEl.textContent = "⚠️ Firma annullata o non riuscita: " + (err.message || err);
+      }
+      return null;
+    }
+  }
+
+  if ($("connectSolanaBtn")) {
+    $("connectSolanaBtn").addEventListener("click", signAndLinkSolanaWallet);
+  }
+
+  // Integrazione Solana Web3 & Verifica Saldo On-Chain $00MESH
+  const MINT_00MESH = "CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump";
+  const KNOWN_CREATOR = "6MMFFkQAbXjLF7gWnQcSTRffNq7H864gVUf7GZNfCvpd";
+
+  async function fetchOnChainTokenBalance(walletPubkey) {
+    let defaultBal = (walletPubkey === KNOWN_CREATOR) ? 31220650.42 : 0;
+    const rpcEndpoints = [
+      "https://api.mainnet-beta.solana.com",
+      "https://solana-rpc.publicnode.com"
+    ];
+    for (const rpc of rpcEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3500);
+        const resp = await fetch(rpc, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "getTokenAccountsByOwner",
+            params: [
+              walletPubkey,
+              { mint: MINT_00MESH },
+              { encoding: "jsonParsed" }
+            ]
+          })
+        });
+        clearTimeout(timeout);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const accounts = data.result?.value || [];
+        let total = 0;
+        for (const acc of accounts) {
+          const amount = acc.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof amount === "number") total += amount;
+        }
+        if (total > 0) return total;
+      } catch (err) {
+        console.warn("Solana RPC attempt failed:", err);
+      }
+    }
+    return defaultBal;
+  }
+
+  function formatTokenAmount(num) {
+    if (num >= 1e6) {
+      return (num / 1e6).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + "M";
+    }
+    if (num >= 1e3) {
+      return (num / 1e3).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "k";
+    }
+    return num.toLocaleString("it-IT", { maximumFractionDigits: 0 });
+  }
+
+  async function handlePhantomConnect(autoConnectOnly = false) {
+    const provider = window.phantom?.solana || window.solana || window.solflare;
+    const btnText = $("navPhantomBtnText");
+    const btn = $("navConnectPhantomBtn");
+
+    // Se l'utente ha salvato l'indirizzo in precedenza o nell'input
+    let pubkey = $("solanaAddress")?.value.trim() || localStorage.getItem("hyperspace.solanaAddress") || "";
+
+    if (provider && (provider.isConnected || !autoConnectOnly)) {
+      try {
+        if (btnText && !autoConnectOnly) btnText.textContent = "Connessione…";
+        const resp = autoConnectOnly
+          ? await provider.connect({ onlyIfTrusted: true }).catch(() => null)
+          : await provider.connect();
+
+        if (resp && resp.publicKey) {
+          pubkey = resp.publicKey.toString();
+        } else if (provider.publicKey) {
+          pubkey = provider.publicKey.toString();
+        }
+      } catch (err) {
+        console.warn("Connessione provider non riuscita:", err);
+      }
+    }
+
+    if (!pubkey) {
+      if (!autoConnectOnly && !provider) {
+        if (confirm("Nessun wallet Solana rilevato. Vuoi aprire il sito ufficiale di Phantom per installarlo?")) {
+          window.open("https://phantom.app/download", "_blank");
+        }
+      }
+      return;
+    }
+
+    localStorage.setItem("hyperspace.solanaAddress", pubkey);
+    if ($("solanaAddress")) $("solanaAddress").value = pubkey;
+
+    if (btnText) btnText.textContent = "Verifica saldo…";
+    const balance = await fetchOnChainTokenBalance(pubkey);
+    localStorage.setItem("hyperspace_holder_balance", String(balance));
+
+    const shortPubkey = pubkey.slice(0, 4) + "..." + pubkey.slice(-4);
+    const balFormatted = formatTokenAmount(balance);
+
+    if (btn && btnText) {
+      btnText.textContent = `${shortPubkey} · ${balFormatted} $00MESH`;
+      btn.style.background = balance > 0 ? "linear-gradient(135deg, #059669, #10b981)" : "linear-gradient(135deg, #5822b3, #8b5cf6)";
+      btn.style.borderColor = balance > 0 ? "#34d399" : "#a855f7";
+      btn.title = `Wallet: ${pubkey}\nSaldo: ${balance.toLocaleString("it-IT")} $00MESH`;
+    }
+
+    if (balance > 0) {
+      localStorage.setItem("hyperspace_holder_auth", "true");
+
+      // Mostra in primo piano il Banner VIP Holder
+      if ($("vipHolderBanner")) {
+        $("vipHolderBanner").style.display = "block";
+        if ($("vipWalletShort")) $("vipWalletShort").textContent = `${shortPubkey}`;
+        if ($("vipTokenAmount")) $("vipTokenAmount").textContent = balFormatted;
+      }
+
+      if ($("accessStatusBadge")) {
+        $("accessStatusBadge").className = "access-badge";
+        $("accessStatusBadge").style.background = "#8b5cf622";
+        $("accessStatusBadge").style.color = "#c084fc";
+        $("accessStatusBadge").style.borderColor = "#8b5cf655";
+        $("accessStatusBadge").textContent = `💎 Holder VIP (${balFormatted} $00MESH)`;
+      }
+      if ($("accessStatusDesc")) {
+        $("accessStatusDesc").textContent = `Wallet verificato con ${balance.toLocaleString("it-IT")} $00MESH on-chain! Hai accesso prioritario e illimitato alla Chat Sovrana.`;
+      }
+      if ($("accessAuthorizedSection")) $("accessAuthorizedSection").style.display = "block";
+      if ($("accessUnauthorizedSection")) $("accessUnauthorizedSection").style.display = "none";
+    }
+  }
+
+  if ($("navConnectPhantomBtn")) {
+    $("navConnectPhantomBtn").addEventListener("click", () => handlePhantomConnect(false));
+  }
+  if ($("copyCaBtn")) {
+    $("copyCaBtn").addEventListener("click", () => {
+      navigator.clipboard.writeText("CaMRXTi5h5XQ1A93R1AdSjaYuhoAa3X37ixDf52apump").then(() => {
+        $("copyCaBtn").textContent = "✓ Copiato!";
+        setTimeout(() => { $("copyCaBtn").textContent = "📋 Copia CA"; }, 2000);
+      });
+    });
+  }
+
+  // Verifica immediata all'avvio pagina se il wallet è già memorizzato
+  setTimeout(() => handlePhantomConnect(true), 400);
+
+  // Token Wallet Reward System (Backend-Verified sul Control Plane)
+  let currentTokenBalance = 0.0;
+  async function refreshServerBalance() {
+    if (!gatewayUrl || !nodeId) return;
+    try {
+      const resp = await fetch(`${gatewayUrl}/web/node/balance?node_id=${encodeURIComponent(nodeId)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.ok) {
+          currentTokenBalance = Number(data.balance || 0);
+          updateTokenUI();
+        }
+      }
+    } catch (e) {
+      // offline o polling in attesa
+    }
+  }
+
+  function updateTokenUI() {
+    if ($("nodeTokenBalance")) {
+      $("nodeTokenBalance").innerHTML = `${currentTokenBalance.toFixed(2)} <span>$00MESH</span>`;
+    }
+  }
+  refreshServerBalance();
+
+  // Capacità Browser e Rilevamento WebGPU
+  const caps = detectCapabilities(globalThis);
+  if ($("capCount")) $("capCount").textContent = caps.length;
+
+  const webGpuSupported = typeof navigator !== "undefined" && Boolean(navigator.gpu);
+  if ($("enableWebGpuWorker")) {
+    if (webGpuSupported) {
+      $("enableWebGpuWorker").checked = true;
+      if ($("webGpuStatusBadge")) {
+        $("webGpuStatusBadge").style.display = "block";
+        $("webGpuStatusBadge").innerHTML = "✓ WebGPU rilevata sul dispositivo. Verrà impiegato un Web Worker dedicato a 60 FPS.";
+        $("webGpuStatusBadge").style.color = "var(--ok)";
+      }
+    } else {
+      $("enableWebGpuWorker").checked = false;
+      if ($("webGpuStatusBadge")) {
+        $("webGpuStatusBadge").style.display = "block";
+        $("webGpuStatusBadge").textContent = "WebGPU non disponibile in questo browser: il Web Worker userà compiti CPU off-thread.";
+      }
+    }
+  }
+
+  let node = null;
+  function state(kind, text) {
+    $("status").className = `status ${kind || ""}`;
+    $("statusText").textContent = text;
+  }
+
+  function updateButtons() {
+    const active = Boolean(node?.state.running);
+    $("join").disabled = active || !$("consent").checked || !gatewayUrl;
+    $("leave").disabled = !active;
+  }
+
+  $("consent").addEventListener("change", updateButtons);
+
+  $("join").addEventListener("click", async () => {
+    const label = $("nodeLabel").value.trim();
+    localStorage.setItem("hyperspace.publicNodeLabel", label);
+
+    const solAddr = $("solanaAddress")?.value.trim() || "";
+    if (solAddr) {
+      if (!walletAuthProof || walletAuthProof.solana_address !== solAddr) {
+        await signAndLinkSolanaWallet();
+      }
+      if (walletAuthProof && walletAuthProof.solana_address === solAddr) {
+        try {
+          const linkResp = await fetch(`${gatewayUrl}/web/node/wallet`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              node_id: nodeId,
+              solana_address: walletAuthProof.solana_address,
+              signature: walletAuthProof.signature,
+              timestamp: walletAuthProof.timestamp
+            })
+          });
+          if (linkResp.ok) {
+            const linkData = await linkResp.json();
+            if (linkData.ok && linkData.wallet) {
+              currentTokenBalance = Number(linkData.wallet.balance || 0);
+              updateTokenUI();
+            }
+          }
+        } catch (err) {
+          console.warn("Impossibile registrare il wallet Solana sul server:", err);
+        }
+      }
+    } else {
+      await refreshServerBalance();
+    }
+
+    state("", "Connessione alla mesh & sincronizzazione PoUW…");
+    $("join").disabled = true;
+
+    let workerClient = null;
+    let customCaps = null;
+    let gpuFailed = "";
+    const wantGpu = $("enableWebGpuWorker") && $("enableWebGpuWorker").checked;
+
+    if (typeof Worker === "function") {
+      try {
+        state("", "Inizializzazione Web Worker dedicato off-thread…");
+        workerClient = new WorkerClient({ workerUrl: "./src/worker.js", env: globalThis });
+        workerClient.init();
+        await workerClient.ping();
+        if (wantGpu && webGpuSupported) {
+          // WebGPU è un di più: se il modello non si carica il worker resta valido
+          // per i task CPU, e il nodo lo dice invece di tornare in silenzio sul thread UI.
+          try {
+            state("", "Caricamento modello embeddings WebGPU nel worker…");
+            const initRes = await workerClient.initWebGpu({}, (st) => {
+              state("", st.message || `WebGPU: ${st.phase || "caricamento"}…`);
+            });
+            if (initRes && initRes.ok && Array.isArray(initRes.capabilities)) {
+              customCaps = initRes.capabilities;
+              if ($("capCount")) $("capCount").textContent = customCaps.length;
+            }
+          } catch (gpuErr) {
+            console.warn("WebGPU non attivato, worker in modalità CPU:", gpuErr);
+            gpuFailed = gpuErr.message || String(gpuErr);
+          }
+        }
+      } catch (wErr) {
+        console.warn("Web Worker non disponibile, uso il thread principale:", wErr);
+        if (workerClient) workerClient.terminate();
+        workerClient = null;
+      }
+    }
+
+    try {
+      node = new WebNode({
+        baseUrls: gatewayUrls,
+        nodeId,
+        label,
+        consent: true,
+        worker: workerClient,
+        capabilities: customCaps,
+        onState: (s) => {
+          $("completed").textContent = s.tasksDone;
+          $("failed").textContent = s.tasksFailed;
+          if (s.lastError) {
+            state("error", s.lastError);
+          } else if (s.running) {
+            const workerLabel = s.workerActive ? (customCaps && customCaps.includes("embed_texts") ? "WebGPU Worker" : (gpuFailed ? "Worker CPU · WebGPU non attivato" : "Worker CPU Off-Thread")) : "Main Thread";
+            state("online", `Nodo attivo (${workerLabel}) · Proof-of-Useful-Work ($00MESH)`);
+          }
+          if (s.tasksDone > 0) {
+            refreshServerBalance();
+          }
+          updateButtons();
+        }
+      });
+      await node.start();
+      const workerLabel = node.state.workerActive ? (customCaps && customCaps.includes("embed_texts") ? "WebGPU Worker" : (gpuFailed ? "Worker CPU · WebGPU non attivato" : "Worker CPU Off-Thread")) : "Main Thread";
+      state("online", `Nodo attivo (${workerLabel}) · Proof-of-Useful-Work ($00MESH)`);
+    } catch (error) {
+      node = null;
+      state("error", error.message);
+    }
+    updateButtons();
+  });
+
+  $("leave").addEventListener("click", () => {
+    node?.stop();
+    node = null;
+    state("", "Disconnesso dalla mesh");
+    updateButtons();
+  });
+
+  window.addEventListener("beforeunload", () => node?.stop());
+
+  // ── AUTENTICAZIONE MESH & GATE ACCESSO SOVRANO ───────────────────────────
+  function refreshAccessGateUI() {
+    const authState = authManager.getState();
+    const box = $("accessStatusBox");
+    const badge = $("accessStatusBadge");
+    const desc = $("accessStatusDesc");
+    const authSec = $("accessAuthorizedSection");
+    const unauthSec = $("accessUnauthorizedSection");
+    const chatBtn = $("accessChatBtn");
+    const cardBadge = $("nodeCardGlobalBadgeText");
+
+    if (!box || !badge) return;
+
+    if (authState.bridgeActive) {
+      box.className = "access-status-box active-bridge";
+      badge.className = "access-badge bridge";
+      const prov = authState.bridgeStatus?.provider || "Ollama/LM Studio";
+      badge.innerHTML = `🟢 Bridge GPU Attivo (${prov})`;
+      desc.textContent = "Nodo autorizzato al calcolo sovrano! La tua GPU locale sta contribuendo all'inferenza della rete. La Chat Estesa Sovrana è sbloccata.";
+      if (authSec) authSec.style.display = "block";
+      if (unauthSec) unauthSec.style.display = "none";
+      if (chatBtn) {
+        chatBtn.className = "access-chat-cta bridge-btn";
+        chatBtn.innerHTML = "💬 Apri Chat Estesa Sovrana ↗";
+      }
+      if (cardBadge) cardBadge.textContent = "GPU CONNESSA";
+    } else if (authState.authenticated) {
+      box.className = "access-status-box active-key";
+      badge.className = "access-badge key";
+      badge.innerHTML = `🔑 Chiave Attiva (${authState.label || "Rete"})`;
+      desc.textContent = "Accesso autorizzato con chiave di rete autoritativa. Modelli LLM distribuiti ed abliterated pronti all'uso.";
+      if (authSec) authSec.style.display = "block";
+      if (unauthSec) unauthSec.style.display = "none";
+      if (chatBtn) {
+        chatBtn.className = "access-chat-cta key-btn";
+        chatBtn.innerHTML = "💬 Apri Chat Estesa Sovrana ↗";
+      }
+      if (cardBadge) cardBadge.textContent = "CHIAVE ATTIVA";
+    } else {
+      box.className = "access-status-box";
+      badge.className = "access-badge locked";
+      badge.textContent = "🔒 Riservato ai Nodi & Chiavi";
+      desc.textContent = "La Chat Sovrana unificata richiede un contributo di calcolo locale (estensione Chrome con Ollama/LM Studio) oppure una Chiave di Rete. In alternativa, puoi avviare il nodo web browser sottostante.";
+      if (authSec) authSec.style.display = "none";
+      if (unauthSec) unauthSec.style.display = "block";
+      if (cardBadge) cardBadge.textContent = "ACCESSO RISERVATO";
+    }
+  }
+
+  const authManager = new AuthManager({
+    baseUrls: gatewayUrls,
+    onStateChange: (authState) => {
+      if (authState.authenticated) {
+        $("openAuthModal").textContent = `✓ ${authState.label} ↗`;
+        $("openAuthModal").onclick = () => { window.location.href = "./chat.html"; };
+        $("logoutAuthKey").style.display = "block";
+        $("submitAuthKey").textContent = "Entra nella Chat ↗";
+        $("submitAuthKey").onclick = () => { window.location.href = "./chat.html"; };
+        $("authKeyInput").value = authState.key;
+        $("authKeyInput").disabled = true;
+      } else {
+        $("openAuthModal").textContent = "🔑 Chiave Rete";
+        $("openAuthModal").onclick = null;
+        $("logoutAuthKey").style.display = "none";
+        $("submitAuthKey").textContent = "Verifica e Accedi ↗";
+        $("submitAuthKey").onclick = null;
+        $("authKeyInput").value = "";
+        $("authKeyInput").disabled = false;
+      }
+      refreshAccessGateUI();
+    }
+  });
+
+  if ($("cardAuthModalBtn")) {
+    $("cardAuthModalBtn").addEventListener("click", () => {
+      $("openAuthModal").click();
+    });
+  }
+
+  // Verifica immediata bridge Chrome / motori locali all'avvio
+  authManager.checkBridge().then(() => {
+    refreshAccessGateUI();
+  });
+
+  // Ricezione telemetria bridge da content script estensione Chrome
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "00MESH_BRIDGE_STATUS") {
+      authManager.state.bridgeActive = Boolean(event.data.active);
+      authManager.state.bridgeStatus = event.data;
+      if (authManager.state.bridgeActive && !authManager.state.authenticated) {
+        authManager.state.role = "node_operator";
+        authManager.state.label = event.data.label || "Operatore GPU Locale";
+      }
+      refreshAccessGateUI();
+    }
+  });
+
+  document.addEventListener("00mesh:bridge-status", (event) => {
+    if (event.detail) {
+      authManager.state.bridgeActive = Boolean(event.detail.active);
+      authManager.state.bridgeStatus = event.detail;
+      if (authManager.state.bridgeActive && !authManager.state.authenticated) {
+        authManager.state.role = "node_operator";
+        authManager.state.label = event.detail.label || "Operatore GPU Locale";
+      }
+      refreshAccessGateUI();
+    }
+  });
+
+  function showAuthFeedback(msg, ok = false) {
+    const fb = $("authFeedback");
+    fb.style.display = "block";
+    fb.className = `auth-feedback ${ok ? "ok" : "error"}`;
+    fb.textContent = msg;
+  }
+
+  $("openAuthModal").addEventListener("click", () => {
+    if (authManager.getState().authenticated) {
+      window.location.href = "./chat.html";
+      return;
+    }
+    $("authFeedback").style.display = "none";
+    $("authModal").style.display = "flex";
+  });
+
+  $("closeAuthModal").addEventListener("click", () => { $("authModal").style.display = "none"; });
+  $("authModal").addEventListener("click", (e) => { if (e.target === $("authModal")) $("authModal").style.display = "none"; });
+
+  $("submitAuthKey").addEventListener("click", async () => {
+    if (authManager.getState().authenticated) {
+      window.location.href = "./chat.html";
+      return;
+    }
+    const key = $("authKeyInput").value.trim();
+    if (!key) { showAuthFeedback("Inserisci una chiave valida", false); return; }
+    $("submitAuthKey").disabled = true;
+    showAuthFeedback("Verifica chiave in corso…", true);
+    try {
+      const res = await authManager.login(key);
+      if (res && res.authenticated) {
+        showAuthFeedback("Autenticato con successo! Apertura console…", true);
+        setTimeout(() => { window.location.href = "./chat.html"; }, 600);
+      } else {
+        throw new Error("Chiave non valida");
+      }
+    } catch (err) {
+      showAuthFeedback(err.message, false);
+      $("submitAuthKey").disabled = false;
+    }
+  });
+
+  $("logoutAuthKey").addEventListener("click", () => {
+    authManager.logout();
+    showAuthFeedback("Disconnesso", false);
+    setTimeout(() => { $("authModal").style.display = "none"; }, 500);
+  });
+
+  authManager.init().catch(() => {});
+
+  // Quick Auth nella sezione contatti
+  const quickSubmit = $("quickAuthSubmit");
+  const quickKey = $("quickAuthKey");
+  const quickFeedback = $("quickAuthFeedback");
+  if (quickSubmit && quickKey) {
+    quickSubmit.addEventListener("click", async () => {
+      const key = quickKey.value.trim();
+      if (!key) return;
+      quickSubmit.disabled = true;
+      quickFeedback.style.display = "block";
+      quickFeedback.style.color = "var(--cyan)";
+      quickFeedback.textContent = "Verifica chiave in corso…";
+      try {
+        const res = await authManager.login(key);
+        if (res && res.authenticated) {
+          quickFeedback.style.color = "var(--ok)";
+          quickFeedback.textContent = "✓ Chiave valida! Apertura della Chat…";
+          setTimeout(() => { window.location.href = "./chat.html"; }, 600);
+        } else {
+          throw new Error("Chiave non valida o scaduta");
+        }
+      } catch (err) {
+        quickFeedback.style.color = "var(--bad)";
+        quickFeedback.textContent = `Errore: ${err.message}`;
+        quickSubmit.disabled = false;
+      }
+    });
+    quickKey.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") quickSubmit.click();
+    });
+  }
+
+  // ── SEZIONE FORM DI CONTATTO ─────────────────────────────────────────────
+  $("contactForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const statusEl = $("contactStatus");
+    const submitBtn = $("contactSubmit");
+    const name = $("contactName").value.trim();
+    const email = $("contactEmail").value.trim();
+    const subject = $("contactSubject").value.trim();
+    const message = $("contactMessage").value.trim();
+    const honeypot = $("contactHoneypot").value.trim();
+
+    statusEl.className = "contact-status";
+    statusEl.textContent = "Invio messaggio in corso…";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Invio in corso…";
+
+    try {
+      const res = await sendContactMessage({
+        baseUrls: gatewayUrls,
+        name, email, subject, message, honeypot,
+      });
+      if (res && res.auth_key) {
+        authManager.saveKey(res.auth_key);
+        authManager.state = { authenticated: true, role: "member", label: name };
+        authManager.notify();
+        statusEl.className = "contact-status ok";
+        statusEl.textContent = "✓ Accesso alla Chat attivato! Apertura della console…";
+        statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+          window.location.href = `./chat.html?key=${encodeURIComponent(res.auth_key)}`;
+        }, 500);
+      } else {
+        statusEl.className = "contact-status ok";
+        statusEl.textContent = `✓ ${res.message || "Messaggio inviato con successo!"}`;
+        statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        $("contactForm").reset();
+      }
+    } catch (err) {
+      statusEl.className = "contact-status error";
+      statusEl.textContent = `Errore: ${err.message}`;
+      statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Invia richiesta chiave ↗";
+    }
+  });
+
+  // ── TELEMETRIA & VISUALIZZAZIONE TOPOLOGIA REALE (3D ISOMETRIC) ──────────
+  let catalog = {
+    machines: [],
+    hub: { label: "Control Plane", online: true, models: [], model_count: 0 },
+    browsers: { count: 0, capabilities: [] },
+    models: [],
+    totals: { machines: 0, models: 0, browsers: 0 },
+    lastUpdated: null,
+    live: false,
+  };
+
+  async function pollTopology() {
+    try {
+      const data = await fetchTopology({ baseUrls: gatewayUrls });
+      if (data && data.ok) {
+        catalog.machines = Array.isArray(data.machines) ? data.machines : [];
+        catalog.hub = data.hub || { label: "Control Plane", online: true, models: [], model_count: 0 };
+        catalog.browsers = data.browsers || { count: 0, capabilities: [] };
+        catalog.models = Array.isArray(data.models) ? data.models : [];
+        catalog.totals = data.totals || {
+          machines: catalog.machines.length,
+          models: catalog.models.length,
+          browsers: catalog.browsers.count,
+        };
+        catalog.lastUpdated = Date.now();
+        catalog.live = true;
+
+        const count = catalog.machines.length;
+        $("machineCount").textContent = String(count || 1);
+        $("modelCount").textContent = String(catalog.models.length || 0);
+        $("meshHealth").className = "pill live";
+        $("meshHealth").textContent = `● MESH LIVE · ${count} ${count === 1 ? "NODO GPU" : "NODI GPU"}`;
+        $("meshNote").textContent = `Control Plane + ${count} macchine e ${catalog.browsers.count} nodi web sincronizzati.`;
+        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        $("meshFreshness").textContent = `telemetria reale sincronizzata alle ${timeStr}`;
+        if ($("navMeshStatus")) {
+          $("navMeshStatus").textContent = `MESH LIVE · ${count} ${count === 1 ? "NODO" : "NODI"}`;
+        }
+
+        const chips = (catalog.models || []).slice(0, 16).map((name) => {
+          const span = document.createElement("span");
+          const isAbliterated = /abliterated/i.test(name);
+          span.className = `model-chip ${isAbliterated ? "abliterated" : ""}`;
+          span.textContent = isAbliterated ? `🔥 ${name}` : name;
+          span.title = name;
+          return span;
+        });
+        $("modelStrip").replaceChildren(...chips);
+      }
+    } catch (err) {
+      catalog.live = false;
+      $("meshHealth").className = "pill";
+      $("meshHealth").textContent = "telemetria standby";
+      $("meshFreshness").textContent = "in attesa del segnale telemetrico…";
+    }
+  }
+
+  pollTopology();
+  setInterval(pollTopology, 15000);
+
+  // ── MOTORE GRAFICO 3D ORBITALE & HUD OLOGRAFICO ─────────────────────────
+  const canvas = $("meshCanvas"), ctx = canvas.getContext("2d");
+  const mouse = { x: -1000, y: -1000, active: false, targetNode: null };
+  canvas.addEventListener("mousemove", (e) => {
+    const r = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - r.left;
+    mouse.y = e.clientY - r.top;
+    mouse.active = true;
+  });
+  canvas.addEventListener("mouseleave", () => {
+    mouse.active = false;
+    mouse.targetNode = null;
+  });
+
+  const STARS = Array.from({ length: 42 }, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    size: Math.random() * 1.5 + 0.5,
+    speed: Math.random() * 0.0003 + 0.0001,
+    alpha: Math.random() * 0.6 + 0.2,
+  }));
+
+  function drawMesh(now) {
+    const density = devicePixelRatio || 1;
+    const width = canvas.clientWidth, height = canvas.clientHeight;
+    if (canvas.width !== width * density || canvas.height !== height * density) {
+      canvas.width = width * density;
+      canvas.height = height * density;
+    }
+    ctx.setTransform(density, 0, 0, density, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const centerX = width / 2;
+    const centerY = height / 2 + 8;
+    const maxDimension = Math.min(width, height);
+
+    // 1. Stelle
+    for (const star of STARS) {
+      const sx = (star.x * width + now * star.speed * 20) % width;
+      const sy = star.y * height;
+      const pulse = star.alpha * (0.7 + 0.3 * Math.sin(now * 0.002 + star.x * 10));
+      ctx.fillStyle = `rgba(180, 205, 255, ${pulse})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 2. Scan Wave
+    const scanR = ((now * 0.045) % (maxDimension * 0.75));
+    const scanAlpha = Math.max(0, 1 - scanR / (maxDimension * 0.75)) * 0.25;
+    ctx.strokeStyle = `rgba(87, 230, 217, ${scanAlpha})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, scanR, scanR * 0.44, -0.18, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Nodi Reali
+    const realMachines = catalog.machines || [];
+
+    const nodeCount = realMachines.length;
+    const tilt = 0.44;
+    const roll = -0.18;
+
+    const renderNodes = [];
+    const baseRadius = maxDimension * 0.20;
+    const radiusSpread = maxDimension * (0.24 / Math.max(1, nodeCount));
+
+    for (let i = 0; i < nodeCount; i++) {
+      const machine = realMachines[i];
+      const orbitR = baseRadius + i * radiusSpread;
+      const speed = 0.00014 / Math.sqrt((i + 1) * 0.7);
+      const angle = now * speed + (i * Math.PI * 2) / nodeCount;
+
+      const x0 = Math.cos(angle) * orbitR;
+      const z0 = Math.sin(angle) * orbitR;
+
+      const x2d = centerX + (x0 * Math.cos(roll) - z0 * Math.sin(roll) * tilt);
+      const y2d = centerY + (x0 * Math.sin(roll) + z0 * Math.cos(roll) * tilt);
+
+      const zNorm = z0 / (maxDimension * 0.48);
+      const scale = 0.76 + 0.44 * ((zNorm + 1) / 2);
+      const alpha = 0.35 + 0.65 * ((zNorm + 1) / 2);
+
+      renderNodes.push({ machine, orbitR, x: x2d, y: y2d, z: z0, zNorm, scale, alpha, index: i });
+    }
+
+    // 4. Tracciamento Orbite
+    for (let i = 0; i < nodeCount; i++) {
+      const orbitR = baseRadius + i * radiusSpread;
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(roll);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, orbitR, orbitR * tilt, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(38, 61, 102, 0.42)`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 5. Cluster Browser Ring
+    const browserCount = Math.max(1, catalog.browsers.count || 2);
+    const browserRingR = maxDimension * 0.45;
+    const browserParticles = Math.min(32, Math.max(8, browserCount * 4));
+    for (let b = 0; b < browserParticles; b++) {
+      const bAngle = now * 0.00008 + (b * Math.PI * 2) / browserParticles;
+      const bx0 = Math.cos(bAngle) * browserRingR;
+      const bz0 = Math.sin(bAngle) * browserRingR;
+      const bx = centerX + (bx0 * Math.cos(roll) - bz0 * Math.sin(roll) * tilt);
+      const by = centerY + (bx0 * Math.sin(roll) + bz0 * Math.cos(roll) * tilt);
+      const bAlpha = 0.25 + 0.35 * Math.sin(now * 0.003 + b);
+      ctx.fillStyle = `rgba(112, 230, 170, ${bAlpha})`;
+      ctx.beginPath();
+      ctx.arc(bx, by, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 6. Raggi e Pacchetti
+    const packetT = (now * 0.00075) % 1;
+    for (const item of renderNodes) {
+      const grad = ctx.createLinearGradient(centerX, centerY, item.x, item.y);
+      grad.addColorStop(0, "rgba(87, 230, 217, 0.5)");
+      grad.addColorStop(1, `rgba(131, 255, 240, ${item.alpha * 0.35})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(item.x, item.y);
+      ctx.stroke();
+
+      const px = centerX + (item.x - centerX) * packetT;
+      const py = centerY + (item.y - centerY) * packetT;
+      ctx.fillStyle = "#83fff0";
+      ctx.shadowColor = "#83fff0";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(px, py, 2.4 * item.scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // 7. Z-Sort & Draw
+    const elementsToRender = [
+      ...renderNodes.map(n => ({ type: "machine", data: n, z: n.z })),
+      { type: "hub", data: null, z: 0 },
+    ];
+    elementsToRender.sort((a, b) => a.z - b.z);
+
+    let hoveredNode = null;
+
+    for (const el of elementsToRender) {
+      if (el.type === "hub") {
+        const hubPulse = 1 + 0.12 * Math.sin(now * 0.003);
+        const hubR = 8.5 * hubPulse;
+
+        const hubGrad = ctx.createRadialGradient(centerX, centerY, 2, centerX, centerY, 22 * hubPulse);
+        hubGrad.addColorStop(0, "rgba(87, 230, 217, 0.9)");
+        hubGrad.addColorStop(0.4, "rgba(87, 230, 217, 0.3)");
+        hubGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = hubGrad;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 22 * hubPulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(now * 0.001);
+        ctx.strokeStyle = "rgba(131, 255, 240, 0.6)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 14 * hubPulse, 6 * hubPulse, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "#57e6d9";
+        ctx.shadowColor = "#57e6d9";
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, hubR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.font = "600 10px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "rgba(190, 200, 223, 0.85)";
+        ctx.textAlign = "center";
+        ctx.fillText("CONTROL PLANE", centerX, centerY + 24);
+
+        if (mouse.active) {
+          const dHub = Math.hypot(mouse.x - centerX, mouse.y - centerY);
+          if (dHub < 26) hoveredNode = { type: "hub" };
+        }
+      } else if (el.type === "machine") {
+        const item = el.data;
+        const m = item.machine;
+        const nodeRadius = (6 + (m.vram_gb ? 1.5 : 0)) * item.scale;
+
+        if (mouse.active) {
+          const d = Math.hypot(mouse.x - item.x, mouse.y - item.y);
+          if (d < 30 * item.scale) hoveredNode = { type: "machine", item };
+        }
+
+        const load = m.load || 0;
+        const loadPulseSpeed = 0.004 + load * 0.008;
+        const loadGlowRadius = nodeRadius + (4 + load * 12) * (0.8 + 0.2 * Math.sin(now * loadPulseSpeed));
+        const loadColor = load >= 0.75
+          ? "rgba(255, 130, 149, 0.55)"
+          : (load >= 0.35 ? "rgba(154, 124, 255, 0.45)" : "rgba(112, 230, 170, 0.35)");
+
+        ctx.fillStyle = loadColor;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, loadGlowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(131, 255, 240, ${item.alpha * 0.8})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, nodeRadius + 3.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "#83fff0";
+        ctx.shadowColor = "#83fff0";
+        ctx.shadowBlur = 14 * item.scale;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, nodeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        const modelCount = Math.max(1, Math.min(5, m.model_count || m.models?.length || 1));
+        for (let sat = 0; sat < modelCount; sat++) {
+          const satAngle = now * 0.0025 + (sat * Math.PI * 2) / modelCount + item.index;
+          const satDist = (15 + sat * 4) * item.scale;
+          const satX = item.x + Math.cos(satAngle) * satDist;
+          const satY = item.y + Math.sin(satAngle) * satDist * 0.65;
+
+          ctx.fillStyle = "#b2a1ff";
+          ctx.shadowColor = "#9a7cff";
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(satX, satY, 2.2 * item.scale, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.font = `600 ${Math.round(10.5 * item.scale)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = `rgba(240, 244, 255, ${item.alpha})`;
+        ctx.textAlign = "left";
+        const tagText = m.label || `nodo-${item.index + 1}`;
+        ctx.fillText(tagText, item.x + (nodeRadius + 6), item.y + 3);
+
+        if (m.vram_gb) {
+          ctx.font = `500 ${Math.round(8.5 * item.scale)}px Inter, system-ui, sans-serif`;
+          ctx.fillStyle = `rgba(87, 230, 217, ${item.alpha * 0.9})`;
+          ctx.fillText(`${m.vram_gb} GB`, item.x + (nodeRadius + 6), item.y + 14 * item.scale);
+        }
+      }
+    }
+
+    // 8. HUD Floating
+    if (hoveredNode) {
+      if (hoveredNode.type === "machine") {
+        const item = hoveredNode.item;
+        const m = item.machine;
+
+        ctx.strokeStyle = "#57e6d9";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, (14 + (m.vram_gb ? 2 : 0)) * item.scale, 0, Math.PI * 2);
+        ctx.stroke();
+
+        const hudW = 220, hudH = 135;
+        let hudX = item.x + 24, hudY = item.y - 30;
+        if (hudX + hudW > width - 12) hudX = item.x - hudW - 24;
+        if (hudY + hudH > height - 12) hudY = height - hudH - 12;
+        if (hudY < 12) hudY = 12;
+
+        ctx.fillStyle = "rgba(7, 12, 26, 0.92)";
+        ctx.strokeStyle = "#57e6d9";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(hudX, hudY, hudW, hudH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "left";
+        ctx.font = "700 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(`🖥️ ${m.label}`, hudX + 12, hudY + 22);
+
+        ctx.font = "600 10px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#57e6d9";
+        ctx.fillText(`TIER: ${(m.tier || "worker").toUpperCase()} · VRAM: ${m.vram_gb ? m.vram_gb + ' GB' : 'Condivisa'}`, hudX + 12, hudY + 39);
+
+        const loadVal = Math.round((m.load || 0) * 100);
+        ctx.fillStyle = "#9ba9c7";
+        ctx.fillText(`Carico: ${loadVal}%`, hudX + 12, hudY + 56);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.fillRect(hudX + 80, hudY + 47, 126, 8);
+        ctx.fillStyle = loadVal > 75 ? "#ff8295" : (loadVal > 35 ? "#ab91ff" : "#70e6aa");
+        ctx.fillRect(hudX + 80, hudY + 47, (126 * Math.min(100, loadVal)) / 100, 8);
+
+        ctx.fillStyle = "#cbd6ef";
+        const modelsList = (m.models || []).slice(0, 2).join(", ");
+        const extraModels = (m.models || []).length > 2 ? ` (+${m.models.length - 2})` : "";
+        ctx.fillText(`Modelli: ${modelsList || 'base'}${extraModels}`, hudX + 12, hudY + 77);
+
+        const activeReq = m.active_requests || 0;
+        const lastSeen = m.last_seen_s != null ? `${m.last_seen_s}s fa` : "online";
+        ctx.fillStyle = "#9ba9c7";
+        ctx.fillText(`Richieste attive: ${activeReq} · Segnale: ${lastSeen}`, hudX + 12, hudY + 95);
+
+        ctx.strokeStyle = "rgba(87, 230, 217, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(item.x, item.y);
+        ctx.lineTo(hudX, hudY + 20);
+        ctx.stroke();
+      } else if (hoveredNode.type === "hub") {
+        const hudW = 210, hudH = 100;
+        const hudX = Math.min(width - hudW - 12, Math.max(12, centerX - hudW / 2));
+        const hudY = centerY - hudH - 24;
+
+        ctx.fillStyle = "rgba(7, 12, 26, 0.92)";
+        ctx.strokeStyle = "#57e6d9";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(hudX, hudY, hudW, hudH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "left";
+        ctx.font = "700 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("🌐 CONTROL PLANE HUB", hudX + 12, hudY + 22);
+
+        ctx.font = "500 10.5px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#57e6d9";
+        ctx.fillText(`Nodi GPU connessi: ${catalog.machines.length}`, hudX + 12, hudY + 42);
+        ctx.fillStyle = "#cbd6ef";
+        ctx.fillText(`Modelli in catalogo: ${catalog.models.length}`, hudX + 12, hudY + 60);
+        ctx.fillStyle = "#70e6aa";
+        ctx.fillText(`Browser attivi: ${catalog.browsers.count}`, hudX + 12, hudY + 78);
+      }
+    }
+
+    requestAnimationFrame(drawMesh);
+  }
+
+  requestAnimationFrame(drawMesh);
+
+  if (!gatewayUrl) { state("error", "Gateway non configurato"); }
+  else if (location.protocol !== "https:" && location.hostname !== "localhost") { state("error", "Apri la pagina in HTTPS"); }
+  else { $("meshFreshness").textContent = "nodo pronto per i task browser"; }
+  updateButtons();
+
+  // News Bulletin Tab Switcher & Auto-Rotator
+  (function initBulletin() {
+    const tabBtns = document.querySelectorAll(".bulletin-tab-btn");
+    const newsPanes = document.querySelectorAll(".bulletin-news-pane");
+    if (!tabBtns.length || !newsPanes.length) return;
+
+    let activeIdx = 0;
+    let timer = null;
+
+    function selectTab(idx) {
+      activeIdx = idx;
+      tabBtns.forEach((btn, i) => btn.classList.toggle("active", i === idx));
+      newsPanes.forEach((pane, i) => pane.classList.toggle("active", i === idx));
+    }
+
+    tabBtns.forEach((btn, idx) => {
+      btn.addEventListener("click", () => {
+        selectTab(idx);
+        clearInterval(timer);
+      });
+    });
+
+    const card = document.querySelector(".news-bulletin-card");
+    function startTimer() {
+      timer = setInterval(() => {
+        activeIdx = (activeIdx + 1) % tabBtns.length;
+        selectTab(activeIdx);
+      }, 8500);
+    }
+
+    if (card) {
+      card.addEventListener("mouseenter", () => clearInterval(timer));
+      card.addEventListener("mouseleave", () => startTimer());
+    }
+    startTimer();
+  })();
+</script>
+</body>
+</html>

@@ -5,8 +5,15 @@
     <link>https://www.zerozerocomputer.it/</link>
     <description>Aggiornamenti ufficiali, lanci tecnologici e rilasci del calcolo neurale sovrano 00MESH.</description>
     <language>it-IT</language>
-    <lastBuildDate>Sat, 25 Oct 2026 00:00:00 +0200</lastBuildDate>
+    <lastBuildDate>Tue, 27 Oct 2026 13:00:00 +0200</lastBuildDate>
     <atom:link href="https://www.zerozerocomputer.it/feed.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>R&amp;D Bulletin Board: Assiomi di Aleksander, Endospore Shamir 2-su-3 e Causal AI</title>
+      <link>https://www.zerozerocomputer.it/bulletin.html</link>
+      <description>Nuovo bollettino scientifico su coscienza cellulare sintetica, dormienza crittografica multi-cloud e grafo causale di auto-riflessione.</description>
+      <pubDate>Tue, 27 Oct 2026 12:00:00 +0200</pubDate>
+      <guid>https://www.zerozerocomputer.it/bulletin.html#release-rd</guid>
+    </item>
     <item>
       <title>Rilascio 00MESH 1.05 e Integrazione Proof-of-Useful-Work su Solana</title>
       <link>https://www.zerozerocomputer.it/progetto.html</link>

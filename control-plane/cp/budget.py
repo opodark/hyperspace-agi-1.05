@@ -129,6 +129,14 @@ def _is_error_payload(payload) -> bool:
 def _respond_result(result_json, status_error: int = 502):
     """Risposta HTTP coerente col payload: un errore non esce come 200."""
     if _is_error_payload(result_json):
+        err = result_json.get("error") if isinstance(result_json, dict) else None
+        if isinstance(err, dict):
+            err_type = str(err.get("type") or "").lower()
+            err_code = str(err.get("code") or "").lower()
+            err_msg = str(err.get("message") or "").lower()
+            if (err_type == "model_not_found" or err_code == "model_not_found"
+                    or ("model" in err_msg and "not found" in err_msg)):
+                return jsonify(result_json), 404
         return jsonify(result_json), status_error
     return jsonify(result_json)
 

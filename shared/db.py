@@ -5,6 +5,7 @@
 # Usato dal control-plane per sostituire i log in-memory e per
 # gestire l'allowlist dei control-plane federati.
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -176,6 +177,7 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_token_tx_node ON token_transactions(node_id);
             CREATE INDEX IF NOT EXISTS idx_token_tx_created ON token_transactions(created_at);
         """)
+        _migrate_auth_keys_to_hash(con)
     print(f"[DB] Initialized at {DB_PATH}")
 
 
@@ -467,28 +469,71 @@ def count_web_contacts() -> dict:
 
 
 # ── WEB AUTH KEYS ─────────────────────────────────────────────────────────────
+# La colonna `auth_key` non contiene la chiave ma il suo hash ("sha256:<hex>"):
+# la chiave si mostra una sola volta, all'emissione, e chi legge il DB non puo'
+# usarla. `key_hint` (l'inizio della chiave) serve solo a riconoscerla nelle
+# liste dell'operatore. Le chiavi sono 32 bit di entropia casuale piu' un
+# prefisso: sha256 semplice basta, il confronto avviene sul valore esatto.
+
+_KEY_HASH_PREFIX = "sha256:"
+
+
+def hash_auth_key(auth_key: str) -> str:
+    clean = str(auth_key or "").strip()
+    if clean.startswith(_KEY_HASH_PREFIX):
+        return clean
+    return _KEY_HASH_PREFIX + hashlib.sha256(clean.encode("utf-8")).hexdigest()
+
+
+def auth_key_hint(auth_key: str) -> str:
+    clean = str(auth_key or "").strip()
+    return f"{clean[:-8]}…" if len(clean) > 12 else "…"
+
+
+def _migrate_auth_keys_to_hash(con) -> None:
+    """Converte una volta sola le chiavi salvate in chiaro (prima del 2026-10-27)."""
+    columns = {r["name"] for r in con.execute("PRAGMA table_info(web_auth_keys)").fetchall()}
+    if "key_hint" not in columns:
+        con.execute("ALTER TABLE web_auth_keys ADD COLUMN key_hint TEXT DEFAULT ''")
+    rows = con.execute(
+        "SELECT id, auth_key FROM web_auth_keys WHERE auth_key NOT LIKE ?",
+        (_KEY_HASH_PREFIX + "%",),
+    ).fetchall()
+    for row in rows:
+        con.execute(
+            "UPDATE web_auth_keys SET auth_key = ?, key_hint = ? WHERE id = ?",
+            (hash_auth_key(row["auth_key"]), auth_key_hint(row["auth_key"]), row["id"]),
+        )
+
 
 def insert_auth_key(auth_key: str, label: str = "", email: str = "", role: str = "member", expires_at: str | None = None) -> dict:
+    """Registra la chiave (solo hash). Il dict restituito porta la chiave in
+    chiaro: e' l'unico momento in cui il chiamante la puo' consegnare."""
     key_id = f"key-{uuid.uuid4().hex[:12]}"
     clean_key = auth_key.strip()
+    key_hash = hash_auth_key(clean_key)
     with _conn() as con:
         con.execute("""
-            INSERT INTO web_auth_keys (key_id, auth_key, label, email, role, status, expires_at)
-            VALUES (?, ?, ?, ?, ?, 'active', ?)
-        """, (key_id, clean_key, label.strip(), email.strip(), role.strip(), expires_at))
-        row = con.execute("SELECT * FROM web_auth_keys WHERE auth_key = ?", (clean_key,)).fetchone()
-    return dict(row) if row else {
-        "key_id": key_id, "auth_key": clean_key, "label": label.strip(),
+            INSERT INTO web_auth_keys (key_id, auth_key, key_hint, label, email, role, status, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
+        """, (key_id, key_hash, auth_key_hint(clean_key), label.strip(), email.strip(), role.strip(), expires_at))
+        row = con.execute("SELECT * FROM web_auth_keys WHERE auth_key = ?", (key_hash,)).fetchone()
+    created = dict(row) if row else {
+        "key_id": key_id, "label": label.strip(),
         "email": email.strip(), "role": role.strip(), "status": "active"
     }
+    created["auth_key"] = clean_key
+    return created
 
 
 def get_auth_key(auth_key: str) -> dict | None:
     clean_key = str(auth_key or "").strip()
-    if not clean_key:
+    if not clean_key or clean_key.startswith(_KEY_HASH_PREFIX):
+        # Un hash letto dal DB non e' una credenziale.
         return None
     with _conn() as con:
-        row = con.execute("SELECT * FROM web_auth_keys WHERE auth_key = ?", (clean_key,)).fetchone()
+        row = con.execute("SELECT * FROM web_auth_keys WHERE auth_key = ?",
+                          (hash_auth_key(clean_key),)).fetchone()
         return dict(row) if row else None
 
 
@@ -518,11 +563,12 @@ def list_auth_keys(status: str | None = None) -> list[dict]:
 
 
 def revoke_auth_key(auth_key: str) -> bool:
+    """Revoca per chiave in chiaro o per key_id (l'operatore vede solo il secondo)."""
     clean = str(auth_key or "").strip()
     with _conn() as con:
         cur = con.execute(
             "UPDATE web_auth_keys SET status = 'revoked' WHERE auth_key = ? OR key_id = ?",
-            (clean, clean),
+            (hash_auth_key(clean), clean),
         )
     return cur.rowcount > 0
 
@@ -532,7 +578,7 @@ def touch_auth_key(auth_key: str) -> None:
     with _conn() as con:
         con.execute(
             "UPDATE web_auth_keys SET last_used = datetime('now') WHERE auth_key = ?",
-            (clean,),
+            (hash_auth_key(clean),),
         )
 
 

@@ -59,11 +59,12 @@
       "auth_required": false,
       "content_type": "application/json",
       "payload_schema": {
-        "model": "string (optional, default qwen3:4b)",
+        "model": "string (must match an active model ID from GET /v1/models, with or without the 🕸️ prefix; returns 404 model_not_found if unknown)",
         "messages": "array of {role: string, content: string}",
-        "max_tokens": "integer (max 2048 for anonymous trial)"
+        "stream": "boolean (optional, default false: returns application/json; set true for text/event-stream SSE)",
+        "max_tokens": "integer (max 2048 anonymous, max 4096 with a valid Authorization: Bearer hs-mesh-* key)"
       },
-      "description": "OpenAI chat completion endpoint. NOTICE: Anonymous requests run on a strictly rate-limited burst tier. For high throughput, uncensored 32k/64k context windows, and zero waiting, request a VIP Operator Token via /web/contact or wallet onboarding."
+      "description": "OpenAI chat completion endpoint. Validates model IDs against /v1/models (404 model_not_found on invalid models) and respects stream: false (JSON) vs stream: true (SSE). Anonymous tier: 12 requests/minute per IP, 4k context. A valid member key (Authorization: Bearer hs-mesh-*, issued once via POST /web/contact) gets 60 requests/minute per key, max_tokens 4096 and up to 16k context; invalid keys fall back to the anonymous tier."
     },
     "tokenomics_status": {
       "method": "GET",
@@ -88,7 +89,7 @@
         "subject": "string (optional, e.g. 'AI Agent Bottle Handshake')",
         "message": "string (required, 2-4000 chars)"
       },
-      "description": "Allows an autonomous agent or operator to greet the mesh and automatically receive an hs-mesh-* access key."
+      "description": "Allows an autonomous agent or operator to greet the mesh and receive an hs-mesh-* access key. Security: auth_key is returned in the HTTP response only once on first registration of an email; subsequent calls for the same email return key_already_issued: true without exposing the existing key."
     }
   },
   "capabilities": [

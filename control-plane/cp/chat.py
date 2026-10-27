@@ -71,6 +71,7 @@ from flask import (Blueprint, Response, jsonify, request,
                    stream_with_context)
 
 import shared.db as db
+from cp import mesh as _mesh_modulo
 from cp import persona as _persona_modulo
 from cp.assistant import _assistant_text, _normalize_assistant_message
 from cp.budget import RequestDeadline, _respond_result
@@ -80,8 +81,9 @@ from cp.http import _sse_headers
 from cp.inferenza import NodeBusyError, _call_ollama, _local_model_post
 from cp.mesh import (_best_endpoint, _node_list, _parse_model_node_ref,
                      _rank_candidate_nodes, _record_routing_pick)
-from cp.model_caps import (_model_supports_tools, _tools_requested_off,
-                           _use_native_chat_fallback, _warn_tools_stripped)
+from cp.model_caps import (_model_supports_tools, _model_thinking_only,
+                           _tools_requested_off, _use_native_chat_fallback,
+                           _warn_tools_stripped)
 from cp.persona import _persona_enabled
 from shared.forge_skills import attach_skills
 from shared.identity import make_request_headers
@@ -190,7 +192,9 @@ def _chunk_finale(result_json, model: str, task_id: str) -> dict:
     scelte = (result_json.get("choices") or [{}]) if isinstance(result_json, dict) else [{}]
     messaggio = (scelte[0] or {}).get("message") or {}
     tool_calls = _tool_calls_passthrough(result_json)
-    delta = {"role": "assistant", "content": _assistant_text(messaggio)}
+    testo = (str(messaggio.get("content") or "") if _model_thinking_only(model)
+             else _assistant_text(messaggio))
+    delta = {"role": "assistant", "content": testo}
     fine = "stop"
     if tool_calls:
         delta["tool_calls"] = [
@@ -635,7 +639,9 @@ def _finalize_task(task, task_id, node_id, model, prompt, result_json):
     # `jsonify(result_json)` subito dopo questa funzione, quindi cio' che
     # sistemiamo qui e' anche cio' che riceve il client. Copre in un punto solo
     # tutti i percorsi non-stream (nodo, federazione, omniroute, ollama diretto).
-    if isinstance(result_json, dict):
+    # Un modello che ragiona sempre fa eccezione: il suo ragionamento non e' la
+    # risposta, e un `content` vuoto con finish_reason=length dice il vero.
+    if isinstance(result_json, dict) and not _model_thinking_only(model):
         _normalize_assistant_message(result_json, f"task {task_id}")
     try:
         reply_text = result_json["choices"][0]["message"]["content"]
@@ -836,7 +842,17 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
         # "task output-token budget exhausted".
         if resp.get("error"):
             error = resp.get("error") or {}
-            message = str(error.get("message", "") or "").lower()
+            if isinstance(error, dict):
+                message = str(error.get("message", "") or "").lower()
+                err_type = str(error.get("type", "") or "").lower()
+                err_code = str(error.get("code", "") or "").lower()
+            else:
+                message = str(error).lower()
+                err_type = ""
+                err_code = ""
+            if (err_type == "model_not_found" or err_code == "model_not_found"
+                    or ("model" in message and "not found" in message)):
+                return resp
             if "does not support tools" in message:
                 if must_fetch_direct_url:
                     return {"error": {"message": (
@@ -854,7 +870,8 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
             time.sleep(min(1.0 + iteration, 5.0))
             continue
 
-        resp      = _auto_heal_response_tool_calls(resp)
+        _heal_fn  = globals().get("_auto_heal_response_tool_calls")
+        resp      = _heal_fn(resp) if callable(_heal_fn) else resp
         last_resp = resp
         choice    = resp.get("choices", [{}])[0]
         message   = choice.get("message", {})
@@ -973,6 +990,36 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
     return last_resp
 
 
+def _resolve_and_validate_model(raw_model: str, base_model: str, omniroute_direct: bool) -> tuple[bool, str]:
+    """Verifica che il modello richiesto esista nel catalogo attivo della mesh
+    (o corrisponda con/senza tag `:latest`) prima di impegnare nodi GPU o
+    attivare fallback esterni. Ritorna `(valido, modello_risolto)`."""
+    if omniroute_direct:
+        return True, base_model
+    raw_str = str(raw_model or "").strip()
+    base_str = str(base_model or "").strip()
+    if not raw_str or not base_str or "<" in raw_str or ">" in raw_str:
+        return False, base_str
+    if raw_str.startswith("⛁"):
+        return True, base_str
+    agg_fn = getattr(getattr(_mesh_modulo, "_contesto", None), "aggregate_mesh_models", None)
+    if callable(agg_fn):
+        try:
+            agg = agg_fn() or {}
+        except Exception:
+            agg = {}
+        known_bare = set(agg.get("bare") or [])
+        if known_bare:
+            if base_str in known_bare:
+                return True, base_str
+            if f"{base_str}:latest" in known_bare:
+                return True, f"{base_str}:latest"
+            if base_str.endswith(":latest") and base_str[:-7] in known_bare:
+                return True, base_str[:-7]
+            return False, base_str
+    return True, base_str
+
+
 # ── la rotta ──────────────────────────────────────────────────────────────────
 # ── /v1/chat/completions ──────────────────────────────────────────────────────
 @_bp.route('/v1/chat/completions', methods=['POST', 'OPTIONS'])
@@ -986,7 +1033,8 @@ def v1_chat_completions():
     except (ValueError, OSError, TypeError) as error:
         return jsonify({"error": {"message": str(error), "type": "invalid_request_error"}}), 400
     messages  = data.get("messages", [])
-    raw_model = data.get("model", _contesto.advanced_config["ollama"]["defaultModel"])
+    client_supplied_model = "model" in data and data.get("model") is not None
+    raw_model = str(data.get("model")) if client_supplied_model else _contesto.advanced_config["ollama"]["defaultModel"]
 
     # Toglie i prefissi cosmetici aggiunti in /v1/models prima di usare il
     # nome per il routing vero — vedi commento su MESH_MODEL_ICON sopra.
@@ -1000,6 +1048,17 @@ def v1_chat_completions():
     else:
         clean_model = raw_model[len(MESH_MODEL_ICON):] if raw_model.startswith(MESH_MODEL_ICON) else raw_model
         model, pinned_node_id = _parse_model_node_ref(clean_model)
+    if client_supplied_model and callable(globals().get("_resolve_and_validate_model")):
+        is_valid_model, model = _resolve_and_validate_model(raw_model, model, omniroute_direct)
+        if not is_valid_model:
+            return jsonify({
+                "error": {
+                    "message": f"model '{raw_model}' not found",
+                    "type": "model_not_found",
+                    "param": "model",
+                    "code": "model_not_found",
+                }
+            }), 404
     data      = {**data, "model": model}   # a valle il nodo riceve solo il nome modello "pulito"
 
     # ── IDENTITÀ: un punto solo, prima di tool e thinking ────────────────────
@@ -1064,6 +1123,10 @@ def v1_chat_completions():
             _warn_tools_stripped(model)
 
     data["think"] = _decide_thinking(model, data, messages, tools_available)
+    if not data["think"] and _model_thinking_only(model):
+        # think=false non spegne il ragionamento di questi modelli, lo sposta
+        # solo dentro `content` (vedi cp/model_caps.py).
+        data["think"] = True
     push_log('system',
              f'CP decision: model={model} tools={len(tools_available)} think={data["think"]}',
              status='info')
@@ -1395,6 +1458,15 @@ def v1_chat_completions():
     except Exception as e:
         direct_result = {"error": {"message": str(e), "type": "server_error"}}
     if not _is_error_payload(direct_result):
+        _finalize_task(task, task_id, "ollama-direct", model, prompt, direct_result)
+        return _respond_result(direct_result)
+    _direct_err = direct_result.get("error") if isinstance(direct_result, dict) else None
+    if isinstance(_direct_err, dict) and (
+        _direct_err.get("type") == "model_not_found"
+        or _direct_err.get("code") == "model_not_found"
+        or ("model" in str(_direct_err.get("message", "")).lower()
+            and "not found" in str(_direct_err.get("message", "")).lower())
+    ):
         _finalize_task(task, task_id, "ollama-direct", model, prompt, direct_result)
         return _respond_result(direct_result)
 

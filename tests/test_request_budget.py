@@ -173,6 +173,10 @@ class ErrorPayloadTests(unittest.TestCase):
     def test_the_response_status_is_not_200_for_an_error(self):
         respond = _load()["_respond_result"]
         self.assertEqual(respond({"error": {"message": "x"}})[1], 502)
+        self.assertEqual(
+            respond({"error": {"message": "model 'foo' not found", "type": "model_not_found"}})[1],
+            404,
+        )
         # un successo resta una risposta semplice (niente tupla con status)
         self.assertNotIsInstance(respond({"choices": []}), tuple)
 

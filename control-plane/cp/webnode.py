@@ -289,7 +289,9 @@ def _send_telegram_notification(token: str, chat_id: str, item: dict):
         msg = html.escape(str(item.get("message", "")))
         cid = html.escape(str(item.get("contact_id", "")))
         ts = html.escape(str(item.get("ts", "")))
-        auth_key = html.escape(str(item.get("auth_key", "") or "-"))
+        # Telegram e' un servizio esterno: all'operatore basta riconoscere la
+        # chiave, non poterla usare.
+        auth_key = html.escape(str(item.get("key_hint", "") or "-"))
 
         text = (
             f"📬 <b>Nuovo contatto da HyperSpace Web Node!</b>\n\n"
@@ -297,7 +299,7 @@ def _send_telegram_notification(token: str, chat_id: str, item: dict):
             f"📧 <b>Email:</b> <code>{email}</code>\n"
             f"🏷️ <b>Oggetto:</b> {subject}\n"
             f"🆔 <b>ID:</b> <code>{cid}</code>\n"
-            f"🔑 <b>Chiave Mesh Emessa:</b> <code>{auth_key}</code>\n"
+            f"🔑 <b>Chiave Mesh:</b> <code>{auth_key}</code>\n"
             f"⏰ <b>Data:</b> {ts}\n\n"
             f"💬 <b>Messaggio:</b>\n{msg}"
         )
@@ -372,30 +374,63 @@ def web_contact():
     client_ip = (request.headers.get("X-Hs-Client-Ip", "") or "").strip() or (request.remote_addr or "")
     item = db.insert_web_contact(name=name, email=email, subject=subject, message=message, ip=client_ip)
 
-    # Genera automaticamente la chiave di accesso per sbloccare e attivare subito la Chat AI
+    # Genera automaticamente la chiave di accesso alla prima richiesta per questa email.
+    # Sicurezza: la chiave viene restituita in chiaro nella risposta HTTP UNA SOLA VOLTA,
+    # alla prima emissione, e inviata via email in quel momento. Il DB ne conserva solo
+    # l'hash, quindi alle richieste successive non c'e' nulla da rimandare: una chiave
+    # persa si sostituisce con una nuova, emessa dall'operatore (pulsante Telegram).
+    clean_name = name.strip() or "Utente"
     existing = db.get_auth_key_by_email(email)
-    if existing and existing.get("auth_key"):
-        auth_key = existing["auth_key"]
+    if existing:
+        is_new_key = False
+        auth_key = ""
+        item["key_hint"] = existing.get("key_hint", "")
     else:
-        clean_name = name.strip() or "Utente"
+        is_new_key = True
         slug = "".join(c for c in clean_name.lower() if c.isalnum())[:10] or "user"
         auth_key = f"hs-mesh-{slug}-{secrets.token_hex(4)}"
         db.insert_auth_key(auth_key=auth_key, label=clean_name, email=email, role="member")
+        item["key_hint"] = db.auth_key_hint(auth_key)
 
-    item["auth_key"] = auth_key
     db.update_web_contact_status(item["contact_id"], "replied")
 
     push_log('web_contact', f"Nuovo messaggio da {name}",
-             f"email={email} subject={subject[:50]} id={item['contact_id']} key={auth_key}",
+             f"email={email} subject={subject[:50]} id={item['contact_id']} key={item['key_hint']} new_key={is_new_key}",
              source='web-node', status='info')
 
+    if is_new_key:
+        try:
+            from shared import mailer
+            if mailer.is_smtp_configured():
+                threading.Thread(
+                    target=mailer.send_key_email,
+                    kwargs={"to_email": email, "name": clean_name, "auth_key": auth_key},
+                    daemon=True,
+                ).start()
+        except Exception:
+            pass
+
     _notify_web_contact(item)
+
+    if not is_new_key:
+        return jsonify({
+            "ok": True,
+            "contact_id": item["contact_id"],
+            "key_already_issued": True,
+            "message": (
+                "Messaggio inviato con successo! Una chiave di accesso è già stata "
+                "emessa per questo indirizzo email ed è stata inviata via email alla "
+                "prima richiesta. Se l'hai persa, rispondi a quell'email: l'operatore "
+                "te ne emetterà una nuova."
+            ),
+        }), 200
 
     return jsonify({
         "ok": True,
         "contact_id": item["contact_id"],
         "auth_key": auth_key,
-        "message": "Messaggio inviato con successo! Accesso alla Chat AI attivato."
+        "key_already_issued": False,
+        "message": "Messaggio inviato con successo! Accesso alla Chat AI attivato (la chiave viene mostrata una sola volta: salvala ora)."
     }), 201
 
 

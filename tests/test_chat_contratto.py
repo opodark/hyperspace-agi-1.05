@@ -299,5 +299,35 @@ class DeadlineTests(unittest.TestCase):
         self.assertTrue(task["error"])
 
 
+class ModelValidationTests(unittest.TestCase):
+    """`_resolve_and_validate_model` rifiuta segnaposto o modelli assenti dal catalogo."""
+
+    def test_placeholder_o_vuoto_viene_rifiutato(self):
+        for bad in ("<id da /v1/models>", "<model>", ""):
+            with self.subTest(bad=bad):
+                ok, _ = cp_chat._resolve_and_validate_model(bad, bad, False)
+                self.assertFalse(ok)
+
+    def test_valida_contro_catalogo_mesh_e_risolve_latest(self):
+        from types import SimpleNamespace
+        old_ctx = cp_chat._mesh_modulo._contesto
+        cp_chat._mesh_modulo._contesto = SimpleNamespace(
+            aggregate_mesh_models=lambda: {"bare": ["qwen3.5:4b", "flint:latest"], "per_node": []}
+        )
+        try:
+            ok1, res1 = cp_chat._resolve_and_validate_model("🕸️ qwen3.5:4b", "qwen3.5:4b", False)
+            self.assertTrue(ok1)
+            self.assertEqual(res1, "qwen3.5:4b")
+
+            ok2, res2 = cp_chat._resolve_and_validate_model("flint", "flint", False)
+            self.assertTrue(ok2)
+            self.assertEqual(res2, "flint:latest")
+
+            ok3, _ = cp_chat._resolve_and_validate_model("modello-inventato", "modello-inventato", False)
+            self.assertFalse(ok3)
+        finally:
+            cp_chat._mesh_modulo._contesto = old_ctx
+
+
 if __name__ == "__main__":
     unittest.main()

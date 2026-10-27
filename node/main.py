@@ -83,6 +83,11 @@ OLLAMA_URL           = os.getenv("OLLAMA_URL", "http://ollama:11434")
 # /api/chat quando qualcuno chiama ollama-proxy direttamente.
 OLLAMA_PROXY_URL     = os.getenv("OLLAMA_PROXY_URL", "http://localhost:11435")
 DEFAULT_MODEL        = os.getenv("OLLAMA_MODEL", "")
+# NODE_SERVE_MODELS=false: il nodo resta in mesh (heartbeat, memoria, sync) ma
+# non offre modelli, quindi il CP non gli instrada inferenza. Serve sulla
+# macchina che e' anche il terminale di lavoro (il Mac): Ollama resta per l'uso
+# personale e la mesh lavora sulle GPU degli altri nodi.
+NODE_SERVE_MODELS    = os.getenv("NODE_SERVE_MODELS", "true").strip().lower() not in ("false", "0", "no", "off")
 # Deve stare SOPRA il timeout del control-plane: il nodo e' un proxy, e se taglia
 # per primo il CP non ha modo di sapere che il backend era solo lento. Alzato a
 # 600s perche' i modelli reasoning (deepseek-r1, qwen3 col thinking, ds4 dove il
@@ -1230,6 +1235,8 @@ async def check_ollama():
 
 @app.get("/ollama/models")
 async def list_models():
+    if not NODE_SERVE_MODELS:
+        return {"models": []}
     h = await ollama_health()
     return {"models": h.get("models", [])} if h["ok"] else {"error": h.get("error")}
 

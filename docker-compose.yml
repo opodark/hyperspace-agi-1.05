@@ -662,6 +662,7 @@ services:
       NODE_TTL: "${NODE_TTL:-300}"
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+      NODE_SERVE_MODELS: "${NODE_SERVE_MODELS:-true}"
       INFERENCE_BACKEND: ${INFERENCE_BACKEND:-ollama}
       REQUEST_QUEUE_TIMEOUT_S: "${REQUEST_QUEUE_TIMEOUT_S:-10}"
       VRAM_GB: ${VRAM_GB:-0.0}

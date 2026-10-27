@@ -1298,10 +1298,18 @@
           <div id="walletSignStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
         </div>
 
-        <label class="consent" style="margin:14px 0 12px;">
+        <label class="consent" style="margin:14px 0 10px;">
           <input id="consent" type="checkbox">
           <span>Acconsento a condividere capacità web-safe (calcolo, embedding, routing) con la mesh HyperSpace durante la navigazione.</span>
         </label>
+
+        <label class="consent" style="margin:0 0 12px; display:flex; align-items:flex-start; gap:8px;">
+          <input id="enableWebGpuWorker" type="checkbox" style="margin-top:3px;">
+          <span>
+            <strong>⚡ Accelerazione Neurale WebGPU (Web Worker dedicato)</strong>: esegue i compiti off-thread preservando 60 FPS e sblocca la capability <code>embed_texts</code> per task di frontiera e ricompense PoUW.
+          </span>
+        </label>
+        <div id="webGpuStatusBadge" style="font-size:11.5px;color:var(--muted);margin:-6px 0 14px 24px;display:none;"></div>
 
         <button id="join" disabled>Entra nella mesh & Inizia Mining</button>
         <button id="leave" class="secondary" disabled>Disconnetti nodo</button>
@@ -1747,7 +1755,7 @@
 
 <script src="./join-config.js?v=1.05.5"></script>
 <script type="module">
-  import { WebNode, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology, detectBridgeStatus } from "./src/index.js?v=1.05.5";
+  import { WebNode, WorkerClient, detectCapabilities, newNodeId, AuthManager, sendContactMessage, fetchTopology, detectBridgeStatus } from "./src/index.js?v=1.05.5";
 
   const $ = id => document.getElementById(id);
   const config = window.HYPERSPACE_JOIN || {};
@@ -1855,9 +1863,27 @@
   }
   refreshServerBalance();
 
-  // Capacità Browser
+  // Capacità Browser e Rilevamento WebGPU
   const caps = detectCapabilities(globalThis);
   if ($("capCount")) $("capCount").textContent = caps.length;
+
+  const webGpuSupported = typeof navigator !== "undefined" && Boolean(navigator.gpu);
+  if ($("enableWebGpuWorker")) {
+    if (webGpuSupported) {
+      $("enableWebGpuWorker").checked = true;
+      if ($("webGpuStatusBadge")) {
+        $("webGpuStatusBadge").style.display = "block";
+        $("webGpuStatusBadge").innerHTML = "✓ WebGPU rilevata sul dispositivo. Verrà impiegato un Web Worker dedicato a 60 FPS.";
+        $("webGpuStatusBadge").style.color = "var(--ok)";
+      }
+    } else {
+      $("enableWebGpuWorker").checked = false;
+      if ($("webGpuStatusBadge")) {
+        $("webGpuStatusBadge").style.display = "block";
+        $("webGpuStatusBadge").textContent = "WebGPU non disponibile in questo browser: il Web Worker userà compiti CPU off-thread.";
+      }
+    }
+  }
 
   let node = null;
   function state(kind, text) {
@@ -1912,19 +1938,57 @@
     state("", "Connessione alla mesh & sincronizzazione PoUW…");
     $("join").disabled = true;
 
+    let workerClient = null;
+    let customCaps = null;
+    let gpuFailed = "";
+    const wantGpu = $("enableWebGpuWorker") && $("enableWebGpuWorker").checked;
+
+    if (typeof Worker === "function") {
+      try {
+        state("", "Inizializzazione Web Worker dedicato off-thread…");
+        workerClient = new WorkerClient({ workerUrl: "./src/worker.js", env: globalThis });
+        workerClient.init();
+        await workerClient.ping();
+        if (wantGpu && webGpuSupported) {
+          // WebGPU è un di più: se il modello non si carica il worker resta valido
+          // per i task CPU, e il nodo lo dice invece di tornare in silenzio sul thread UI.
+          try {
+            state("", "Caricamento modello embeddings WebGPU nel worker…");
+            const initRes = await workerClient.initWebGpu({}, (st) => {
+              state("", st.message || `WebGPU: ${st.phase || "caricamento"}…`);
+            });
+            if (initRes && initRes.ok && Array.isArray(initRes.capabilities)) {
+              customCaps = initRes.capabilities;
+              if ($("capCount")) $("capCount").textContent = customCaps.length;
+            }
+          } catch (gpuErr) {
+            console.warn("WebGPU non attivato, worker in modalità CPU:", gpuErr);
+            gpuFailed = gpuErr.message || String(gpuErr);
+          }
+        }
+      } catch (wErr) {
+        console.warn("Web Worker non disponibile, uso il thread principale:", wErr);
+        if (workerClient) workerClient.terminate();
+        workerClient = null;
+      }
+    }
+
     try {
       node = new WebNode({
         baseUrls: gatewayUrls,
         nodeId,
         label,
         consent: true,
+        worker: workerClient,
+        capabilities: customCaps,
         onState: (s) => {
           $("completed").textContent = s.tasksDone;
           $("failed").textContent = s.tasksFailed;
           if (s.lastError) {
             state("error", s.lastError);
           } else if (s.running) {
-            state("online", "Nodo attivo · Proof-of-Useful-Work ($00MESH)");
+            const workerLabel = s.workerActive ? (customCaps && customCaps.includes("embed_texts") ? "WebGPU Worker" : (gpuFailed ? "Worker CPU · WebGPU non attivato" : "Worker CPU Off-Thread")) : "Main Thread";
+            state("online", `Nodo attivo (${workerLabel}) · Proof-of-Useful-Work ($00MESH)`);
           }
           if (s.tasksDone > 0) {
             refreshServerBalance();
@@ -1933,7 +1997,8 @@
         }
       });
       await node.start();
-      state("online", "Nodo attivo · Proof-of-Useful-Work ($00MESH)");
+      const workerLabel = node.state.workerActive ? (customCaps && customCaps.includes("embed_texts") ? "WebGPU Worker" : (gpuFailed ? "Worker CPU · WebGPU non attivato" : "Worker CPU Off-Thread")) : "Main Thread";
+      state("online", `Nodo attivo (${workerLabel}) · Proof-of-Useful-Work ($00MESH)`);
     } catch (error) {
       node = null;
       state("error", error.message);

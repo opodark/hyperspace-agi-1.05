@@ -866,6 +866,7 @@ Regole:
           signal: controller.signal,
           body: JSON.stringify({
             model: model,
+            stream: true,
             messages: [
               { role: "system", content: systemPrompt },
               ...history.slice(-6)

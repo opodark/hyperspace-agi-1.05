@@ -9,6 +9,8 @@ verifica end-to-end completa vive in scripts/verify_web_node_e2e.py.
 import ast
 
 from tests import cp_source
+import json
+import os
 import unittest
 from pathlib import Path
 
@@ -121,6 +123,78 @@ class WebRouteGuardTests(unittest.TestCase):
 
         conteggi = db.count_web_contacts()
         self.assertGreaterEqual(conteggi["total"], 1)
+
+    def _temp_db(self):
+        # Mai il DB della mesh: una chiave creata da un test sarebbe una chiave vera.
+        import tempfile
+        import shared.db as db
+        tmp = tempfile.TemporaryDirectory()
+        old_path = db.DB_PATH
+        db.DB_PATH = os.path.join(tmp.name, "hyperspace.db")
+        self.addCleanup(tmp.cleanup)
+        self.addCleanup(setattr, db, "DB_PATH", old_path)
+        db.init_db()
+        return db
+
+    def test_contact_route_returns_key_only_once_per_email(self):
+        import secrets
+        from flask import Flask
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "control-plane"))
+        import cp.webnode as webnode
+        db = self._temp_db()
+        app = Flask(__name__)
+        app.register_blueprint(webnode._bp)
+        unique_email = f"once-{secrets.token_hex(4)}@example.com"
+        payload = {
+            "name": "Claude Agent",
+            "email": unique_email,
+            "subject": "Handshake",
+            "message": "Primo messaggio di registrazione",
+        }
+        with app.test_client() as client:
+            first = client.post("/web/contact", json=payload)
+            self.assertEqual(first.status_code, 201)
+            first_json = first.get_json()
+            self.assertTrue(first_json["ok"])
+            self.assertFalse(first_json.get("key_already_issued"))
+            self.assertTrue(str(first_json.get("auth_key", "")).startswith("hs-mesh-"))
+
+            second = client.post("/web/contact", json=payload)
+            self.assertEqual(second.status_code, 200)
+            second_json = second.get_json()
+            self.assertTrue(second_json["ok"])
+            self.assertTrue(second_json.get("key_already_issued"))
+            self.assertNotIn("auth_key", second_json)
+
+            # Nel DB resta solo l'hash, e la chiave in chiaro continua a valere.
+            issued = first_json["auth_key"]
+            record = db.get_auth_key_by_email(unique_email)
+            self.assertTrue(record["auth_key"].startswith("sha256:"))
+            self.assertNotIn(issued, json.dumps(record))
+            verified = client.post("/web/auth/verify", json={"token": issued})
+            self.assertEqual(verified.status_code, 200)
+            self.assertTrue(verified.get_json()["authenticated"])
+            stolen = client.post("/web/auth/verify", json={"token": record["auth_key"]})
+            self.assertEqual(stolen.status_code, 401)
+
+    def test_plaintext_auth_keys_are_migrated_to_hash(self):
+        import secrets
+        db = self._temp_db()
+        legacy = f"hs-mesh-legacy-{secrets.token_hex(4)}"
+        with db._conn() as con:
+            con.execute("INSERT INTO web_auth_keys (key_id, auth_key, email) VALUES (?, ?, ?)",
+                        (f"key-{secrets.token_hex(6)}", legacy, "legacy@example.com"))
+        db.init_db()
+        with db._conn() as con:
+            plain = con.execute("SELECT COUNT(*) FROM web_auth_keys WHERE auth_key = ?",
+                                (legacy,)).fetchone()[0]
+        self.assertEqual(plain, 0)
+        record = db.get_auth_key(legacy)
+        self.assertIsNotNone(record)
+        self.assertTrue(record["key_hint"].startswith("hs-mesh-legacy-"))
+        self.assertTrue(db.revoke_auth_key(legacy))
+        self.assertEqual(db.get_auth_key(legacy)["status"], "revoked")
 
     def test_registry_is_built_from_env_limits(self):
         source = cp_source.SORGENTE()

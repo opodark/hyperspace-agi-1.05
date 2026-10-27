@@ -13,7 +13,7 @@ Funzionalità:
     /keygen <nome> <email>    Genera una nuova chiave e la invia all'email specificata
     /contacts                 Elenco ultimi contatti ricevuti con pulsanti inline
     /keys                     Elenco chiavi attive e ultimo utilizzo
-    /revoke <chiave>          Revoca una chiave di accesso
+    /revoke <chiave|key_id>   Revoca una chiave di accesso
     /status                   Stato del bot, database e configurazione SMTP
     /help                     Riepilogo comandi
 
@@ -263,7 +263,7 @@ class InfoBotService:
                 "🔑 <b>Emissione Chiavi & Email:</b>\n"
                 "• <code>/grant &lt;email_o_id&gt;</code> — Genera e invia chiave per un contatto\n"
                 "• <code>/keygen &lt;nome&gt; &lt;email&gt;</code> — Crea una chiave nuova e la spedisce\n"
-                "• <code>/revoke &lt;chiave&gt;</code> — Revoca una chiave di accesso\n\n"
+                "• <code>/revoke &lt;chiave|key_id&gt;</code> — Revoca una chiave di accesso\n\n"
                 "📊 <b>Monitoraggio:</b>\n"
                 "• <code>/contacts</code> — Ultimi messaggi ricevuti dal form\n"
                 "• <code>/keys</code> — Elenco chiavi attive e ultimo utilizzo\n"
@@ -342,7 +342,7 @@ class InfoBotService:
             for k in keys[:10]:
                 badge = "🟢" if k["status"] == "active" else "🔴"
                 msg_lines.append(
-                    f"{badge} <code>{k['auth_key']}</code>\n"
+                    f"{badge} <code>{html.escape(k.get('key_hint') or '…')}</code> · id <code>{k['key_id']}</code>\n"
                     f"   👤 {html.escape(k['label'] or '—')} | 📧 <code>{html.escape(k['email'] or '—')}</code>\n"
                     f"   🕒 Uso: {k['last_used'] or 'mai'}\n"
                 )
@@ -415,7 +415,7 @@ class InfoBotService:
 
         elif cmd == "/revoke":
             if len(parts) < 2:
-                self.send_message("⚠️ Uso: <code>/revoke &lt;chiave&gt;</code>")
+                self.send_message("⚠️ Uso: <code>/revoke &lt;chiave|key_id&gt;</code>")
                 return
             key_val = parts[1].strip()
             if db.revoke_auth_key(key_val):

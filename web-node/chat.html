@@ -363,10 +363,10 @@
     <div class="sidebar-footer">
       <div class="user-pill" id="userPillBox" style="cursor:pointer" title="Accesso Libero attivo. Clicca per inserire una Chiave o connettere il plugin GPU.">
         <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden">
-          <span class="user-name" id="userName">Visitatore Libero</span>
+          <span class="user-name" id="userName">Non Autenticato</span>
           <span style="font-size:10.5px;color:var(--cyan)">🔑 Opzioni GPU / Chiave</span>
         </div>
-        <span class="user-role" id="userRole">LIBERO</span>
+        <span class="user-role" id="userRole" style="background:#ff829522;color:var(--bad);border-color:#ff829555;">BLOCCATO</span>
       </div>
       <div class="footer-links">
         <a href="./index.html">← Torna al Sito</a>
@@ -476,10 +476,10 @@
 <!-- Modal di Autenticazione & Opzioni Avanzate Rete -->
 <div id="authModal" class="auth-modal" style="display:none;">
   <div class="auth-card" style="position:relative">
-    <button id="modalCloseBtn" type="button" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1" title="Chiudi e continua come Visitatore Libero">✕</button>
+    <button id="modalCloseBtn" type="button" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1" title="Chiudi e torna al Portale">✕</button>
     <div class="mark" style="margin:0 auto 14px"></div>
-    <h2>Accesso e Potenza di Calcolo 00MESH</h2>
-    <p>La chat è attiva in <strong>Accesso Libero</strong> per tutti. Puoi collegare la tua scheda video (GPU) o inserire una Chiave di Rete per ottenere priorità massima e sbloccare modelli estesi.</p>
+    <h2>Autenticazione Rete Sovrana 00MESH</h2>
+    <p>L'accesso ai modelli neurali della rete richiede una prova di utilità: connetti il wallet Phantom/Solflare come <strong>Token Holder $00MESH</strong>, attiva il <strong>Plugin GPU Chrome</strong> o inserisci una <strong>Chiave di Rete</strong>.</p>
 
     <div class="auth-methods-grid">
       <!-- Metodo A: Plugin Chrome Bridge -->
@@ -525,9 +525,11 @@
       </div>
     </div>
 
-    <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
-      <button id="modalGuestBtn" type="button" class="btn-bridge-check" style="background:#132244;color:#fff;border-color:var(--cyan);font-weight:700">✨ Continua come Visitatore Libero</button>
-      <a href="./index.html#contactSection" style="color:var(--cyan);text-decoration:none;font-size:12.5px">Richiedi una chiave →</a>
+    <div style="margin-top:20px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <a href="./mesh.html" class="btn-bridge-check" style="background:linear-gradient(115deg,#8b5cf6,#5822b3);color:#fff;border-color:#a855f7;font-weight:750;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border-radius:12px;width:100%;text-align:center;">
+        ⚡ Vai al Portale Mesh (Wallet, Nodi &amp; Chiavi) ↗
+      </a>
+      <a href="./mesh.html#contactSection" style="color:var(--cyan);text-decoration:none;font-size:13px">Non hai una chiave? Richiedila nel Form Contatti della Mesh →</a>
     </div>
   </div>
 </div>
@@ -1194,6 +1196,13 @@
   }
 
   async function handleSend() {
+    const gateCheck = await checkGate();
+    if (!gateCheck.authorized) {
+      $("authModal").style.display = "flex";
+      updateGateBridgeStatus();
+      return;
+    }
+
     let text = $("promptInput").value.trim();
     const currentAttachments = [...attachedFiles];
     if (!text && !currentAttachments.length) return;
@@ -1626,47 +1635,51 @@ Linee guida di risposta:
     }
   }
 
-  // Autenticazione & Gate Sovrano: Modalità Libera & Accesso Diretto
+  // Autenticazione & Gate Sovrano: Richiede Chiave, Estensione GPU Bridge o Wallet Token Holder
   async function initAuth() {
     const authResult = await checkGate();
-    $("authModal").style.display = "none";
 
     if (!authResult.authorized) {
-      // Accesso Libero per tutti: famiglie, studenti e visitatori entrano all'istante
-      $("userName").textContent = "Visitatore Libero";
-      $("userRole").textContent = "LIBERO";
-      $("userRole").style.background = "#57e6d922";
-      $("userRole").style.color = "var(--cyan)";
-      $("userRole").style.borderColor = "#57e6d955";
-      $("activeChatTitle").textContent = "Nuova conversazione";
-      if ($("chatSidebarAdSlot")) $("chatSidebarAdSlot").style.display = "block";
+      $("authModal").style.display = "flex";
+      updateGateBridgeStatus();
+      $("userName").textContent = "Non Autenticato";
+      $("userRole").textContent = "BLOCCATO";
+      $("userRole").style.background = "#ff829522";
+      $("userRole").style.color = "var(--bad)";
+      $("userRole").style.borderColor = "#ff829555";
+      $("activeChatTitle").textContent = "Autenticazione Richiesta";
+      if ($("sendBtn")) $("sendBtn").disabled = true;
+      return;
+    }
+
+    $("authModal").style.display = "none";
+    if ($("sendBtn")) $("sendBtn").disabled = false;
+
+    if (authResult.via === "key") {
+      $("userName").textContent = authResult.state.label || "Utente Mesh";
+      $("userRole").textContent = (authResult.state.role || "member").toUpperCase();
+      $("userRole").style.background = "#70e6aa22";
+      $("userRole").style.color = "var(--ok)";
+      $("userRole").style.borderColor = "#70e6aa55";
+    } else if (authResult.via === "holder") {
+      const balFmt = authResult.balance >= 1e6
+        ? (authResult.balance / 1e6).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + "M"
+        : authResult.balance.toLocaleString("it-IT", { maximumFractionDigits: 0 });
+      $("userName").textContent = `${authResult.label} (${balFmt} $00MESH)`;
+      $("userRole").textContent = "HOLDER VIP";
+      $("userRole").style.background = "#8b5cf622";
+      $("userRole").style.color = "#c084fc";
+      $("userRole").style.borderColor = "#8b5cf655";
+      $("activeChatTitle").textContent = "Chat Sovrana · Holder $00MESH";
+      // VIP Holder: rimuove le pubblicità
+      if ($("chatSidebarAdSlot")) $("chatSidebarAdSlot").style.display = "none";
     } else {
-      if (authResult.via === "key") {
-        $("userName").textContent = authResult.state.label || "Utente Mesh";
-        $("userRole").textContent = (authResult.state.role || "member").toUpperCase();
-        $("userRole").style.background = "#70e6aa22";
-        $("userRole").style.color = "var(--ok)";
-        $("userRole").style.borderColor = "#70e6aa55";
-      } else if (authResult.via === "holder") {
-        const balFmt = authResult.balance >= 1e6
-          ? (authResult.balance / 1e6).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + "M"
-          : authResult.balance.toLocaleString("it-IT", { maximumFractionDigits: 0 });
-        $("userName").textContent = `${authResult.label} (${balFmt} $00MESH)`;
-        $("userRole").textContent = "HOLDER VIP";
-        $("userRole").style.background = "#8b5cf622";
-        $("userRole").style.color = "#c084fc";
-        $("userRole").style.borderColor = "#8b5cf655";
-        $("activeChatTitle").textContent = "Chat Sovrana · Holder $00MESH";
-        // VIP Holder: rimuove le pubblicità
-        if ($("chatSidebarAdSlot")) $("chatSidebarAdSlot").style.display = "none";
-      } else {
-        $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
-        $("userRole").textContent = "NODE OPERATOR";
-        $("userRole").style.background = "#9a7cff22";
-        $("userRole").style.color = "var(--violet)";
-        $("userRole").style.borderColor = "#9a7cff55";
-        $("activeChatTitle").textContent = "Chat Sovrana (Bridge GPU Attivo)";
-      }
+      $("userName").textContent = authResult.bridge.label || "Operatore GPU Locale";
+      $("userRole").textContent = "NODE OPERATOR";
+      $("userRole").style.background = "#9a7cff22";
+      $("userRole").style.color = "var(--violet)";
+      $("userRole").style.borderColor = "#9a7cff55";
+      $("activeChatTitle").textContent = "Chat Sovrana (Bridge GPU Attivo)";
     }
 
     await loadModels();
@@ -1697,11 +1710,13 @@ Linee guida di risposta:
     $("authModal").style.display = "flex";
     updateGateBridgeStatus();
   });
-  $("modalCloseBtn")?.addEventListener("click", () => {
-    $("authModal").style.display = "none";
-  });
-  $("modalGuestBtn")?.addEventListener("click", () => {
-    $("authModal").style.display = "none";
+  $("modalCloseBtn")?.addEventListener("click", async () => {
+    const gate = await checkGate();
+    if (!gate.authorized) {
+      window.location.href = "./mesh.html";
+    } else {
+      $("authModal").style.display = "none";
+    }
   });
 
   if ($("btnCheckBridge")) {
