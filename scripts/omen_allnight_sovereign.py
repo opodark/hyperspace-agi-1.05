@@ -301,7 +301,7 @@ def execute_omen_prompt(
     # 3. Fallback secondario su ASUS se non era flint ed è online
     if not is_flint and _is_asus_available():
         try:
-            _log_stream("ROUTING", f"Fallback secondario su ASUS Ollama per {model}...", node="ASUS-V16")
+            _log_stream("ROUTING", f"OMEN ha fallito ({str(last_exc)[:200]}): fallback secondario su ASUS Ollama per {model}...", node="ASUS-V16")
             mesh_payload = json.dumps({
                 "model": model,
                 "prompt": prompt,

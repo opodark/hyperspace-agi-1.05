@@ -9493,3 +9493,18 @@ Prima esecuzione sull'ASUS (`laptop-t9h8plht`, utente `opoda`): watchdog attivo,
 - Non committato, in attesa di conferma.
 - Aggiornamento 23:50: l'utente controlla da solo inviti e chiavi della tailnet, e oltre a lui è invitato solo Cips. `/execute` senza firma resta un rischio accettato dentro la tailnet; non è urgente.
 - Aggiornamento 00:05: l'utente vuole l'ASUS "di supporto finché regge". `ALLNIGHT_USE_ASUS=fallback`: tutto parte dall'OMEN, anche i 24B; l'ASUS interviene solo se l'OMEN non risponde, e quando si spegne `_is_asus_available` lo esclude da solo. `true` (default) e `false` restano invariati. Nuovo `test_asus_fallback_mode_tries_omen_first`; 12/12. Non committato.
+
+## 2026-10-28 00:30 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Primo ciclo notturno sull'OMEN (`--once`, `ALLNIGHT_USE_ASUS=fallback`)
+
+Ciclo `cycle-1793132123`, 562 s:
+- **Audit:** 4,4 s, pytest ok, OMEN 116 ms.
+- **Dev:** granite3.3:8b sull'OMEN, 95 s, AST valido ("Adaptive Inference Latency PID Controller").
+- **Research:** LFM 24B sull'OMEN fallita dopo circa 120 s; fallback sull'ASUS (a batteria) per circa 240 s, poi probabilmente granite di riserva sull'OMEN. Studio completato con AST valido (ModularIntellect).
+- **Dream:** il tick del CP dell'OMEN risponde 503; la scena onirica con granite arriva in 6 s.
+- **Immagini:** disattivate.
+
+Diagnosi:
+- Una richiesta firmata a LFM 24B sull'OMEN, a nodo libero, risponde in 27,7 s. Il fallimento del ciclo è quindi contingente: ipotesi memoria, perché granite resta caricato (`OLLAMA_KEEP_ALIVE=12h`) e il dev loop usa il nodo in parallelo.
+- Lo script scartava l'errore: ora il log del fallback lo riporta ("OMEN ha fallito (...)"). Non committato.
+
+**Correzione al mio blocco delle 23:40:** `POST /execute` NON è senza autenticazione. Un middleware rifiuta le chiamate non firmate con 401 "invalid or missing node signature"; l'avviso di sicurezza era sbagliato.
