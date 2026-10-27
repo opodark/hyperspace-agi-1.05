@@ -88,6 +88,15 @@ CODE_MODELS = [
     "granite3.3:8b",  # 8B Fast
 ]
 
+# Batch solo-OMEN (es. ASUS e Mac a batteria): ALLNIGHT_USE_ASUS=false non instrada
+# nulla verso ASUS; ALLNIGHT_CODE_MODELS sostituisce la rotazione (virgole);
+# ALLNIGHT_DEV_TIMEOUT alza il timeout della fase dev (il primo caricamento a freddo
+# di un modello sull'OMEN supera spesso i 90 s).
+USE_ASUS = os.getenv("ALLNIGHT_USE_ASUS", "true").lower() != "false"
+if os.getenv("ALLNIGHT_CODE_MODELS", "").strip():
+    CODE_MODELS = [m.strip() for m in os.getenv("ALLNIGHT_CODE_MODELS", "").split(",") if m.strip()]
+DEV_TIMEOUT = int(os.getenv("ALLNIGHT_DEV_TIMEOUT", "90"))
+
 IMAGE_SCENARIOS = [
     {
         "title": "Anna nella sala nodi sovrana",
@@ -161,6 +170,8 @@ def is_thermal_safe() -> bool:
 
 def _is_asus_available() -> bool:
     """Verifica rapida (2.5s) se il nodo ASUS Ollama è online e raggiungibile."""
+    if not USE_ASUS:
+        return False
     try:
         req = urllib.request.Request(f"{ASUS_OLLAMA_URL}/api/tags")
         with urllib.request.urlopen(req, timeout=2.5) as resp:
@@ -396,7 +407,7 @@ def run_autonomous_dev_distillation(cycles: int = 1) -> Dict[str, Any]:
         model = random.choice(CODE_MODELS)
         _log("DEV", f"Esecuzione task '{task_info['topic']}' su modello {model}...")
 
-        res = execute_omen_prompt(task_info["prompt"], model=model, timeout=90)
+        res = execute_omen_prompt(task_info["prompt"], model=model, timeout=DEV_TIMEOUT)
         if res.get("status") == "ok":
             parsed = UniversalModelParser.parse(res["response"])
             valid_blocks = [b.code for b in parsed.code_blocks if b.is_valid_ast]

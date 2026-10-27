@@ -9478,3 +9478,17 @@ Prima esecuzione sull'ASUS (`laptop-t9h8plht`, utente `opoda`): watchdog attivo,
 - **`control-plane/cp/doctor_mesh.py`:** il check `mesh_graph_freshness` confronta i peer raggiungibili con il grafo locale per `size_bytes` ("nodi remoti con lo stesso grafo: N/M"); se qualcuno differisce va in `warn`, lo nomina e suggerisce `mesh_distribute.py --sync-graphify --all`.
 - **Test:** nuovo `test_graph_check_compares_remote_nodes_with_local_graph`; `test_doctor_mesh`, `test_mesh_sync_monitor`, `test_mesh_sync` e `test_licensing`: 18 passati.
 - **Deploy:** le modifiche del CP diventano visibili solo dopo il rebuild del container: `docker compose -p hyperspace-agi-104 up -d --build control-plane`. Non committato, in attesa di conferma.
+- Aggiornamento 23:15: CP ricostruito dall'utente e `git pull` su OMEN e ASUS. `/mesh/sync/status` dà tutto ok: tutti a `b848f53a`, working tree pulito, Graphify "nodi remoti con lo stesso grafo: 3/3" (il nodo Docker del Mac più ASUS e OMEN, tutti a 16.698.740 byte).
+
+## 2026-10-27 23:40 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Batch R&D solo sull'OMEN (Mac e ASUS a batteria)
+
+- **Prova interrotta:** la prova dei modelli lanciata dal Mac mandava `flint` e LFM 24B all'ASUS. L'utente ha segnalato che Mac e ASUS sono a batteria, quindi l'ho interrotta (`flint` aveva risposto dall'ASUS in 44 s) e ho scaricato i modelli dall'ASUS (`keep_alive: 0`); `api/ps` è vuoto.
+- **`scripts/omen_allnight_sovereign.py`**, interruttori d'ambiente (default invariati):
+  - `ALLNIGHT_USE_ASUS=false`: nessun instradamento verso ASUS, né come primario né come fallback;
+  - `ALLNIGHT_CODE_MODELS`: rotazione dei modelli della fase dev;
+  - `ALLNIGHT_DEV_TIMEOUT`: timeout della fase dev (era fisso a 90 s e ieri andava in timeout sull'OMEN).
+- **Test:** nuovo `test_asus_disabled_keeps_everything_on_omen`; 18 test passati.
+- **Uso previsto:** l'orchestratore va lanciato SULL'OMEN con `OMEN_NODE_URL=http://127.0.0.1:8081`, senza `flint` (40B su 8 GB di VRAM).
+- **Segnalato, non toccato:** `POST /execute` del nodo non verifica nessuna firma; chiunque nella tailnet può far eseguire prompt sul nodo.
+- Non committato, in attesa di conferma.
+- Aggiornamento 23:50: l'utente controlla da solo inviti e chiavi della tailnet, e oltre a lui è invitato solo Cips. `/execute` senza firma resta un rischio accettato dentro la tailnet; non è urgente.

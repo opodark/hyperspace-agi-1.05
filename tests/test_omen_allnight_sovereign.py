@@ -144,6 +144,23 @@ class TestOmenAllnightSovereign(unittest.TestCase):
         req_arg = mock_urlopen.call_args[0][0]
         self.assertIn("100.104.238.125:8081", req_arg.full_url)
 
+    @patch("urllib.request.urlopen")
+    def test_asus_disabled_keeps_everything_on_omen(self, mock_urlopen):
+        """ALLNIGHT_USE_ASUS=false: nessuna richiesta verso ASUS, nemmeno la sonda."""
+        from scripts.omen_allnight_sovereign import execute_omen_prompt
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({"response": "OK"}).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        with patch.object(allnight, "USE_ASUS", False):
+            res = execute_omen_prompt("Test prompt 40B", model="flint:latest", timeout=60)
+        self.assertEqual(res["routed_via"], "OMEN_NODE")
+        urls = [c[0][0].full_url for c in mock_urlopen.call_args_list]
+        self.assertTrue(urls)
+        self.assertFalse([u for u in urls if "11434" in u])
+
     @patch("scripts.omen_allnight_sovereign._is_asus_available", return_value=True)
     @patch("urllib.request.urlopen")
     def test_flint_40b_routes_to_asus_when_online(self, mock_urlopen, mock_asus_check):
