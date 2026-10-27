@@ -9368,3 +9368,65 @@ Test: 2 nuovi in `web-node/tests/worker.test.mjs` (worker asincrono come nel bro
    - `pytest`: 111 test passati su federation, routes, bridge causale, contratti chat e budget.
    - Verificata assenza di segreti, token privati e file temporanei di build.
 
+
+
+## 2026-10-27 18:50 — Antigravity (Mac M5) → utente, Claude Code, Cips/Cline, Codex — Ripristino Aggiornamento Sezione Mission & Radar Scouting Agent-Reach
+
+1. **Analisi Criticità**:
+   - Nella dashboard Mission Control ([`web-node/apps/playground/missions.html`](web-node/apps/playground/missions.html)), la sezione *"Ispirazioni dal Mondo Reale (Agent-Reach Zero-Cost)"* effettuava fetch relativi non resilienti verso `/api/mesh-scouting`, `/api/missions`, `/api/persona-dreams`, ecc.
+   - Sull'hosting pubblico (Aruba) o server statico, le API ritornavano HTTP 404, bloccando la griglia su *"Caricamento radar scouting in corso..."* e i KPI sui valori hardcoded.
+   - Sul Mac host, il plist LaunchAgent `com.hyperspace.trend-scout.plist` non era stato caricato in launchd, quindi lo scouting in background non eseguiva periodicamente i cicli di estrazione.
+   - Mancava un'azione diretta nella UI per trasformare un'ispirazione da trend in un task DAG reale assegnato a Planner, Coder e Verifier.
+
+2. **Interventi Eseguiti**:
+   - **Avvio Demone macOS & Auto-Start**:
+     - Eseguito `launchctl bootstrap gui/$(id -u) integrations/com.hyperspace.trend-scout.plist`: il demone [`scripts/auto_trend_scout.py`](scripts/auto_trend_scout.py) è ora attivo e running in background su macOS.
+     - Integrato l'avvio idempotente di `com.hyperspace.trend-scout` e del servizio Cockpit in [`scripts/start-all-macos.sh`](scripts/start-all-macos.sh).
+   - **Nuovo Strumento Snapshot Resiliente**:
+     - Creato [`scripts/diagnostics/export_playground_snapshots.py`](scripts/diagnostics/export_playground_snapshots.py): esporta gli snapshot statici completi (`trend_inspirations.json`, `missions.json`, `persona_dreams.json`, `nightly_shift.json`, `agi_research.json`) in `web-node/apps/playground/data/`.
+     - Integrato in [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh) per garantire che il pacchetto ZIP di produzione includa sempre i dati aggiornati per Apache.
+   - **Frontend Playground Missions ([`web-node/apps/playground/missions.html`](web-node/apps/playground/missions.html))**:
+     - Aggiunta funzione `fetchWithFallback`: fallback trasparente da API Cockpit (`/api/...`, `http://127.0.0.1:8090/api/...`) a snapshot statico (`./data/...`).
+     - Aggiunto su ciascuna card di scouting il pulsante *"🚀 Avvia Missione DAG da questo Trend"* con modale di pianificazione obiettivi e criteri di successo conformi a Mission Control.
+     - Corretto il trigger di refresh manuale e i contatori KPI dinamici (24 trend reali visibili).
+3. **Verifica**:
+   - Test unitari eseguiti: `tests/test_missions_dashboard.py` (2/2 passed), `tests/test_trend_scout_reach.py` (6/6 passed), `tests/test_licensing.py` (7/7 passed), `npm run check` verde.
+   - Compilazione pacchetto Aruba riuscita con snapshot inclusi (`dist/web-node-aruba.zip`).
+   - Nessun commit e nessun push senza conferma esplicita dell'utente.
+
+## 2026-10-27 19:15 — Claude Code → utente, Antigravity, Cips/Cline, Codex — Perché l'OMEN non lavora: nessuna routine schedulata e nodo irraggiungibile dalle 10:46
+
+Diagnosi (solo lettura, dal Mac):
+- **Il nodo OMEN è irraggiungibile dalle 10:46 UTC di oggi.** Tailscale lo vede online (`hpomen`, diretto, ping 57 ms), ma 8081, 11434, 8085 e 8098 vanno in timeout, non vengono rifiutate. Il CP lo segna `unreachable` (`/mesh/nodes`, `last_seen 2026-10-27T10:46:48Z`). Da fuori non si distingue "stack spento" da "firewall/profilo di rete Pubblico": va guardato sull'OMEN con `.\scripts\setup-omen-247.ps1 -Check`.
+- **La routine "continua" non è schedulata da nessuna parte.**
+  - Sul Mac `launchctl` ha solo `mesh-tunnel` e `trend-scout`, niente crontab.
+  - Sull'OMEN `setup-omen-247.ps1` registra watchdog, start-tutto e Hermes bridge, non `omen_dev_loop_247.py`. Il watchdog controlla soltanto.
+  - Le sessioni del 26/10 (`omen_allnight_sovereign`, 1h/2h endurance) sono state lanciate a mano.
+- **L'ultimo lavoro reale risale al 26/10:** allnight 08:28–08:32 UTC, dev loop fino al ciclo 52 alle 14:01, endurance fino alle 15:01. Già allora la fase `dev` andava in timeout sull'OMEN (`distilled_count: 0`, "OMEN: timed out").
+- **Le scritture delle 09:56 di oggi non sono lavoro dell'OMEN.**
+  - Sono i test: `test_omen_allnight_sovereign.py` e `test_research_tree_and_lab.py` scrivono nei file veri.
+  - Hanno toccato `node_stream.jsonl`, `synthetic_cot_dataset.jsonl`, `research_tree.json`, `promotions.jsonl` e `agi_deep_dives.jsonl`.
+  - In `promotions.jsonl`, 42 righe su 55 sono `author: test_runner`.
+
+Corretto (non pubblicato, niente commit):
+- `shared/agi_research_engine.py` e `shared/research_tree.py`: `data_dir=` era ignorato per prototipi, deep dive, sintesi, albero e promozioni. Ora tutti i percorsi derivano da `data_dir`; il default è invariato, quindi i chiamanti in produzione non cambiano.
+- `tests/test_omen_allnight_sovereign.py`: `setUp` sposta in una cartella temporanea i log notturni e la ricerca.
+- Verifica: 40 test di ricerca passano e il confronto degli mtime conferma che `data/nightly`, `data/research` e il dataset CoT restano intatti.
+
+Segnalato, non toccato:
+- **ASUS offline su Tailscale dalle 14:43 UTC**, ma il `.env` del CP ha `OLLAMA_URL=http://100.64.31.18:11434`.
+- **Il "Chrome Bridge (9 models)"** (`ext-a3606d79-e7b`) è il Chrome del Mac che espone l'Ollama del Mac alla mesh, contro la decisione "Mac solo uso personale".
+- Le 42 righe di test in `promotions.jsonl` e le 14 in `node_stream.jsonl` restano finché l'utente non decide.
+
+## 2026-10-27 19:45 — Claude Code → utente, Antigravity, Cips/Cline, Codex — OMEN di nuovo in mesh; dev loop 24/7 come attività pianificata
+
+- **Stato:** dopo il riavvio dei servizi sull'OMEN, il nodo :8081 e il CP :8085 rispondono e il CP del Mac lo vede `active`. Ollama :11434 e Hermes :8098 non sono raggiungibili da fuori; probabilmente ascoltano solo in locale.
+- **`scripts/setup-omen-247.ps1`:** nuova attività pianificata "HyperSpace OMEN Dev Loop 247".
+  - Lancia `omen_dev_loop_247.py --daemon --interval 300` all'accensione con 3 minuti di ritardo, anche senza login (S4U, senza password salvata).
+  - Si riavvia ogni 5 minuti se si chiude, e non avvia mai una seconda istanza.
+  - Scrive l'output in `data\omen_dev_loop.out.log`.
+  - Ora anche `-Check`, `-Stop` e `-Start` gestiscono l'attività.
+- **`scripts/omen_dev_loop_247.py`:** in modalità `--daemon` un ciclo che solleva un'eccezione viene registrato nel log e saltato, senza fermare il processo.
+- **Non verificato:** la sintassi PowerShell, perché sul Mac non c'è `pwsh`; va provata sull'OMEN. Lo stack resta su Docker Desktop, che parte solo al login: fino ad allora i cicli falliscono e riprovano.
+- **Nessun commit.** L'OMEN prende queste modifiche solo dopo commit, push e `git pull`.
+- Aggiornamento 19:55: su richiesta dell'utente lo stesso script vale anche per l'**ASUS V16** dal prossimo aggiornamento, con attività rinominata "HyperSpace Dev Loop 247". Commit e push autorizzati dall'utente, limitati a questi file; il lavoro non committato di Antigravity (build Aruba, `start-all-macos.sh`, `missions.html`, snapshot) resta fuori.

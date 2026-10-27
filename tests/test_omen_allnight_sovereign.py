@@ -3,11 +3,13 @@
 
 import json
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
 from shared.dream_visual import parse_dream, filtra_dream
 from shared.resumable_state_machine import CheckpointStore, ResumableStateMachine, RunState, ExecutionStatus
+import scripts.omen_allnight_sovereign as allnight
 from scripts.omen_allnight_sovereign import (
     is_thermal_safe,
     get_nightly_status,
@@ -19,6 +21,18 @@ from scripts.omen_allnight_sovereign import (
 
 
 class TestOmenAllnightSovereign(unittest.TestCase):
+    def setUp(self):
+        # I log notturni veri (node_stream, dataset CoT, audit...) alimentano il Cockpit:
+        # i test scrivono in una cartella temporanea, non in data/.
+        self._tmp = tempfile.TemporaryDirectory(prefix="omen_allnight_test_")
+        tmp = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        for name in ("STATE_FILE", "AUDIT_LOG", "COT_DATASET", "DREAM_LOG", "IMAGE_LOG", "NODE_STREAM_LOG"):
+            patcher = patch.object(allnight, name, tmp / getattr(allnight, name).name)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.research_dir = tmp / "research"
+
     def test_thermal_safety_check(self):
         with patch("pathlib.Path.exists", return_value=False):
             self.assertTrue(is_thermal_safe())
@@ -103,7 +117,7 @@ class TestOmenAllnightSovereign(unittest.TestCase):
             "response": "<think>Analisi dei 5 assiomi di Aleksander</think>\n```python\nclass SyntheticConsciousnessTestGovernor:\n    pass\n```"
         })
 
-        engine = AGIResearchEngine()
+        engine = AGIResearchEngine(data_dir=self.research_dir)
         study = engine.execute_study_cycle("aleksander_axioms", omen_executor_fn=mock_omen_fn)
         self.assertEqual(study["pillar_id"], "aleksander_axioms")
         self.assertTrue(study["ast_valid"])

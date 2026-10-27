@@ -339,10 +339,10 @@ class ResearchTreeManager:
 
     def __init__(self, data_dir: Optional[Path] = None):
         self.data_dir = data_dir or RESEARCH_DIR
-        self.prototypes_dir = PROTOTYPES_DIR
-        self.tree_file = TREE_FILE
-        self.promotions_file = PROMOTIONS_FILE
-        self.deep_dives_log = DEEP_DIVES_LOG
+        self.prototypes_dir = self.data_dir / PROTOTYPES_DIR.name
+        self.tree_file = self.data_dir / TREE_FILE.name
+        self.promotions_file = self.data_dir / PROMOTIONS_FILE.name
+        self.deep_dives_log = self.data_dir / DEEP_DIVES_LOG.name
         self._ensure_storage()
 
     def _ensure_storage(self):

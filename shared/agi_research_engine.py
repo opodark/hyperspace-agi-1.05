@@ -152,9 +152,10 @@ class AGIResearchEngine:
 
     def __init__(self, data_dir: Optional[Path] = None):
         self.data_dir = data_dir or RESEARCH_DIR
-        self.prototypes_dir = PROTOTYPES_DIR
-        self.deep_dives_log = DEEP_DIVES_LOG
-        self.synthesis_md = SYNTHESIS_MD
+        self.prototypes_dir = self.data_dir / PROTOTYPES_DIR.name
+        self.prototypes_dir.mkdir(parents=True, exist_ok=True)
+        self.deep_dives_log = self.data_dir / DEEP_DIVES_LOG.name
+        self.synthesis_md = self.data_dir / SYNTHESIS_MD.name
         self.causal_graph_file = self.data_dir / "causal_memory_graph.json"
         self.causal_graph = CausalMemoryGraph(storage_path=self.causal_graph_file)
 

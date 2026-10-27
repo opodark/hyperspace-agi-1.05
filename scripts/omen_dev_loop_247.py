@@ -352,7 +352,13 @@ def main():
 
     while True:
         if args.task == "all":
-            run_dev_cycle(args.node_url, args.bridge_url, cycles_distill=args.cycles)
+            try:
+                run_dev_cycle(args.node_url, args.bridge_url, cycles_distill=args.cycles)
+            except Exception as exc:
+                # In modalità daemon un ciclo fallito non deve fermare il servizio 24/7.
+                if not args.daemon:
+                    raise
+                _log("CYCLE", f"Ciclo fallito ({exc}); riprovo al prossimo giro.")
         elif args.task == "qa":
             print(json.dumps(task_regression_check(), indent=2))
         elif args.task == "patch":

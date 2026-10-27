@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# HyperSpace AGI 1.05 - Setup e Automazione 24/7 per HP OMEN 16 (Windows 11)
+# HyperSpace AGI 1.05 - Setup e Automazione 24/7 per i nodi Windows 11 (HP OMEN 16, ASUS V16)
 #
 # Configura l'ambiente Windows 11 host e WSL2 per l'operatività continua H24:
 # 1. Configurazione C:\Users\<utente>\.wslconfig (16 GB RAM, 8 processori, 8 GB swap)
@@ -40,6 +40,32 @@ $watchdogLnk = Join-Path $startupDir "HyperSpace OMEN Watchdog.lnk"
 $startTuttoScript = Join-Path $Root "scripts\start-tutto.ps1"
 $startTuttoLnk = Join-Path $startupDir "HyperSpace Start-Tutto.lnk"
 
+# Ciclo di sviluppo 24/7: attività pianificata (non un .lnk in shell:startup, che
+# parte solo al login). Parte all'accensione anche senza login, riparte se si chiude.
+# Finché lo stack Docker non è su, i cicli falliscono e riprovano al giro dopo.
+$devLoopTask = "HyperSpace Dev Loop 247"
+$devLoopScript = Join-Path $Root "scripts\omen_dev_loop_247.py"
+$devLoopOut = Join-Path $Root "data\omen_dev_loop.out.log"
+
+function Register-DevLoopTask {
+    $cmdLine = "/c `"`"$python`" `"$devLoopScript`" --daemon --interval 300 >> `"$devLoopOut`" 2>&1`""
+    $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $cmdLine -WorkingDirectory $Root
+    $trigger = New-ScheduledTaskTrigger -AtStartup
+    $trigger.Delay = "PT3M"
+    # S4U: gira come l'utente corrente anche senza sessione aperta, senza salvare la password.
+    $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Limited
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+        -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 5) `
+        -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+    Register-ScheduledTask -TaskName $devLoopTask -Action $action -Trigger $trigger `
+        -Principal $principal -Settings $settings -Force | Out-Null
+}
+
+function Test-DevLoopRunning {
+    [bool](Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -match "omen_dev_loop_247\.py" })
+}
+
 # --- STOP ---
 if ($Stop) {
     Head "Arresto Servizi HP OMEN 24/7"
@@ -48,6 +74,16 @@ if ($Stop) {
     foreach ($p in $wProcs) {
         Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
         Log "Fermato Watchdog Termico (PID $($p.ProcessId))"
+    }
+
+    if (Get-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue) {
+        Stop-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue
+    }
+    $dProcs = Get-CimInstance Win32_Process -Filter "Name like '%python%'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine -match "omen_dev_loop_247\.py" }
+    foreach ($p in $dProcs) {
+        Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+        Log "Fermato Dev Loop 24/7 (PID $($p.ProcessId)); ripartira' al prossimo avvio"
     }
 
     if (Test-Path $startTuttoScript) {
@@ -84,6 +120,17 @@ if ($Check) {
 
     if (Test-Path $startTuttoLnk) { Log "Autostart Stack: Configurato in shell:startup" }
     else { Warn "Autostart Stack: Manca collegamento $startTuttoLnk" }
+
+    # Dev Loop 24/7
+    $task = Get-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue
+    if ($task) { Log "Attivita' Dev Loop: registrata (stato: $($task.State))" }
+    else { Warn "Attivita' Dev Loop: NON registrata (esegui lo script senza parametri, da amministratore)" }
+    if (Test-DevLoopRunning) { Log "Dev Loop 24/7: IN ESECUZIONE" }
+    else { Warn "Dev Loop 24/7: FERMO" }
+    if (Test-Path $devLoopOut) {
+        Log "Ultime righe di $devLoopOut :"
+        Get-Content $devLoopOut -Tail 5 | ForEach-Object { Write-Host "    $_" }
+    }
 
     # 4. Verifica Porte
     $ports = @(8081, 11434, 8188, 8098, 8085)
@@ -189,6 +236,14 @@ $tLnk.Description = "HyperSpace AGI Start-Tutto Launcher"
 $tLnk.Save()
 Log "Creato collegamento di avvio: $startTuttoLnk"
 
+# Attività pianificata Dev Loop 24/7 (richiede PowerShell da amministratore)
+try {
+    Register-DevLoopTask
+    Log "Registrata attivita' pianificata '$devLoopTask' (all'accensione, anche senza login; log: $devLoopOut)"
+} catch {
+    Warn "Impossibile registrare '$devLoopTask' (serve PowerShell da amministratore): $_"
+}
+
 # 4. Avviso Batteria & Dissipazione
 Head "PROMEMORIA SICUREZZA FISICA HARDWARE"
 Write-Host "1. BATTERIA: Nel BIOS HP (F10) o in OMEN Gaming Hub, verifica che 'Adaptive Battery Optimizer' sia ATTIVO." -ForegroundColor Yellow
@@ -208,6 +263,14 @@ if ($Start) {
     }
     Log "Avvio del Watchdog..."
     Start-Process -FilePath $python -ArgumentList "`"$watchdogScript`" --daemon --interval 30" -WorkingDirectory $Root -WindowStyle Hidden
+    if (Test-DevLoopRunning) {
+        Log "Dev Loop 24/7 gia' in esecuzione"
+    } elseif (Get-ScheduledTask -TaskName $devLoopTask -ErrorAction SilentlyContinue) {
+        Log "Avvio del Dev Loop 24/7 (attivita' pianificata)..."
+        Start-ScheduledTask -TaskName $devLoopTask
+    } else {
+        Warn "Dev Loop 24/7 non registrato: rilancia lo script senza -Start da amministratore"
+    }
     Log "Avvio dello stack HyperSpace Start-Tutto..."
     Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$startTuttoScript`"" -WorkingDirectory $Root
     Log "Tutti i servizi sono stati lanciati in background."
