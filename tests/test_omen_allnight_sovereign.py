@@ -163,6 +163,31 @@ class TestOmenAllnightSovereign(unittest.TestCase):
 
     @patch("scripts.omen_allnight_sovereign._is_asus_available", return_value=True)
     @patch("urllib.request.urlopen")
+    def test_asus_fallback_mode_tries_omen_first(self, mock_urlopen, mock_asus_check):
+        """ALLNIGHT_USE_ASUS=fallback: anche un 24B parte dall'OMEN; ASUS solo se l'OMEN fallisce."""
+        from scripts.omen_allnight_sovereign import execute_omen_prompt
+
+        ok_resp = MagicMock()
+        ok_resp.read.return_value = json.dumps({"response": "OK"}).encode("utf-8")
+        ok_resp.__enter__.return_value = ok_resp
+        model = "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M"
+
+        with patch.object(allnight, "ASUS_PRIMARY", False):
+            mock_urlopen.return_value = ok_resp
+            res = execute_omen_prompt("Test 24B", model=model, timeout=60)
+            self.assertEqual(res["routed_via"], "OMEN_NODE")
+            self.assertEqual(mock_urlopen.call_count, 1)
+
+            mock_urlopen.reset_mock()
+            mock_urlopen.side_effect = [OSError("OMEN giù"), ok_resp]
+            res = execute_omen_prompt("Test 24B", model=model, timeout=60)
+            self.assertEqual(res["routed_via"], "ASUS_FALLBACK")
+            urls = [c[0][0].full_url for c in mock_urlopen.call_args_list]
+            self.assertIn("100.104.238.125:8081", urls[0])
+            self.assertIn("100.64.31.18:11434", urls[1])
+
+    @patch("scripts.omen_allnight_sovereign._is_asus_available", return_value=True)
+    @patch("urllib.request.urlopen")
     def test_flint_40b_routes_to_asus_when_online(self, mock_urlopen, mock_asus_check):
         from scripts.omen_allnight_sovereign import execute_omen_prompt
 

@@ -9492,3 +9492,4 @@ Prima esecuzione sull'ASUS (`laptop-t9h8plht`, utente `opoda`): watchdog attivo,
 - **Segnalato, non toccato:** `POST /execute` del nodo non verifica nessuna firma; chiunque nella tailnet può far eseguire prompt sul nodo.
 - Non committato, in attesa di conferma.
 - Aggiornamento 23:50: l'utente controlla da solo inviti e chiavi della tailnet, e oltre a lui è invitato solo Cips. `/execute` senza firma resta un rischio accettato dentro la tailnet; non è urgente.
+- Aggiornamento 00:05: l'utente vuole l'ASUS "di supporto finché regge". `ALLNIGHT_USE_ASUS=fallback`: tutto parte dall'OMEN, anche i 24B; l'ASUS interviene solo se l'OMEN non risponde, e quando si spegne `_is_asus_available` lo esclude da solo. `true` (default) e `false` restano invariati. Nuovo `test_asus_fallback_mode_tries_omen_first`; 12/12. Non committato.

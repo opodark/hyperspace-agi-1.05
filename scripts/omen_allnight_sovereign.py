@@ -88,11 +88,14 @@ CODE_MODELS = [
     "granite3.3:8b",  # 8B Fast
 ]
 
-# Batch solo-OMEN (es. ASUS e Mac a batteria): ALLNIGHT_USE_ASUS=false non instrada
-# nulla verso ASUS; ALLNIGHT_CODE_MODELS sostituisce la rotazione (virgole);
+# Ruolo di ASUS (ALLNIGHT_USE_ASUS): "true" = primario per i modelli pesanti (default),
+# "fallback" = tutto parte dall'OMEN e ASUS interviene solo se l'OMEN non risponde
+# (es. ASUS a batteria), "false" = mai. ALLNIGHT_CODE_MODELS sostituisce la rotazione (virgole);
 # ALLNIGHT_DEV_TIMEOUT alza il timeout della fase dev (il primo caricamento a freddo
 # di un modello sull'OMEN supera spesso i 90 s).
-USE_ASUS = os.getenv("ALLNIGHT_USE_ASUS", "true").lower() != "false"
+ASUS_MODE = os.getenv("ALLNIGHT_USE_ASUS", "true").strip().lower()
+USE_ASUS = ASUS_MODE != "false"
+ASUS_PRIMARY = ASUS_MODE not in ("false", "fallback")
 if os.getenv("ALLNIGHT_CODE_MODELS", "").strip():
     CODE_MODELS = [m.strip() for m in os.getenv("ALLNIGHT_CODE_MODELS", "").split(",") if m.strip()]
 DEV_TIMEOUT = int(os.getenv("ALLNIGHT_DEV_TIMEOUT", "90"))
@@ -197,7 +200,7 @@ def execute_omen_prompt(
     is_heavy = is_flint or "24b" in model.lower() or "40b" in model.lower()
 
     # 1. Routing prioritario carichi pesanti (40B flint, 24B LFM) su ASUS se disponibile (48GB RAM)
-    if (is_heavy or is_flint) and _is_asus_available():
+    if (is_heavy or is_flint) and ASUS_PRIMARY and _is_asus_available():
         t0 = time.perf_counter()
         asus_timeout = max(timeout, 380) if is_flint else max(timeout, 300)
         try:
