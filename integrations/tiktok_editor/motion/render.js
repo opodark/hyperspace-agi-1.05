@@ -48,6 +48,7 @@ const FPS = 30, DUR = 30;
     for (let i = 0; i < DUR * FPS; i++) {
       const buf = await grab(i / FPS);
       if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
+      if ((i + 1) % FPS === 0) console.log(`frame ${i + 1}/${DUR * FPS}`); // letto dalla UI per la barra di avanzamento
     }
     ff.stdin.end();
     const code = await new Promise(r => ff.on('close', r));

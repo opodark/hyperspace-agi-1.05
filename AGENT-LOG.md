@@ -9570,6 +9570,21 @@ Diagnosi:
    - Test suite missioni `tests/test_mission.py` (18/18) e licensing `tests/test_licensing.py` (7/7) 100% verdi.
    - Servizio Cockpit (:8090) riavviato e operativo. In attesa di conferma per commit/push.
 
+## 2026-10-28 11:45 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Soluzione Zero-Popup Windows e segnale automatico Docker Rebuild
+
+1. **Zero-Popup su Windows (`CREATE_NO_WINDOW`)**:
+   - `scripts/omen_dev_loop_247.py`, `scripts/mesh_patch_watcher.py`, `scripts/diagnostics/omen_watchdog_247.py`: inserito il flag nativo `WIN32_NO_WINDOW = subprocess.CREATE_NO_WINDOW` su tutte le chiamate `subprocess.run` e `subprocess.check_output` (`git`, `pytest`, `nvidia-smi`). Azzerati completamente i popup/lampeggi delle finestre terminale console su Windows durante l'esecuzione dei cicli continui.
+   - `scripts/setup-omen-247.ps1`: convertita la registrazione dell'attività pianificata da `cmd.exe /c` a `powershell.exe -WindowStyle Hidden -NonInteractive -NoLogo` e aggiunto `-WindowStyle Hidden` anche allo script Start-Tutto.
+
+2. **Segnale automatico Rebuild Docker (`scripts/mesh_patch_watcher.py`)**:
+   - `detect_docker_actions(applied_files)`: rileva se i file modificati dalla patch mesh toccano `node/`, `control-plane/`, `shared/` o compose.
+   - `emit_docker_action_signal(...)`: deposita in modo atomico `data/node-1/docker_action.signal`.
+   - `execute_docker_action_silently(...)`: esegue la ricostruzione (`rebuild-node.ps1` su Windows o `docker compose up -d --build` su Mac/Linux) in modalità 100% invisibile con log rediretti in `data/docker_rebuild.log`.
+
+3. **Verifiche & Test**:
+   - `tests/test_mesh_patch_watcher.py`: esteso con test per `detect_docker_actions` ed `emit_docker_action_signal` (7/7 passed).
+   - `tests/test_mesh_sync.py` (6/6) e `tests/test_licensing.py` (7/7) 100% passed.
+
 ## 2026-10-28 12:15 — Claude Code (cloud) → utente, Antigravity, Cips/Cline, Codex — Motion Reels accanto al Reel Editor
 
 - Nuovo `integrations/tiktok_editor/motion/`: generatore di reel 9:16 da 30 s in motion design (canvas 1080×1920, render deterministico Playwright → ffmpeg H.264). Motore condiviso `runtime.js`, un file per reel in `reels/`, `build.py` per comporre la pagina autonoma e lanciare il render, `render.js`.
@@ -9579,3 +9594,11 @@ Diagnosi:
 - Test: nuovo `tests/test_motion_reels.py` (5/5) e `tests/test_licensing.py` (7/7) verdi con Python 3 di sistema. Render MP4 completo provato nel container cloud.
 - Uscite in `data/reel-projects/motion/<id>/`, già ignorata da git. Non tocca `hyperspace_share/reel-review/` né lo scheduler giornaliero.
 - Lavoro fatto su un clone in cloud, branch `claude/motion-reels`: solo file nuovi più tre aggiunte (questo blocco, la riga in `THIRD-PARTY-NOTICES.md`, il rimando in `docs/tiktok-editor.md`), quindi nessun conflitto atteso con la working tree del Mac.
+
+## 2026-10-28 12:45 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — PR #1 Motion Reels in main, nuova UI del Reel Editor
+
+1. **PR #1 (`claude/motion-reels`) in `main`**: fast-forward su `9908fa9` e push; GitHub la segna MERGED. Il conflitto in coda a questo file (blocco Antigravity 11:45 non committato e blocco Claude cloud 12:15) è stato risolto tenendo entrambi in ordine di orario. Le modifiche locali non committate di Antigravity (`scripts/*omen*`, `mesh_patch_watcher.py`, relativo test) sono intatte e non sono state committate.
+2. **UI del Reel Editor (`integrations/tiktok_editor/app/gui.py`)**: solo layout, stessi componenti, nomi ed eventi. Due schede in alto («Reel da foto e video», «Motion Reels»); l'editor è su due colonne, a sinistra quattro sotto-schede (Media e musica · Brief e stile · Testi e logo · Avanzate), a destra una colonna sticky con Genera, Variante, anteprima e download. Le schede d'aiuto (`autoedit/guides.py`) usano le variabili di tema di Gradio: prima erano barre scure illeggibili in tema chiaro.
+3. **Scheda Motion Reels (`app/motion_tab.py`, nuovo)**: catalogo dei reel di `motion/reels/`, anteprima dal vivo in iframe (la stessa pagina di `build.py`), fotogrammi di controllo, Registra MP4 con barra di avanzamento, download di HTML e MP4, stato di node/ffmpeg/Playwright. `motion/render.js` ora stampa `frame N/900` ogni secondo di video; nient'altro cambia nel generatore.
+4. **Ambiente**: `npm i --no-save playwright` è finito in `node_modules/` alla radice del repo (ignorata da git), Chromium headless in `~/Library/Caches/ms-playwright`.
+5. **Verifiche**: 42/42 test editor e motion con il runtime dell'editor, 27/27 con `.venv`; nuova UI provata su una porta di prova con Playwright: Genera produce il reel (172 s), Fotogrammi e Registra MP4 producono 1080×1920, 30 fps, 30 s. Servizio `com.hyperspace.tiktok-editor` riavviato, 7860 risponde. Nessun commit delle modifiche di questo blocco: in attesa di conferma dell'utente.

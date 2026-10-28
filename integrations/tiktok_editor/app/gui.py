@@ -46,6 +46,7 @@ from autoedit.guides import comic_styles, comics_for
 from autoedit.scene_vision import analyze_scene, discover_vision_model
 from autoedit.person_layers import prepare_person_mask
 from draft import read_draft, valid_state, write_draft
+from motion_tab import build_motion_tab
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 for _noisy in ("numba", "librosa", "matplotlib"):
@@ -410,215 +411,252 @@ def _do_generate(state, p: dict, force_seed, progress) -> tuple[str, str]:
     return str(out_path), str(out_path)
 
 
-with gr.Blocks(title="autoedit — montaggio automatico") as demo:
+with gr.Blocks(title="HyperSpace Reel Editor") as demo:
     state = gr.State()
     gr.HTML(comic_styles())
-    gr.Markdown(
-        "# 🎬 HyperSpace Reel Editor\n"
-        "**1.** Carica foto/video + una canzone e premi **Analizza**. "
-        "**2.** Descrivi il reel nel brief HyperSpace e rivedi le impostazioni. "
-        "**3.** Premi **Genera**.\n\n"
-        "*Il formato scelto non concede diritti musicali: verifica il brano e la sua "
-        "durata disponibile nel catalogo TikTok prima di pubblicare.*"
-    )
+    with gr.Row(elem_classes="hs-head"):
+        gr.Markdown("# 🎬 HyperSpace Reel Editor")
+        draft_status = gr.Markdown(elem_classes="hs-draft")
 
-    with gr.Accordion("🔗 Progetti preparati in WebUI", open=False):
-        with gr.Row():
-            webui_project = gr.Dropdown(_list_webui_projects(), label="Progetto WebUI")
-            webui_refresh = gr.Button("Aggiorna elenco")
-            webui_open = gr.Button("Apri progetto", variant="secondary")
-        webui_status = gr.Markdown()
-        gr.HTML(comics_for("webui_project"))
+    with gr.Tabs():
+        with gr.Tab("🎞️ Reel da foto e video"):
+            with gr.Row(equal_height=False):
+                # --- sinistra: i passi del lavoro, uno per scheda ------------------
+                with gr.Column(scale=3, min_width=420):
+                    with gr.Tabs():
+                        with gr.Tab("1 · Media e musica"):
+                            with gr.Row():
+                                files = gr.File(label="Foto e video", file_count="multiple",
+                                                file_types=ALLOWED_EXT, height=260)
+                                audio = gr.Audio(label="Canzone (mp3 / wav)", type="filepath")
+                            analizza_btn = gr.Button("🔍 Analizza media e musica", variant="primary")
+                            info_md = gr.Markdown()
+                            wave_img = gr.Image(label="Forma d'onda + beat / downbeat / beat forti",
+                                                interactive=False, height=180)
+                            gallery = gr.Gallery(label="Media caricati", columns=8, height=220,
+                                                 allow_preview=True)
+                            with gr.Accordion("↕️ Ordine e selezione delle scene", open=False):
+                                table = gr.Dataframe(
+                                    headers=TABLE_HEADERS, datatype=["number", "str", "bool", "number"],
+                                    column_count=(4, "fixed"), interactive=True, max_height=360,
+                                    label="Cambia «ordine» per riordinare, togli «includi» per escludere",
+                                )
+                                gr.HTML(comics_for("table"))
+                            with gr.Accordion("🔗 Apri un progetto preparato in WebUI", open=False):
+                                with gr.Row():
+                                    webui_project = gr.Dropdown(_list_webui_projects(), label="Progetto WebUI",
+                                                                scale=3)
+                                    webui_refresh = gr.Button("Aggiorna elenco", scale=1)
+                                    webui_open = gr.Button("Apri progetto", variant="secondary", scale=1)
+                                webui_status = gr.Markdown()
+                                gr.HTML(comics_for("webui_project"))
+                            with gr.Accordion("🎭 Crescendo e finale acrobatico", open=False):
+                                crescendo_finale = gr.Checkbox(
+                                    label="1:50 preparazione lenta + 10 secondi di scatti rapidi (totale 2:00)")
+                                cross_strobe = gr.Checkbox(label="Croce di luce stroboscopica sui battiti del finale")
+                                finale_files = gr.File(label="Scatti acrobatici per il finale", file_count="multiple",
+                                                       file_types=ALLOWED_EXT)
+                                gr.Markdown("Metti nei media principali l'emersione dal buio, l'avvicinamento al palo "
+                                            "e lo stretching in ordine. Qui carica molte pose acrobatiche diverse. "
+                                            "Il cambio avviene al secondo 110 del video.")
+                            gr.HTML(comics_for("files", "audio"))
 
-    with gr.Row():
-        files = gr.File(label="Foto e video", file_count="multiple", file_types=ALLOWED_EXT)
-        audio = gr.Audio(label="Canzone (mp3 / wav)", type="filepath")
-    with gr.Accordion("🎭 Crescendo e finale acrobatico", open=False):
-        crescendo_finale = gr.Checkbox(label="1:50 preparazione lenta + 10 secondi di scatti rapidi (totale 2:00)")
-        cross_strobe = gr.Checkbox(label="Croce di luce stroboscopica sui battiti del finale")
-        finale_files = gr.File(label="Scatti acrobatici per il finale", file_count="multiple",
-                               file_types=ALLOWED_EXT)
-        gr.Markdown("Metti nei media principali l'emersione dal buio, l'avvicinamento al palo e lo stretching in ordine. "
-                    "Qui carica molte pose acrobatiche diverse. Il cambio avviene al secondo 110 del video.")
-    gr.HTML(comics_for("files", "audio"))
-    analizza_btn = gr.Button("🔍 Analizza", variant="secondary")
-    draft_status = gr.Markdown()
+                        with gr.Tab("2 · Brief e stile"):
+                            gr.Markdown("Scrivi il risultato che vuoi: HyperSpace usa brief, musica e media per "
+                                        "preparare le impostazioni, che puoi rivedere prima del render.")
+                            with gr.Row():
+                                creator_profile = gr.Dropdown(
+                                    ["Anna", "Aurora", "Altro progetto"], value="Altro progetto",
+                                    label="Progetto / creator", scale=1)
+                                brief_text = gr.Textbox(
+                                    lines=3, label="Che video vuoi ottenere?", scale=3,
+                                    placeholder="Es. Tono cinematografico e intimo, apertura lenta e scura, "
+                                                "movimento morbido, titolo breve e leggibile, chiusura energica sui beat.")
+                            with gr.Row():
+                                brief_btn = gr.Button("✨ Prepara le impostazioni con HyperSpace", variant="primary")
+                                brief_status = gr.Markdown("Collegamento HyperSpace: usa il modello rilevato "
+                                                           "automaticamente o configurane uno in «Avanzate».")
+                            edit_style = gr.Dropdown(
+                                list(EDIT_STYLE_BY_LABEL), value=EDIT_STYLE_LABELS["clean"],
+                                label="Stile di montaggio — ricette TikTok/CapCut (gli Effetti in «Avanzate» "
+                                      "valgono solo con «Personalizzato»)")
+                            with gr.Row():
+                                speed = gr.Dropdown(list(SPEEDS), value=list(SPEEDS)[1], label="Velocità dei tagli")
+                                aspect = gr.Dropdown(list(ASPECT_LABELS), value=list(ASPECT_LABELS)[0],
+                                                     label="Formato video")
+                            with gr.Row():
+                                duration_preset = gr.Dropdown(list(AUTOCUT), value="30 secondi",
+                                                              label="Autocut — durata esatta del reel")
+                                transition_mode = gr.Dropdown(list(TRANSITIONS), value=list(TRANSITIONS)[0],
+                                                              label="Transizioni (solo «Personalizzato»)")
+                            with gr.Accordion("💾 Preset", open=False):
+                                with gr.Row():
+                                    preset_dd = gr.Dropdown(_list_presets(), label="Preset salvati", scale=3)
+                                    carica_btn = gr.Button("Carica", scale=1)
+                                    elimina_btn = gr.Button("Elimina", variant="stop", scale=1)
+                                with gr.Row():
+                                    preset_name = gr.Textbox(label="Nome per salvare le impostazioni attuali", scale=3)
+                                    salva_btn = gr.Button("Salva", variant="secondary", scale=1)
+                                gr.HTML(comics_for("preset"))
+                            gr.HTML(comics_for("edit_style", "speed", "aspect", "duration_preset", "transition"))
 
-    info_md = gr.Markdown()
-    wave_img = gr.Image(label="Forma d'onda + beat / downbeat / beat forti", interactive=False)
-    gallery = gr.Gallery(label="Media caricati", columns=6, height="auto")
-    table = gr.Dataframe(
-        headers=TABLE_HEADERS, datatype=["number", "str", "bool", "number"],
-        column_count=(4, "fixed"), interactive=True,
-        label="Ordine e selezione — cambia «ordine» per riordinare, togli «includi» per escludere",
-    )
-    gr.HTML(comics_for("table"))
+                        with gr.Tab("3 · Testi e logo"):
+                            with gr.Accordion("✍️ Titolo", open=True):
+                                title_text = gr.Textbox(label="Testo del titolo (vuoto = niente)", lines=2)
+                                with gr.Row():
+                                    title_pos = gr.Dropdown(list(TITLE_POS), value="Al centro", label="Posizione")
+                                    title_start = gr.Number(value=0.0, label="Compare al secondo")
+                                    title_dur = gr.Number(value=2.5, label="Resta per (s)")
+                                gr.HTML(comics_for("title_text", "title_pos", "title_start", "title_dur"))
+                            with gr.Accordion("💬 Sottotitoli (SRT / VTT)", open=False):
+                                with gr.Row():
+                                    subtitles_file = gr.File(label="File .srt o .vtt (opzionale)",
+                                                             file_types=[".srt", ".vtt", ".txt"])
+                                    subtitles_style = gr.Dropdown(list(SUBTITLE_STYLES), value=list(SUBTITLE_STYLES)[0],
+                                                                  label="Stile grafico")
+                                    subtitles_pos = gr.Dropdown(list(SUBTITLE_POS), value=list(SUBTITLE_POS)[0],
+                                                                label="Posizione")
+                                subtitles_text = gr.Textbox(label="Oppure incolla i sottotitoli in formato SRT o VTT",
+                                                            lines=3,
+                                                            placeholder="1\n00:00:00,000 --> 00:00:04,500\n"
+                                                                        "La tua didascalia qui...")
+                                gr.HTML(comics_for("subtitles_file", "subtitles_style", "subtitles_pos",
+                                                   "subtitles_text"))
+                            with gr.Accordion("🖼️ Logo / watermark", open=False):
+                                wm_file = gr.Image(label="PNG con trasparenza (vuoto = niente)", type="filepath",
+                                                   height=160)
+                                with gr.Row():
+                                    wm_pos = gr.Dropdown(list(WM_POS), value=list(WM_POS)[0], label="Angolo")
+                                    wm_scale = gr.Slider(0.05, 0.40, value=0.15, step=0.01, label="Dimensione")
+                                    wm_opacity = gr.Slider(0.2, 1.0, value=0.85, step=0.05, label="Opacità")
+                                gr.HTML(comics_for("wm_file", "wm_pos", "wm_scale", "wm_opacity"))
 
-    gr.Markdown("### 1 · Descrivi il reel")
-    gr.Markdown("Scrivi il risultato che vuoi. HyperSpace userà brief, musica e media per preparare le impostazioni; puoi rivederle prima del render.")
-    creator_profile = gr.Dropdown(
-        ["Anna", "Aurora", "Altro progetto"], value="Altro progetto",
-        label="Progetto / creator")
-    brief_text = gr.Textbox(
-        lines=3, label="Che video vuoi ottenere?",
-        placeholder="Es. Tono cinematografico e intimo, apertura lenta e scura, movimento morbido, titolo breve e leggibile, chiusura energica sui beat.")
-    with gr.Row():
-        brief_btn = gr.Button("✨ Prepara le impostazioni con HyperSpace", variant="primary")
-        brief_status = gr.Markdown("Collegamento HyperSpace: usa il modello rilevato automaticamente o configurane uno nelle impostazioni avanzate.")
+                        with gr.Tab("4 · Avanzate"):
+                            with gr.Accordion("🎨 Effetti (solo con stile «Personalizzato»)", open=False):
+                                with gr.Row():
+                                    style = gr.Dropdown(list(STYLE_BY_LABEL), value=COLOR_LABELS["vivid"],
+                                                        label="Colore / grade di base")
+                                    motion = gr.Dropdown(list(MOTION_BY_LABEL), value=MOTION_LABELS["kenburns"],
+                                                         label="Movimento")
+                                    motion_intensity = gr.Slider(0.2, 2.5, value=1.0, step=0.1,
+                                                                 label="Intensità movimento")
+                                variety = gr.Slider(0.0, 1.0, value=0.3, step=0.05,
+                                                    label="Varietà — quanto grade/movimento cambiano da clip a clip")
+                                impact_group = gr.CheckboxGroup(
+                                    list(IMPACT_BY_LABEL), value=[IMPACT_LABELS["flash"], IMPACT_LABELS["rgbsplit"]],
+                                    label="Effetti d'impatto sui beat forti (scelti a caso fra questi)")
+                                with gr.Row():
+                                    grain = gr.Slider(0.0, 1.0, value=0.0, step=0.05, label="Grana")
+                                    vignette = gr.Checkbox(value=False, label="Vignettatura")
+                                    chromatic = gr.Checkbox(value=False, label="Aberrazione cromatica")
+                                with gr.Row():
+                                    slowmo = gr.Checkbox(value=False,
+                                                         label="Slow-motion + accelerazioni sulle clip video")
+                                    hold_prob = gr.Slider(0.0, 0.4, value=0.0, step=0.02,
+                                                          label="Clip «hero» tenute 2 beat (0 = mai)")
+                                gr.HTML(comics_for("style", "motion", "motion_intensity", "variety", "impact",
+                                                   "grain", "vignette", "chromatic", "slowmo", "hold_prob"))
 
-    with gr.Accordion("👁️ Analisi visiva delle scene (modello VL locale)", open=False):
-        scene_ai_btn = gr.Button("Analizza soggetto e sfondo delle scene selezionate")
-        use_scene_ai = gr.Checkbox(value=False,
-                                   label="Applica colori, movimenti e impatti sui beat forti suggeriti")
-        scene_ai_status = gr.Markdown("Il modello descrive le scene; non crea una maschera pixel del soggetto.")
-        gr.HTML(comics_for("scene_ai"))
+                            with gr.Accordion("⏱️ Ritmo / sincronia / hook", open=False):
+                                with gr.Row():
+                                    hook_hold = gr.Slider(0.0, 2.0, value=0.0, step=0.1,
+                                                          label="Hook — tieni fermo il primo clip (s)")
+                                    audio_start = gr.Number(value=0.0, label="Inizio canzone (s) — salta l'intro")
+                                beat_offset = gr.Slider(-0.20, 0.20, value=0.0, step=0.01,
+                                                        label="Sincronia fine (s) — tagli in ritardo: alza · "
+                                                              "in anticipo: abbassa")
+                                xfade_ms = gr.Slider(0, 500, value=180, step=10,
+                                                     label="Durata transizioni (ms) — sotto ~70 = stacchi netti sul beat")
+                                with gr.Row():
+                                    snap_onsets = gr.Checkbox(value=True,
+                                                              label="Aggancia i tagli ai transienti reali (consigliato)")
+                                    dynamic_pacing = gr.Checkbox(value=False,
+                                                                 label="Ritmo dinamico — più tagli nei momenti intensi")
+                                with gr.Row():
+                                    strong_only = gr.Checkbox(value=False, label="Taglia solo sui beat forti")
+                                    shuffle = gr.Checkbox(value=False, label="Ordine casuale dei media (ignora la tabella)")
+                                with gr.Row():
+                                    max_dur = gr.Number(label="Durata massima (solo Autocut Libero; vuoto = tutto il brano)",
+                                                        value=None)
+                                    seed = gr.Number(label="Seed (stesso numero = stesso risultato)", value=None,
+                                                     precision=0)
+                                gr.HTML(comics_for("hook_hold", "audio_start", "beat_offset", "xfade_ms",
+                                                   "snap_onsets", "dynamic_pacing", "strong_only", "shuffle",
+                                                   "max_dur", "seed"))
 
-    with gr.Accordion("🎭 Persona e sfondo separati", open=False):
-        separate_person = gr.Checkbox(label="Riconosci la persona e applica color grade separati")
-        with gr.Row():
-            subject_style = gr.Dropdown(list(STYLE_BY_LABEL), value=COLOR_LABELS["vivid"],
-                                        label="Colore della persona")
-            background_style = gr.Dropdown(list(STYLE_BY_LABEL), value=COLOR_LABELS["moody"],
-                                           label="Colore dello sfondo")
-            background_blur = gr.Slider(0, 12, value=0, step=0.5, label="Sfocatura dello sfondo")
-        with gr.Row():
-            background_dim = gr.Slider(0, 0.8, value=0, step=0.05,
-                                       label="Oscuramento sfondo (0 = nessuno)")
-            subject_spot = gr.Slider(0, 0.4, value=0, step=0.02,
-                                     label="Luce sulla persona (0 = nessuna)")
-            subject_dim = gr.Slider(0, 0.8, value=0, step=0.02,
-                                    label="Oscura la persona (per una sagoma appena visibile)")
-        with gr.Row():
-            outline_color = gr.Dropdown(
-                ["none", "cyan", "magenta", "lime", "white"], value="none",
-                label="Contorno luminoso aderente alla persona")
-            outline_strength = gr.Slider(0, 1, value=0, step=0.05,
-                                         label="Intensità del contorno")
-            outline_width = gr.Slider(1, 12, value=3, step=0.5,
-                                      label="Spessore del bagliore")
-        mask_preview_btn = gr.Button("Mostra maschera della prima scena selezionata")
-        mask_preview = gr.Image(label="Maschera persona: bianco = soggetto", interactive=False)
-        gr.Markdown("Usa Vision di macOS per foto e video. La maschera segue la persona; "
-                    "il palo e gli oggetti restano normalmente nello sfondo. "
-                    "Il primo render del video può richiedere alcuni minuti per preparare le maschere.")
+                            with gr.Accordion("🎭 Persona e sfondo separati", open=False):
+                                separate_person = gr.Checkbox(label="Riconosci la persona e applica color grade separati")
+                                with gr.Row():
+                                    subject_style = gr.Dropdown(list(STYLE_BY_LABEL), value=COLOR_LABELS["vivid"],
+                                                                label="Colore della persona")
+                                    background_style = gr.Dropdown(list(STYLE_BY_LABEL), value=COLOR_LABELS["moody"],
+                                                                   label="Colore dello sfondo")
+                                    background_blur = gr.Slider(0, 12, value=0, step=0.5, label="Sfocatura dello sfondo")
+                                with gr.Row():
+                                    background_dim = gr.Slider(0, 0.8, value=0, step=0.05,
+                                                               label="Oscuramento sfondo (0 = nessuno)")
+                                    subject_spot = gr.Slider(0, 0.4, value=0, step=0.02,
+                                                             label="Luce sulla persona (0 = nessuna)")
+                                    subject_dim = gr.Slider(0, 0.8, value=0, step=0.02,
+                                                            label="Oscura la persona (per una sagoma appena visibile)")
+                                with gr.Row():
+                                    outline_color = gr.Dropdown(
+                                        ["none", "cyan", "magenta", "lime", "white"], value="none",
+                                        label="Contorno luminoso aderente alla persona")
+                                    outline_strength = gr.Slider(0, 1, value=0, step=0.05,
+                                                                 label="Intensità del contorno")
+                                    outline_width = gr.Slider(1, 12, value=3, step=0.5,
+                                                              label="Spessore del bagliore")
+                                mask_preview_btn = gr.Button("Mostra maschera della prima scena selezionata")
+                                mask_preview = gr.Image(label="Maschera persona: bianco = soggetto", interactive=False)
+                                gr.Markdown("Usa Vision di macOS per foto e video. La maschera segue la persona; "
+                                            "il palo e gli oggetti restano normalmente nello sfondo. "
+                                            "Il primo render del video può richiedere alcuni minuti per preparare "
+                                            "le maschere.")
 
-    gr.Markdown("### Montaggio")
-    edit_style = gr.Dropdown(
-        list(EDIT_STYLE_BY_LABEL), value=EDIT_STYLE_LABELS["clean"],
-        label="Stile di montaggio — ricette coerenti stile TikTok/CapCut (il pannello Effetti serve solo con «Personalizzato»)")
-    gr.HTML(comics_for("edit_style"))
-    with gr.Row():
-        speed = gr.Dropdown(list(SPEEDS), value=list(SPEEDS)[1], label="Velocità dei tagli")
-        aspect = gr.Dropdown(list(ASPECT_LABELS), value=list(ASPECT_LABELS)[0], label="Formato video")
-        transition_mode = gr.Dropdown(list(TRANSITIONS), value=list(TRANSITIONS)[0],
-                                      label="Transizioni (solo «Personalizzato»)")
-    gr.HTML(comics_for("speed", "aspect", "transition"))
-    duration_preset = gr.Dropdown(list(AUTOCUT), value="30 secondi",
-                                  label="Autocut — durata esatta del reel")
-    gr.HTML(comics_for("duration_preset"))
+                            with gr.Accordion("👁️ Analisi visiva delle scene (modello VL locale)", open=False):
+                                scene_ai_btn = gr.Button("Analizza soggetto e sfondo delle scene selezionate")
+                                use_scene_ai = gr.Checkbox(value=False,
+                                                           label="Applica colori, movimenti e impatti sui beat forti "
+                                                                 "suggeriti")
+                                scene_ai_status = gr.Markdown("Il modello descrive le scene; non crea una maschera "
+                                                              "pixel del soggetto.")
+                                gr.HTML(comics_for("scene_ai"))
 
-    with gr.Accordion("💾 Preset", open=False):
-        with gr.Row():
-            preset_dd = gr.Dropdown(_list_presets(), label="Preset salvati", scale=3)
-            carica_btn = gr.Button("Carica", scale=1)
-            elimina_btn = gr.Button("Elimina", variant="stop", scale=1)
-        with gr.Row():
-            preset_name = gr.Textbox(label="Nome per salvare le impostazioni attuali", scale=3)
-            salva_btn = gr.Button("Salva", variant="secondary", scale=1)
-        gr.HTML(comics_for("preset"))
+                            with gr.Accordion("⚙️ Connessione HyperSpace / provider AI", open=False):
+                                _llm0 = load_llm_config()
+                                llm_detect_btn = gr.Button("🔎 Trova automaticamente HyperSpace", variant="secondary")
+                                with gr.Row():
+                                    llm_provider = gr.Radio(list(LLM_PROVIDERS),
+                                                            value=PROVIDER_LABEL.get(_llm0.provider,
+                                                                                     list(LLM_PROVIDERS)[0]),
+                                                            label="Provider")
+                                    llm_model = gr.Textbox(value=_llm0.model, label="Modello",
+                                                           placeholder="es. llama3.1  ·  qwen2.5:7b  ·  claude-opus-5")
+                                with gr.Row():
+                                    llm_base_url = gr.Textbox(value=_llm0.base_url,
+                                                              label="Base URL (vuoto = default del provider)",
+                                                              placeholder="HyperSpace: http://127.0.0.1:8085/v1")
+                                    llm_key = gr.Textbox(value=_llm0.api_key,
+                                                         label="API key (le locali spesso non la vogliono)",
+                                                         type="password")
+                                llm_save_btn = gr.Button("Salva connessione", variant="secondary")
+                                llm_status = gr.Markdown()
+                                gr.HTML(comics_for("provider", "model", "base_url", "api_key"))
 
-    with gr.Accordion("⚙️ Connessione HyperSpace / provider AI", open=False):
-        _llm0 = load_llm_config()
-        llm_detect_btn = gr.Button("🔎 Trova automaticamente HyperSpace", variant="secondary")
-        with gr.Row():
-            llm_provider = gr.Radio(list(LLM_PROVIDERS),
-                                    value=PROVIDER_LABEL.get(_llm0.provider, list(LLM_PROVIDERS)[0]),
-                                    label="Provider")
-            llm_model = gr.Textbox(value=_llm0.model, label="Modello",
-                                   placeholder="es. llama3.1  ·  qwen2.5:7b  ·  claude-opus-5")
-        with gr.Row():
-            llm_base_url = gr.Textbox(value=_llm0.base_url, label="Base URL (vuoto = default del provider)",
-                                      placeholder="HyperSpace: http://127.0.0.1:8085/v1")
-            llm_key = gr.Textbox(value=_llm0.api_key, label="API key (le locali spesso non la vogliono)",
-                                 type="password")
-        llm_save_btn = gr.Button("Salva connessione", variant="secondary")
-        llm_status = gr.Markdown()
-        gr.HTML(comics_for("provider", "model", "base_url", "api_key"))
+                # --- destra: generazione e risultato, sempre a portata di mano ------
+                with gr.Column(scale=2, min_width=340, elem_classes="hs-side"):
+                    with gr.Row():
+                        genera_btn = gr.Button("🎬 Genera", variant="primary", size="lg", scale=2)
+                        variante_btn = gr.Button("🎲 Variante", variant="secondary", size="lg", scale=1)
+                    out_video = gr.Video(label="Anteprima", height=520)
+                    out_file = gr.File(label="Scarica il video")
+                    gr.Markdown("*Il formato scelto non concede diritti musicali: verifica il brano e la sua "
+                                "durata disponibile nel catalogo TikTok prima di pubblicare.*",
+                                elem_classes="hs-note")
 
-    with gr.Accordion("🎨 Effetti (solo con stile «Personalizzato»)", open=False):
-        with gr.Row():
-            style = gr.Dropdown(list(STYLE_BY_LABEL), value=COLOR_LABELS["vivid"],
-                                label="Colore / grade di base")
-            motion = gr.Dropdown(list(MOTION_BY_LABEL), value=MOTION_LABELS["kenburns"],
-                                 label="Movimento")
-            motion_intensity = gr.Slider(0.2, 2.5, value=1.0, step=0.1, label="Intensità movimento")
-        variety = gr.Slider(0.0, 1.0, value=0.3, step=0.05,
-                            label="Varietà — quanto grade/movimento cambiano da clip a clip (anti-monotonia)")
-        impact_group = gr.CheckboxGroup(
-            list(IMPACT_BY_LABEL), value=[IMPACT_LABELS["flash"], IMPACT_LABELS["rgbsplit"]],
-            label="Effetti d'impatto sui beat forti (scelti a caso fra questi)")
-        with gr.Row():
-            grain = gr.Slider(0.0, 1.0, value=0.0, step=0.05, label="Grana")
-            vignette = gr.Checkbox(value=False, label="Vignettatura")
-            chromatic = gr.Checkbox(value=False, label="Aberrazione cromatica")
-        with gr.Row():
-            slowmo = gr.Checkbox(value=False,
-                                 label="Slow-motion + accelerazioni sulle clip video")
-            hold_prob = gr.Slider(0.0, 0.4, value=0.0, step=0.02,
-                                  label="Clip «hero» tenute 2 beat (0 = mai)")
-        gr.HTML(comics_for("style", "motion", "motion_intensity", "variety", "impact",
-                           "grain", "vignette", "chromatic", "slowmo", "hold_prob"))
-
-    with gr.Accordion("✍️ Testo / titolo", open=False):
-        title_text = gr.Textbox(label="Testo del titolo (vuoto = niente)", lines=2)
-        with gr.Row():
-            title_pos = gr.Dropdown(list(TITLE_POS), value="Al centro", label="Posizione")
-            title_start = gr.Number(value=0.0, label="Compare al secondo")
-            title_dur = gr.Number(value=2.5, label="Resta per (s)")
-        gr.HTML(comics_for("title_text", "title_pos", "title_start", "title_dur"))
-
-    with gr.Accordion("🖼️ Logo / watermark", open=False):
-        wm_file = gr.Image(label="PNG con trasparenza (vuoto = niente)", type="filepath")
-        with gr.Row():
-            wm_pos = gr.Dropdown(list(WM_POS), value=list(WM_POS)[0], label="Angolo")
-            wm_scale = gr.Slider(0.05, 0.40, value=0.15, step=0.01, label="Dimensione")
-            wm_opacity = gr.Slider(0.2, 1.0, value=0.85, step=0.05, label="Opacità")
-        gr.HTML(comics_for("wm_file", "wm_pos", "wm_scale", "wm_opacity"))
-
-    with gr.Accordion("💬 Sottotitoli (SRT / VTT)", open=False):
-        with gr.Row():
-            subtitles_file = gr.File(label="File .srt o .vtt (opzionale)", file_types=[".srt", ".vtt", ".txt"])
-            subtitles_style = gr.Dropdown(list(SUBTITLE_STYLES), value=list(SUBTITLE_STYLES)[0], label="Stile grafico")
-            subtitles_pos = gr.Dropdown(list(SUBTITLE_POS), value=list(SUBTITLE_POS)[0], label="Posizione")
-        subtitles_text = gr.Textbox(label="Oppure incolla i sottotitoli in formato SRT o VTT", lines=3,
-                                    placeholder="1\n00:00:00,000 --> 00:00:04,500\nLa tua didascalia qui...")
-        gr.HTML(comics_for("subtitles_file", "subtitles_style", "subtitles_pos", "subtitles_text"))
-
-    with gr.Accordion("⏱️ Ritmo / sincronia / hook", open=False):
-        with gr.Row():
-            hook_hold = gr.Slider(0.0, 2.0, value=0.0, step=0.1,
-                                  label="Hook — tieni fermo il primo clip (s)")
-            audio_start = gr.Number(value=0.0, label="Inizio canzone (s) — salta l'intro")
-        beat_offset = gr.Slider(-0.20, 0.20, value=0.0, step=0.01,
-                                label="Sincronia fine (s) — tagli in ritardo: alza · in anticipo: abbassa")
-        xfade_ms = gr.Slider(0, 500, value=180, step=10,
-                             label="Durata transizioni (ms) — sotto ~70 = stacchi netti sul beat")
-        snap_onsets = gr.Checkbox(value=True, label="Aggancia i tagli ai transienti reali (consigliato)")
-        dynamic_pacing = gr.Checkbox(value=False, label="Ritmo dinamico — più tagli nei momenti intensi")
-        strong_only = gr.Checkbox(value=False, label="Taglia solo sui beat forti")
-        shuffle = gr.Checkbox(value=False, label="Ordine casuale dei media (ignora la tabella)")
-        max_dur = gr.Number(label="Durata massima (solo Autocut Libero/manuale; vuoto = tutta la canzone)", value=None)
-        seed = gr.Number(label="Seed (stesso numero = stesso risultato)", value=None, precision=0)
-        gr.HTML(comics_for("hook_hold", "audio_start", "beat_offset", "xfade_ms",
-                           "snap_onsets", "dynamic_pacing", "strong_only", "shuffle",
-                           "max_dur", "seed"))
-
-    with gr.Row():
-        genera_btn = gr.Button("🎬 Genera", variant="primary", size="lg")
-        variante_btn = gr.Button("🎲 Variante", variant="secondary")
-    with gr.Row():
-        out_video = gr.Video(label="Anteprima")
-        out_file = gr.File(label="Scarica il video")
+        with gr.Tab("✨ Motion Reels"):
+            build_motion_tab(demo)
 
     def _params(d: dict) -> dict:
         return {

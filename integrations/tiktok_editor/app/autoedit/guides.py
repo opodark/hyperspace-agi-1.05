@@ -59,16 +59,26 @@ GUIDES = {
 
 
 def comic_styles() -> str:
+    # colori dalle variabili del tema Gradio: leggibili sia in chiaro sia in scuro
     return """<style>
-    .hs-comic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;margin:8px 0 15px}
-    .hs-comic{border:1px solid #525b78;border-radius:12px;background:#161b2b;color:#f1f4ff;overflow:hidden}
-    .hs-comic summary{cursor:pointer;padding:8px 11px;font-weight:700;list-style:none}
+    .hs-comic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin:6px 0 10px}
+    .hs-comic{border:1px solid var(--border-color-primary);border-radius:10px;background:var(--block-background-fill);
+      color:var(--body-text-color);overflow:hidden;font-size:13px}
+    .hs-comic summary{cursor:pointer;padding:6px 10px;font-weight:600;list-style:none;color:var(--body-text-color-subdued)}
+    .hs-comic summary:hover{color:var(--body-text-color)}
     .hs-comic summary::before{content:'💬 ';}
     .hs-comic summary::-webkit-details-marker{display:none}
+    .hs-comic[open]{grid-column:span 2}
     .hs-comic-panels{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 8px 9px}
-    .hs-comic-panel{min-height:78px;border:1px solid #667493;border-radius:9px;padding:7px;background:#252e48;font-size:12px;line-height:1.35}
-    .hs-comic-panel:last-child{background:#273d43}
-    .hs-comic-face{font-size:20px;display:block;margin-bottom:3px}
+    .hs-comic-panel{border:1px solid var(--border-color-primary);border-radius:8px;padding:7px;
+      background:var(--background-fill-secondary);font-size:12px;line-height:1.4}
+    .hs-comic-face{font-size:18px;display:block;margin-bottom:3px}
+    .hs-head{align-items:center}
+    .hs-head h1{margin:0}
+    .hs-draft{text-align:right;color:var(--body-text-color-subdued)}
+    .hs-side{position:sticky;top:12px;align-self:flex-start}
+    .hs-note{font-size:12px;color:var(--body-text-color-subdued)}
+    @media (max-width:900px){.hs-side{position:static}.hs-comic[open]{grid-column:auto}}
     </style>"""
 
 

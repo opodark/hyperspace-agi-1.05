@@ -23,7 +23,16 @@ Reel presenti:
 - `rd-2026-10-27`: coscienza sintetica, endospore crittografiche, swarm stigmergico, protocolli sovrani, causal AI.
 - `resilienza-2026-10-28`: circuit breaker adattivo, token bucket, PID di latenza, causal AI in Mission Control, 37/37 test.
 
-## Generare un reel
+## Generare un reel dal Reel Editor
+
+Apri `http://127.0.0.1:7860` e passa alla scheda **Motion Reels**: scegli il reel,
+a sinistra lo vedi girare dal vivo (scrubber compreso), poi **Fotogrammi di
+controllo** per i PNG agli istanti indicati e **Registra MP4** con la barra di
+avanzamento. In fondo alla scheda c'è lo stato di node, ffmpeg e Playwright, e
+fra i file scaricabili ci sono la pagina HTML autonoma e l'MP4. Le uscite sono le
+stesse della riga di comando. La scheda è `integrations/tiktok_editor/app/motion_tab.py`.
+
+## Generare un reel da riga di comando
 
 ```bash
 python3 integrations/tiktok_editor/motion/build.py --list
