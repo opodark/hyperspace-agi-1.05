@@ -55,6 +55,10 @@ if [[ -d "$REPO_ROOT/web-node/apps" ]]; then
   # Sicurezza & Privacy: rimuovi console di amministrazione, devstudio e laboratorio R&D interno riservati esclusivamente al Creatore locale
   rm -f "$TARGET/apps/playground/devstudio.html"
   rm -f "$TARGET/apps/playground/research.html"
+  # Esporta snapshot statici (Scouting Agent-Reach, Missioni, Dreams, Ricerca AGI) per la fruizione web senza dipendere dalle API locali
+  if [[ -x "$REPO_ROOT/.venv/bin/python" && -f "$REPO_ROOT/scripts/diagnostics/export_playground_snapshots.py" ]]; then
+    "$REPO_ROOT/.venv/bin/python" "$REPO_ROOT/scripts/diagnostics/export_playground_snapshots.py" --target "$TARGET/apps/playground/data" >/dev/null 2>&1 || true
+  fi
 fi
 
 # Copia tutti i sorgenti JS

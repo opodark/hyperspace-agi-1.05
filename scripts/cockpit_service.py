@@ -90,22 +90,72 @@ class CockpitHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
+
+    def _header(self, name: str) -> str:
+        headers = getattr(self, "headers", None)
+        return ((headers.get(name) if headers else None) or "").strip()
+
+    def _request_host(self) -> str:
+        """Host richiesto dal browser, senza porta (es. 'localhost', '[::1]', '100.64.1.2')."""
+        host = self._header("Host").lower()
+        if host.startswith("["):
+            return host.split("]")[0] + "]"
+        return host.rsplit(":", 1)[0] if host.count(":") == 1 else host
+
+    def _host_allowed(self) -> bool:
+        """Blocca il DNS rebinding: accetta solo IP, localhost, *.local, *.ts.net
+        e i nomi elencati in HYPERSPACE_COCKPIT_HOSTS (separati da virgola)."""
+        host = self._request_host()
+        if not host or host in self._LOOPBACK_HOSTS or host.endswith(".local") or host.endswith(".ts.net"):
+            return True
+        extra = {h.strip().lower() for h in os.getenv("HYPERSPACE_COCKPIT_HOSTS", "").split(",") if h.strip()}
+        if host in extra:
+            return True
+        import ipaddress
+        try:
+            ipaddress.ip_address(host.strip("[]"))
+            return True
+        except ValueError:
+            return False
+
+    def _cross_site_blocked(self) -> bool:
+        """True se una richiesta che modifica qualcosa arriva da una pagina di un altro sito (CSRF)."""
+        origin = self._header("Origin")
+        if not origin:
+            return False  # client non-browser (curl, script, test)
+        if origin == "null":
+            return True   # iframe sandbox o file:// locale
+        return urlparse(origin).netloc.lower() != self._header("Host").lower()
+
     def _is_local_creator(self) -> bool:
-        """Verifica che la richiesta provenga strettamente dalla macchina locale del Creatore."""
-        client_ip = self.client_address[0] if self.client_address else ""
-        return client_ip in ("127.0.0.1", "::1", "localhost", "testclient") or client_ip.startswith("127.") or client_ip.startswith("192.168.") or client_ip.startswith("10.") or client_ip.startswith("100.")
+        """HyperDev Studio (shell, file, diff, test): solo dalla macchina locale.
+        Richiede IP di loopback e Host locale. Altri IP fidati solo se elencati in
+        HYPERSPACE_DEVSTUDIO_TRUSTED_IPS (separati da virgola)."""
+        ip = self.client_address[0] if getattr(self, "client_address", None) else ""
+        if ip == "testclient":
+            return True
+        if ip.startswith("::ffff:"):
+            ip = ip[7:]
+        trusted = {x.strip() for x in os.getenv("HYPERSPACE_DEVSTUDIO_TRUSTED_IPS", "").split(",") if x.strip()}
+        if not (ip.startswith("127.") or ip == "::1" or ip in trusted):
+            return False
+        host = self._request_host()
+        return not host or host in self._LOOPBACK_HOSTS or host in trusted
 
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        # Niente CORS: le API servono solo le pagine di questo stesso server.
+        self.send_header("X-Content-Type-Options", "nosniff")
         super().end_headers()
 
     def do_OPTIONS(self):
-        self.send_response(200)
+        self.send_response(204)
         self.end_headers()
 
     def do_GET(self):
+        if not self._host_allowed():
+            self.send_json({"error": "Host non consentito"}, status=403)
+            return
         if self.path == "/lite" or self.path == "/lite.html":
             lite_file = REPO_ROOT / "web-node" / "apps" / "playground" / "lite.html"
             if lite_file.exists():
@@ -235,6 +285,9 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        if not self._host_allowed() or self._cross_site_blocked():
+            self.send_json({"error": "Richiesta da origine non consentita"}, status=403)
+            return
         if self.path.startswith("/api/exec"):
             self.handle_api_exec()
         elif self.path.startswith("/api/plan"):
@@ -1308,14 +1361,23 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
-        # Cronologia Milestone e Test
+        def _pytest_badge(d: dict) -> str:
+            if d.get("status") == "IN_PROGRESS":
+                return "IN ESECUZIONE..."
+            p = d.get("pytest_summary") or {}
+            if not p:
+                return "ESITO NON REGISTRATO"
+            ok = d.get("overall_pytest_green") and not p.get("failed")
+            return f"{p.get('passed', 0)}/{p.get('total_collected', 0)} TEST {'PASS' if ok else 'CON ERRORI'}"
+
+        # Cronologia Milestone e Test (esiti calcolati dai report in data/reports)
         milestones = []
         if checkpoint_data:
             milestones.append({
                 "id": "sprint-checkpoint-rfc0044",
                 "title": "Sprint Dual-Flint: Resumable Checkpoint Engine (RFC-0044)",
                 "timestamp": checkpoint_data.get("timestamp_start", "2026-10-24T14:15:00Z"),
-                "badge": "IN ESECUZIONE..." if checkpoint_data.get("status") == "IN_PROGRESS" else "100% GREEN (PASS)",
+                "badge": _pytest_badge(checkpoint_data),
                 "color": "amber",
                 "icon": "💾",
                 "category": "Ingegneria Distribuita Dual-Flint",
@@ -1333,7 +1395,7 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 "id": "sprint-scheduler-rfc0043",
                 "title": "Sprint Ingegneria: Work-Stealing Task Scheduler (RFC-0043)",
                 "timestamp": sched_data.get("timestamp_start", "2026-10-24T09:55:00Z"),
-                "badge": "IN ESECUZIONE..." if sched_data.get("status") == "IN_PROGRESS" else "100% GREEN (PASS)",
+                "badge": _pytest_badge(sched_data),
                 "color": "cyan",
                 "icon": "🔄",
                 "category": "Ingegneria Distribuita",
@@ -1350,14 +1412,14 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             {
                 "id": "sprint-gossip-35m",
                 "title": "Sprint Ingegneria Complessa: Adaptive Gossip Consensus (35 min)",
-                "timestamp": sprint_data.get("timestamp_end", "2026-10-22T17:43:00Z"),
-                "badge": "19/19 TEST PASS (100%)",
+                "timestamp": sprint_data.get("timestamp_start", sprint_data.get("timestamp_end", "2026-10-22T17:07:00Z")),
+                "badge": _pytest_badge(sprint_data),
                 "color": "emerald",
                 "icon": "⚡",
                 "category": "Ingegneria Distribuita",
                 "duration": f"{sprint_data.get('elapsed_total_min', 35.3)} min",
                 "tokens": sprint_data.get("tokens_total", 24890),
-                "summary": "Progettazione, implementazione e audit di Vector Clocks causali, SWIM Failure Detector, Anti-Entropy continuous sync e Split-Brain healing. Tutti i 19 test unitari e di integrazione passati nella sandbox reale.",
+                "summary": "Progettazione, implementazione e audit di Vector Clocks causali, SWIM Failure Detector, Anti-Entropy continuous sync e Split-Brain healing, con test unitari e di integrazione eseguiti nella sandbox.",
                 "artifacts": [
                     {"label": "RFC-0042", "path": "/docs/rfcs/rfc-0042-adaptive-gossip-consensus.md"},
                     {"label": "Moltbook Post #1004", "url": "https://www.moltbook.com/post/d7947707-ddc0-4c4f-9c3b-82c63b12dad8"},
@@ -1366,31 +1428,37 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             },
             {
                 "id": "endurance-1h",
-                "title": "Sessione Continua di Resistenza (Endurance 1 Ora)",
-                "timestamp": "2026-10-22T12:45:00Z",
-                "badge": "43 CICLI • 90.7% SUCCESS",
+                "title": f"Sessione Continua di Resistenza ({endurance_data.get('target_duration_minutes', 60):g} min)",
+                "timestamp": endurance_data.get("session_start", "2026-10-22T12:45:00Z"),
+                "badge": f"{endurance_data.get('successful_cycles', 0)}/{endurance_data.get('cycles_completed', 0)} CICLI OK",
                 "color": "cyan",
                 "icon": "🛡️",
                 "category": "Endurance Test",
-                "duration": "60 min",
-                "tokens": endurance_data.get("total_tokens_generated", 79563),
-                "summary": "43 cicli cooperativi ininterrotti tra Mac M5, HP OMEN e ASUS V16 a 28.6 parole/s steady. Zero crash hardware, 199 campioni CoT sintetici distillati.",
-                "artifacts": [
-                    {"label": "Report JSON", "file": "data/reports/endurance_session_live.json"},
-                    {"label": "Moltbook Post #4286", "url": "https://www.moltbook.com/post/0e9965de-47eb-41b8-b9c5-fa52596fe267"}
-                ]
+                "duration": f"{endurance_data.get('target_duration_minutes', 60):g} min",
+                "tokens": endurance_data.get("total_tokens_generated", 0),
+                "summary": (
+                    f"{endurance_data.get('cycles_completed', 0)} cicli cooperativi tra Mac M5, HP OMEN e ASUS V16, "
+                    f"{endurance_data.get('average_throughput_tok_s', 0)} token/s di media, "
+                    f"{len(endurance_data.get('prototypes_generated', []))} prototipi generati, "
+                    f"{endurance_data.get('failed_cycles', 0)} cicli falliti."
+                ),
+                "artifacts": [{"label": "Report JSON", "file": "data/reports/endurance_session_live.json"}] + (
+                    # il post Moltbook racconta la sessione del 22 ottobre: lo mostro solo se il report è quello
+                    [{"label": "Moltbook Post #4286", "url": "https://www.moltbook.com/post/0e9965de-47eb-41b8-b9c5-fa52596fe267"}]
+                    if str(endurance_data.get("session_start", "")).startswith("2026-10-22") else []
+                )
             },
             {
                 "id": "benchmark-flint-lfm",
                 "title": "Benchmark Collaborativo 4 Scenari (Flint 128k ⟷ LFM2.5 64k)",
-                "timestamp": "2026-10-22T11:22:00Z",
-                "badge": "4/4 SCENARI SUPERATI",
+                "timestamp": benchmark_data.get("timestamp", "2026-10-22T11:22:00Z"),
+                "badge": (lambda sc: f"{sum(1 for x in sc if x.get('status') == 'PASS')}/{len(sc)} SCENARI PASS")(list((benchmark_data.get("scenarios") or {}).values())),
                 "color": "purple",
                 "icon": "📐",
                 "category": "Cross-Model Benchmark",
                 "duration": "18 min",
                 "tokens": 14200,
-                "summary": "Test a 4 scenari: Progettazione codice, Audit avversario di sicurezza, Handshake JSON machine-to-machine, e Needle-in-a-Haystack su 128k parole senza allucinazioni.",
+                "summary": "Quattro scenari: progettazione e scrittura di codice, revisione di sicurezza, scambio di messaggi JSON tra nodi e ricerca di un'informazione in un contesto da 128k token.",
                 "artifacts": [
                     {"label": "Report JSON", "file": "data/reports/flint_128k_lfm24b_64k_collaboration_1792668132.json"}
                 ]
@@ -1412,84 +1480,71 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             }
         ])
 
-        cycles_total = endurance_data.get("cycles_completed", 43)
-        cycles_ok = endurance_data.get("successful_cycles", 39)
+        cycles_total = endurance_data.get("cycles_completed", 0)
+        cycles_ok = endurance_data.get("successful_cycles", 0)
         success_pct = round((cycles_ok / max(1, cycles_total)) * 100, 1)
+        tok_s = endurance_data.get("average_throughput_tok_s", 0)
+        tokens_tot = endurance_data.get("total_tokens_generated", 0)
+        sprints = [d for d in (sprint_data, sched_data, checkpoint_data) if d]
+        sprints_green = sum(1 for d in sprints if d.get("overall_pytest_green") and not (d.get("pytest_summary") or {}).get("failed"))
+        bench_sc = list((benchmark_data.get("scenarios") or {}).values())
+        bench_pass = sum(1 for x in bench_sc if x.get("status") == "PASS")
+        all_green = sprints_green == len(sprints) and cycles_ok == cycles_total and bench_pass == len(bench_sc)
 
         human_summary = {
-            "titolo": "Report Cluster Semplificato (Spiegato Semplice)",
-            "verdetto_globale": "SUPERATO AL 100% (ECCELLENTE)",
+            "titolo": "Riepilogo dei test registrati",
+            "verdetto_globale": "TUTTI I TEST REGISTRATI SUPERATI" if all_green else "ALCUNI TEST NON SUPERATI",
             "spiegazione_rapida": (
-                "I computer della rete (Mac Hub, HP OMEN e ASUS V16) hanno lavorato insieme per oltre un'ora come una squadra affiatata: "
-                "si sono scambiati compiti, hanno scritto e verificato codice complesso e non sono mai andati in crash."
+                f"Sprint con test verdi: {sprints_green}/{len(sprints)}. "
+                f"Ultima sessione di resistenza: {cycles_ok}/{cycles_total} cicli riusciti, {tok_s} token/s di media. "
+                f"Benchmark collaborativo: {bench_pass}/{len(bench_sc)} scenari superati."
             ),
             "kpi_semplici": [
                 {
-                    "titolo": "Velocità di Scrittura",
-                    "valore": f"{endurance_data.get('average_throughput_tok_s', 28.61)} parole/sec",
-                    "badge": "Fulmineo ⚡",
+                    "titolo": "Velocità media",
+                    "valore": f"{tok_s} token/s",
+                    "badge": "Sessione di resistenza",
                     "colore": "cyan",
-                    "spiegazione": "Mentre un umano parla a circa 2-3 parole al secondo, i nostri modelli generano a oltre 28 parole al secondo senza pause."
+                    "spiegazione": "Token generati al secondo, in media, durante l'ultima sessione di resistenza."
                 },
                 {
-                    "titolo": "Resistenza Continua (1 Ora)",
-                    "valore": f"{success_pct}% Successo ({cycles_ok}/{cycles_total})",
-                    "badge": "Solidissimo 🛡️",
+                    "titolo": "Cicli riusciti",
+                    "valore": f"{success_pct}% ({cycles_ok}/{cycles_total})",
+                    "badge": "Sessione di resistenza",
                     "colore": "emerald",
-                    "spiegazione": f"43 sessioni multi-agente consecutive: {cycles_ok} riuscite al primo colpo, 4 soli retry dovuti a traffico di rete, zero blocchi."
+                    "spiegazione": f"{cycles_total} cicli multi-agente consecutivi, {cycles_total - cycles_ok} non riusciti."
                 },
                 {
-                    "titolo": "Memoria Gigante ASUS",
-                    "valore": "128.000 Parole (128k)",
-                    "badge": "Memoria da Elefante 🐘",
+                    "titolo": "Contesto Flint 40B",
+                    "valore": "128k token",
+                    "badge": "ASUS V16",
                     "colore": "purple",
-                    "spiegazione": "Il nodo ASUS con Flint 40B può leggere e ricordare un intero libro di 300 pagine in un solo secondo senza perdere il filo."
+                    "spiegazione": "Finestra di contesto configurata per Flint 40B (num_ctx 131072) nel benchmark collaborativo."
                 },
                 {
-                    "titolo": "Volume Totale Generato",
-                    "valore": f"{endurance_data.get('total_tokens_generated', 79563):,} Parole",
-                    "badge": "Stacanovista 🏭",
+                    "titolo": "Token generati",
+                    "valore": f"{tokens_tot:,}".replace(",", "."),
+                    "badge": "Sessione di resistenza",
                     "colore": "amber",
-                    "spiegazione": "In una singola sessione hanno prodotto l'equivalente testuale di un'intera enciclopedia tascabile."
+                    "spiegazione": "Totale dei token prodotti durante l'ultima sessione di resistenza."
                 }
             ],
             "scenari_spiegati": [
                 {
-                    "numero": 1,
-                    "nome": "L'Architetto e il Programmatore",
-                    "icona": "📐 ➔ 💻",
-                    "badge": "100% SINTASSI PERFETTA",
-                    "stato": "PASS",
-                    "cosa_hanno_fatto": "L'HP OMEN (LFM2.5 24B @ 64k) ha progettato l'architettura tecnica; l'ASUS (Flint 40B @ 128k) ha scritto il codice Python completo in 32 secondi.",
-                    "perche_e_importante": "Dimostra che due computer con modelli diversi possono collaborare creando software funzionante senza alcun intervento umano."
-                },
-                {
-                    "numero": 2,
-                    "nome": "Il Controllo Qualità e Sicurezza",
-                    "icona": "🔍 ➔ 🛡️",
-                    "badge": "CERTIFICATO E APPROVATO",
-                    "stato": "PASS",
-                    "cosa_hanno_fatto": "HP OMEN ha esaminato tutto il codice scritto da ASUS riga per riga per controllare che fosse sicuro, affidabile ed esente da falle.",
-                    "perche_e_importante": "Nessun codice entra in funzione senza una 'security review' formale automatica."
-                },
-                {
-                    "numero": 3,
-                    "nome": "Il Linguaggio Segreto dei Robot",
-                    "icona": "📡 ➔ 🤝",
-                    "badge": "INTESA PERFETTA A 31 TOK/S",
-                    "stato": "PASS",
-                    "cosa_hanno_fatto": "ASUS ha simulato un allarme di rete in formato JSON; HP OMEN ha risposto all'istante con la contromisura esatta in JSON puro.",
-                    "perche_e_importante": "Significa che i nodi sanno coordinarsi da soli via protocolli machine-to-machine senza ambiguità di testo."
-                },
-                {
-                    "numero": 4,
-                    "nome": "L'Ago nel Pagliaio a 128.000 Parole",
-                    "icona": "🌾 ➔ 🪡",
-                    "badge": "TROVATO AL 100% IN 28s",
-                    "stato": "PASS",
-                    "cosa_hanno_fatto": "Abbiamo nascosto una singola regola segreta (SLOT_ALPHA_ZERO) dentro un mare immenso di testo da 128.000 parole. Flint 40B l'ha trovata subito!",
-                    "perche_e_importante": "Garantisce che il modello a 128k non allucina e non dimentica dettagli minuscoli sepolti in manuali giganteschi."
+                    "numero": i + 1,
+                    "nome": nome,
+                    "icona": icona,
+                    "badge": x.get("verdict") or x.get("status", "?"),
+                    "stato": x.get("status", "?"),
+                    "cosa_hanno_fatto": cosa,
+                    "perche_e_importante": perche,
                 }
+                for i, ((nome, icona, cosa, perche), x) in enumerate(zip([
+                    ("Architetto → Programmatore", "📐 ➔ 💻", "LFM2.5 24B sull'OMEN scrive la specifica, Flint 40B sull'ASUS implementa il codice Python.", "Verifica che due modelli diversi collaborino su uno stesso compito."),
+                    ("Revisione di sicurezza", "🔍 ➔ 🛡️", "LFM2.5 rivede il codice prodotto da Flint e dà un verdetto.", "Il codice passa da un secondo modello prima di essere accettato."),
+                    ("Dialogo JSON tra nodi", "📡 ➔ 🤝", "Flint segnala un allarme in JSON, LFM2.5 risponde con una contromisura in JSON.", "Verifica il coordinamento macchina-macchina con formati strutturati."),
+                    ("Contesto lungo 128k", "🌾 ➔ 🪡", "Flint deve ritrovare una regola nascosta in un testo da 128k token.", "Verifica che il modello usi correttamente un contesto molto lungo."),
+                ], bench_sc))
             ]
         }
 
@@ -1500,6 +1555,7 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             "benchmark": benchmark_data,
             "sprint": sprint_data,
             "scheduler_sprint": sched_data,
+            "checkpoint_sprint": checkpoint_data,
             "milestones": milestones,
             "devloop_history": devloop_history
         })
@@ -1870,10 +1926,12 @@ class CockpitHandler(SimpleHTTPRequestHandler):
 
 
 def run_service(port: int = 8090):
-    server = ThreadingHTTPServer(("0.0.0.0", port), CockpitHandler)
+    # HYPERSPACE_COCKPIT_HOST=127.0.0.1 per renderlo raggiungibile solo dal Mac
+    host = os.getenv("HYPERSPACE_COCKPIT_HOST", "0.0.0.0")
+    server = ThreadingHTTPServer((host, port), CockpitHandler)
     print("=" * 65)
     print(f"  HYPERSPACE OPERATIONS COCKPIT SERVICE")
-    print(f"  Ascolto su: http://0.0.0.0:{port} (http://localhost:{port})")
+    print(f"  Ascolto su: http://{host}:{port} (http://localhost:{port})")
     print(f"  Target Mesh: {OMEN_URL} (Omen) | {ASUS_URL} (Asus)")
     print(f"  Control Plane: {CP_URL}")
     print("=" * 65)

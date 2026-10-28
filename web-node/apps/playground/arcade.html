@@ -86,6 +86,7 @@
       50% { opacity: 0.65; filter: drop-shadow(0 0 3px #f59e0b); }
     }
   </style>
+  <script src="/nav.js" defer></script>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col font-sans selection:bg-arcade-gold selection:text-black custom-scroll">
 
@@ -185,7 +186,7 @@
         <div class="w-full flex justify-between items-center px-4 py-2 text-xs font-arcade text-arcade-gold border-b border-amber-900/60 mb-2">
           <div class="flex items-center gap-3">
             <span>SCORE: <span id="liveScore" class="text-white">0000</span></span>
-            <span class="text-cyan-400 text-[10px] hidden sm:inline" id="gameParamLabel">LVL: <strong class="text-white" id="gameParamVal">1</strong></span>
+            <span class="text-cyan-400 text-[10px] hidden sm:inline"><span id="gameParamLabel">LVL: </span><strong class="text-white" id="gameParamVal">1</strong></span>
           </div>
           <span class="text-emerald-400">TOKENS: <span id="liveTokens">0</span></span>
           <span class="text-rose-400" id="liveLivesContainer">VITE: <span id="liveLives">❤️❤️❤️</span></span>

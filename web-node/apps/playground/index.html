@@ -35,6 +35,7 @@
     .custom-scrollbar::-webkit-scrollbar-track { background: #020617; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
   </style>
+  <script src="/nav.js" defer></script>
 </head>
 <body class="bg-meshDark text-slate-100 min-h-screen flex flex-col font-sans selection:bg-meshCyan selection:text-black">
 
@@ -79,7 +80,7 @@
     <div class="flex items-center gap-4 text-xs font-mono">
       <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
         <span class="text-slate-400">CP Status:</span>
-        <span id="metric-cp" class="text-emerald-400 font-bold">ONLINE (177 mem)</span>
+        <span id="metric-cp" class="text-emerald-400 font-bold">--</span>
       </div>
       <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
         <span class="text-slate-400">Mesh VRAM:</span>
@@ -90,8 +91,8 @@
         <span id="clock" class="text-emerald-400 font-bold">--:--:--</span>
       </div>
       <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
-        <span class="text-slate-400">Uptime:</span>
-        <span id="metric-uptime" class="text-amber-400 font-bold">0s</span>
+        <span class="text-slate-400">Uptime OMEN:</span>
+        <span id="metric-uptime" class="text-amber-400 font-bold">--</span>
       </div>
     </div>
   </header>
@@ -114,7 +115,7 @@
       </div>
       <div class="text-right">
         <span class="text-xs text-slate-400">Assigned Model</span>
-        <div class="text-sm font-mono text-cyan-300 font-semibold" id="active-model-name">LFM2.5-8B-A1B-Abliterated (GGUF Q4_K_M)</div>
+        <div class="text-sm font-mono text-cyan-300 font-semibold" id="active-model-name">--</div>
       </div>
     </div>
 
@@ -131,7 +132,7 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-sm font-bold text-white">HP OMEN 24/7 Auto-Dev Engine</span>
+            <span class="text-sm font-bold text-white">HP OMEN Auto-Dev Engine</span>
             <span id="devloop-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">ATTIVO</span>
           </div>
           <p class="text-xs text-slate-400">Cicli QA continui, Graphify AST refresh, distillazione CoT & Proof-of-Useful-Work</p>
@@ -149,306 +150,33 @@
         </div>
         <div class="flex flex-col">
           <span class="text-slate-500">Invarianti Test</span>
-          <span id="devloop-qa" class="text-purple-400 font-bold text-base">VERDE (100%)</span>
+          <span id="devloop-qa" class="text-purple-400 font-bold text-base">--</span>
         </div>
         <div class="flex flex-col">
           <span class="text-slate-500">Stato Termico GPU</span>
-          <span id="devloop-thermal" class="text-emerald-400 font-bold text-base">❄️ OK (&lt;75°C)</span>
+          <span id="devloop-thermal" class="text-emerald-400 font-bold text-base">--</span>
         </div>
       </div>
     </div>
 
-    <!-- 📊 VISUAL ANALYTICS & STATISTICHE SPIEGATE FACILE (UI PER NIUBBI) -->
-    <section id="analytics-panel" class="bg-slate-900/95 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-6 backdrop-blur-xl">
-      <!-- Header con Badge e Controlli -->
-      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-2xl shadow-inner">
-            🚀
-          </div>
+    <!-- STATO ATTUALE: eventi live + riepilogo dai dati reali -->
+    <section id="now-panel" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-3">
           <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-white tracking-tight">Statistiche del Cluster — <span class="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Spiegato Semplice</span></h2>
-              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700 text-emerald-300 font-medium">UI per Tutti</span>
-            </div>
-            <p class="text-xs text-slate-400 mt-0.5">I risultati reali del test di resistenza (1 ora) e della collaborazione MoE a 128k, tradotti in italiano umano.</p>
+            <h2 class="text-base font-bold text-white">Cosa sta succedendo</h2>
+            <p class="text-xs text-slate-500">Ultimi eventi dei nodi: routing, ricerca, audit, AST gate</p>
           </div>
+          <span id="nw-updated" class="text-[11px] font-mono text-slate-500">--</span>
         </div>
-
-        <!-- Mode Toggle & Refresh -->
-        <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 p-1 rounded-xl text-xs font-medium">
-          <button id="btn-mode-simple" onclick="setAnalyticsMode('simple')" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 transition shadow-sm">
-            🟢 Spiegazione Semplice
-          </button>
-          <button id="btn-mode-tech" onclick="setAnalyticsMode('tech')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">
-            ⚙️ Dati Tecnici & JSON
-          </button>
-          <button onclick="loadAnalyticsData(true)" title="Ricarica statistiche" class="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 transition">
-            🔄
-          </button>
-        </div>
+        <ol id="nw-events" class="nw-events"><li class="nw-empty">Caricamento eventi…</li></ol>
+        <a href="/research.html#nodeDebugConsoleSection" class="nw-link">Console completa degli eventi →</a>
       </div>
-
-      <!-- VISTA SEMPLIFICATA ("PER NIUBBI") -->
-      <div id="analytics-simple-view" class="flex flex-col gap-6">
-
-        <!-- Banner Verdetto Generale -->
-        <div class="bg-gradient-to-r from-emerald-950/40 via-cyan-950/30 to-slate-950 border border-emerald-500/30 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">🏆</span>
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold text-emerald-300 uppercase tracking-wider">Verdetto Globale</span>
-                <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">VOTO: 10/10 CON LODE</span>
-              </div>
-              <p class="text-xs text-slate-300 mt-1" id="analytics-global-summary">
-                I tre computer della rete (Mac M5 Hub, HP OMEN e ASUS V16) hanno lavorato insieme per oltre un'ora come una squadra affiatata: si sono scambiati compiti, hanno scritto e verificato codice complesso e non sono mai andati in crash.
-              </p>
-            </div>
-          </div>
-          <div class="text-right text-xs text-slate-400">
-            <span>Ultimo collaudo completato:</span>
-            <div class="text-cyan-300 font-mono font-semibold" id="analytics-last-update">Sprint 35m (19/19 GREEN)</div>
-          </div>
-        </div>
-
-        <!-- 🏛️ CRONOLOGIA & STORICO TEST DEL CLUSTER (MILESTONES) -->
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
-              <span>🏛️</span> Storico dei Test, Sprint & Progressi del Cluster
-            </h3>
-            <a href="/analytics.html" class="text-[11px] text-cyan-400 hover:text-cyan-300 transition font-mono flex items-center gap-1">
-              Apri Report Full Screen ↗
-            </a>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="milestones-container-idx">
-            <!-- Popolato dinamicamente -->
-          </div>
-        </div>
-
-        <!-- 4 Grandi Carte "In Soldoni" (KPI) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="analytics-kpi-container">
-          <!-- Card 1: Velocità -->
-          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-cyan-500/40 transition">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Velocità di Scrittura</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-700 text-cyan-300 font-bold">Fulmineo ⚡</span>
-              </div>
-              <div class="text-2xl font-black text-cyan-300 tracking-tight mt-2" id="kpi-speed-val">28.6 parole/s</div>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Mentre una persona legge ad alta voce a circa 2-3 parole al secondo, il nostro cluster genera e scrive codice a oltre <strong>28 parole al secondo</strong> senza mai fermarsi.
-            </p>
-          </div>
-
-          <!-- Card 2: Resistenza 1 Ora -->
-          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/40 transition">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Resistenza (1 Ora)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">Solidissimo 🛡️</span>
-              </div>
-              <div class="text-2xl font-black text-emerald-300 tracking-tight mt-2" id="kpi-success-val">90.7% Successo</div>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              <strong>39 missioni su 43</strong> riuscite al primo colpo in 60 minuti. Le 4 ripetizioni sono state solo piccoli ritardi di connessione tra i computer: zero errori software.
-            </p>
-          </div>
-
-          <!-- Card 3: Memoria Gigante ASUS -->
-          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-purple-500/40 transition">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Memoria Gigante ASUS</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-purple-300 font-bold">Da Elefante 🐘</span>
-              </div>
-              <div class="text-2xl font-black text-purple-300 tracking-tight mt-2" id="kpi-memory-val">128.000 Parole</div>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Il modello <strong>Flint 40B</strong> su ASUS V16 può leggere e ricordare un intero libro di 300 pagine in un solo secondo, senza dimenticare neanche un dettaglio.
-            </p>
-          </div>
-
-          <!-- Card 4: Fabbrica di Testo -->
-          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/40 transition">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Volume Totale Generato</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 border border-amber-700 text-amber-300 font-bold">Stacanovista 🏭</span>
-              </div>
-              <div class="text-2xl font-black text-amber-300 tracking-tight mt-2" id="kpi-total-val">79.563 Parole</div>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              In un'ora continua di lavoro automatico il cluster ha prodotto l'equivalente di un'intera enciclopedia tascabile di codice sorgente e analisi.
-            </p>
-          </div>
-        </div>
-
-        <!-- I 4 Scenari Collaborativi Spiegati come una Storia -->
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <span>🤝</span> Come Hanno Collaborato i Modelli (I 4 Test Superati)
-            </h3>
-            <span class="text-xs text-slate-400 font-mono">Benchmark: flint_128k_lfm24b_64k</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="analytics-scenarios-container">
-            <!-- Scenario 1 -->
-            <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between hover:border-cyan-500/30 transition">
-              <div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-white flex items-center gap-2">
-                    <span>📐 ➔ 💻</span> 1. L'Architetto e il Programmatore
-                  </span>
-                  <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">PASS 100%</span>
-                </div>
-                <p class="text-xs text-slate-300 mt-2 leading-relaxed">
-                  L'<strong>HP OMEN</strong> (LFM2.5 24B @ 64k) ha ragionato e progettato la struttura del software; l'<strong>ASUS V16</strong> (Flint 40B @ 128k) ha scritto il programma in Python in soli <strong>32 secondi</strong>.
-                </p>
-              </div>
-              <div class="mt-3 pt-3 border-t border-slate-800/60 text-[11px] text-cyan-300">
-                💡 <strong>Cosa significa:</strong> I due computer si intendono alla perfezione: uno pensa la strategia e l'altro scrive il codice senza nessun errore di virgola o parentesi.
-              </div>
-            </div>
-
-            <!-- Scenario 2 -->
-            <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/30 transition">
-              <div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-white flex items-center gap-2">
-                    <span>🔍 ➔ 🛡️</span> 2. Il Controllo Qualità e Sicurezza
-                  </span>
-                  <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">APPROVED</span>
-                </div>
-                <p class="text-xs text-slate-300 mt-2 leading-relaxed">
-                  L'<strong>HP OMEN</strong> ha controllato riga per riga il codice scritto da ASUS, verificando che fosse sicuro, protetto da crash e capace di gestire problemi imprevisti.
-                </p>
-              </div>
-              <div class="mt-3 pt-3 border-t border-slate-800/60 text-[11px] text-emerald-300">
-                💡 <strong>Cosa significa:</strong> Nessun codice viene eseguito alla cieca: c'è sempre un secondo cervello che fa da guardia e approva solo se è sicuro.
-              </div>
-            </div>
-
-            <!-- Scenario 3 -->
-            <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between hover:border-purple-500/30 transition">
-              <div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-white flex items-center gap-2">
-                    <span>📡 ➔ 🤝</span> 3. Il Linguaggio Segreto dei Robot
-                  </span>
-                  <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950 border border-purple-700 text-purple-300 font-bold">31 PAROLE/S</span>
-                </div>
-                <p class="text-xs text-slate-300 mt-2 leading-relaxed">
-                  L'ASUS ha inviato un messaggio di allarme in formato dati (JSON puro); HP OMEN ha risposto all'istante con la soluzione esatta per alleggerire la memoria grafica.
-                </p>
-              </div>
-              <div class="mt-3 pt-3 border-t border-slate-800/60 text-[11px] text-purple-300">
-                💡 <strong>Cosa significa:</strong> I computer comunicano con un codice ultra-rapido e preciso, senza perdersi in chiacchiere umane, a oltre 30 parole al secondo.
-              </div>
-            </div>
-
-            <!-- Scenario 4 -->
-            <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/30 transition">
-              <div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-white flex items-center gap-2">
-                    <span>🌾 ➔ 🪡</span> 4. L'Ago nel Pagliaio a 128k Parole
-                  </span>
-                  <span class="text-[10px] px-2 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 font-bold">TROVATO 100%</span>
-                </div>
-                <p class="text-xs text-slate-300 mt-2 leading-relaxed">
-                  Abbiamo nascosto una sola parolina segreta (<code class="text-amber-300 font-mono font-bold">SLOT_ALPHA_ZERO</code>) in mezzo a un testo lungo come un intero saggio. Flint 40B l'ha scovata in <strong>28 secondi</strong>.
-                </p>
-              </div>
-              <div class="mt-3 pt-3 border-t border-slate-800/60 text-[11px] text-amber-300">
-                💡 <strong>Cosa significa:</strong> Anche con un mare di documenti aperti insieme, il modello non si confonde, non inventa cose false e non dimentica.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Timeline Grafica dei 43 Cicli dell'Ora di Endurance -->
-        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <span class="text-xs font-bold text-white flex items-center gap-2">
-                <span>⏱️</span> Cronologia Visuale dei 43 Cicli dell'Ora di Test
-              </span>
-              <p class="text-[11px] text-slate-400">Ogni barretta rappresenta un compito completato tra i computer. Passa sopra con il mouse per vedere i dettagli.</p>
-            </div>
-            <div class="flex items-center gap-3 text-[11px] font-mono">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-400"></span> Successo (39)</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-400"></span> Retry di Rete (4)</span>
-            </div>
-          </div>
-
-          <!-- BARS CONTAINER -->
-          <div class="h-20 flex items-end gap-1.5 pt-2 pb-1 px-1 border-b border-slate-800/70 overflow-x-auto" id="endurance-bars-container">
-            <!-- Barre generate via JS -->
-          </div>
-
-          <!-- Tooltip info box sotto le barre -->
-          <div id="bar-tooltip-box" class="text-xs font-mono text-slate-300 bg-slate-900/90 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between">
-            <span>Passa il mouse su una barretta per visualizzare i dettagli del ciclo.</span>
-            <span class="text-cyan-400 font-semibold">43 Cicli Totali • 60 Minuti</span>
-          </div>
-        </div>
-
-        <!-- 📜 LOG ATTIVITÀ & PROGRESSI DEVLOOP 24/7 -->
-        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-white flex items-center gap-1.5">
-              <span>📜</span> Registro Attività & Progressi Continuativi (DevLoop 24/7)
-            </span>
-            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-900 font-mono text-cyan-300" id="devloop-count-idx">25 eventi</span>
-          </div>
-          <div class="overflow-x-auto custom-scrollbar max-h-56">
-            <table class="w-full text-left text-[11px] font-mono">
-              <thead class="bg-black/60 text-slate-400 border-b border-slate-800 sticky top-0">
-                <tr>
-                  <th class="py-2 px-2.5">Ciclo</th>
-                  <th class="py-2 px-2.5">Azione Eseguita</th>
-                  <th class="py-2 px-2.5">Esito QA</th>
-                  <th class="py-2 px-2.5">Durata</th>
-                  <th class="py-2 px-2.5">Nodi Coinvolti</th>
-                </tr>
-              </thead>
-              <tbody id="devloop-table-body-idx" class="divide-y divide-slate-800/60 text-slate-300">
-                <!-- Popolato da JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- VISTA DATI TECNICI & RAW JSON (SWITCHABILE) -->
-      <div id="analytics-tech-view" class="hidden flex flex-col gap-5">
-        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 flex flex-col gap-3">
-          <div class="text-emerald-300 font-bold flex items-center justify-between">
-            <span>FILE SORGENTE: data/reports/complex_sprint_live.json (Sprint Ingegneria 35m)</span>
-            <span class="text-slate-500">19/19 Pytest PASS (100%)</span>
-          </div>
-          <pre id="raw-sprint-json" class="bg-black/80 p-3 rounded-lg overflow-x-auto text-[11px] text-emerald-300 max-h-60 custom-scrollbar"></pre>
-        </div>
-
-        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 flex flex-col gap-3">
-          <div class="text-cyan-300 font-bold flex items-center justify-between">
-            <span>FILE SORGENTE: data/reports/endurance_session_live.json</span>
-            <span class="text-slate-500">60 Minuti non-stop</span>
-          </div>
-          <pre id="raw-endurance-json" class="bg-black/80 p-3 rounded-lg overflow-x-auto text-[11px] text-emerald-300 max-h-60 custom-scrollbar"></pre>
-        </div>
-
-        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 flex flex-col gap-3">
-          <div class="text-purple-300 font-bold flex items-center justify-between">
-            <span>FILE SORGENTE: data/reports/flint_128k_lfm24b_64k_collaboration_1792668132.json</span>
-            <span class="text-slate-500">4 Scenari Collaborativi</span>
-          </div>
-          <pre id="raw-benchmark-json" class="bg-black/80 p-3 rounded-lg overflow-x-auto text-[11px] text-cyan-300 max-h-60 custom-scrollbar"></pre>
-        </div>
+      <div class="flex flex-col gap-3" id="nw-summary">
+        <a class="nw-tile" href="/missions.html" id="nw-missions"><span class="nw-k">Missioni</span><b>--</b><small>&nbsp;</small></a>
+        <a class="nw-tile" href="/research.html" id="nw-research"><span class="nw-k">R&amp;D Lab</span><b>--</b><small>&nbsp;</small></a>
+        <a class="nw-tile" href="/" id="nw-devloop" onclick="return false"><span class="nw-k">Dev loop OMEN</span><b>--</b><small>&nbsp;</small></a>
+        <a class="nw-tile" href="/analytics.html" id="nw-endurance"><span class="nw-k">Ultimo test di resistenza</span><b>--</b><small>&nbsp;</small></a>
       </div>
     </section>
 
@@ -465,7 +193,7 @@
 
         <!-- QUICK ACTION BUTTONS -->
         <div class="flex flex-wrap items-center gap-1.5 text-xs font-mono">
-          <button onclick="toggleAnalyticsView()" class="px-2.5 py-1 rounded bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white transition font-bold flex items-center gap-1 shadow-sm">📊 Spiegato Semplice (UI Niubbi)</button>
+          <button onclick="location.href='/analytics.html'" class="px-2.5 py-1 rounded bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white transition font-bold flex items-center gap-1 shadow-sm">🏛️ storico completo</button>
           <button onclick="runCommand('history')" class="px-2.5 py-1 rounded bg-amber-950 border border-amber-800 hover:bg-amber-900 text-amber-300 transition font-bold">🏛️ storico test</button>
           <button onclick="runCommand('nodes')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">nodes</button>
           <button onclick="runCommand('devloop')" class="px-2.5 py-1 rounded bg-emerald-950 border border-emerald-800 hover:bg-emerald-900 text-emerald-300 transition font-bold">⚡ devloop</button>
@@ -576,7 +304,6 @@
         const ss = String(now.getSeconds()).padStart(2, '0');
         clockEl.textContent = `${hh}:${mm}:${ss}`;
         uptimeSeconds += 1;
-        uptimeEl.textContent = `${uptimeSeconds}s`;
       }
 
       // Fetch Real Status from Backend API
@@ -602,6 +329,8 @@
             }
 
             renderNodes();
+            updateBanner();
+            if (liveNodes.omen.uptime_s != null) uptimeEl.textContent = formatUptime(liveNodes.omen.uptime_s);
           }
         } catch (e) {
           // Keep current state on error
@@ -625,13 +354,33 @@
                 devThermalEl.className = devData.thermal.alert ? 'text-rose-400 font-bold text-base' : 'text-emerald-400 font-bold text-base';
               }
             }
+            const devQaEl = document.getElementById('devloop-qa');
+            const rc = devData.recent_cycles || [];
+            if (devQaEl) {
+              if (rc.length) {
+                const ok = rc.filter(c => c.qa_passed).length;
+                devQaEl.textContent = `${ok}/${rc.length} ultimi cicli`;
+                devQaEl.className = (ok === rc.length ? 'text-emerald-400' : 'text-amber-400') + ' font-bold text-base';
+              } else { devQaEl.textContent = 'n/d'; devQaEl.className = 'text-slate-400 font-bold text-base'; }
+            }
+            if (devThermalEl && (!devData.thermal || devData.thermal.temp_c == null)) {
+              devThermalEl.textContent = 'n/d';
+              devThermalEl.className = 'text-slate-400 font-bold text-base';
+            }
             if (devBadgeEl) {
               if (devData.thermal && devData.thermal.alert) {
                 devBadgeEl.textContent = "TERMO-PAUSA";
                 devBadgeEl.className = "text-[10px] px-2 py-0.5 rounded-full bg-rose-950 border border-rose-700 text-rose-300 font-mono";
               } else {
-                devBadgeEl.textContent = "ATTIVO 24/7";
-                devBadgeEl.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono";
+                const lastTs = rc.map(c => new Date(c.timestamp).getTime()).filter(isFinite).sort((a, b) => b - a)[0];
+                const idleH = lastTs ? (Date.now() - lastTs) / 3600000 : null;
+                if (idleH != null && idleH < 2) {
+                  devBadgeEl.textContent = "ATTIVO";
+                  devBadgeEl.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono";
+                } else {
+                  devBadgeEl.textContent = idleH == null ? "NESSUN CICLO" : (idleH < 48 ? `FERMO DA ${Math.round(idleH)} H` : `FERMO DA ${Math.round(idleH / 24)} G`);
+                  devBadgeEl.className = "text-[10px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono";
+                }
               }
             }
           }
@@ -650,8 +399,7 @@
           card.className = `p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? (n.color || 'border-cyan-500 bg-cyan-950/20') + ' ring-2 ring-cyan-400/50 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`;
           card.onclick = () => selectNode(n.id);
 
-          const powerIcon = n.ac_line ? "🔌" : "🔋";
-          const powerText = n.power || (n.ac_line ? "AC Power" : `Batteria ${n.battery_pct}%`);
+          const powerWarn = !n.ac_line && n.battery_pct != null && n.battery_pct < 30;
 
           card.innerHTML = `
             <div class="flex items-center justify-between mb-3">
@@ -665,7 +413,7 @@
             <div class="space-y-1.5 text-xs font-mono border-t border-slate-800/80 pt-2 mb-3">
               <div class="flex justify-between"><span class="text-slate-500">Stato:</span> <span class="${isOnline ? 'text-emerald-300 font-bold' : 'text-amber-400'}">${n.status}</span></div>
               <div class="flex justify-between"><span class="text-slate-500">Hardware:</span> <span class="text-slate-300">${n.hardware}</span></div>
-              <div class="flex justify-between"><span class="text-slate-500">Alimentazione:</span> <span class="text-slate-300">${powerIcon} ${powerText}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Alimentazione:</span> <span class="${powerWarn ? 'text-amber-400 font-bold' : 'text-slate-300'}">${powerLabel(n)}</span></div>
               <div class="flex justify-between"><span class="text-slate-500">Modello:</span> <span class="text-purple-300 truncate max-w-[170px]" title="${n.active_model}">${n.active_model}</span></div>
             </div>
             <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -674,6 +422,22 @@
           `;
           nodesContainer.appendChild(card);
         });
+      }
+
+      function powerLabel(n) {
+        const pct = n.battery_pct != null ? n.battery_pct + '%' : '';
+        if (n.ac_line) return n.battery_pct != null && n.battery_pct < 20 ? `🔌 Rete · batteria ${pct}` : '🔌 Rete';
+        return `🔋 Batteria ${pct}`;
+      }
+      function formatUptime(sec) {
+        const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+        return h ? `${h}h ${m}m` : `${m}m`;
+      }
+      function updateBanner() {
+        const t = liveNodes[selectedNodeId];
+        if (!t) return;
+        activeNodeNameEl.innerHTML = `${t.name} <span class="text-xs px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300">${t.role} • ${powerLabel(t)}</span>`;
+        activeModelNameEl.textContent = t.active_model;
       }
 
       // Switch active node
@@ -1203,7 +967,117 @@
       // Initial Calls
       updateClock();
       pollLiveStatus();
-      loadAnalyticsData();
+    })();
+  </script>
+
+  <!-- ===== Cockpit: pannello "Adesso" ===== -->
+  <style id="nw-style">
+    .nw-events{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+    .nw-ev{display:grid;grid-template-columns:62px 92px 1fr;gap:12px;align-items:baseline;padding:8px 6px;border-radius:10px;
+      border-bottom:1px solid rgba(148,163,184,.07);font-size:12px;transition:background .2s}
+    .nw-ev:hover{background:rgba(30,41,59,.45)}
+    .nw-ev time{font:500 10.5px 'Fira Code',monospace;color:#64748b;white-space:nowrap}
+    .nw-ev .nw-src{font:500 10.5px 'Fira Code',monospace;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .nw-ev .nw-src i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#475569;margin-right:6px;vertical-align:middle}
+    .nw-ev.is-ok .nw-src i{background:#34d399}.nw-ev.is-warn .nw-src i{background:#fbbf24}.nw-ev.is-err .nw-src i{background:#fb7185}
+    .nw-ev p{margin:0;color:#cbd5e1;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .nw-ev.is-err p{color:#fecdd3}.nw-ev.is-warn p{color:#fde68a}
+    .nw-ev small{display:block;font:500 10px 'Fira Code',monospace;color:#475569;margin-top:2px}
+    .nw-ev.is-new{animation:nw-in .6s cubic-bezier(.22,.8,.24,1) both}
+    @keyframes nw-in{from{opacity:0;transform:translateY(-6px);background:rgba(87,230,217,.08)}to{opacity:1;transform:none}}
+    .nw-empty{color:#64748b;font:12px 'Fira Code',monospace;padding:12px 6px}
+    .nw-link{align-self:flex-start;font:500 11px 'Fira Code',monospace;color:#64748b;text-decoration:none;transition:color .2s}
+    .nw-link:hover{color:#e2e8f0}
+    .nw-tile{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:16px;text-decoration:none;
+      background:rgba(15,23,42,.95);border:1px solid rgb(30,41,59);transition:border-color .25s,transform .25s}
+    .nw-tile:hover{border-color:rgba(87,230,217,.3);transform:translateY(-1px)}
+    .nw-tile .nw-k{font:600 10.5px 'Fira Code',monospace;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+    .nw-tile b{font-size:17px;font-weight:700;color:#f1f5f9}
+    .nw-tile small{font-size:11.5px;color:#94a3b8}
+    .nw-tile .ok{color:#34d399}.nw-tile .ko{color:#fb7185}.nw-tile .mid{color:#fbbf24}
+    @media (max-width:640px){.nw-ev{grid-template-columns:54px 1fr}.nw-ev .nw-src{grid-column:2}.nw-ev p{grid-column:1/-1}}
+    @media (prefers-reduced-motion:reduce){.nw-ev.is-new{animation:none}.nw-tile{transition:none}}
+  </style>
+  <script id="nw-script">
+    (function () {
+      const NW = { seen: null, last: '' };
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      function ago(iso) {
+        const t = typeof iso === 'number' ? iso * 1000 : new Date(iso).getTime();
+        const s = (Date.now() - t) / 1000;
+        if (!isFinite(s)) return '--';
+        if (s < 60) return 'adesso'; if (s < 3600) return Math.floor(s / 60) + ' min fa';
+        if (s < 86400) return Math.floor(s / 3600) + ' h fa'; return Math.floor(s / 86400) + ' g fa';
+      }
+      function level(msg, tag) {
+        const m = (msg || '').toLowerCase();
+        if (/errore|error|fallit|failed|exception|traceback|crash/.test(m)) return 'is-err';
+        if (/non disponibile|timed out|timeout:|scadut|batteria|ripieg|fallback|retry|warning|attenzione|lento|interrott/.test(m)) return 'is-warn';
+        if (/ok|valid|pass|complet|superat|✓/.test(m)) return 'is-ok';
+        return '';
+      }
+      function tile(id, value, sub, cls) {
+        const el = document.getElementById(id); if (!el) return;
+        el.querySelector('b').innerHTML = value;
+        el.querySelector('small').innerHTML = sub || '&nbsp;';
+        if (cls) el.querySelector('b').className = cls;
+      }
+      const getJSON = u => fetch(u, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+
+      async function events() {
+        const d = await getJSON('/api/research/node-stream?limit=40');
+        const box = document.getElementById('nw-events');
+        if (!d || !box) return;
+        const list = (d.stream || []).slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+        document.getElementById('nw-updated').textContent = 'aggiornato ' + new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const sig = list.map(e => e.timestamp).join('|');
+        if (sig === NW.last) return;
+        NW.last = sig;
+        if (!list.length) { box.innerHTML = '<li class="nw-empty">Nessun evento recente.</li>'; return; }
+        const prev = NW.seen; NW.seen = new Set(list.map(e => e.timestamp + e.message));
+        box.innerHTML = list.map(e => {
+          const isNew = prev && !prev.has(e.timestamp + e.message);
+          return `<li class="nw-ev ${level(e.message, e.tag)}${isNew ? ' is-new' : ''}" title="${esc(e.message)}">
+            <time>${ago(e.timestamp)}</time>
+            <span class="nw-src"><i></i>${esc(e.node || '')}<small>${esc(e.tag || '')}</small></span>
+            <p>${esc(e.message)}</p></li>`;
+        }).join('');
+      }
+
+      async function summary() {
+        const [mi, tree, dev, an] = await Promise.all([
+          getJSON('/api/missions'), getJSON('/api/research/tree?branch=all&status=all'), getJSON('/api/devloop'), getJSON('/api/analytics')
+        ]);
+        if (mi) {
+          const ms = mi.missions || [];
+          const norm = m => { const s = (m.status || '').toLowerCase(); return ['done', 'pass', 'passed', 'completed', 'success'].includes(s) ? 'ok' : ['failed', 'error', 'cancelled', 'canceled', 'rejected'].includes(s) ? 'ko' : 'run'; };
+          const ok = ms.filter(m => norm(m) === 'ok').length, ko = ms.filter(m => norm(m) === 'ko').length, run = ms.length - ok - ko;
+          const last = ms[ms.length - 1];
+          tile('nw-missions', `<span class="ok">${ok}</span> concluse · <span class="${ko ? 'ko' : ''}">${ko}</span> non riuscite${run ? ` · ${run} attive` : ''}`,
+            last ? `Ultima ${ago(last.created_at)}: ${norm(last) === 'ok' ? 'conclusa' : norm(last) === 'ko' ? 'non riuscita' : 'in corso'}` : 'Nessuna missione');
+        }
+        if (tree && tree.stats) {
+          const st = tree.stats, nodes = tree.nodes || [];
+          const last = nodes.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+          tile('nw-research', `${st.passed} superati · <span class="${st.failed ? 'ko' : ''}">${st.failed}</span> falliti · ${st.in_production} in prod.`,
+            last ? `${st.total_nodes} nodi · ultimo ${ago(last.timestamp)}` : '');
+        }
+        if (dev) {
+          const rc = dev.recent_cycles || [], okc = rc.filter(c => c.qa_passed).length;
+          const lastC = rc.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+          tile('nw-devloop', `${dev.total_cycles ?? '--'} cicli · ${dev.cot_samples_count ?? '--'} campioni CoT`,
+            lastC ? `Ultimo ciclo ${ago(lastC.timestamp)} · QA ${okc}/${rc.length} ok` : 'Nessun ciclo recente');
+        }
+        if (an && an.endurance) {
+          const e = an.endurance, tot = e.cycles_completed || 0, ok = e.successful_cycles || 0;
+          tile('nw-endurance', `<span class="${ok === tot ? 'ok' : 'mid'}">${ok}/${tot}</span> cicli riusciti · ${Math.round(e.average_throughput_tok_s || 0)} tok/s`,
+            `${e.target_duration_minutes || '?'} min · ${ago(e.last_cycle_timestamp || e.session_start)} · storico completo →`);
+        }
+      }
+
+      events(); summary();
+      setInterval(events, 8000);
+      setInterval(summary, 30000);
     })();
   </script>
 </body>

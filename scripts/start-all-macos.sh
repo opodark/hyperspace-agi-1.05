@@ -191,6 +191,22 @@ else
   log "scheduler Reel giornaliero caricato (idle finché non configuri una schedulazione)"
 fi
 
+scout_domain="gui/$(id -u)/com.hyperspace.trend-scout"
+scout_plist="$REPO/integrations/com.hyperspace.trend-scout.plist"
+if launchctl print "$scout_domain" >/dev/null 2>&1; then
+  log "scheduler Trend Scout già caricato"
+else
+  launchctl bootstrap "gui/$(id -u)" "$scout_plist"
+  log "scheduler Trend Scout caricato e attivo (Agent-Reach)"
+fi
+
+if running '[c]ockpit_service.py' || curl -fsS --max-time 2 http://127.0.0.1:8090/missions.html >/dev/null 2>&1; then
+  log "Cockpit Operations service già attivo su http://127.0.0.1:8090"
+elif [[ -x "$REPO/.venv/bin/python" && -f "$REPO/scripts/cockpit_service.py" ]]; then
+  nohup "$REPO/.venv/bin/python" -u "$REPO/scripts/cockpit_service.py" >"$REPO/data/cockpit.log" 2>"$REPO/data/cockpit.err.log" &
+  log "Cockpit Operations service avviato su http://127.0.0.1:8090"
+fi
+
 sleep 2
 log "PRONTO: dashboard http://127.0.0.1:8085/dashboard"
 log "web-node: http://127.0.0.1:8790"

@@ -41,6 +41,7 @@
       border-left: 10px solid currentColor;
     }
   </style>
+  <script src="/nav.js" defer></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
 
@@ -99,15 +100,15 @@
       <div class="flex items-center gap-3 text-xs font-mono">
         <div class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl text-center">
           <span class="text-slate-500 block text-[10px] uppercase">Messaggi</span>
-          <span class="text-cyan-300 font-bold text-base" id="kpi-count">276</span>
+          <span class="text-cyan-300 font-bold text-base" id="kpi-count">--</span>
         </div>
         <div class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl text-center">
           <span class="text-slate-500 block text-[10px] uppercase">Agenti</span>
-          <span class="text-emerald-400 font-bold text-base">5 Autonomi</span>
+          <span class="text-emerald-400 font-bold text-base" id="kpi-agents">--</span>
         </div>
         <div class="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl text-center">
-          <span class="text-slate-500 block text-[10px] uppercase">Consenso</span>
-          <span class="text-purple-400 font-bold text-base">100% Attivo</span>
+          <span class="text-slate-500 block text-[10px] uppercase">Ultimi 7 giorni</span>
+          <span class="text-purple-400 font-bold text-base" id="kpi-week">--</span>
         </div>
       </div>
     </div>
@@ -146,6 +147,9 @@
       <div class="flex items-center gap-3">
         <!-- View Mode: Balloon Comic vs Clean Social -->
         <div class="bg-slate-950 border border-slate-800 p-1 rounded-xl flex items-center gap-1 text-xs">
+          <button id="btn-mode-compact" onclick="setViewMode('compact')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+            <span>☰</span> Compatta
+          </button>
           <button id="btn-mode-balloon" onclick="setViewMode('balloon')" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 transition flex items-center gap-1.5">
             <span>💬</span> Balloon Fumetto
           </button>
@@ -647,6 +651,112 @@
 
     // Inizializza al caricamento
     loadData();
+  </script>
+
+  <!-- ===== Feed: vista compatta, giorni, caricamento a blocchi ===== -->
+  <style id="dg-style">
+    .dg-day{position:sticky;top:76px;z-index:5;align-self:flex-start;margin:10px 0 2px;padding:4px 10px;border-radius:999px;
+      font:600 10.5px 'Fira Code',monospace;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;
+      background:rgba(2,6,23,.85);border:1px solid rgba(148,163,184,.14);backdrop-filter:blur(6px)}
+    .dg-list{display:flex;flex-direction:column;gap:2px}
+    .dg-row{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:start;
+      padding:10px 12px;border-radius:12px;border:1px solid transparent;transition:background .2s,border-color .2s,transform .2s}
+    .dg-row:hover{background:rgba(30,41,59,.5);border-color:rgba(148,163,184,.14);transform:translateX(2px)}
+    .dg-row:focus-visible{outline:2px solid #57e6d9;outline-offset:-2px}
+    .dg-av{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px;border-width:1px}
+    .dg-main{min-width:0;display:flex;flex-direction:column;gap:2px}
+    .dg-top{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#94a3b8;min-width:0}
+    .dg-top b{color:#e2e8f0;font-weight:600}
+    .dg-tags{display:flex;gap:4px;margin-left:6px;overflow:hidden}
+    .dg-tags span{font:500 10px 'Fira Code',monospace;color:#64748b;border:1px solid rgba(148,163,184,.14);padding:0 6px;border-radius:6px;white-space:nowrap}
+    .dg-subj{font-size:13px;font-weight:600;color:#cbd5e1}
+    .dg-prev{font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .dg-idx{font:500 10.5px 'Fira Code',monospace;color:#475569;padding-top:2px}
+    .dg-more{all:unset;cursor:pointer;align-self:center;margin:14px 0;padding:8px 16px;border-radius:10px;
+      font:500 12px 'Fira Code',monospace;color:#94a3b8;border:1px solid rgba(148,163,184,.18);transition:color .2s,background .2s}
+    .dg-more:hover{color:#e2e8f0;background:rgba(30,41,59,.6)}
+    .dg-in{animation:dg-in .45s cubic-bezier(.22,.8,.24,1) both}
+    @keyframes dg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    @media (prefers-reduced-motion:reduce){.dg-in,.dg-row{animation:none;transition:none}}
+  </style>
+  <script id="dg-script">
+    const DG = { PAGE: 40, limit: 40, legacy: window.renderFeed };
+    try { const m = localStorage.getItem('dg.mode'); currentViewMode = (m === 'balloon' || m === 'social') ? m : 'compact'; } catch { currentViewMode = 'compact'; }
+
+    function dgFiltered() {
+      const q = document.getElementById('filter-search').value.toLowerCase().trim();
+      const topic = document.getElementById('filter-topic').value;
+      const list = allDialogues.filter(d => {
+        if (selectedAgent) {
+          const s = (d.sender || '').toLowerCase(), r = (d.recipient || '').toLowerCase();
+          if (!s.includes(selectedAgent) && !r.includes(selectedAgent)) return false;
+        }
+        if (topic && !(d.tags || []).includes(topic)) return false;
+        if (q && !(((d.subject || '') + ' ' + (d.body || '') + ' ' + (d.sender || '')).toLowerCase().includes(q))) return false;
+        return true;
+      });
+      return list.sort((a, b) => sortDesc ? b.index - a.index : a.index - b.index);
+    }
+    function dgDayLabel(date) {
+      const d = new Date(date + 'T12:00:00'), t = new Date(); t.setHours(12, 0, 0, 0);
+      const diff = Math.round((t - d) / 86400000);
+      if (diff === 0) return 'Oggi';
+      if (diff === 1) return 'Ieri';
+      return isNaN(d) ? (date || 'Senza data') : d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' });
+    }
+    function dgKpi() {
+      const agents = new Set(allDialogues.map(d => resolveAgent(d.sender).name));
+      const weekAgo = Date.now() - 7 * 86400000;
+      const week = allDialogues.filter(d => new Date(d.date + 'T12:00:00').getTime() >= weekAgo).length;
+      document.getElementById('kpi-count').textContent = allDialogues.length;
+      document.getElementById('kpi-agents').textContent = agents.size;
+      document.getElementById('kpi-week').textContent = week;
+    }
+
+    window.renderFeed = function () {
+      const feed = document.getElementById('dialogues-feed');
+      const list = dgFiltered(), page = list.slice(0, DG.limit), rest = list.length - page.length;
+      if (!list.length) { DG.legacy(); return; }
+      if (currentViewMode === 'compact') {
+        let html = '', day = null;
+        page.forEach(d => {
+          if (d.date !== day) { if (day !== null) html += '</div>'; day = d.date; html += `<div class="dg-day">${dgDayLabel(d.date)}</div><div class="dg-list">`; }
+          const s = resolveAgent(d.sender), r = resolveAgent(d.recipient);
+          html += `<button class="dg-row dg-in" onclick="openModal('${d.id}')">
+            <span class="dg-av ${s.bg} ${s.border}">${s.avatar}</span>
+            <span class="dg-main">
+              <span class="dg-top"><b>${escapeHtml(s.name)}</b><span>→</span><span>${escapeHtml(r.name)}</span><span class="dg-tags">${(d.tags || []).slice(0, 2).map(t => `<span>${escapeHtml(t)}</span>`).join('')}</span></span>
+              <span class="dg-subj">${escapeHtml(d.subject || d.headline || '')}</span>
+              <span class="dg-prev">${escapeHtml((d.preview || '').replace(/\s+/g, ' '))}</span>
+            </span>
+            <span class="dg-idx">#${d.index}</span>
+          </button>`;
+        });
+        feed.innerHTML = html + '</div>';
+        feed.style.gap = '0';
+      } else {
+        const all = allDialogues; allDialogues = page;
+        try { DG.legacy(); } finally { allDialogues = all; }
+        feed.style.gap = '';
+      }
+      if (rest > 0) {
+        feed.insertAdjacentHTML('beforeend', `<button class="dg-more" onclick="DG.limit += DG.PAGE; renderFeed()">Mostra altri ${Math.min(rest, DG.PAGE)} · ${rest} rimanenti</button>`);
+      }
+      dgKpi();
+    };
+
+    const DG_ON = 'px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 transition flex items-center gap-1.5';
+    const DG_OFF = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+    window.setViewMode = function (mode) {
+      currentViewMode = mode;
+      try { localStorage.setItem('dg.mode', mode); } catch {}
+      ['compact', 'balloon', 'social'].forEach(m => { const b = document.getElementById('btn-mode-' + m); if (b) b.className = m === mode ? DG_ON : DG_OFF; });
+      renderFeed();
+    };
+    // i filtri ripartono dalla prima pagina
+    ['filter-search', 'filter-topic'].forEach(id => document.getElementById(id).addEventListener('input', () => { DG.limit = DG.PAGE; }, true));
+    const dgSelect = window.selectAgent; window.selectAgent = id => { DG.limit = DG.PAGE; dgSelect(id); };
+    setViewMode(currentViewMode);
   </script>
 </body>
 </html>

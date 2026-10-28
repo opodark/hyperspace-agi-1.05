@@ -9536,3 +9536,20 @@ Diagnosi:
    - Sostituiti glifi non ASCII con tag leggibili (`[HEALTHY]`, `[DEGRADED]`, `[HOT]`, `[COOL]`) per compatibilità multipiattaforma.
    - Stato risultante dell'OMEN dal nodo ASUS: **`[HEALTHY]`**. Test suite `tests/test_omen_allnight_sovereign.py`: 12/12 passed.
 
+
+## 2026-10-28 11:05 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Integrazione OMEN c701ffa, aggiornamento UI Cockpit/Missions (:8090) e build Aruba
+
+1. **Integrazione OMEN (`c701ffa`)**:
+   - Eseguito fast-forward merge del commit `c701ffa` inviato da OMEN (fix safe console encoding e allineamento watchdog perimetro remoto). Zero conflitti.
+
+2. **Miglioramenti UI Cockpit / Playground (:8090) e Aruba**:
+   - `web-node/apps/playground/nav.js`: barra di navigazione unificata locale per le pagine Cockpit (Cockpit, Missioni, R&D Lab, Dialoghi, Analytics, ecc.).
+   - `web-node/apps/playground/missions.html`, `research.html`, `dialogues.html`: UI rifinita, pulsanti di lancio rapido missioni DAG da trend scouting, fallback multi-endpoint (`fetchWithFallback`) per servire i dati sia tramite le API live di Cockpit (:8090) sia da snapshot statici senza dipendenze o 404 su Aruba.
+   - `scripts/cockpit_service.py`: hardening sicurezza (protezione DNS rebinding via `_host_allowed`, blocco cross-site CSRF su mutazioni, DevStudio circoscritto a loopback e IP fidati, bind configurabile con `HYPERSPACE_COCKPIT_HOST`).
+   - `scripts/diagnostics/export_playground_snapshots.py`: esportazione snapshot JSON statici per playground web.
+   - `scripts/build-web-node-aruba.sh`: integrata generazione snapshot prima del packaging Aruba.
+   - `scripts/start-all-macos.sh`: controllo e avvio automatico di `cockpit_service.py` e LaunchAgent `trend-scout`.
+
+3. **Verifiche e riavvio servizi**:
+   - Suite test licensing e smoke test verificati con successo.
+   - Servizio Cockpit riavviato e operativo su porta 8090.

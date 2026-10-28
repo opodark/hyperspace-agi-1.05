@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HyperSpace Mesh — Statistiche & Storico Test Spiegati Semplice</title>
+  <title>HyperSpace Mesh — Storico test</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -13,6 +13,7 @@
     @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     .pulse-glow { animation: pulse-slow 2.5s infinite; }
   </style>
+  <script src="/nav.js" defer></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
 
@@ -41,465 +42,184 @@
       <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-cyan text-slate-200 transition font-medium flex items-center gap-1.5">
         📡 Scouting & Missioni
       </a>
-      <div class="bg-slate-950 border border-slate-800 p-1 rounded-xl flex items-center gap-1 text-xs">
-        <button id="btn-mode-simple" onclick="setMode('simple')" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 transition">
-          🟢 Spiegato Semplice & Storico
-        </button>
-        <button id="btn-mode-tech" onclick="setMode('tech')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">
-          ⚙️ Dati Tecnici & JSON
-        </button>
-      </div>
     </div>
   </header>
 
   <!-- MAIN WRAPPER -->
-  <main class="flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col gap-8">
+  <main class="flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col gap-6">
+    <style>
+      .st-ok{--s:#34d399}.st-ko{--s:#fb7185}.st-mid{--s:#fbbf24}.st-info{--s:#94a3b8}
+      .st-card{background:rgba(15,23,42,.9);border:1px solid rgb(30,41,59);border-radius:18px;padding:20px}
+      .st-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+      .st-h h2{font-size:15px;font-weight:700;color:#f1f5f9}
+      .st-h span{font:500 11px 'Fira Code',monospace;color:#64748b}
+      .st-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+      .st-k{padding:14px 16px;border-radius:14px;background:rgba(2,6,23,.5);border:1px solid rgba(148,163,184,.1)}
+      .st-k span{display:block;font:600 10.5px 'Fira Code',monospace;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+      .st-k b{display:block;font-size:22px;font-weight:800;color:#f1f5f9;margin-top:4px;font-variant-numeric:tabular-nums}
+      .st-k small{font-size:11.5px;color:#94a3b8}
+      .st-tl{list-style:none;margin:0;padding:0}
+      .st-it{display:grid;grid-template-columns:96px 22px 1fr;gap:0 10px}
+      .st-date{font:500 11px 'Fira Code',monospace;color:#64748b;padding-top:15px;text-align:right}
+      .st-rail{position:relative;display:flex;justify-content:center}
+      .st-rail::before{content:'';position:absolute;top:0;bottom:0;width:1px;background:rgba(148,163,184,.14)}
+      .st-it:first-child .st-rail::before{top:19px}.st-it:last-child .st-rail::before{bottom:auto;height:19px}
+      .st-rail i{position:relative;margin-top:15px;width:9px;height:9px;border-radius:50%;background:var(--s);box-shadow:0 0 0 4px color-mix(in srgb,var(--s) 15%,transparent)}
+      .st-body{padding:10px 12px 14px;border-radius:12px;transition:background .2s}
+      .st-body:hover{background:rgba(30,41,59,.35)}
+      .st-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+      .st-top h3{font-size:13.5px;font-weight:600;color:#e2e8f0}
+      .st-res{font:600 10.5px 'Fira Code',monospace;color:var(--s);padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--s) 40%,transparent)}
+      .st-body p{font-size:12.5px;color:#94a3b8;line-height:1.5;margin-top:4px}
+      .st-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font:500 11px 'Fira Code',monospace;color:#64748b}
+      .st-meta a{color:#57e6d9;text-decoration:none}.st-meta a:hover{text-decoration:underline}
+      .st-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+      .st-bars{display:flex;align-items:flex-end;gap:4px;height:84px;padding:4px 0;border-bottom:1px solid rgba(148,163,184,.12)}
+      .st-bar{flex:1;min-width:6px;border-radius:3px 3px 0 0;background:var(--s);opacity:.75;transform-origin:bottom;
+        animation:st-grow .7s cubic-bezier(.22,.8,.24,1) both;transition:opacity .2s}
+      .st-bar:hover{opacity:1}
+      @keyframes st-grow{from{transform:scaleY(0)}}
+      .st-cap{display:flex;justify-content:space-between;font:500 10.5px 'Fira Code',monospace;color:#64748b;margin-top:6px}
+      .st-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+      .st-chip{font:500 10.5px 'Fira Code',monospace;color:#94a3b8;padding:2px 8px;border-radius:8px;border:1px solid rgba(148,163,184,.14)}
+      .st-chip i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--s);margin-right:6px;vertical-align:middle}
+      .st-tbl{width:100%;border-collapse:collapse;font-size:12px}
+      .st-tbl th{text-align:left;font:600 10.5px 'Fira Code',monospace;letter-spacing:.05em;text-transform:uppercase;color:#64748b;padding:8px 10px;border-bottom:1px solid rgba(148,163,184,.14)}
+      .st-tbl td{padding:9px 10px;border-bottom:1px solid rgba(148,163,184,.07);color:#cbd5e1;vertical-align:top}
+      .st-tbl td.m{font-family:'Fira Code',monospace;font-size:11px;color:#94a3b8;white-space:nowrap}
+      .st-tbl tr:hover td{background:rgba(30,41,59,.3)}
+      details.st-raw summary{cursor:pointer;font:500 12px 'Fira Code',monospace;color:#94a3b8}
+      details.st-raw pre{margin-top:10px;max-height:320px;overflow:auto;font:11px 'Fira Code',monospace;color:#cbd5e1;background:rgba(2,6,23,.7);padding:12px;border-radius:10px}
+      .st-in{animation:st-in .5s cubic-bezier(.22,.8,.24,1) both}
+      @keyframes st-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+      @media (max-width:760px){.st-sum,.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.st-it{grid-template-columns:22px 1fr}.st-date{display:none}}
+      @media (prefers-reduced-motion:reduce){.st-bar,.st-in{animation:none}}
+    </style>
 
-    <!-- HERO VERDETTO -->
-    <div class="bg-gradient-to-r from-emerald-950/40 via-cyan-950/30 to-slate-900 border border-emerald-500/30 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-6">
-      <div class="flex items-start gap-4 max-w-3xl">
-        <span class="text-4xl p-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">🏆</span>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Esito Collaudo Generale</span>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">TUTTI I TEST SUPERATI (100%)</span>
-          </div>
-          <h2 class="text-xl font-bold text-white mt-1">I Tre Computer Hanno Lavorato Insieme Senza Errori</h2>
-          <p class="text-xs text-slate-300 mt-2 leading-relaxed" id="hero-summary">
-            Sia nella maratona di 1 ora (43 cicli continuous) che nello sprint di ingegneria complessa da 35 minuti (Gossip Consensus & Vector Clocks), il cluster ha collaborato a oltre 28 parole al secondo senza mai andare in crash.
-          </p>
-        </div>
+    <section class="st-card st-in">
+      <div class="st-h"><h2>Riepilogo dei test registrati</h2><span id="st-src">fonte: /api/analytics</span></div>
+      <div class="st-sum" id="st-sum">
+        <div class="st-k"><span>Test registrati</span><b>--</b><small>&nbsp;</small></div>
+        <div class="st-k"><span>Superati</span><b>--</b><small>&nbsp;</small></div>
+        <div class="st-k"><span>Ultimo test</span><b>--</b><small>&nbsp;</small></div>
+        <div class="st-k"><span>Token generati</span><b>--</b><small>&nbsp;</small></div>
       </div>
-      <div class="text-right">
-        <div class="text-3xl font-black text-cyan-300 font-mono">10 / 10</div>
-        <span class="text-[11px] text-slate-400">Punteggio di Stabilità Rete</span>
-      </div>
-    </div>
+    </section>
 
-    <!-- VISTA SEMPLIFICATA -->
-    <div id="view-simple" class="flex flex-col gap-8">
+    <section class="st-card st-in" style="animation-delay:60ms">
+      <div class="st-h"><h2>Cronologia</h2><span>dal più recente</span></div>
+      <ol class="st-tl" id="st-timeline"><li class="st-date" style="text-align:left">Caricamento…</li></ol>
+    </section>
 
-      <!-- 🏛️ CRONOLOGIA & STORICO TEST DEL CLUSTER (MILESTONES) -->
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <span>🏛️</span> Storico dei Test, Sprint & Progressi del Cluster
-          </h3>
-          <span class="text-xs text-slate-400 font-mono">Tracciamento Sovrano Immutabile</span>
-        </div>
+    <section class="st-card st-in" style="animation-delay:120ms" id="st-endurance">
+      <div class="st-h"><h2>Test di resistenza</h2><span id="st-end-when">--</span></div>
+      <div class="st-grid" id="st-end-k"></div>
+      <div class="st-bars" id="st-end-bars"></div>
+      <div class="st-cap"><span id="st-end-cap">--</span><span>altezza = token per ciclo</span></div>
+      <div class="st-chips" id="st-end-nodes"></div>
+    </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="milestones-container">
-          <!-- Popolato dinamicamente da loadData() -->
-        </div>
-      </div>
+    <section class="st-card st-in" style="animation-delay:180ms">
+      <div class="st-h"><h2>Benchmark collaborativo Flint ⟷ LFM2.5</h2><span id="st-bench-when">--</span></div>
+      <div class="overflow-x-auto"><table class="st-tbl"><thead><tr><th>Scenario</th><th>Esito</th><th>Tempo</th><th>Velocità</th><th>Cosa verifica</th></tr></thead><tbody id="st-bench"></tbody></table></div>
+    </section>
 
-      <!-- 4 GRANDI KPI CARDS -->
-      <div>
-        <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <span>💡</span> Le Statistiche Globali in Parole Povere
-        </h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <!-- Card 1 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-cyan-500/40 transition shadow-lg">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Velocità di Scrittura</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-700 text-cyan-300 font-bold">Fulmineo ⚡</span>
-              </div>
-              <div class="text-3xl font-black text-cyan-300 tracking-tight mt-3" id="card-speed">28.6 parole/s</div>
-            </div>
-            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-              Una persona parla a 2-3 parole al secondo. I nostri modelli generano codice e analisi a <strong>28 parole al secondo</strong> in tempo reale.
-            </p>
-          </div>
+    <section class="st-card st-in" style="animation-delay:240ms">
+      <div class="st-h"><h2>Registro dev loop</h2><span id="st-dev-count">--</span></div>
+      <div class="overflow-x-auto"><table class="st-tbl"><thead><tr><th>Quando</th><th>Ciclo</th><th>Azione</th><th>QA</th><th>Durata</th><th>Nodi</th></tr></thead><tbody id="st-dev"></tbody></table></div>
+    </section>
 
-          <!-- Card 2 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-emerald-500/40 transition shadow-lg">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Resistenza (1 Ora)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">Solidissimo 🛡️</span>
-              </div>
-              <div class="text-3xl font-black text-emerald-300 tracking-tight mt-3" id="card-success">90.7% Successo</div>
-            </div>
-            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-              <strong>39 missioni su 43</strong> riuscite al primo colpo senza interruzioni. Solo 4 piccoli ritardi di rete, zero crash hardware.
-            </p>
-          </div>
-
-          <!-- Card 3 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-purple-500/40 transition shadow-lg">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Memoria Gigante ASUS</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-purple-300 font-bold">Da Elefante 🐘</span>
-              </div>
-              <div class="text-3xl font-black text-purple-300 tracking-tight mt-3" id="card-memory">128.000 Parole</div>
-            </div>
-            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-              Il nodo ASUS può leggere e ricordare un intero libro di 300 pagine in un solo secondo senza perdere il filo del discorso.
-            </p>
-          </div>
-
-          <!-- Card 4 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/40 transition shadow-lg">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400 font-medium">Volume Totale Generato</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 border border-amber-700 text-amber-300 font-bold">Stacanovista 🏭</span>
-              </div>
-              <div class="text-3xl font-black text-amber-300 tracking-tight mt-3" id="card-total">104.453 Parole</div>
-            </div>
-            <p class="text-xs text-slate-400 mt-3 leading-relaxed">
-              Tra la sessione di 1 ora e lo sprint da 35m, il cluster ha prodotto l'equivalente di 2 romanzi completi di codice e test.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- I 4 SCENARI COLLABORATIVI -->
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <span>🤝</span> I 4 Test di Cooperazione (Spiegati come una Favola Tecnologica)
-          </h3>
-          <span class="text-xs text-slate-400 font-mono">Report: flint_128k_lfm24b_64k</span>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <!-- Scenario 1 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-cyan-500/30 transition shadow-md">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>📐 ➔ 💻</span> 1. L'Architetto e il Programmatore
-                </span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">PASS 100%</span>
-              </div>
-              <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">
-                L'HP OMEN (LFM2.5 24B @ 64k) ha pensato all'architettura tecnica e ha redatto le istruzioni; l'ASUS V16 (Flint 40B @ 128k) ha scritto il programma in Python in soli <strong>32 secondi</strong>.
-              </p>
-            </div>
-            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-cyan-300 bg-cyan-950/20 p-2.5 rounded-lg">
-              💡 <strong>Cosa significa:</strong> I due computer si capiscono al volo. Uno fa da progettista, l'altro da sviluppatore: codice perfetto al primo tentativo senza errori di sintassi.
-            </div>
-          </div>
-
-          <!-- Scenario 2 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-emerald-500/30 transition shadow-md">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🔍 ➔ 🛡️</span> 2. Il Controllo Qualità e Sicurezza
-                </span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 font-bold">APPROVED</span>
-              </div>
-              <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">
-                HP OMEN ha esaminato tutto il codice scritto da ASUS riga per riga per controllare che fosse sicuro, affidabile ed esente da falle.
-              </p>
-            </div>
-            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-emerald-300 bg-emerald-950/20 p-2.5 rounded-lg">
-              💡 <strong>Cosa significa:</strong> Nessun programma entra in funzione senza una 'security review' automatica. Un computer controlla l'altro, garantendo massima affidabilità.
-            </div>
-          </div>
-
-          <!-- Scenario 3 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-purple-500/30 transition shadow-md">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>📡 ➔ 🤝</span> 3. Il Linguaggio Segreto dei Robot
-                </span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950 border border-purple-700 text-purple-300 font-bold">31 PAROLE/S</span>
-              </div>
-              <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">
-                L'ASUS ha inviato un allarme in formato JSON puro; HP OMEN ha risposto all'istante con la contromisura esatta a 31 parole al secondo.
-              </p>
-            </div>
-            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-purple-300 bg-purple-950/20 p-2.5 rounded-lg">
-              💡 <strong>Cosa significa:</strong> I computer comunicano con un codice ultra-rapido e strutturato, senza perdersi in chiacchiere, capendosi all'istante.
-            </div>
-          </div>
-
-          <!-- Scenario 4 -->
-          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-amber-500/30 transition shadow-md">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🌾 ➔ 🪡</span> 4. L'Ago nel Pagliaio a 128k Parole
-                </span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-amber-950 border border-amber-700 text-amber-300 font-bold">TROVATO 100%</span>
-              </div>
-              <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">
-                Abbiamo nascosto una sola parolina segreta (<code class="text-amber-300 font-mono font-bold">SLOT_ALPHA_ZERO</code>) dentro un mare immenso di testo da 128.000 parole. Flint 40B l'ha scovata in <strong>28 secondi</strong>.
-              </p>
-            </div>
-            <div class="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-amber-300 bg-amber-950/20 p-2.5 rounded-lg">
-              💡 <strong>Cosa significa:</strong> Anche con un mare di documenti aperti insieme, il modello non si confonde, non inventa cose false e trova subito l'informazione che cerchi.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CRONOLOGIA DEI 43 CICLI DELL'ORA -->
-      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <span>⏱️</span> Cronologia Visuale dei 43 Cicli dell'Ora di Test
-            </h3>
-            <p class="text-xs text-slate-400">Ogni colonna rappresenta un compito completato tra i computer. Passa il mouse sopra per vedere i dettagli.</p>
-          </div>
-          <div class="flex items-center gap-3 text-xs font-mono">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-400"></span> Successo (39)</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-400"></span> Retry Rete (4)</span>
-          </div>
-        </div>
-
-        <!-- BARS -->
-        <div class="h-24 flex items-end gap-1.5 pt-3 pb-1 px-1 border-b border-slate-800 overflow-x-auto custom-scrollbar" id="timeline-bars"></div>
-
-        <!-- Tooltip box -->
-        <div id="timeline-tooltip" class="text-xs font-mono text-slate-300 bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-          <span>Passa sopra una barretta per visualizzare i dettagli del ciclo.</span>
-          <span class="text-cyan-400 font-semibold">43 Cicli Totali • 60 Minuti</span>
-        </div>
-      </div>
-
-      <!-- 📜 LOG ATTIVITÀ & PROGRESSI DEVLOOP 24/7 -->
-      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <span>📜</span> Registro Attività & Progressi Continuativi (DevLoop 24/7)
-            </h3>
-            <p class="text-xs text-slate-400">Attività in tempo reale registrate nel log immutabile <code class="text-emerald-400 font-mono">data/omen_dev_loop.jsonl</code></p>
-          </div>
-          <span class="text-xs px-2.5 py-1 rounded bg-slate-800 font-mono text-cyan-300" id="devloop-count">25 eventi</span>
-        </div>
-
-        <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left text-xs font-mono">
-            <thead class="bg-slate-950/60 text-slate-400 border-b border-slate-800">
-              <tr>
-                <th class="py-2.5 px-3">Ciclo / Task</th>
-                <th class="py-2.5 px-3">Azione Eseguita</th>
-                <th class="py-2.5 px-3">Esito QA</th>
-                <th class="py-2.5 px-3">Durata</th>
-                <th class="py-2.5 px-3">Nodi Coinvolti</th>
-              </tr>
-            </thead>
-            <tbody id="devloop-table-body" class="divide-y divide-slate-800/60 text-slate-300">
-              <!-- Popolato da JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- VISTA DATI TECNICI & RAW JSON -->
-    <div id="view-tech" class="hidden flex flex-col gap-6">
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3 font-mono text-xs">
-        <div class="flex items-center justify-between text-emerald-300 font-bold border-b border-slate-800 pb-2">
-          <span>data/reports/complex_sprint_live.json (Sprint Ingegneria 35 Min • 19/19 Test)</span>
-          <span class="text-slate-500">JSON Reale</span>
-        </div>
-        <pre id="raw-sprint" class="bg-black/80 p-4 rounded-xl overflow-x-auto text-[11px] text-emerald-300 max-h-96 custom-scrollbar"></pre>
-      </div>
-
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3 font-mono text-xs">
-        <div class="flex items-center justify-between text-cyan-300 font-bold border-b border-slate-800 pb-2">
-          <span>data/reports/endurance_session_live.json (Telemetria 60 Minuti)</span>
-          <span class="text-slate-500">JSON Reale</span>
-        </div>
-        <pre id="raw-endurance" class="bg-black/80 p-4 rounded-xl overflow-x-auto text-[11px] text-emerald-300 max-h-96 custom-scrollbar"></pre>
-      </div>
-
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3 font-mono text-xs">
-        <div class="flex items-center justify-between text-purple-300 font-bold border-b border-slate-800 pb-2">
-          <span>data/reports/flint_128k_lfm24b_64k_collaboration_1792668132.json (Benchmark 4 Scenari)</span>
-          <span class="text-slate-500">JSON Reale</span>
-        </div>
-        <pre id="raw-benchmark" class="bg-black/80 p-4 rounded-xl overflow-x-auto text-[11px] text-cyan-300 max-h-96 custom-scrollbar"></pre>
-      </div>
-    </div>
+    <section class="st-card">
+      <details class="st-raw" id="st-raw"><summary>Dati grezzi (JSON dei report)</summary><pre id="st-raw-pre"></pre></details>
+    </section>
   </main>
 
   <script>
-    async function loadData() {
-      try {
-        const resp = await fetch('/api/analytics');
-        if (!resp.ok) return;
-        const data = await resp.json();
+    (function () {
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const nf = n => Number(n || 0).toLocaleString('it-IT');
+      const fmtDate = iso => { const d = new Date(iso); return isNaN(d) ? '--' : d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); };
+      const ago = iso => { const s = (Date.now() - new Date(iso)) / 1000; if (!isFinite(s)) return ''; if (s < 3600) return Math.floor(s / 60) + ' min fa'; if (s < 86400) return Math.floor(s / 3600) + ' h fa'; return Math.floor(s / 86400) + ' g fa'; };
+      const RAW_FOR = { 'sprint-checkpoint-rfc0044': 'checkpoint_sprint', 'sprint-scheduler-rfc0043': 'scheduler_sprint', 'sprint-gossip-35m': 'sprint', 'endurance-1h': 'endurance', 'benchmark-flint-lfm': 'benchmark' };
 
-        // Populate Raw
-        if (document.getElementById('raw-sprint')) {
-          document.getElementById('raw-sprint').textContent = JSON.stringify(data.sprint || {}, null, 2);
+      function evaluate(m, data) {
+        const raw = data[RAW_FOR[m.id]] || null;
+        const t = { id: m.id, title: m.title, summary: m.summary, icon: m.icon, artifacts: m.artifacts || [], date: m.timestamp, isTest: !!RAW_FOR[m.id], tokens: m.tokens || 0, duration: m.duration };
+        if (raw && raw.pytest_summary) {
+          const p = raw.pytest_summary;
+          t.ok = !!raw.overall_pytest_green && !p.failed;
+          t.result = `${p.passed}/${p.total_collected} test`;
+          t.date = raw.timestamp_start || t.date; t.tokens = raw.tokens_total || t.tokens;
+          t.duration = raw.elapsed_total_min != null ? raw.elapsed_total_min + ' min' : t.duration;
+          if (raw.status && raw.status !== 'COMPLETED') { t.ok = null; t.result = 'in corso'; }
+        } else if (m.id === 'endurance-1h' && raw && raw.cycles_completed != null) {
+          t.ok = !raw.failed_cycles; t.result = `${raw.successful_cycles}/${raw.cycles_completed} cicli`;
+          t.date = raw.session_start || t.date; t.tokens = raw.total_tokens_generated || t.tokens;
+          t.duration = (raw.target_duration_minutes || 60) + ' min';
+          t.summary = `${raw.cycles_completed} cicli cooperativi tra Mac, OMEN e ASUS, ${Math.round(raw.average_throughput_tok_s || 0)} token/s di media, ${(raw.prototypes_generated || []).length} prototipi generati, ${raw.failed_cycles || 0} cicli falliti.`;
+        } else if (m.id === 'benchmark-flint-lfm' && raw && raw.scenarios) {
+          const sc = Object.values(raw.scenarios), pass = sc.filter(x => x.status === 'PASS').length;
+          t.ok = pass === sc.length; t.result = `${pass}/${sc.length} scenari`; t.date = raw.timestamp || t.date;
+        } else if (t.isTest) {
+          t.ok = null; t.result = m.badge || '';
+        } else {
+          t.ok = null; t.result = m.badge || '';
         }
-        document.getElementById('raw-endurance').textContent = JSON.stringify(data.endurance || {}, null, 2);
-        document.getElementById('raw-benchmark').textContent = JSON.stringify(data.benchmark || {}, null, 2);
-
-        // Populate KPIs
-        const sum = data.human_summary;
-        if (sum && sum.kpi_semplici) {
-          document.getElementById('card-speed').textContent = sum.kpi_semplici[0].valore;
-          document.getElementById('card-success').textContent = sum.kpi_semplici[1].valore;
-          document.getElementById('card-memory').textContent = sum.kpi_semplici[2].valore;
-          const sprintTok = (data.sprint && data.sprint.tokens_total) ? data.sprint.tokens_total : 24890;
-          const endurTok = (data.endurance && data.endurance.total_tokens_generated) ? data.endurance.total_tokens_generated : 79563;
-          document.getElementById('card-total').textContent = (sprintTok + endurTok).toLocaleString('it-IT') + ' Parole';
-          if (sum.spiegazione_rapida) document.getElementById('hero-summary').textContent = sum.spiegazione_rapida;
-        }
-
-        renderMilestones(data.milestones || []);
-        renderBars(data.endurance || {});
-        renderDevLoopTable(data.devloop_history || []);
-      } catch (e) {
-        console.error('Errore caricamento:', e);
+        return t;
       }
-    }
 
-    function renderMilestones(milestones) {
-      const container = document.getElementById('milestones-container');
-      if (!container) return;
-      container.innerHTML = '';
+      function render(data) {
+        const items = (data.milestones || []).map(m => evaluate(m, data)).sort((a, b) => new Date(b.date) - new Date(a.date));
+        const tests = items.filter(t => t.isTest), passed = tests.filter(t => t.ok === true).length;
+        const last = tests[0], tokens = tests.reduce((a, t) => a + (t.tokens || 0), 0);
+        const K = document.querySelectorAll('#st-sum .st-k');
+        const put = (i, v, sub) => { K[i].querySelector('b').innerHTML = v; K[i].querySelector('small').innerHTML = sub || '&nbsp;'; };
+        put(0, tests.length, `${items.length - tests.length} altre tappe`);
+        put(1, `<span style="color:${passed === tests.length ? '#34d399' : '#fbbf24'}">${passed}/${tests.length}</span>`, passed === tests.length ? 'tutti i test registrati' : `${tests.length - passed} non superati o in corso`);
+        put(2, last ? ago(last.date) : '--', last ? esc(last.title.replace(/\s*\(.*\)\s*$/, '')) : '');
+        put(3, nf(tokens), 'somma dei test registrati');
 
-      milestones.forEach(m => {
-        const card = document.createElement('div');
-        const colorBorder = m.color === 'emerald' ? 'hover:border-emerald-500/50 border-emerald-950/80 bg-emerald-950/20' :
-                            m.color === 'cyan' ? 'hover:border-cyan-500/50 border-cyan-950/80 bg-cyan-950/20' :
-                            m.color === 'purple' ? 'hover:border-purple-500/50 border-purple-950/80 bg-purple-950/20' :
-                            'hover:border-amber-500/50 border-amber-950/80 bg-amber-950/20';
+        document.getElementById('st-timeline').innerHTML = items.map(t => {
+          const cls = t.ok === true ? 'st-ok' : t.ok === false ? 'st-ko' : t.isTest ? 'st-mid' : 'st-info';
+          const links = t.artifacts.map(a => a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label)} ↗</a>` : `<span>${esc(a.label)}</span>`).join('');
+          return `<li class="st-it ${cls}"><span class="st-date">${fmtDate(t.date)}</span><span class="st-rail"><i></i></span>
+            <div class="st-body"><div class="st-top"><h3>${esc(t.title)}</h3>${t.result ? `<span class="st-res">${esc(t.result)}</span>` : ''}</div>
+            <p>${esc(t.summary)}</p>
+            <div class="st-meta">${t.duration && t.duration !== 'N/A' ? `<span>${esc(t.duration)}</span>` : ''}${t.tokens ? `<span>${nf(t.tokens)} token</span>` : ''}${links}</div></div></li>`;
+        }).join('');
 
-        const badgeClass = m.color === 'emerald' ? 'bg-emerald-950 border-emerald-700 text-emerald-300' :
-                           m.color === 'cyan' ? 'bg-cyan-950 border-cyan-700 text-cyan-300' :
-                           m.color === 'purple' ? 'bg-purple-950 border-purple-700 text-purple-300' :
-                           'bg-amber-950 border-amber-700 text-amber-300';
+        const e = data.endurance || {};
+        if (e.cycles_completed != null) {
+          document.getElementById('st-end-when').textContent = fmtDate(e.session_start) + ' · ' + (e.active_status || '').toLowerCase();
+          const k = [['Cicli riusciti', `${e.successful_cycles}/${e.cycles_completed}`], ['Velocità media', `${Math.round(e.average_throughput_tok_s || 0)} token/s`], ['Token totali', nf(e.total_tokens_generated)], ['Prototipi', (e.prototypes_generated || []).length]];
+          document.getElementById('st-end-k').innerHTML = k.map(([a, b]) => `<div class="st-k"><span>${a}</span><b>${b}</b></div>`).join('');
+          const ev = (e.recent_events || []).slice().sort((a, b) => a.cycle - b.cycle), max = Math.max(1, ...ev.map(x => x.tokens || 0));
+          document.getElementById('st-end-bars').innerHTML = ev.map((x, i) => `<span class="st-bar ${x.success ? 'st-ok' : 'st-ko'}" style="height:${Math.max(6, (x.tokens || 0) / max * 100)}%;animation-delay:${i * 25}ms" title="Ciclo #${x.cycle} · ${x.success ? 'riuscito' : 'fallito'} · ${nf(x.tokens)} token · ${x.elapsed_s}s"></span>`).join('');
+          document.getElementById('st-end-cap').textContent = ev.length ? `ultimi ${ev.length} cicli registrati (#${ev[0].cycle}–#${ev[ev.length - 1].cycle})` : 'nessun ciclo nel report';
+          document.getElementById('st-end-nodes').innerHTML = Object.entries(e.nodes_health || {}).map(([n, h]) => `<span class="st-chip ${h.ok ? 'st-ok' : 'st-ko'}"><i></i>${esc(n.replace('_', ':'))} · ${h.latency_ms} ms</span>`).join('');
+        } else document.getElementById('st-endurance').style.display = 'none';
 
-        let linksHtml = '';
-        if (m.artifacts) {
-          linksHtml = m.artifacts.map(a => {
-            if (a.url) {
-              return `<a href="${a.url}" target="_blank" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[10px] transition">🔗 ${a.label}</a>`;
-            } else {
-              return `<span class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px] font-mono">${a.label}</span>`;
-            }
-          }).join(' ');
-        }
+        const b = data.benchmark || {}, sc = b.scenarios || {};
+        const NAMES = { scenario_1_architect_to_coder: ['Architetto → Programmatore', 'LFM2.5 progetta, Flint scrive il codice'], scenario_2_code_review: ['Revisione di sicurezza', 'LFM2.5 rivede il codice di Flint'], scenario_3_json_interop: ['Dialogo JSON tra nodi', 'allarme e contromisura in JSON strutturato'], scenario_4_long_context_128k: ['Contesto lungo 128k', "trovare un'informazione in un testo di 128k token"] };
+        const metric = x => x.flint_metrics || x.review_metrics || x.metrics || (x.throughput ? { tok_s: x.throughput.flint_tok_s } : {});
+        document.getElementById('st-bench-when').textContent = b.timestamp ? fmtDate(b.timestamp) : '--';
+        document.getElementById('st-bench').innerHTML = Object.entries(sc).map(([k, x]) => { const mt = metric(x), nm = NAMES[k] || [k, '']; return `<tr><td>${esc(nm[0])}</td><td><span class="st-res ${x.status === 'PASS' ? 'st-ok' : 'st-ko'}">${esc(x.verdict || x.status)}</span></td><td class="m">${mt.elapsed_s != null ? mt.elapsed_s + ' s' : '–'}</td><td class="m">${mt.tok_s != null ? Math.round(mt.tok_s) + ' token/s' : '–'}</td><td>${esc(nm[1])}</td></tr>`; }).join('') || '<tr><td colspan="5">Nessun report di benchmark.</td></tr>';
 
-        card.className = `border rounded-2xl p-5 flex flex-col justify-between transition shadow-md ${colorBorder}`;
-        card.innerHTML = `
-          <div>
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span class="text-lg">${m.icon || '🚀'}</span> ${m.title}
-              </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full border font-bold ${badgeClass}">${m.badge}</span>
-            </div>
-            <p class="text-xs text-slate-300 mt-2 leading-relaxed">${m.summary}</p>
-          </div>
-          <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-            <span class="text-slate-400 font-mono">Durata: <strong class="text-white">${m.duration}</strong> • Token: <strong class="text-cyan-300">${(m.tokens || 0).toLocaleString()}</strong></span>
-            <div class="flex items-center gap-1.5">${linksHtml}</div>
-          </div>
-        `;
-        container.appendChild(card);
+        const dv = (data.devloop_history || []).slice().reverse();
+        document.getElementById('st-dev-count').textContent = `${dv.length} eventi · data/omen_dev_loop.jsonl`;
+        document.getElementById('st-dev').innerHTML = dv.map(x => `<tr><td class="m">${fmtDate(x.timestamp)}</td><td class="m">${x.cycle != null ? '#' + x.cycle : '–'}</td><td>${esc((x.action || '').replace(/_/g, ' '))}</td><td><span class="st-res ${x.qa_passed === false ? 'st-ko' : 'st-ok'}">${x.qa_passed === false ? 'non superato' : 'ok'}</span></td><td class="m">${x.duration_s != null ? x.duration_s + ' s' : '–'}</td><td class="m">${esc(Array.isArray(x.nodes) ? x.nodes.join(', ') : (x.nodes || ''))}</td></tr>`).join('');
+
+        const raw = document.getElementById('st-raw');
+        raw.addEventListener('toggle', () => { if (raw.open) document.getElementById('st-raw-pre').textContent = JSON.stringify({ sprint: data.sprint, scheduler_sprint: data.scheduler_sprint, checkpoint_sprint: data.checkpoint_sprint, endurance: data.endurance, benchmark: data.benchmark }, null, 2); }, { once: true });
+      }
+
+      const get = u => fetch(u, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+      // cockpit locale, oppure snapshot statico pubblicato insieme al sito
+      get('/api/analytics').catch(() => get('./data/analytics.json').then(d => { document.getElementById('st-src').textContent = 'fonte: snapshot statico'; return d; })).then(render).catch(() => {
+        document.getElementById('st-timeline').innerHTML = '<li class="st-date" style="text-align:left">Dati non disponibili: né il cockpit locale né lo snapshot dei report rispondono.</li>';
+        document.getElementById('st-src').textContent = 'cockpit non raggiungibile';
       });
-    }
-
-    function renderDevLoopTable(events) {
-      const tbody = document.getElementById('devloop-table-body');
-      const countEl = document.getElementById('devloop-count');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      if (countEl) countEl.textContent = `${events.length} eventi registrati`;
-
-      const reversed = [...events].reverse();
-      reversed.forEach((ev, idx) => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-900/60 transition';
-        const isPass = ev.qa_passed !== false;
-        const statusBadge = isPass ? 
-          '<span class="text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80 font-bold">✓ PASS</span>' : 
-          '<span class="text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80 font-bold">⚠ RETRY</span>';
-
-        const nodesStr = Array.isArray(ev.nodes) ? ev.nodes.join(', ') : (ev.nodes || 'cluster');
-        const cycleLabel = ev.cycle ? `#${ev.cycle}` : `ev-${idx+1}`;
-
-        tr.innerHTML = `
-          <td class="py-2 px-3 font-semibold text-white">${cycleLabel}</td>
-          <td class="py-2 px-3 text-slate-300">${ev.action || 'collaborative_cycle'}</td>
-          <td class="py-2 px-3">${statusBadge}</td>
-          <td class="py-2 px-3 text-cyan-300 font-semibold">${ev.duration_s ? ev.duration_s + 's' : '-'}</td>
-          <td class="py-2 px-3 text-slate-400 text-[11px]">${nodesStr}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderBars(endurance) {
-      const container = document.getElementById('timeline-bars');
-      if (!container) return;
-      container.innerHTML = '';
-
-      const totalCycles = endurance.cycles_completed || 43;
-      const avgTokens = Math.round((endurance.total_tokens_generated || 79563) / totalCycles);
-      const recent = endurance.recent_events || [];
-      const tooltip = document.getElementById('timeline-tooltip');
-
-      for (let i = 1; i <= totalCycles; i++) {
-        const isFailed = (i === 1 || i === 25 || i === 26 || i === 41);
-        const ev = recent.find(e => e.cycle === i);
-        const tokens = ev ? ev.tokens : (isFailed ? 0 : Math.round(avgTokens * (0.85 + Math.sin(i * 1.5) * 0.25)));
-        const elapsed = ev ? ev.elapsed_s : (isFailed ? 10.4 : Math.round(65 + Math.cos(i) * 30));
-        const heightPct = isFailed ? 18 : Math.min(100, Math.max(25, Math.round((tokens / (avgTokens * 1.5)) * 100)));
-
-        const bar = document.createElement('div');
-        bar.className = `flex-1 min-w-[8px] max-w-[20px] rounded-t transition-all cursor-pointer ${
-          isFailed ? 'bg-amber-400/90 hover:bg-amber-300' : 'bg-emerald-500 hover:bg-cyan-400 hover:scale-105'
-        }`;
-        bar.style.height = `${heightPct}%`;
-
-        bar.addEventListener('mouseenter', () => {
-          if (tooltip) {
-            const statusTxt = isFailed ? '⚠️ Retry Rete (Timeout/503)' : '✓ Successo Multi-Agente (PASS)';
-            tooltip.innerHTML = `
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-white">Ciclo #${i}:</span>
-                <span class="${isFailed ? 'text-amber-300' : 'text-emerald-300'} font-semibold">${statusTxt}</span>
-              </div>
-              <div class="text-slate-400 text-[11px] mt-0.5">
-                Token generati: <strong class="text-cyan-300">${tokens}</strong> | Durata: <strong>${elapsed}s</strong> | Nodi: <strong>HP OMEN + ASUS V16</strong>
-              </div>
-            `;
-          }
-        });
-
-        container.appendChild(bar);
-      }
-    }
-
-    function setMode(mode) {
-      const viewSimple = document.getElementById('view-simple');
-      const viewTech = document.getElementById('view-tech');
-      const btnSimple = document.getElementById('btn-mode-simple');
-      const btnTech = document.getElementById('btn-mode-tech');
-
-      if (mode === 'simple') {
-        viewSimple.classList.remove('hidden');
-        viewTech.classList.add('hidden');
-        btnSimple.className = 'px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 transition';
-        btnTech.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition';
-      } else {
-        viewSimple.classList.add('hidden');
-        viewTech.classList.remove('hidden');
-        btnSimple.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition';
-        btnTech.className = 'px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 transition';
-      }
-    }
-
-    loadData();
+    })();
   </script>
 </body>
 </html>
