@@ -1,0 +1,55 @@
+<!-- SPDX-License-Identifier: Apache-2.0 — pagina player dei Motion Reels; build.py sostituisce i segnaposto {{…}}. -->
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+{{FONTFACE}}
+/* Layout: one centred 9:16 stage, transport bar underneath. Single dark look by choice. */
+:root{
+  --bg:#07080A; --panel:#0E1013; --line:#23262B; --ink:#E8EAE3; --mute:#9EA39A; --acc:#C6F432; --ac2:#A99BFF;
+  --f-disp:"MeshDisplay","Inter Display",system-ui,sans-serif;
+  --f-mono:"MeshMono","DejaVu Sans Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-disp)}
+.wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:18px;box-sizing:border-box;
+  padding-block:24px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{width:min(100%,calc(min(74vh,960px)*9/16));display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.top h1{margin:0;font-size:17px;font-weight:900;letter-spacing:.02em}
+.top h1 b{color:var(--acc);font-weight:900}
+.top span{font-family:var(--f-mono);font-size:12px;color:var(--mute)}
+.stage{width:min(100%,calc(min(74vh,960px)*9/16));aspect-ratio:9/16;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+canvas{width:100%;height:100%;display:block}
+.bar{width:min(100%,calc(min(74vh,960px)*9/16));min-width:min(100%,320px);display:flex;align-items:center;gap:10px}
+.bar button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:48px;height:48px;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:none;padding:0}
+.bar button:hover{border-color:var(--acc)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+input[type=range]{flex:1;min-width:0;accent-color:var(--acc);height:44px;margin:0}
+.time{font-family:var(--f-mono);font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;flex:none;min-width:84px;text-align:right}
+.note{width:min(100%,calc(min(74vh,960px)*9/16));min-width:min(100%,320px);font-size:13px;line-height:1.5;color:var(--mute);margin:0;text-align:center}
+</style>
+
+<main class="wrap">
+  <div class="top"><h1><b>00</b>MESH · Reel</h1><span>1080×1920 · 30 fps · 30 s</span></div>
+  <div class="stage">
+    <canvas id="cv" width="1080" height="1920" role="img" aria-label="{{ARIA}}"></canvas>
+  </div>
+  <div class="bar">
+    <button id="play" type="button" aria-label="Pausa">
+      <svg id="i-pause" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+      <svg id="i-play" hidden width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+    </button>
+    <button id="restart" type="button" aria-label="Ricomincia">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg>
+    </button>
+    <input id="scrub" type="range" min="0" max="30" step="0.01" value="0" aria-label="Posizione nel video">
+    <span class="time" id="time">00.0 / 30 s</span>
+  </div>
+  <p class="note">Ogni fotogramma è disegnato in tempo reale in JavaScript su canvas: è lo stesso codice da cui è stato registrato l’MP4 per i social.</p>
+</main>
+
+<script>
+(() => {
+{{SCRIPT}}
+})();
+</script>

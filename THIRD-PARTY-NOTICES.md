@@ -194,3 +194,14 @@ recorded in `vendor/wayfinder/manifest.json`. HyperSpace's adapter is separate i
 - Full license: `vendor/skill-hooks/LICENSE`; checksums: `vendor/skill-hooks/manifest.json`.
 - Used as a design reference for the local Python skill selector. The upstream
   TypeScript script is not executed and its provider dependencies are not installed.
+
+## Motion Reels — font incorporati
+
+`integrations/tiktok_editor/motion/fonts/` contiene sottoinsiemi `.woff` di due
+famiglie, incorporati come data URI nelle pagine e nei video dei Motion Reels
+(`docs/motion-reels.md`). I nomi CSS `MeshDisplay`/`MeshMono` sono solo alias.
+
+| Font | Licenza | Testo integrale |
+|---|---|---|
+| Inter Display (Black, SemiBold, Medium) — The Inter Project Authors | OFL-1.1 | `motion/fonts/LICENSE-Inter.txt` |
+| DejaVu Sans Mono (Book, Bold) — Bitstream Vera + modifiche DejaVu | Bitstream Vera License; modifiche in pubblico dominio | `motion/fonts/LICENSE-DejaVu.txt` |

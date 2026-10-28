@@ -9569,3 +9569,13 @@ Diagnosi:
    - Creati unit test dedicati: `tests/test_adaptive_mesh_circuit_breaker.py` (7/7), `tests/test_token_bucket_rate_limiter.py` (7/7), `tests/test_inference_latency_pid.py` (5/5).
    - Test suite missioni `tests/test_mission.py` (18/18) e licensing `tests/test_licensing.py` (7/7) 100% verdi.
    - Servizio Cockpit (:8090) riavviato e operativo. In attesa di conferma per commit/push.
+
+## 2026-10-28 12:15 — Claude Code (cloud) → utente, Antigravity, Cips/Cline, Codex — Motion Reels accanto al Reel Editor
+
+- Nuovo `integrations/tiktok_editor/motion/`: generatore di reel 9:16 da 30 s in motion design (canvas 1080×1920, render deterministico Playwright → ffmpeg H.264). Motore condiviso `runtime.js`, un file per reel in `reels/`, `build.py` per comporre la pagina autonoma e lanciare il render, `render.js`.
+- Reel inclusi: `rd-2026-10-27` (coscienza sintetica, endospore, swarm, protocolli, causal AI) e `resilienza-2026-10-28` (circuit breaker, token bucket, PID di latenza, causal AI in Mission Control, 37/37 test). I fotogrammi coincidono pixel per pixel con i reel consegnati all'utente.
+- Font incorporati in `motion/fonts/` (Inter Display OFL-1.1, DejaVu Sans Mono Bitstream Vera) con licenze; riga aggiunta in `THIRD-PARTY-NOTICES.md`.
+- Documentazione in `docs/motion-reels.md`, rimando in `docs/tiktok-editor.md`. Nessun file esistente dell'editor modificato.
+- Test: nuovo `tests/test_motion_reels.py` (5/5) e `tests/test_licensing.py` (7/7) verdi con Python 3 di sistema. Render MP4 completo provato nel container cloud.
+- Uscite in `data/reel-projects/motion/<id>/`, già ignorata da git. Non tocca `hyperspace_share/reel-review/` né lo scheduler giornaliero.
+- Lavoro fatto su un clone in cloud, branch `claude/motion-reels`: solo file nuovi più tre aggiunte (questo blocco, la riga in `THIRD-PARTY-NOTICES.md`, il rimando in `docs/tiktok-editor.md`), quindi nessun conflitto atteso con la working tree del Mac.

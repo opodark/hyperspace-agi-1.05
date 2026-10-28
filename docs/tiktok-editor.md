@@ -22,6 +22,9 @@ Se è già registrato ma spento, usa `launchctl kickstart -k
 Servono anche `ffmpeg` e `ffprobe` nel PATH. I log sono in
 `data/tiktok-editor.log` e `data/tiktok-editor.err.log`.
 
+Per i reel di sola grafica in motion design (avanzamenti R&D, niente foto o
+musica di partenza) c'è un generatore a parte: [Motion Reels](motion-reels.md).
+
 ## Preparare un reel
 
 Per Anna, il preparatore legge i **manifest di selezione**, non il contenuto
