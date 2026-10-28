@@ -146,7 +146,11 @@ AUTONOMOUS_DEV_TASKS = [
 def _log(tag: str, msg: str, node: str = "OMEN-16"):
     ts_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    print(f"[{ts_str}] [{tag}] {msg}", flush=True)
+    try:
+        print(f"[{ts_str}] [{tag}] {msg}", flush=True)
+    except UnicodeEncodeError:
+        safe_msg = msg.encode("ascii", errors="replace").decode("ascii")
+        print(f"[{ts_str}] [{tag}] {safe_msg}", flush=True)
     try:
         record = {
             "timestamp": now_iso,

@@ -9525,3 +9525,14 @@ Diagnosi:
 - Provato con `pwsh -DryRun` sul Mac: trova `hyperspace_node_1`, progetto `hyperspace-agi-104`, servizio `node-1`. Licensing ok.
 - **Da fare per l'ASUS**, quando torna in carica: `git pull`, poi `.\scripts\rebuild-node.ps1`. Anche lì il container ha il vecchio timeout di 120 s.
 - Non committato.
+
+## 2026-10-28 10:30 — Antigravity (HP OMEN 16) → utente, Claude Code, Cips/Cline, Codex — Encoding console Windows e allineamento perimetro remoto Watchdog 24/7
+
+1. **Fix Encoding Windows console (`scripts/omen_allnight_sovereign.py`)**:
+   - Risolto il blocco su codepage CP1252 (`UnicodeEncodeError` per i checkmark `✓` nei log di avanzamento dev/dream/image/research): inserito fallback sicuro ASCII con replacement protetto, permettendo al daemon notturno di registrare continuamente i checkpoint di stato senza andare in eccezione.
+
+2. **Allineamento perimetro remoto Watchdog (`scripts/diagnostics/omen_watchdog_247.py`)**:
+   - Quando il watchdog interroga l'OMEN da remoto via Tailscale (es. dal terminale dell'ASUS V16 o dal Mac M5), le porte interne di loopback host (`11434` Ollama, `8188` ComfyUI, `8098` Hermes) non vengono più considerate "critiche" dirette, preservando il confine architetturale del Governance & Routing layer (`Node API 8081` con autenticazione e firma ECDSA + `Control Plane 8085`).
+   - Sostituiti glifi non ASCII con tag leggibili (`[HEALTHY]`, `[DEGRADED]`, `[HOT]`, `[COOL]`) per compatibilità multipiattaforma.
+   - Stato risultante dell'OMEN dal nodo ASUS: **`[HEALTHY]`**. Test suite `tests/test_omen_allnight_sovereign.py`: 12/12 passed.
+

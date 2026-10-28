@@ -151,7 +151,15 @@ def run_single_probe(host: str, max_gpu_temp: int = 82) -> Dict[str, Any]:
         port = s["port"]
         name = s["name"]
         path = s["path"]
-        critical = s["critical"]
+        # In modalità remota (es. monitoraggio da ASUS/Mac via Tailscale),
+        # Ollama 11434, ComfyUI 8188 e Hermes 8098 girano in loopback sull'OMEN
+        # e sono governati e proxyati dal Node API (8081).
+        # Pertanto dall'esterno solo Node API (8081) e Control Plane (8085)
+        # sono considerati punti di contatto critici della mesh.
+        if not is_local and port in (11434, 8188, 8098):
+            critical = False
+        else:
+            critical = s["critical"]
 
         port_open = check_tcp_port(host, port)
         http_data = probe_http_service(host, port, path) if port_open else None
@@ -184,17 +192,17 @@ def run_single_probe(host: str, max_gpu_temp: int = 82) -> Dict[str, Any]:
 
 def print_cli_summary(report: Dict[str, Any]):
     print("=" * 64)
-    status_icon = "🟢" if report["status"] == "HEALTHY" else "🔴"
+    status_icon = "[HEALTHY]" if report["status"] == "HEALTHY" else "[DEGRADED]"
     print(f" {status_icon} HP OMEN 16 - 24/7 WATCHDOG REPORT | Stato: {report['status']}")
     print(f"    Target: {report['target_host']} | Timestamp: {report['timestamp']}")
     print("=" * 64)
 
     if report.get("gpu"):
         g = report["gpu"]
-        t_icon = "🔥" if report["thermal_alert"] else "❄️"
-        print(f" [GPU RTX 3070] Temp: {t_icon} {g['temp_c']}°C | Carico: {g['gpu_util_pct']}% | VRAM: {g['vram_used_mb']}/{g['vram_total_mb']} MB")
+        t_icon = "[HOT]" if report["thermal_alert"] else "[COOL]"
+        print(f" [GPU RTX 3070] Temp: {t_icon} {g['temp_c']} degC | Carico: {g['gpu_util_pct']}% | VRAM: {g['vram_used_mb']}/{g['vram_total_mb']} MB")
         if report["thermal_alert"]:
-            print(" ⚠️ ALLERTA TERMICA ATTIVA: carichi batch e sogni messi in pausa temporanea.")
+            print(" [!] ALLERTA TERMICA ATTIVA: carichi batch e sogni messi in pausa temporanea.")
     else:
         print(" [GPU/CPU] Monitoraggio hardware host attivo in locale o da telemetria interna.")
 
