@@ -230,6 +230,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_missions()
         elif self.path.startswith("/api/devloop"):
             self.handle_api_devloop()
+        elif self.path.startswith("/api/analytics/terminal"):
+            self.handle_api_analytics_terminal()
         elif self.path.startswith("/api/analytics"):
             self.handle_api_analytics()
         elif self.path.startswith("/api/integrations"):
@@ -1566,6 +1568,16 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             ]
         }
 
+        # Terminale live e flusso di lavoro dei nodi
+        terminal_lines = []
+        endurance_log = REPO_ROOT / "data" / "research" / "endurance_session_1h.log"
+        if endurance_log.exists():
+            try:
+                raw_lines = endurance_log.read_text(encoding="utf-8", errors="replace").splitlines()
+                terminal_lines = raw_lines[-150:]
+            except Exception:
+                pass
+
         self.send_json({
             "status": "ok",
             "human_summary": human_summary,
@@ -1575,7 +1587,55 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             "scheduler_sprint": sched_data,
             "checkpoint_sprint": checkpoint_data,
             "milestones": milestones,
-            "devloop_history": devloop_history
+            "devloop_history": devloop_history,
+            "terminal_log": terminal_lines
+        })
+
+    def handle_api_analytics_terminal(self):
+        """Espone il log del terminale di endurance/R&D con supporto a filtri e pagination."""
+        parsed_url = urlparse(self.path)
+        params = parse_qs(parsed_url.query)
+        limit_param = params.get("limit", ["200"])[0].lower()
+
+        endurance_log = REPO_ROOT / "data" / "research" / "endurance_session_1h.log"
+        endurance_file = REPO_ROOT / "data" / "reports" / "endurance_session_live.json"
+
+        raw_lines = []
+        if endurance_log.exists():
+            try:
+                raw_lines = endurance_log.read_text(encoding="utf-8", errors="replace").splitlines()
+            except Exception:
+                pass
+
+        total_lines = len(raw_lines)
+        if limit_param == "all":
+            selected_lines = raw_lines
+        else:
+            try:
+                lim = max(10, min(1000, int(limit_param)))
+            except ValueError:
+                lim = 200
+            selected_lines = raw_lines[-lim:]
+
+        endurance_data = {}
+        if endurance_file.exists():
+            try:
+                endurance_data = json.loads(endurance_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        self.send_json({
+            "status": "ok",
+            "lines": selected_lines,
+            "total_lines": total_lines,
+            "limit": limit_param,
+            "cycles_completed": endurance_data.get("cycles_completed", 0),
+            "successful_cycles": endurance_data.get("successful_cycles", 0),
+            "total_tokens": endurance_data.get("total_tokens_generated", 0),
+            "throughput_tok_s": endurance_data.get("average_throughput_tok_s", 0),
+            "prototypes_count": len(endurance_data.get("prototypes_generated", [])),
+            "nodes_health": endurance_data.get("nodes_health", {}),
+            "active_status": endurance_data.get("active_status", "COMPLETED")
         })
 
     def handle_api_agent_dialogues(self):

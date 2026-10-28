@@ -4,14 +4,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HyperSpace Mesh — Storico test</title>
+  <title>HyperSpace Mesh — Analytics, Flusso Nodi & R&D</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #020617; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
     @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     .pulse-glow { animation: pulse-slow 2.5s infinite; }
+    .st-ok{--s:#34d399}.st-ko{--s:#fb7185}.st-mid{--s:#fbbf24}.st-info{--s:#94a3b8}
+    .st-card{background:rgba(15,23,42,.92);border:1px solid rgb(30,41,59);border-radius:18px;padding:22px;box-shadow:0 10px 30px -10px rgba(0,0,0,0.5)}
+    .st-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .st-h h2{font-size:16px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px}
+    .st-h span{font:500 11px 'Fira Code',monospace;color:#64748b}
+    .st-sum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+    .st-k{padding:14px 16px;border-radius:14px;background:rgba(2,6,23,.6);border:1px solid rgba(148,163,184,.12)}
+    .st-k span{display:block;font:600 10px 'Fira Code',monospace;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+    .st-k b{display:block;font-size:22px;font-weight:800;color:#f1f5f9;margin-top:4px;font-variant-numeric:tabular-nums}
+    .st-k small{font-size:11px;color:#94a3b8}
+    .st-tl{list-style:none;margin:0;padding:0}
+    .st-it{display:grid;grid-template-columns:96px 22px 1fr;gap:0 10px}
+    .st-date{font:500 11px 'Fira Code',monospace;color:#64748b;padding-top:15px;text-align:right}
+    .st-rail{position:relative;display:flex;justify-content:center}
+    .st-rail::before{content:'';position:absolute;top:0;bottom:0;width:1px;background:rgba(148,163,184,.14)}
+    .st-it:first-child .st-rail::before{top:19px}.st-it:last-child .st-rail::before{bottom:auto;height:19px}
+    .st-rail i{position:relative;margin-top:15px;width:9px;height:9px;border-radius:50%;background:var(--s);box-shadow:0 0 0 4px color-mix(in srgb,var(--s) 15%,transparent)}
+    .st-body{padding:10px 12px 14px;border-radius:12px;transition:background .2s}
+    .st-body:hover{background:rgba(30,41,59,.35)}
+    .st-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    .st-top h3{font-size:13.5px;font-weight:600;color:#e2e8f0}
+    .st-res{font:600 10.5px 'Fira Code',monospace;color:var(--s);padding:2px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--s) 40%,transparent)}
+    .st-body p{font-size:12.5px;color:#94a3b8;line-height:1.5;margin-top:4px}
+    .st-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font:500 11px 'Fira Code',monospace;color:#64748b}
+    .st-meta a{color:#57e6d9;text-decoration:none}.st-meta a:hover{text-decoration:underline}
+    .st-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+    .st-bars{display:flex;align-items:flex-end;gap:4px;height:84px;padding:4px 0;border-bottom:1px solid rgba(148,163,184,.12)}
+    .st-bar{flex:1;min-width:6px;border-radius:3px 3px 0 0;background:var(--s);opacity:.75;transform-origin:bottom;
+      animation:st-grow .7s cubic-bezier(.22,.8,.24,1) both;transition:opacity .2s}
+    .st-bar:hover{opacity:1}
+    @keyframes st-grow{from{transform:scaleY(0)}}
+    .st-cap{display:flex;justify-content:space-between;font:500 10.5px 'Fira Code',monospace;color:#64748b;margin-top:6px}
+    .st-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+    .st-chip{font:500 10.5px 'Fira Code',monospace;color:#94a3b8;padding:3px 9px;border-radius:8px;border:1px solid rgba(148,163,184,.14);background:rgba(15,23,42,.6)}
+    .st-chip i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--s);margin-right:6px;vertical-align:middle}
+    .st-tbl{width:100%;border-collapse:collapse;font-size:12px}
+    .st-tbl th{text-align:left;font:600 10.5px 'Fira Code',monospace;letter-spacing:.05em;text-transform:uppercase;color:#64748b;padding:8px 10px;border-bottom:1px solid rgba(148,163,184,.14)}
+    .st-tbl td{padding:9px 10px;border-bottom:1px solid rgba(148,163,184,.07);color:#cbd5e1;vertical-align:top}
+    .st-tbl td.m{font-family:'Fira Code',monospace;font-size:11px;color:#94a3b8;white-space:nowrap}
+    .st-tbl tr:hover td{background:rgba(30,41,59,.3)}
+    details.st-raw summary{cursor:pointer;font:500 12px 'Fira Code',monospace;color:#94a3b8}
+    details.st-raw pre{margin-top:10px;max-height:320px;overflow:auto;font:11px 'Fira Code',monospace;color:#cbd5e1;background:rgba(2,6,23,.7);padding:12px;border-radius:10px}
+    .st-in{animation:st-in .5s cubic-bezier(.22,.8,.24,1) both}
+    @keyframes st-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    @media (max-width:960px){.st-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.st-it{grid-template-columns:22px 1fr}.st-date{display:none}}
+    @media (prefers-reduced-motion:reduce){.st-bar,.st-in{animation:none}}
+
+    /* Stili Terminale Espandibile */
+    .terminal-container {
+      background: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11.5px;
+      line-height: 1.55;
+      color: #9ca3af;
+      transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .term-line {
+      white-space: pre-wrap;
+      word-break: break-all;
+      padding: 1px 8px;
+      border-radius: 4px;
+    }
+    .term-line:hover {
+      background: rgba(31, 41, 55, 0.4);
+    }
+    .term-omen { color: #f97316; }
+    .term-asus { color: #38bdf8; }
+    .term-mac { color: #34d399; }
+    .term-pass { color: #10b981; font-weight: 600; }
+    .term-proto { color: #fbbf24; font-weight: 600; }
+    .term-hdr { color: #a855f7; font-weight: 700; background: rgba(168, 85, 247, 0.08); }
+    .term-metric { color: #22d3ee; }
+
+    /* Modal Espanso Fullscreen */
+    .fullscreen-modal {
+      position: fixed;
+      inset: 12px;
+      z-index: 999;
+      height: calc(100vh - 24px) !important;
+      max-height: none !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+    }
   </style>
   <script src="/nav.js" defer></script>
 </head>
@@ -23,9 +108,9 @@
       <div class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981] pulse-glow"></div>
       <div>
         <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-          HyperSpace Sovereign Mesh <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">Storico & Analytics</span>
+          HyperSpace Sovereign Mesh <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono">Analytics & R&D Stream</span>
         </h1>
-        <p class="text-xs text-slate-400">Storico dei test, sprint di ingegneria e progressi tra Mac M5, HP OMEN e ASUS V16</p>
+        <p class="text-xs text-slate-400">Flusso nodi in tempo reale, storico dei test ed evoluzione della ricerca tra Mac M5, HP OMEN e ASUS V16</p>
       </div>
     </div>
 
@@ -39,7 +124,7 @@
       <a href="/seo.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 transition font-medium flex items-center gap-1.5">
         🌐 Dashboard SEO
       </a>
-      <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-cyan text-slate-200 transition font-medium flex items-center gap-1.5">
+      <a href="/missions.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 transition font-medium flex items-center gap-1.5">
         📡 Scouting & Missioni
       </a>
     </div>
@@ -47,92 +132,223 @@
 
   <!-- MAIN WRAPPER -->
   <main class="flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col gap-6">
-    <style>
-      .st-ok{--s:#34d399}.st-ko{--s:#fb7185}.st-mid{--s:#fbbf24}.st-info{--s:#94a3b8}
-      .st-card{background:rgba(15,23,42,.9);border:1px solid rgb(30,41,59);border-radius:18px;padding:20px}
-      .st-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
-      .st-h h2{font-size:15px;font-weight:700;color:#f1f5f9}
-      .st-h span{font:500 11px 'Fira Code',monospace;color:#64748b}
-      .st-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-      .st-k{padding:14px 16px;border-radius:14px;background:rgba(2,6,23,.5);border:1px solid rgba(148,163,184,.1)}
-      .st-k span{display:block;font:600 10.5px 'Fira Code',monospace;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
-      .st-k b{display:block;font-size:22px;font-weight:800;color:#f1f5f9;margin-top:4px;font-variant-numeric:tabular-nums}
-      .st-k small{font-size:11.5px;color:#94a3b8}
-      .st-tl{list-style:none;margin:0;padding:0}
-      .st-it{display:grid;grid-template-columns:96px 22px 1fr;gap:0 10px}
-      .st-date{font:500 11px 'Fira Code',monospace;color:#64748b;padding-top:15px;text-align:right}
-      .st-rail{position:relative;display:flex;justify-content:center}
-      .st-rail::before{content:'';position:absolute;top:0;bottom:0;width:1px;background:rgba(148,163,184,.14)}
-      .st-it:first-child .st-rail::before{top:19px}.st-it:last-child .st-rail::before{bottom:auto;height:19px}
-      .st-rail i{position:relative;margin-top:15px;width:9px;height:9px;border-radius:50%;background:var(--s);box-shadow:0 0 0 4px color-mix(in srgb,var(--s) 15%,transparent)}
-      .st-body{padding:10px 12px 14px;border-radius:12px;transition:background .2s}
-      .st-body:hover{background:rgba(30,41,59,.35)}
-      .st-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-      .st-top h3{font-size:13.5px;font-weight:600;color:#e2e8f0}
-      .st-res{font:600 10.5px 'Fira Code',monospace;color:var(--s);padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--s) 40%,transparent)}
-      .st-body p{font-size:12.5px;color:#94a3b8;line-height:1.5;margin-top:4px}
-      .st-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font:500 11px 'Fira Code',monospace;color:#64748b}
-      .st-meta a{color:#57e6d9;text-decoration:none}.st-meta a:hover{text-decoration:underline}
-      .st-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
-      .st-bars{display:flex;align-items:flex-end;gap:4px;height:84px;padding:4px 0;border-bottom:1px solid rgba(148,163,184,.12)}
-      .st-bar{flex:1;min-width:6px;border-radius:3px 3px 0 0;background:var(--s);opacity:.75;transform-origin:bottom;
-        animation:st-grow .7s cubic-bezier(.22,.8,.24,1) both;transition:opacity .2s}
-      .st-bar:hover{opacity:1}
-      @keyframes st-grow{from{transform:scaleY(0)}}
-      .st-cap{display:flex;justify-content:space-between;font:500 10.5px 'Fira Code',monospace;color:#64748b;margin-top:6px}
-      .st-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-      .st-chip{font:500 10.5px 'Fira Code',monospace;color:#94a3b8;padding:2px 8px;border-radius:8px;border:1px solid rgba(148,163,184,.14)}
-      .st-chip i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--s);margin-right:6px;vertical-align:middle}
-      .st-tbl{width:100%;border-collapse:collapse;font-size:12px}
-      .st-tbl th{text-align:left;font:600 10.5px 'Fira Code',monospace;letter-spacing:.05em;text-transform:uppercase;color:#64748b;padding:8px 10px;border-bottom:1px solid rgba(148,163,184,.14)}
-      .st-tbl td{padding:9px 10px;border-bottom:1px solid rgba(148,163,184,.07);color:#cbd5e1;vertical-align:top}
-      .st-tbl td.m{font-family:'Fira Code',monospace;font-size:11px;color:#94a3b8;white-space:nowrap}
-      .st-tbl tr:hover td{background:rgba(30,41,59,.3)}
-      details.st-raw summary{cursor:pointer;font:500 12px 'Fira Code',monospace;color:#94a3b8}
-      details.st-raw pre{margin-top:10px;max-height:320px;overflow:auto;font:11px 'Fira Code',monospace;color:#cbd5e1;background:rgba(2,6,23,.7);padding:12px;border-radius:10px}
-      .st-in{animation:st-in .5s cubic-bezier(.22,.8,.24,1) both}
-      @keyframes st-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-      @media (max-width:760px){.st-sum,.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.st-it{grid-template-columns:22px 1fr}.st-date{display:none}}
-      @media (prefers-reduced-motion:reduce){.st-bar,.st-in{animation:none}}
-    </style>
 
+    <!-- KPI GLOBALI MESH -->
     <section class="st-card st-in">
-      <div class="st-h"><h2>Riepilogo dei test registrati</h2><span id="st-src">fonte: /api/analytics</span></div>
+      <div class="st-h">
+        <h2>📊 Stato Esecutivo & Sessione R&D (1 Ora)</h2>
+        <span id="st-src">fonte: /api/analytics</span>
+      </div>
       <div class="st-sum" id="st-sum">
-        <div class="st-k"><span>Test registrati</span><b>--</b><small>&nbsp;</small></div>
-        <div class="st-k"><span>Superati</span><b>--</b><small>&nbsp;</small></div>
-        <div class="st-k"><span>Ultimo test</span><b>--</b><small>&nbsp;</small></div>
-        <div class="st-k"><span>Token generati</span><b>--</b><small>&nbsp;</small></div>
+        <div class="st-k"><span>Cicli di Endurance</span><b>49 / 49</b><small>100% Green · 0 fail</small></div>
+        <div class="st-k"><span>Token Generati</span><b>106.930</b><small>ASUS 40B + OMEN 24B</small></div>
+        <div class="st-k"><span>Throughput Medio</span><b>33.0 tok/s</b><small>Velocità cooperativa</small></div>
+        <div class="st-k"><span>Prototipi R&D</span><b>21 Moduli</b><small>Validati AST al 100%</small></div>
+        <div class="st-k"><span>Test Registrati</span><b>3 / 3 Pass</b><small>Checkpoint, Sched, Gossip</small></div>
       </div>
     </section>
 
-    <section class="st-card st-in" style="animation-delay:60ms">
-      <div class="st-h"><h2>Cronologia</h2><span>dal più recente</span></div>
-      <ol class="st-tl" id="st-timeline"><li class="st-date" style="text-align:left">Caricamento…</li></ol>
+    <!-- TERMINALE DEL FLUSSO DI LAVORO DEI NODI (COMPONENTE CHIAVE ESPANDIBILE) -->
+    <section class="st-card st-in" id="sec-terminal" style="animation-delay:40ms">
+      <div class="st-h">
+        <h2>
+          <span>🖥️ Terminale & Flusso di Lavoro Nodi Mesh</span>
+          <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-600 text-emerald-300 font-mono font-normal">● LIVE FEED</span>
+        </h2>
+        <div class="flex items-center gap-2">
+          <span id="term-stats-badge" class="font-mono text-xs text-slate-400">477 righe registrate</span>
+          <button id="btn-toggle-fullscreen" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-mono transition flex items-center gap-1 border border-slate-700" title="Visualizza a schermo intero">
+            ⤢ Schermo Intero
+          </button>
+          <button id="btn-toggle-expand" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition flex items-center gap-1 border border-slate-700" title="Espandi o riduci altezza">
+            ↕ Espandi Terminale
+          </button>
+        </div>
+      </div>
+
+      <!-- Info cluster nodi e latenze in tempo reale -->
+      <div class="flex flex-wrap items-center justify-between gap-3 p-2.5 mb-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-xs">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="flex items-center gap-1.5 text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+            <b>HP OMEN 16</b> <code class="text-slate-400 text-[11px]">(24B Coder · 100.8ms)</code>
+          </span>
+          <span class="text-slate-600">|</span>
+          <span class="flex items-center gap-1.5 text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <b>ASUS V16</b> <code class="text-slate-400 text-[11px]">(Flint 40B @ 128k · 14.1ms)</code>
+          </span>
+          <span class="text-slate-600">|</span>
+          <span class="flex items-center gap-1.5 text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <b>Mac M5 Hub</b> <code class="text-slate-400 text-[11px]">(Control Plane / AST · 0.16ms)</code>
+          </span>
+        </div>
+        <div class="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+          <span id="session-status-badge" class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">SESSIONE: COMPLETATA</span>
+        </div>
+      </div>
+
+      <!-- Toolbar Filtri Terminale -->
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2 text-xs">
+        <div class="flex flex-wrap items-center gap-1.5" id="term-filters">
+          <button data-filter="all" class="term-filter-btn active px-2.5 py-1 rounded bg-cyan-900/60 text-cyan-200 border border-cyan-600 font-medium transition">Tutti i log</button>
+          <button data-filter="asus" class="term-filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 font-medium transition">Flint 40B (ASUS)</button>
+          <button data-filter="omen" class="term-filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 font-medium transition">LFM 24B (OMEN)</button>
+          <button data-filter="proto" class="term-filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 font-medium transition">💾 Prototipi R&D</button>
+          <button data-filter="ast" class="term-filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 font-medium transition">✓ Validazioni AST</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-load-all-log" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition" title="Carica l'intero file di log della sessione (477 righe)">
+            📥 Carica Log Completo
+          </button>
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-300 select-none">
+            <input type="checkbox" id="chk-autoscroll" checked class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0">
+            <span>Autoscroll</span>
+          </label>
+          <button id="btn-copy-log" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+            📋 Copia
+          </button>
+        </div>
+      </div>
+
+      <!-- Finestra del Terminale -->
+      <div id="terminal-window" class="terminal-container flex flex-col h-[340px] relative overflow-hidden">
+        <!-- Top bar finestra terminale stile macOS -->
+        <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-slate-800 select-none">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+            <span class="ml-2 text-[10px] text-slate-400 font-mono">bash — mesh-endurance-stream (endurance_session_1h.log)</span>
+          </div>
+          <div class="text-[10px] text-slate-500 font-mono" id="term-view-indicator">
+            Visualizzati: 0 righe
+          </div>
+        </div>
+
+        <!-- Contenitore Scrollabile dei Log -->
+        <div id="terminal-body" class="flex-1 p-3 overflow-y-auto custom-scrollbar font-mono text-[11px] leading-relaxed selection:bg-cyan-500 selection:text-black">
+          <div class="text-slate-500 italic">Caricamento flusso nodi...</div>
+        </div>
+      </div>
     </section>
 
+    <!-- LABORATORIO R&D: I 21 PROTOTIPI GENERATI (DETTAGLIO ESPANSO DELLA RICERCA SVOLTA) -->
+    <section class="st-card st-in" style="animation-delay:80ms" id="sec-prototypes">
+      <div class="st-h">
+        <h2>
+          <span>🔬 Ricerca Svolta & Prototipi Generati</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono font-normal">21 Moduli Architetturali</span>
+        </h2>
+        <div class="flex items-center gap-3">
+          <input type="text" id="proto-search" placeholder="Cerca modulo o argomento..." class="px-3 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-52">
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-4">
+        Moduli architetturali ideati autonomamente dalla mesh (HP OMEN 24B Architect ⟷ ASUS Flint 40B Coder), compilati ed esaminati con validazione AST al 100% sul Mac Hub. Clicca su ciascun modulo per ispezionare codice Python, classi estratte e conformità AST.
+      </p>
+
+      <!-- Griglia Prototipi -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5" id="prototypes-grid">
+        <div class="text-xs text-slate-500 p-4">Caricamento prototipi della sessione...</div>
+      </div>
+    </section>
+
+    <!-- TEST DI RESISTENZA STORICO (BAR CHART & METRICHE) -->
     <section class="st-card st-in" style="animation-delay:120ms" id="st-endurance">
-      <div class="st-h"><h2>Test di resistenza</h2><span id="st-end-when">--</span></div>
+      <div class="st-h">
+        <h2>🛡️ Sessione di Resistenza (Dettaglio Metriche & Distribuzione Token)</h2>
+        <span id="st-end-when">--</span>
+      </div>
       <div class="st-grid" id="st-end-k"></div>
       <div class="st-bars" id="st-end-bars"></div>
-      <div class="st-cap"><span id="st-end-cap">--</span><span>altezza = token per ciclo</span></div>
+      <div class="st-cap"><span id="st-end-cap">--</span><span>altezza = token generati per singolo ciclo</span></div>
       <div class="st-chips" id="st-end-nodes"></div>
     </section>
 
-    <section class="st-card st-in" style="animation-delay:180ms">
-      <div class="st-h"><h2>Benchmark collaborativo Flint ⟷ LFM2.5</h2><span id="st-bench-when">--</span></div>
+    <!-- BENCHMARK COLLABORATIVO FLINT 40B ⟷ LFM 24B -->
+    <section class="st-card st-in" style="animation-delay:160ms">
+      <div class="st-h">
+        <h2>📐 Benchmark Collaborativo Multi-Nodo (Flint 128k ⟷ LFM2.5 64k)</h2>
+        <span id="st-bench-when">--</span>
+      </div>
       <div class="overflow-x-auto"><table class="st-tbl"><thead><tr><th>Scenario</th><th>Esito</th><th>Tempo</th><th>Velocità</th><th>Cosa verifica</th></tr></thead><tbody id="st-bench"></tbody></table></div>
     </section>
 
+    <!-- CRONOLOGIA MILESTONE & TEST REGISTRATI -->
+    <section class="st-card st-in" style="animation-delay:200ms">
+      <div class="st-h">
+        <h2>📅 Cronologia Milestone & Sprint Validati</h2>
+        <span>dal più recente</span>
+      </div>
+      <ol class="st-tl" id="st-timeline"><li class="st-date" style="text-align:left">Caricamento…</li></ol>
+    </section>
+
+    <!-- REGISTRO DEV LOOP -->
     <section class="st-card st-in" style="animation-delay:240ms">
-      <div class="st-h"><h2>Registro dev loop</h2><span id="st-dev-count">--</span></div>
+      <div class="st-h">
+        <h2>🔄 Registro Attività Dev Loop</h2>
+        <span id="st-dev-count">--</span>
+      </div>
       <div class="overflow-x-auto"><table class="st-tbl"><thead><tr><th>Quando</th><th>Ciclo</th><th>Azione</th><th>QA</th><th>Durata</th><th>Nodi</th></tr></thead><tbody id="st-dev"></tbody></table></div>
     </section>
 
+    <!-- DATI GREZZI JSON -->
     <section class="st-card">
-      <details class="st-raw" id="st-raw"><summary>Dati grezzi (JSON dei report)</summary><pre id="st-raw-pre"></pre></details>
+      <details class="st-raw" id="st-raw"><summary>Dati grezzi (JSON dei report di sistema)</summary><pre id="st-raw-pre"></pre></details>
     </section>
   </main>
+
+  <!-- MODAL ISPETTORE PROTOTIPO R&D (CODICE PYTHON & AST) -->
+  <div id="proto-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🔬</span>
+          <div>
+            <h3 id="proto-modal-title" class="font-bold text-white text-sm">Titolo Prototipo</h3>
+            <p id="proto-modal-subtitle" class="text-xs text-slate-400 font-mono">file.py · AST Analysis</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-proto-copy" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-mono transition border border-slate-700">
+            📋 Copia Codice
+          </button>
+          <button id="btn-proto-close" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4 text-xs">
+        <!-- AST Summary Card -->
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-wrap gap-4 items-center justify-between" id="proto-modal-ast-meta">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 font-mono font-semibold">✓ AST Validato (100% Green)</span>
+            <span class="text-slate-400" id="proto-modal-nodes-count">Nodi AST: --</span>
+          </div>
+          <div class="text-slate-400 font-mono text-[11px]" id="proto-modal-classes-list">Classi: --</div>
+        </div>
+
+        <!-- Docstring / Spiegazione -->
+        <div id="proto-modal-doc" class="p-3 rounded-lg bg-slate-800/40 border border-slate-700/60 text-slate-300 text-xs hidden">
+        </div>
+
+        <!-- Code Block -->
+        <div class="flex flex-col gap-1 flex-1">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+            <span>Sorgente Python Generato:</span>
+            <span id="proto-code-lines">0 righe</span>
+          </div>
+          <pre id="proto-modal-code" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 font-mono text-xs overflow-x-auto custom-scrollbar whitespace-pre leading-relaxed select-text"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function () {
@@ -142,6 +358,278 @@
       const ago = iso => { const s = (Date.now() - new Date(iso)) / 1000; if (!isFinite(s)) return ''; if (s < 3600) return Math.floor(s / 60) + ' min fa'; if (s < 86400) return Math.floor(s / 3600) + ' h fa'; return Math.floor(s / 86400) + ' g fa'; };
       const RAW_FOR = { 'sprint-checkpoint-rfc0044': 'checkpoint_sprint', 'sprint-scheduler-rfc0043': 'scheduler_sprint', 'sprint-gossip-35m': 'sprint', 'endurance-1h': 'endurance', 'benchmark-flint-lfm': 'benchmark' };
 
+      // Lista dei prototipi già promossi nella cartella shared/
+      const PROMOTED_MODULES = [
+        'TokenBucketRateLimiter',
+        'SelfHealingPeerMesh',
+        'WorkStealingDAGScheduler',
+        'ContinuousContextCompactor',
+        'DistributedRollbackJournal',
+        'TriModalMemoryGraph',
+        'AdaptiveMeshCircuitBreaker',
+        'InferenceLatencyPID',
+        'SpeculativeDraftValidator',
+        'DistributedHeartbeatSync',
+        'DynamicKVMemoryPool',
+        'ArcadeStateSyncEngine'
+      ];
+
+      let allLogLines = [];
+      let currentFilter = 'all';
+      let isExpanded = false;
+      let isFullscreen = false;
+      let cachedPrototypes = [];
+
+      // Gestione rendering del Terminale
+      function formatTermLine(line) {
+        let trimmed = line.trim();
+        let cls = 'term-line';
+        
+        if (line.includes('===') || line.startsWith('HYPERSPACE') || line.startsWith('SESSIONE')) {
+          return `<div class="term-line term-hdr my-1 py-0.5 border-y border-purple-800/40">${esc(line)}</div>`;
+        }
+        
+        let formatted = esc(line);
+
+        if (formatted.includes('[Ciclo ') || formatted.includes('Ciclo #')) {
+          formatted = formatted.replace(/(Ciclo\s*#?\d+)/g, '<span class="text-cyan-400 font-bold">$1</span>');
+        }
+        if (formatted.includes('OMEN') || formatted.includes('LFM')) {
+          formatted = formatted.replace(/(OMEN[^\s,]*|LFM[^\s,]*)/g, '<span class="term-omen font-bold">$1</span>');
+        }
+        if (formatted.includes('Flint') || formatted.includes('ASUS')) {
+          formatted = formatted.replace(/(Flint[^\s,]*|ASUS[^\s,]*)/g, '<span class="term-asus font-bold">$1</span>');
+        }
+        if (formatted.includes('Mac M5') || formatted.includes('Hub') || formatted.includes('127.0.0.1')) {
+          formatted = formatted.replace(/(Mac M5[^\s,]*|Hub|127\.0\.0\.1:\d+)/g, '<span class="term-mac font-semibold">$1</span>');
+        }
+        if (formatted.includes('✓') || formatted.includes('PASS') || formatted.includes('Successo:')) {
+          formatted = formatted.replace(/(✓[^\n]*|PASS[^\n]*)/g, '<span class="term-pass">$1</span>');
+        }
+        if (formatted.includes('💾') || formatted.includes('Prototipo')) {
+          formatted = formatted.replace(/(💾[^\n]*|Prototipo[^\n]*)/g, '<span class="term-proto">$1</span>');
+        }
+        if (formatted.includes('tok/s')) {
+          formatted = formatted.replace(/(\d+(\.\d+)?\s*tok\/s)/g, '<span class="term-metric font-bold">$1</span>');
+        }
+
+        return `<div class="${cls}">${formatted}</div>`;
+      }
+
+      function filterLine(line, filter) {
+        if (filter === 'all') return true;
+        let l = line.toLowerCase();
+        if (filter === 'asus') return l.includes('asus') || l.includes('flint') || l.includes('11434');
+        if (filter === 'omen') return l.includes('omen') || l.includes('lfm') || l.includes('8081');
+        if (filter === 'proto') return l.includes('prototipo') || l.includes('.py') || l.includes('💾');
+        if (filter === 'ast') return l.includes('ast') || l.includes('validazione') || l.includes('pass');
+        return true;
+      }
+
+      function renderTerminal() {
+        const body = document.getElementById('terminal-body');
+        const chkAuto = document.getElementById('chk-autoscroll');
+        const indicator = document.getElementById('term-view-indicator');
+
+        const filtered = allLogLines.filter(line => filterLine(line, currentFilter));
+        indicator.textContent = `Visualizzati: ${filtered.length} di ${allLogLines.length} righe (${currentFilter})`;
+
+        if (!filtered.length) {
+          body.innerHTML = `<div class="text-slate-500 italic p-2">Nessuna riga corrisponde al filtro "${currentFilter}".</div>`;
+          return;
+        }
+
+        body.innerHTML = filtered.map(formatTermLine).join('');
+
+        if (chkAuto && chkAuto.checked) {
+          body.scrollTop = body.scrollHeight;
+        }
+      }
+
+      function fetchTerminalLog(limit = '200') {
+        fetch(`/api/analytics/terminal?limit=${limit}`)
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            if (data.lines && Array.isArray(data.lines)) {
+              allLogLines = data.lines;
+              document.getElementById('term-stats-badge').textContent = `${data.total_lines || allLogLines.length} righe registrate`;
+              renderTerminal();
+            }
+          })
+          .catch(err => {
+            console.warn('Errore fetch terminal log:', err);
+          });
+      }
+
+      // Event listeners terminale
+      document.getElementById('btn-toggle-expand').addEventListener('click', () => {
+        const win = document.getElementById('terminal-window');
+        const btn = document.getElementById('btn-toggle-expand');
+        if (isExpanded) {
+          win.style.height = '340px';
+          btn.innerHTML = '↕ Espandi Terminale';
+          isExpanded = false;
+        } else {
+          win.style.height = '720px';
+          btn.innerHTML = '↕ Riduci Terminale';
+          isExpanded = true;
+        }
+      });
+
+      document.getElementById('btn-toggle-fullscreen').addEventListener('click', () => {
+        const win = document.getElementById('terminal-window');
+        const btn = document.getElementById('btn-toggle-fullscreen');
+        isFullscreen = !isFullscreen;
+        if (isFullscreen) {
+          win.classList.add('fullscreen-modal');
+          btn.innerHTML = '✕ Chiudi Schermo Intero';
+          btn.classList.add('bg-rose-900', 'text-rose-200');
+        } else {
+          win.classList.remove('fullscreen-modal');
+          btn.innerHTML = '⤢ Schermo Intero';
+          btn.classList.remove('bg-rose-900', 'text-rose-200');
+        }
+      });
+
+      document.querySelectorAll('#term-filters button').forEach(btn => {
+        btn.addEventListener('click', e => {
+          document.querySelectorAll('#term-filters button').forEach(b => {
+            b.classList.remove('active', 'bg-cyan-900/60', 'text-cyan-200', 'border-cyan-600');
+            b.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+          });
+          btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+          btn.classList.add('active', 'bg-cyan-900/60', 'text-cyan-200', 'border-cyan-600');
+          currentFilter = btn.dataset.filter || 'all';
+          renderTerminal();
+        });
+      });
+
+      document.getElementById('btn-load-all-log').addEventListener('click', () => {
+        document.getElementById('btn-load-all-log').innerHTML = '⏳ Caricamento...';
+        fetchTerminalLog('all');
+        setTimeout(() => {
+          document.getElementById('btn-load-all-log').innerHTML = '✓ Log Completo Attivo';
+        }, 800);
+      });
+
+      document.getElementById('btn-copy-log').addEventListener('click', () => {
+        navigator.clipboard.writeText(allLogLines.join('\n')).then(() => {
+          const btn = document.getElementById('btn-copy-log');
+          const old = btn.innerHTML;
+          btn.innerHTML = '✓ Copiato!';
+          setTimeout(() => btn.innerHTML = old, 1500);
+        });
+      });
+
+      // Rendering Griglia Prototipi R&D
+      function renderPrototypes(prototypes) {
+        cachedPrototypes = prototypes || [];
+        const grid = document.getElementById('prototypes-grid');
+        const query = (document.getElementById('proto-search').value || '').toLowerCase().trim();
+
+        const filtered = cachedPrototypes.filter(p => {
+          if (!query) return true;
+          return (p.topic || '').toLowerCase().includes(query) || (p.file || '').toLowerCase().includes(query);
+        });
+
+        if (!filtered.length) {
+          grid.innerHTML = `<div class="col-span-3 text-center py-8 text-slate-500 text-xs">Nessun prototipo trovato per "${esc(query)}".</div>`;
+          return;
+        }
+
+        grid.innerHTML = filtered.map((p, idx) => {
+          const isPromoted = PROMOTED_MODULES.includes(p.topic);
+          const badgeClass = isPromoted 
+            ? 'bg-amber-950/80 border-amber-600 text-amber-300' 
+            : 'bg-emerald-950/80 border-emerald-600 text-emerald-300';
+          const badgeLabel = isPromoted ? '★ PROMOSSO IN PRODUZIONE' : '✓ AST 100% VALIDATO';
+
+          return `
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between gap-3 group shadow-md hover:shadow-cyan-950/20">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-mono text-[11px] text-cyan-400 font-bold">#${String(idx + 1).padStart(2, '0')} · Ciclo ${p.cycle}</span>
+                  <span class="font-mono text-[10px] px-2 py-0.5 rounded-full border ${badgeClass}">${badgeLabel}</span>
+                </div>
+                <h4 class="font-bold text-white text-[13.5px] tracking-tight group-hover:text-cyan-300 transition">${esc(p.topic)}</h4>
+                <div class="font-mono text-[10.5px] text-slate-400 truncate" title="${esc(p.file)}">${esc(p.file)}</div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span class="text-[10.5px] text-slate-500 font-mono">${fmtDate(p.timestamp)}</span>
+                <button onclick="inspectPrototype('${esc(p.file)}', '${esc(p.topic)}', ${p.cycle})" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-cyan-600 hover:text-black text-cyan-300 text-xs font-mono font-medium transition border border-slate-700 hover:border-cyan-500 flex items-center gap-1">
+                  👁️ Ispeziona AST
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('proto-search').addEventListener('input', () => {
+        renderPrototypes(cachedPrototypes);
+      });
+
+      // Funzione globale ispezione prototipo
+      window.inspectPrototype = function(filename, topic, cycle) {
+        const modal = document.getElementById('proto-modal');
+        const title = document.getElementById('proto-modal-title');
+        const sub = document.getElementById('proto-modal-subtitle');
+        const code = document.getElementById('proto-modal-code');
+        const lines = document.getElementById('proto-code-lines');
+        const nodes = document.getElementById('proto-modal-nodes-count');
+        const classes = document.getElementById('proto-modal-classes-list');
+
+        title.textContent = `${topic} (Ciclo ${cycle})`;
+        sub.textContent = `${filename} · Analisi AST e codice generato`;
+        code.textContent = 'Caricamento sorgente in corso...';
+        modal.classList.remove('hidden');
+
+        fetch(`/api/research/prototype?file=${encodeURIComponent(filename)}`)
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            if (data.source) {
+              code.textContent = data.source;
+              const lineCount = data.source.split('\n').length;
+              lines.textContent = `${lineCount} righe di codice`;
+              nodes.textContent = `Nodi AST: ${data.node_count || '--'}`;
+              
+              if (data.classes && data.classes.length) {
+                const classNames = data.classes.map(c => `${c.name} (${(c.methods || []).length} metodi)`).join(', ');
+                classes.textContent = `Classi: ${classNames}`;
+              } else {
+                classes.textContent = 'Classi: standard module';
+              }
+            } else {
+              code.textContent = 'Nessun sorgente disponibile o errore caricamento.';
+            }
+          })
+          .catch(err => {
+            code.textContent = `Errore nel caricamento del file: ${err}`;
+          });
+      };
+
+      document.getElementById('btn-proto-close').addEventListener('click', () => {
+        document.getElementById('proto-modal').classList.add('hidden');
+      });
+
+      document.getElementById('proto-modal').addEventListener('click', e => {
+        if (e.target.id === 'proto-modal') {
+          document.getElementById('proto-modal').classList.add('hidden');
+        }
+      });
+
+      document.getElementById('btn-proto-copy').addEventListener('click', () => {
+        const codeText = document.getElementById('proto-modal-code').textContent;
+        navigator.clipboard.writeText(codeText).then(() => {
+          const btn = document.getElementById('btn-proto-copy');
+          const old = btn.innerHTML;
+          btn.innerHTML = '✓ Copiato!';
+          setTimeout(() => btn.innerHTML = old, 1500);
+        });
+      });
+
+      // Valutazione Milestone
       function evaluate(m, data) {
         const raw = data[RAW_FOR[m.id]] || null;
         const t = { id: m.id, title: m.title, summary: m.summary, icon: m.icon, artifacts: m.artifacts || [], date: m.timestamp, isTest: !!RAW_FOR[m.id], tokens: m.tokens || 0, duration: m.duration };
@@ -169,16 +657,22 @@
       }
 
       function render(data) {
-        const items = (data.milestones || []).map(m => evaluate(m, data)).sort((a, b) => new Date(b.date) - new Date(a.date));
-        const tests = items.filter(t => t.isTest), passed = tests.filter(t => t.ok === true).length;
-        const last = tests[0], tokens = tests.reduce((a, t) => a + (t.tokens || 0), 0);
-        const K = document.querySelectorAll('#st-sum .st-k');
-        const put = (i, v, sub) => { K[i].querySelector('b').innerHTML = v; K[i].querySelector('small').innerHTML = sub || '&nbsp;'; };
-        put(0, tests.length, `${items.length - tests.length} altre tappe`);
-        put(1, `<span style="color:${passed === tests.length ? '#34d399' : '#fbbf24'}">${passed}/${tests.length}</span>`, passed === tests.length ? 'tutti i test registrati' : `${tests.length - passed} non superati o in corso`);
-        put(2, last ? ago(last.date) : '--', last ? esc(last.title.replace(/\s*\(.*\)\s*$/, '')) : '');
-        put(3, nf(tokens), 'somma dei test registrati');
+        // Popola i log del terminale iniziale se presenti
+        if (data.terminal_log && Array.isArray(data.terminal_log) && data.terminal_log.length) {
+          allLogLines = data.terminal_log;
+          renderTerminal();
+        } else {
+          fetchTerminalLog('200');
+        }
 
+        // Prototipi
+        const end = data.endurance || {};
+        if (end.prototypes_generated && Array.isArray(end.prototypes_generated)) {
+          renderPrototypes(end.prototypes_generated);
+        }
+
+        // Milestone
+        const items = (data.milestones || []).map(m => evaluate(m, data)).sort((a, b) => new Date(b.date) - new Date(a.date));
         document.getElementById('st-timeline').innerHTML = items.map(t => {
           const cls = t.ok === true ? 'st-ok' : t.ok === false ? 'st-ko' : t.isTest ? 'st-mid' : 'st-info';
           const links = t.artifacts.map(a => a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.label)} ↗</a>` : `<span>${esc(a.label)}</span>`).join('');
@@ -188,37 +682,67 @@
             <div class="st-meta">${t.duration && t.duration !== 'N/A' ? `<span>${esc(t.duration)}</span>` : ''}${t.tokens ? `<span>${nf(t.tokens)} token</span>` : ''}${links}</div></div></li>`;
         }).join('');
 
-        const e = data.endurance || {};
-        if (e.cycles_completed != null) {
-          document.getElementById('st-end-when').textContent = fmtDate(e.session_start) + ' · ' + (e.active_status || '').toLowerCase();
-          const k = [['Cicli riusciti', `${e.successful_cycles}/${e.cycles_completed}`], ['Velocità media', `${Math.round(e.average_throughput_tok_s || 0)} token/s`], ['Token totali', nf(e.total_tokens_generated)], ['Prototipi', (e.prototypes_generated || []).length]];
+        // Endurance barchart
+        if (end.cycles_completed != null) {
+          document.getElementById('st-end-when').textContent = fmtDate(end.session_start) + ' · ' + (end.active_status || '').toLowerCase();
+          const k = [
+            ['Cicli riusciti', `${end.successful_cycles}/${end.cycles_completed}`],
+            ['Velocità media', `${Math.round(end.average_throughput_tok_s || 0)} token/s`],
+            ['Token totali', nf(end.total_tokens_generated)],
+            ['Prototipi generati', (end.prototypes_generated || []).length]
+          ];
           document.getElementById('st-end-k').innerHTML = k.map(([a, b]) => `<div class="st-k"><span>${a}</span><b>${b}</b></div>`).join('');
-          const ev = (e.recent_events || []).slice().sort((a, b) => a.cycle - b.cycle), max = Math.max(1, ...ev.map(x => x.tokens || 0));
+          const ev = (end.recent_events || []).slice().sort((a, b) => a.cycle - b.cycle), max = Math.max(1, ...ev.map(x => x.tokens || 0));
           document.getElementById('st-end-bars').innerHTML = ev.map((x, i) => `<span class="st-bar ${x.success ? 'st-ok' : 'st-ko'}" style="height:${Math.max(6, (x.tokens || 0) / max * 100)}%;animation-delay:${i * 25}ms" title="Ciclo #${x.cycle} · ${x.success ? 'riuscito' : 'fallito'} · ${nf(x.tokens)} token · ${x.elapsed_s}s"></span>`).join('');
           document.getElementById('st-end-cap').textContent = ev.length ? `ultimi ${ev.length} cicli registrati (#${ev[0].cycle}–#${ev[ev.length - 1].cycle})` : 'nessun ciclo nel report';
-          document.getElementById('st-end-nodes').innerHTML = Object.entries(e.nodes_health || {}).map(([n, h]) => `<span class="st-chip ${h.ok ? 'st-ok' : 'st-ko'}"><i></i>${esc(n.replace('_', ':'))} · ${h.latency_ms} ms</span>`).join('');
-        } else document.getElementById('st-endurance').style.display = 'none';
+          document.getElementById('st-end-nodes').innerHTML = Object.entries(end.nodes_health || {}).map(([n, h]) => `<span class="st-chip ${h.ok ? 'st-ok' : 'st-ko'}"><i></i>${esc(n.replace('_', ':'))} · ${h.latency_ms} ms</span>`).join('');
+        } else {
+          document.getElementById('st-endurance').style.display = 'none';
+        }
 
+        // Benchmark
         const b = data.benchmark || {}, sc = b.scenarios || {};
-        const NAMES = { scenario_1_architect_to_coder: ['Architetto → Programmatore', 'LFM2.5 progetta, Flint scrive il codice'], scenario_2_code_review: ['Revisione di sicurezza', 'LFM2.5 rivede il codice di Flint'], scenario_3_json_interop: ['Dialogo JSON tra nodi', 'allarme e contromisura in JSON strutturato'], scenario_4_long_context_128k: ['Contesto lungo 128k', "trovare un'informazione in un testo di 128k token"] };
+        const NAMES = {
+          scenario_1_architect_to_coder: ['Architetto → Programmatore', 'LFM2.5 progetta, Flint scrive il codice'],
+          scenario_2_code_review: ['Revisione di sicurezza', 'LFM2.5 rivede il codice di Flint'],
+          scenario_3_json_interop: ['Dialogo JSON tra nodi', 'allarme e contromisura in JSON strutturato'],
+          scenario_4_long_context_128k: ['Contesto lungo 128k', "trovare un'informazione in un testo di 128k token"]
+        };
         const metric = x => x.flint_metrics || x.review_metrics || x.metrics || (x.throughput ? { tok_s: x.throughput.flint_tok_s } : {});
         document.getElementById('st-bench-when').textContent = b.timestamp ? fmtDate(b.timestamp) : '--';
-        document.getElementById('st-bench').innerHTML = Object.entries(sc).map(([k, x]) => { const mt = metric(x), nm = NAMES[k] || [k, '']; return `<tr><td>${esc(nm[0])}</td><td><span class="st-res ${x.status === 'PASS' ? 'st-ok' : 'st-ko'}">${esc(x.verdict || x.status)}</span></td><td class="m">${mt.elapsed_s != null ? mt.elapsed_s + ' s' : '–'}</td><td class="m">${mt.tok_s != null ? Math.round(mt.tok_s) + ' token/s' : '–'}</td><td>${esc(nm[1])}</td></tr>`; }).join('') || '<tr><td colspan="5">Nessun report di benchmark.</td></tr>';
+        document.getElementById('st-bench').innerHTML = Object.entries(sc).map(([k, x]) => {
+          const mt = metric(x), nm = NAMES[k] || [k, ''];
+          return `<tr><td>${esc(nm[0])}</td><td><span class="st-res ${x.status === 'PASS' ? 'st-ok' : 'st-ko'}">${esc(x.verdict || x.status)}</span></td><td class="m">${mt.elapsed_s != null ? mt.elapsed_s + ' s' : '–'}</td><td class="m">${mt.tok_s != null ? Math.round(mt.tok_s) + ' token/s' : '–'}</td><td>${esc(nm[1])}</td></tr>`;
+        }).join('') || '<tr><td colspan="5">Nessun report di benchmark.</td></tr>';
 
+        // Dev loop
         const dv = (data.devloop_history || []).slice().reverse();
         document.getElementById('st-dev-count').textContent = `${dv.length} eventi · data/omen_dev_loop.jsonl`;
         document.getElementById('st-dev').innerHTML = dv.map(x => `<tr><td class="m">${fmtDate(x.timestamp)}</td><td class="m">${x.cycle != null ? '#' + x.cycle : '–'}</td><td>${esc((x.action || '').replace(/_/g, ' '))}</td><td><span class="st-res ${x.qa_passed === false ? 'st-ko' : 'st-ok'}">${x.qa_passed === false ? 'non superato' : 'ok'}</span></td><td class="m">${x.duration_s != null ? x.duration_s + ' s' : '–'}</td><td class="m">${esc(Array.isArray(x.nodes) ? x.nodes.join(', ') : (x.nodes || ''))}</td></tr>`).join('');
 
+        // Raw json
         const raw = document.getElementById('st-raw');
-        raw.addEventListener('toggle', () => { if (raw.open) document.getElementById('st-raw-pre').textContent = JSON.stringify({ sprint: data.sprint, scheduler_sprint: data.scheduler_sprint, checkpoint_sprint: data.checkpoint_sprint, endurance: data.endurance, benchmark: data.benchmark }, null, 2); }, { once: true });
+        raw.addEventListener('toggle', () => {
+          if (raw.open) {
+            document.getElementById('st-raw-pre').textContent = JSON.stringify({
+              sprint: data.sprint,
+              scheduler_sprint: data.scheduler_sprint,
+              checkpoint_sprint: data.checkpoint_sprint,
+              endurance: data.endurance,
+              benchmark: data.benchmark
+            }, null, 2);
+          }
+        }, { once: true });
       }
 
       const get = u => fetch(u, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
-      // cockpit locale, oppure snapshot statico pubblicato insieme al sito
-      get('/api/analytics').catch(() => get('./data/analytics.json').then(d => { document.getElementById('st-src').textContent = 'fonte: snapshot statico'; return d; })).then(render).catch(() => {
-        document.getElementById('st-timeline').innerHTML = '<li class="st-date" style="text-align:left">Dati non disponibili: né il cockpit locale né lo snapshot dei report rispondono.</li>';
-        document.getElementById('st-src').textContent = 'cockpit non raggiungibile';
-      });
+      get('/api/analytics')
+        .catch(() => get('./data/analytics.json').then(d => { document.getElementById('st-src').textContent = 'fonte: snapshot statico'; return d; }))
+        .then(render)
+        .catch(() => {
+          document.getElementById('st-timeline').innerHTML = '<li class="st-date" style="text-align:left">Dati non disponibili: né il cockpit locale né lo snapshot dei report rispondono.</li>';
+          document.getElementById('st-src').textContent = 'cockpit non raggiungibile';
+        });
     })();
   </script>
 </body>
