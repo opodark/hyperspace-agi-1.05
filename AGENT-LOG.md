@@ -9553,3 +9553,19 @@ Diagnosi:
 3. **Verifiche e riavvio servizi**:
    - Suite test licensing e smoke test verificati con successo.
    - Servizio Cockpit riavviato e operativo su porta 8090.
+
+## 2026-10-28 11:22 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Promozione prototipi R&D in produzione (Circuit Breaker, Rate Limiter, Latency PID, Causal Graph)
+
+1. **Promozione e implementazione moduli in `shared/`**:
+   - `shared/adaptive_mesh_circuit_breaker.py`: promosso da `proto_adaptivemeshcircuitbreaker_1793022231.py`. Implementa pattern Circuit Breaker (`CLOSED`, `OPEN`, `HALF_OPEN`) con supporto chiamate sincrone/asincrone, registry multi-nodo e fallback per evitare cascate di timeout su nodi offline o lenti (es. ASUS/OMEN).
+   - `shared/token_bucket_rate_limiter.py`: promosso da `proto_tokenbucketratelimiter_1793019924.py`. Rate limiter thread-safe e asincrono (`acquire_async`, `wait_and_acquire`, metriche di utilizzo) per proteggere GPU e VRAM da burst eccessivi.
+   - `shared/inference_latency_pid.py`: derivato dallo studio AST notturno OMEN (Granite 3.3). Controller PID per la modulazione dinamica del token budget e batch size in base alle oscillazioni di latenza reale (ms/token).
+
+2. **Integrazione Causal AI in Mission Control**:
+   - `shared/mission.py`: agganciato `CausalMemoryGraph` nel metodo `finish(...)` per registrare automaticamente l'esito causale (successo/fallimento e causa scatenante) delle missioni DAG.
+   - `scripts/cockpit_service.py`: agganciata la registrazione dell'origine causale (`trend:* -> mission:*`) in `handle_api_missions_create`.
+
+3. **Verifiche & Test**:
+   - Creati unit test dedicati: `tests/test_adaptive_mesh_circuit_breaker.py` (7/7), `tests/test_token_bucket_rate_limiter.py` (7/7), `tests/test_inference_latency_pid.py` (5/5).
+   - Test suite missioni `tests/test_mission.py` (18/18) e licensing `tests/test_licensing.py` (7/7) 100% verdi.
+   - Servizio Cockpit (:8090) riavviato e operativo. In attesa di conferma per commit/push.

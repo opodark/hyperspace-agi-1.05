@@ -1200,6 +1200,24 @@ class CockpitHandler(SimpleHTTPRequestHandler):
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
+
+            # Registrazione causale nello swarm R&D
+            try:
+                cmg_path = REPO_ROOT / "data" / "research" / "causal_memory_graph.json"
+                if cmg_path.parent.exists():
+                    from shared.causal_memory_graph import CausalMemoryGraph
+                    cmg = CausalMemoryGraph(storage_path=cmg_path)
+                    cause = body.get("origin_trend") or body.get("topic") or "operator_launch"
+                    m_id = res_data.get("id") or res_data.get("mission_id") or "unknown"
+                    cmg.record_event(
+                        cause_id=f"trend:{cause}",
+                        effect_id=f"mission:{m_id}",
+                        weight=1.0,
+                        metadata={"objective": (body.get("objective") or "")[:80]},
+                    )
+            except Exception:
+                pass
+
             self.send_json(res_data, status=201)
         except urllib.error.HTTPError as he:
             err_body = he.read().decode("utf-8")

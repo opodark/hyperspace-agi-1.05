@@ -470,7 +470,24 @@ class MissionStore:
             mission["error"] = _clean(error, 4000)
             mission["finished_at"] = _iso(now) if status in TERMINAL_MISSION_STATUSES else None
 
-        return self._mutate(mission_id, mutate)
+        res = self._mutate(mission_id, mutate)
+
+        # Tracciamento causale nello swarm R&D se presente lo storage
+        try:
+            storage = self.path.parent / "research" / "causal_memory_graph.json"
+            if storage.parent.exists():
+                from shared.causal_memory_graph import CausalMemoryGraph
+                cmg = CausalMemoryGraph(storage_path=storage)
+                cmg.record_event(
+                    cause_id=f"mission:{mission_id}",
+                    effect_id=f"outcome:{status}",
+                    weight=1.0 if status == "done" else -1.0,
+                    metadata={"objective": (res.get("objective") or "")[:80], "error": _clean(error, 200)},
+                )
+        except Exception:
+            pass
+
+        return res
 
     def cancel(self, mission_id, reason=""):
         def mutate(mission):
