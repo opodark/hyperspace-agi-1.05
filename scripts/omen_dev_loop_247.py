@@ -43,6 +43,7 @@ DATA_DIR = ROOT / "data"
 THERMAL_FLAG = DATA_DIR / "thermal_pause.flag"
 SYNTHETIC_DATASET = DATA_DIR / "synthetic_cot_dataset.jsonl"
 DEV_LOOP_LOG = DATA_DIR / "omen_dev_loop.jsonl"
+WIN32_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
 def _log(tag: str, msg: str):
@@ -73,7 +74,14 @@ def task_regression_check() -> Dict[str, Any]:
     ]
     start = time.perf_counter()
     try:
-        res = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, timeout=60)
+        res = subprocess.run(
+            cmd,
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            creationflags=WIN32_NO_WINDOW,
+        )
         elapsed = round(time.perf_counter() - start, 2)
         passed = "passed" in res.stdout and res.returncode == 0
         return {
@@ -164,7 +172,14 @@ def task_graphify_incremental() -> Dict[str, Any]:
     cmd = ["bash", str(graphify_script), "update", "."]
     start = time.perf_counter()
     try:
-        res = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, timeout=120)
+        res = subprocess.run(
+            cmd,
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            creationflags=WIN32_NO_WINDOW,
+        )
         elapsed = round(time.perf_counter() - start, 2)
         return {"task": "graphify", "success": res.returncode == 0, "elapsed_s": elapsed}
     except Exception as e:

@@ -137,6 +137,32 @@ class WatcherTests(unittest.TestCase):
                     self.assertTrue(risultato["rollback_applied"])
                     self.assertIn("Role test-gate fallito", risultato["errors"][0])
 
+    def test_detect_docker_actions(self):
+        detect = _watcher.detect_docker_actions
+        # File di documentazione o frontend statico non richiedono docker rebuild
+        self.assertEqual(detect(["docs/README.md", "web-node/apps/playground/index.html"]), [])
+
+        # File in node/ richiedono rebuild di node-1
+        self.assertEqual(detect(["node/main.py"]), ["node-1"])
+
+        # File in control-plane/ richiedono rebuild di control-plane
+        self.assertEqual(detect(["control-plane/main.py"]), ["control-plane"])
+
+        # File in shared/ richiedono rebuild di entrambi
+        self.assertEqual(set(detect(["shared/mesh_sync.py"])), {"node-1", "control-plane"})
+
+    def test_emit_docker_action_signal(self):
+        emit = _watcher.emit_docker_action_signal
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            sig_file = emit(["node-1"], repo, "test-patch-123")
+            self.assertIsNotNone(sig_file)
+            self.assertTrue(sig_file.exists())
+            data = json.loads(sig_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["action"], "rebuild")
+            self.assertEqual(data["services"], ["node-1"])
+            self.assertEqual(data["status"], "pending")
+
 
 if __name__ == "__main__":
     unittest.main()

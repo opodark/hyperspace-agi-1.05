@@ -69,8 +69,9 @@ $bgTasks = @(
 )
 
 function Register-BackgroundTask($t) {
-    $cmdLine = "/c `"`"$python`" $($t.Args) >> `"$($t.Out)`" 2>&1`""
-    $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument $cmdLine -WorkingDirectory $Root
+    # Zero-Popup Enterprise: usa powershell -WindowStyle Hidden anziché cmd.exe per evitare qualsiasi flash di console nere a schermo
+    $cmdLine = "-WindowStyle Hidden -NonInteractive -NoLogo -NoProfile -ExecutionPolicy Bypass -Command `"& '$python' $($t.Args) >> '$($t.Out)' 2>&1`""
+    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $cmdLine -WorkingDirectory $Root
     $trigger = New-ScheduledTaskTrigger -AtStartup
     $trigger.Delay = "PT3M"
     # S4U: gira come l'utente corrente anche senza sessione aperta, senza salvare la password.
@@ -310,7 +311,7 @@ if ($Start) {
         }
     }
     Log "Avvio dello stack HyperSpace Start-Tutto..."
-    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$startTuttoScript`"" -WorkingDirectory $Root
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$startTuttoScript`"" -WorkingDirectory $Root -WindowStyle Hidden
     Log "Tutti i servizi sono stati lanciati in background."
 }
 

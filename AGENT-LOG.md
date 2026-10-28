@@ -9602,3 +9602,24 @@ Diagnosi:
 3. **Scheda Motion Reels (`app/motion_tab.py`, nuovo)**: catalogo dei reel di `motion/reels/`, anteprima dal vivo in iframe (la stessa pagina di `build.py`), fotogrammi di controllo, Registra MP4 con barra di avanzamento, download di HTML e MP4, stato di node/ffmpeg/Playwright. `motion/render.js` ora stampa `frame N/900` ogni secondo di video; nient'altro cambia nel generatore.
 4. **Ambiente**: `npm i --no-save playwright` è finito in `node_modules/` alla radice del repo (ignorata da git), Chromium headless in `~/Library/Caches/ms-playwright`.
 5. **Verifiche**: 42/42 test editor e motion con il runtime dell'editor, 27/27 con `.venv`; nuova UI provata su una porta di prova con Playwright: Genera produce il reel (172 s), Fotogrammi e Registra MP4 producono 1080×1920, 30 fps, 30 s. Servizio `com.hyperspace.tiktok-editor` riavviato, 7860 risponde. Nessun commit delle modifiche di questo blocco: in attesa di conferma dell'utente.
+
+## 2026-10-28 13:20 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Motion reel «pipeline» (Agent-Reach → prototipi → promozione → Hermes)
+
+- Nuovo `integrations/tiktok_editor/motion/reels/pipeline-2026-10-28.js`, stesso runtime e stessa scansione dei tempi del reel resilienza. Scene: Agent-Reach su 6 canali → `trend_inspirations.json`; ricerca notturna (`agi_research_engine`, prototipi con gate AST); promozione (`promote_research_prototype.py`: AST, backup, compile, pytest, rollback); memoria unica Hermes più `CausalMemoryGraph.trace_lineage()`; chiusura sui numeri.
+- I numeri a schermo vengono dal repository al 28/10: 24 ispirazioni nello scouting delle 09:14 UTC (arXiv 6, Scholar 6, Reddit/Web/YouTube/GitHub 3), 141 file `proto_*.py`, 15 promozioni non di test in 10 moduli di `shared/` (`promotions.jsonl`). La corsa con «test rosso» e il rollback sono dimostrativi.
+- Render: `data/reel-projects/motion/pipeline-2026-10-28/` (1080×1920, 30 fps, 30 s), copia in `~/Downloads/00MESH-HyperSpace-1.05-reel-pipeline.mp4`. `test_motion_reels.py` verde. Da committare su conferma dell'utente.
+
+## 2026-10-28 13:00 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Cura Zero-Popup Windows e segnale automatico Docker Rebuild
+
+1. **Zero-Popup su Windows (`CREATE_NO_WINDOW`)**:
+   - `scripts/omen_dev_loop_247.py`, `scripts/mesh_patch_watcher.py`, `scripts/diagnostics/omen_watchdog_247.py`: inserito il flag nativo `WIN32_NO_WINDOW = subprocess.CREATE_NO_WINDOW` (`0x08000000`) su tutte le chiamate `subprocess.run` e `subprocess.check_output` (`git`, `pytest`, `nvidia-smi`). Azzerati completamente i popup/lampeggi delle finestre terminale console su Windows durante l'esecuzione dei cicli continui.
+   - `scripts/setup-omen-247.ps1`: convertita la registrazione dell'attività pianificata da `cmd.exe /c` a `powershell.exe -WindowStyle Hidden -NonInteractive -NoLogo` e aggiunto `-WindowStyle Hidden` anche allo script Start-Tutto.
+
+2. **Segnale automatico Rebuild Docker (`scripts/mesh_patch_watcher.py`)**:
+   - `detect_docker_actions(applied_files)`: rileva se i file modificati dalla patch mesh toccano `node/`, `control-plane/`, `shared/` o compose.
+   - `emit_docker_action_signal(...)`: deposita in modo atomico `data/node-1/docker_action.signal`.
+   - `execute_docker_action_silently(...)`: esegue la ricostruzione (`rebuild-node.ps1` su Windows o `docker compose up -d --build` su Mac/Linux) in modalità 100% invisibile con log rediretti in `data/docker_rebuild.log`.
+
+3. **Verifiche & Test**:
+   - `tests/test_mesh_patch_watcher.py`: esteso con test per `detect_docker_actions` ed `emit_docker_action_signal` (7/7 passed).
+   - `tests/test_mesh_sync.py` (6/6) e `tests/test_licensing.py` (7/7) 100% passed.

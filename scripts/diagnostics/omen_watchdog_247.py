@@ -40,6 +40,7 @@ if str(ROOT) not in sys.path:
 DEFAULT_OMEN_IP = "100.104.238.125"
 TELEMETRY_LOG = ROOT / "data" / "omen_247_telemetry.jsonl"
 THERMAL_FLAG = ROOT / "data" / "thermal_pause.flag"
+WIN32_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 SERVICES_MAP = [
     {"name": "Node API (8081)", "port": 8081, "path": "/status", "critical": True},
@@ -94,7 +95,7 @@ def read_local_gpu_metrics() -> Optional[Dict[str, Any]]:
             "--query-gpu=temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.used",
             "--format=csv,noheader,nounits",
         ]
-        out = subprocess.check_output(cmd, text=True, timeout=2.0).strip()
+        out = subprocess.check_output(cmd, text=True, timeout=2.0, creationflags=WIN32_NO_WINDOW).strip()
         parts = [p.strip() for p in out.split(",")]
         if len(parts) >= 5:
             return {
