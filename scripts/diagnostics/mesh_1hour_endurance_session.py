@@ -38,6 +38,7 @@ if str(REPO_ROOT) not in sys.path:
 from shared.identity import generate_or_load_identity, make_request_headers
 from shared.universal_model_parser import UniversalModelParser
 from shared.causal_memory_graph import CausalMemoryGraph
+from shared.unsloth_dataset_adapter import UnslothDatasetAdapter
 
 # Configurazione Nodi Mesh
 MAC_CP_URL = os.getenv("HYPERSPACE_CP_URL", "http://127.0.0.1:8085")
@@ -110,7 +111,7 @@ def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65
     }
 
 
-def query_asus_flint(prompt: str, num_ctx: int = 131072, timeout: float = 240.0) -> Dict[str, Any]:
+def query_asus_flint(prompt: str, num_ctx: int = 32768, timeout: float = 240.0) -> Dict[str, Any]:
     """Invia richiesta al modello Flint 40B su ASUS V16."""
     payload = json.dumps({
         "model": MODEL_FLINT40B,
@@ -178,7 +179,7 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
     print("HYPERSPACE SOVEREIGN MESH — SESSIONE DI TEST & ENDURANCE (1 ORA)")
     print(f"Inizio: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Durata programmata: {duration_minutes} minuti (~{int(duration_minutes * 60 / cycle_interval_s)} cicli previsti)")
-    print(f"• Nodo A: ASUS V16 (Flint 40B MoE @ 128k) -> {ASUS_NODE_URL} / :11434")
+    print("• Nodo A: ASUS V16 (Flint 40B MoE @ 32k) -> " + f"{ASUS_NODE_URL} / :11434")
     print(f"• Nodo B: HP OMEN 16 (LFM2.5 24B MoE @ 64k) -> {OMEN_NODE_URL}")
     print(f"• Nodo C: Mac M5 Hub (Control Plane & Cockpit) -> {MAC_CP_URL}")
     print("=" * 70)
@@ -275,13 +276,13 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                 throughput_samples.append(omen_res["tok_s"])
                 print(f"    ✓ OMEN ha risposto in {omen_res['elapsed_s']}s ({omen_res['tok_s']} tok/s)")
 
-                print(f"  [2/2] ASUS (Flint 40B @ 128k) implementazione Python...")
+                print(f"  [2/2] ASUS (Flint 40B @ 32k) implementazione Python...")
                 flint_prompt = (
                     f"Sei Lead Coder di HyperSpace AGI. Implementa la classe completa `{topic_name}` basandoti su questa specifica:\n"
                     f"{omen_res['text']}\n\n"
                     "Ragiona in <think> (max 40 parole) e scrivi codice Python completo in blocco ```python ... ```."
                 )
-                flint_res = query_asus_flint(flint_prompt, num_ctx=131072)
+                flint_res = query_asus_flint(flint_prompt, num_ctx=32768)
                 cycle_tokens += flint_res["eval_count"]
                 throughput_samples.append(flint_res["tok_s"])
                 print(f"    ✓ Flint ha risposto in {flint_res['elapsed_s']}s ({flint_res['tok_s']} tok/s)")
@@ -338,12 +339,12 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
             else:
                 # Ciclo Pari: Flint emette telemetria incidente JSON -> OMEN emette remediation in JSON puro
                 scen_type, scen_depth, scen_urgency = INCIDENT_SCENARIOS[((cycle // 2) - 1) % len(INCIDENT_SCENARIOS)]
-                print(f"  [1/2] ASUS (Flint 40B @ 128k) telemetria incidente JSON ({scen_type})...")
+                print(f"  [1/2] ASUS (Flint 40B @ 32k) telemetria incidente JSON ({scen_type})...")
                 flint_json_prompt = (
                     "Emetti STRICT JSON report incidente per la mesh HyperSpace. Nessuna prosa:\n"
                     f'{{"schema_version":"1.0","node_id":"asus-v16","event_type":"{scen_type}","queue_depth":{scen_depth},"urgency":"{scen_urgency}"}}'
                 )
-                flint_res = query_asus_flint(flint_json_prompt, num_ctx=131072)
+                flint_res = query_asus_flint(flint_json_prompt, num_ctx=32768)
                 cycle_tokens += flint_res["eval_count"]
                 throughput_samples.append(flint_res["tok_s"])
 
@@ -410,6 +411,18 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
 
     state["active_status"] = "COMPLETED"
     update_live_report(state)
+
+    # Esportazione dataset per Unsloth LoRA Refinery
+    try:
+        adapter = UnslothDatasetAdapter(data_dir=str(DATA_DIR))
+        alpaca_out = DATA_DIR / "unsloth" / "alpaca_dataset.json"
+        total_alpaca = adapter.export_alpaca_json(str(alpaca_out), include_traces=True)
+        print(f"  ✓ Unsloth LoRA dataset aggiornato: {total_alpaca} campioni pronti in {alpaca_out}")
+        state["unsloth_samples_ready"] = total_alpaca
+        update_live_report(state)
+    except Exception as e:
+        print(f"  ⚠ Avviso esportazione Unsloth dataset: {e}")
+
     print("\n" + "=" * 70)
     print(f"SESSIONE DI ENDURANCE COMPLETATA (Totale Cicli: {cycle}, Successo: {state['successful_cycles']}/{cycle})")
     print(f"Prototipi R&D Generati: {len(state['prototypes_generated'])}")
