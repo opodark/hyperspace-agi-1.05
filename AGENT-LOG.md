@@ -9994,3 +9994,19 @@ L'outro di `runtime.js` mostra ora `REEL.cta`, di default **os.zerozerocomputer.
 2. **Modifica**: `.env` → `TOOL_CAPABLE_MODELS=lfm2.5`; `control-plane` ricreato. Nessun cambio di codice.
 3. **Prova** (richiesta con `read_files`/`run_commands`, via CP): `qwen3-8b-abliterated` e `LFM2.5-24B-A2B` → `read_files({"files":[{"path":"AGENTS.md"}]})` corretto. `LFM2.5-8B-A1B` → tool call valido ma argomenti di forma sbagliata (`"files":["AGENTS.md"]`): da preferire il 24B. `flint` non provato con i tool.
 4. **Aperto**: far accettare a `_extract_raw_tool_calls` i blocchi non chiusi e scartare i nomi di tool non dichiarati dal client. Nessun commit.
+
+## 2026-10-29 21:00 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Parser tool call più robusto, patch all'OMEN, controllo scout
+
+1. **`control-plane/cp/chat.py`**: `_extract_raw_tool_calls` recupera anche i blocchi `<tool_call>` / `<|tool_call_start|>` / `[TOOL_CALL]` **non chiusi** se il JSON/AST è completo (un blocco troncato resta testo); `_auto_heal_response_tool_calls(resp, allowed_names)` scarta i nomi non dichiarati dal client (`read_fileTool`, `shell_command`). Il tool loop passa i nomi di `all_tools`. +4 test in `tests/test_auto_heal_tool_calls.py` (9 passed). **Non committato**: aspetta conferma. CP del Mac ricostruito.
+2. **Git mesh**: `mesh_distribute.py --base da74983 --target-commit ae69842 --target OMEN` → `QUEUED`; l'OMEN risulta ancora a `da74983a` finché il watcher non applica la patch (poi rebuild container Windows). Il Mac è a `ae69842`, ASUS a `34fdbc7`.
+3. **Scout**: mai eseguito un giro reale (nessun `data/scout/latest.json`, plist non in LaunchAgents). Ollama dell'ASUS ora risponde con `flint:latest`.
+4. `tests/test_connectors.py` ha 6 fallimenti già presenti prima di questa modifica.
+
+## 2026-10-29 21:40 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Voci clonate Voicebox in HyperSpace e MoneyPrinterTurbo
+
+1. **`shared/voicebox_client.py`** (nuovo, solo stdlib): parla con l'API di Voicebox (`/profiles`, `/generate`, `/history/{id}`, `/export-audio`). Voce = `voicebox:<profilo>[@motore]`.
+2. **`scripts/kokoro_tts_service.py`**: `/v1/audio/speech` inoltra le voci `voicebox:*` a Voicebox (errore 502 se l'app è chiusa); `/v1/audio/voices` elenca anche i profili. Quindi Open WebUI e MoneyPrinterTurbo (che usano `:8880`) la ricevono senza altre modifiche. Servizio riavviato.
+3. **`integrations/moneyprinter/mpt_bridge.py`**: `--voice "voicebox:Albi ita@qwen"` → `voice_name = kokoro:voicebox:…`, con controllo che il profilo esista.
+4. **`scripts/diagnostics/voicebox_tts.py`**: `list`, `say`, `compare` (stesso testo con più motori). Doc in `docs/scout-notturno-e-video.md` §3. Test: `tests/test_voicebox_client.py` (6).
+5. **Prova reale**: profilo «Albi ita» con `qwen` e `chatterbox`, anche via `:8880` → WAV 24 kHz validi. Lenti alla prima chiamata (76 s / 51 s). **Non verificato**: video completo in MPT (manca `PEXELS_API_KEY`).
+6. Committato anche il rinforzo del parser dei tool call (voce del log 21:00), su conferma dell'utente.
