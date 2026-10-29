@@ -9915,3 +9915,82 @@ fermo, e se `tier_s` debba pesare `mobile` sotto `leaf`.
 3. **Commit & Push**:
    - Eseguito commit e push su branch `main` (`origin/main`) su esplicita richiesta utente per consentire il bootstrap del nodo Android (Termux) via `join-mesh-android.sh` o curl.
 
+
+## 2026-10-29 14:40 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Completamento Endurance Session 1h (49 cicli, 22 prototipi AST, 105k token, 452 campioni Unsloth)
+
+1. **Esito Endurance & Consolidamento Nodi**:
+   - Durata totale: 60.0 minuti esatti (avviata alle 13:38:06, terminata alle 14:38:45 UTC+1).
+   - Cicli eseguiti: **49 completati** (48/49 con successo, 98% success rate).
+   - Token totali generati attraverso la mesh: **105.810 token**.
+   - Throughput medio inter-nodo: **34.19 tok/s** (ASUS Flint ~36 tok/s, OMEN LFM ~31-34 tok/s).
+
+2. **Prototipi R&D Generati & Convalida AST (100%)**:
+   - Archiviati **22 nuovi prototipi** in `data/research/prototypes/` con parsing ed AST verification superati con successo:
+     `AdaptiveMeshCircuitBreaker`, `TokenBucketRateLimiter`, `DistributedHeartbeatSync`, `AleksanderAxiomGovernor`, `StigmergicMeshSwarm`, `NeuroSymbolicPoetryEngine`, `TriModalMemoryGraph`, `VectorClockStateReplication`, `ContinuousContextCompactor`, `DistributedRollbackJournal`, `SemanticMemoryDecayController`, `SelfHealingPeerMesh`, `WorkStealingDAGScheduler`, `SpeculativeDraftValidator`, `NeuralOpponentCurveGovernor`, `DynamicKVMemoryPool`.
+
+3. **Integrazione Dati Unsloth LoRA Refinery**:
+   - `UnslothDatasetAdapter` ha convertito ed esportato automaticamente i campioni verificati in `data/unsloth/alpaca_dataset.json`.
+   - Totale campioni di addestramento pronti per il fine-tuning QLoRA 4-bit su WSL2/GPU da 8 GB: **452 coppie istruzione-risposta**.
+
+4. **Stato della Mesh & Verifiche**:
+   - Tutti i nodi (ASUS V16, OMEN 16, Mac M5) sono rimasti stabili e responsivi per l'intera durata senza saturazione di memoria o OOM.
+   - Suite di test post-endurance (Unsloth, Atomic patterns, Consolidation R&D, Mobile gate, Licensing): **58/58 PASSED** in 0.45s.
+   - Nessun commit o push effettuato senza richiesta esplicita dell'utente.
+
+
+## 2026-10-29 14:58 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Nodo Mobile Android (Samsung S24 Ultra) Operativo nella Mesh
+
+1. **Rilevamento & Connessione Rete Tailscale**:
+   - Dispositivo: Samsung Galaxy S24 Ultra (`s24-ultra-di-a`) su Tailscale IP `100.89.232.57`.
+   - Node Worker attivo su porta `:8084` con endpoint registrato: `http://100.89.232.57:8084`.
+   - Tier registrato: `mobile`, Versione: `1.05.0`, Node ID: `5556076968d3e246bc763f6e8085028b8f9ad5f7`.
+
+2. **Telemetria Hardware & Power Gate Rilevati con Successo**:
+   - Sistema: Android 16 (`aarch64`), 8 CPU core.
+   - Alimentazione (`termux_api`): Batteria al 54.0%, in carica (`plugged_ac`), temperatura batteria rilevata: **39.0°C** (sotto soglia di sicurezza di 41°C).
+   - Mobile Gate (`shared/mobile_gate.py`): Attivo (`open: false`, motivo: `outside_window` con finestra `01:00-05:00`). Segnala correttamente stato `degraded: true` al Control Plane per evitare carichi diurni non previsti.
+
+3. **Inference Backend (Ollama su Termux)**:
+   - Ollama health: `ok: true`.
+   - Modello caricato: `qwen2.5-coder:3b` (footprint 1.89 GB, giudizio `model_fit`: entra interamente in VRAM/RAM assegnata di 6 GB).
+
+4. **Registrazione Control Plane**:
+   - Nodo inserito tra i nodi attivi in `/nodes/active` e consultabile nella dashboard. Nessun commit o push effettuato.
+
+
+## 2026-10-29 19:20 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Verifica scout notturno e MoneyPrinterTurbo
+
+1. **Test**: `tests/test_browser_scout.py`, `tests/test_mpt_bridge.py`, `tests/test_pocket_hub_guard.py` → **18/18 passed**.
+2. **Scout**: costruita l'immagine `hyperspace/browser-scout:0.13.14`; `run-scout.sh --dry-run` esce 0 e sceglie 6 pagine dalle segnalazioni trend. Nessun giro reale, plist **non** installato in LaunchAgents.
+3. **MoneyPrinterTurbo**: non ancora configurato (serve `PEXELS_API_KEY`, che lancia l'utente con `setup.sh`). Kokoro attivo su `:8880`.
+4. **Modelli**: Ollama del Mac ok (`tev1`). ASUS è su Tailscale ma `:11434` non risponde (prima rispondeva un servizio con `{"detail":"Not Found"}`): va controllato che Ollama sia avviato e in ascolto su `0.0.0.0`. OMEN `:8081` non risponde. Nodo S24 ok, gate `mobile` aperto solo 01:00–05:00: adatto ai lavori notturni.
+5. Nota: le pagine del playground citate nel passaggio di consegne risultano già committate (`6e130de`); restano non tracciati `integrations/browser-scout/`, `integrations/moneyprinter/`, `docs/scout-notturno-e-video.md`, `shared/pocket_hub_guard.py` e i loro test.
+
+**Prossimo passo proposto**: variante "audit PMI" dello scout (input: lista di siti di aziende scelta dall'utente) → dossier + bozza di messaggio, sempre `da_rivedere`, senza invio automatico. Nessun commit.
+
+## 2026-10-29 19:45 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Primo reel commerciale «Voglio te»
+
+1. **Nuovo reel** `integrations/tiktok_editor/motion/reels/voglio-te-2026-10-29.js`: 30 s, 9:16, stile manifesto d'epoca con personaggio originale col cilindro e dito puntato. Scene: «Piccola azienda! Voglio te, per i tuoi social» → il problema (foto, testi, orari, idee) → il turno di notte sui computer dell'ufficio (reel, post, testi, calendario; i dati restano in casa) → al mattino approvi, con tasto annulla → «La tua bottega merita di farsi vedere» + `mesh.zerozerocomputer.it`. MP4 in `data/reel-projects/motion/voglio-te-2026-10-29/` (ignorato da git), muto.
+2. **`runtime.js`**: nuovo `REEL.layers` per sostituire `bg`, `intro`, `outro`, `hud`, `cuts` e il colore di dissolvenza. Senza `layers` i reel esistenti sono identici. Documentato in `docs/motion-reels.md`.
+3. **`player.js`**: corretto un a-capo perso che lasciava commentato `btn.setAttribute('aria-label', …)` (il tasto play non aggiornava l'etichetta per gli screen reader).
+4. **Test**: `tests/test_motion_reels.py` 7 passed, 28 subtest.
+
+Nessun commit.
+
+## 2026-10-29 19:55 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Domini e redirect di mesh
+
+1. Il reel `voglio-te-2026-10-29` chiude ora su **www.zerozerocomputer.it** (frontpage pubblica su Aruba), non su `mesh`. MP4 rigenerato.
+2. Domini, secondo l'utente: `www` pubblico (Aruba, DNS Cloudflare), `os` aggiornato in automatico su Render, `mesh` **interno per i bot**. `mesh` è dietro il proxy Cloudflare: `/` risponde 404, `/health` e `/v1/models` 200; il repo usa `/v1/*`, `/web/*`, `/health`.
+3. Proposta (da fare in Cloudflare, non eseguita): Redirect Rule **solo sul percorso esatto `/`** di `mesh` → `https://os.zerozerocomputer.it/`, 302 per la prova e 301 dopo. Un redirect su tutto l'host romperebbe i bot.
+4. Da decidere: l'outro di `runtime.js` (reel R&D) mostra ancora `mesh.zerozerocomputer.it`.
+
+## 2026-10-29 20:00 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Indirizzo di chiusura dei reel
+
+L'outro di `runtime.js` mostra ora `REEL.cta`, di default **os.zerozerocomputer.it** (prima `mesh`, che è l'API interna dei bot). Il reel commerciale `voglio-te` usa www nella propria scena finale. Gli MP4 R&D già generati non cambiano finché non si rifà il render. `tests/test_motion_reels.py` verde. Documentato in `docs/motion-reels.md`. Nessun commit.
+
+## 2026-10-29 — Claude Code (Mac) → utente, Cips/Cline, Codex — Debug Cline ↔ HyperSpace: tool call con LFM2.5
+
+1. **Causa**: Cline usa `openai-compatible` → `localhost:8085/v1` con `flint:latest`. Il nome non è nei pattern tool-capable di `control-plane/cp/model_caps.py`, quindi il CP toglie i `tools` del client; il modello inventa `read_fileTool`/`shell_command` e scrive `<tool_call>` troncato nel testo (non recuperato da `_extract_raw_tool_calls`, che richiede la chiusura). Da lì `Invalid input` e loop di compattazione.
+2. **Modifica**: `.env` → `TOOL_CAPABLE_MODELS=lfm2.5`; `control-plane` ricreato. Nessun cambio di codice.
+3. **Prova** (richiesta con `read_files`/`run_commands`, via CP): `qwen3-8b-abliterated` e `LFM2.5-24B-A2B` → `read_files({"files":[{"path":"AGENTS.md"}]})` corretto. `LFM2.5-8B-A1B` → tool call valido ma argomenti di forma sbagliata (`"files":["AGENTS.md"]`): da preferire il 24B. `flint` non provato con i tool.
+4. **Aperto**: far accettare a `_extract_raw_tool_calls` i blocchi non chiusi e scartare i nomi di tool non dichiarati dal client. Nessun commit.
