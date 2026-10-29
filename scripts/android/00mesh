@@ -1,0 +1,233 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# =============================================================
+# 00mesh — comando del nodo mobile HyperSpace su Android (Termux)
+#
+# Installato da join-mesh-android.sh in $PREFIX/bin/00mesh.
+#
+#   00mesh start          avvia Ollama, ollama-proxy e il nodo (con wake-lock)
+#   00mesh stop           ferma tutto e rilascia il wake-lock
+#   00mesh restart
+#   00mesh status         stato del nodo, batteria, gate di lavoro, peer
+#   00mesh logs [node|proxy|ollama]
+#   00mesh bench [modello] [prompt]   token/s e temperatura su questo telefono
+#   00mesh pull <modello> scarica un modello in Ollama
+#   00mesh models         modelli presenti
+#   00mesh config         apre la configurazione nell'editor
+#   00mesh update         aggiorna il codice del nodo dal repository
+#
+# Configurazione: ~/.00mesh/node.env  (perimetro: solo ~/.00mesh e i processi
+# che questo comando avvia; non tocca nient'altro sul telefono).
+# =============================================================
+set -uo pipefail
+
+HOME_DIR="${HOME}/.00mesh"
+ENV_FILE="${HOME_DIR}/node.env"
+APP_DIR="${HOME_DIR}/app"
+VENV="${HOME_DIR}/venv"
+LOG_DIR="${HOME_DIR}/logs"
+RUN_DIR="${HOME_DIR}/run"
+PY="${VENV}/bin/python"
+
+G='\033[0;32m'; Y='\033[1;33m'; R='\033[0;31m'; C='\033[0;36m'; B='\033[1m'; N='\033[0m'
+log()  { echo -e "${G}[00mesh]${N} $*"; }
+warn() { echo -e "${Y}[warn]${N}   $*"; }
+die()  { echo -e "${R}[errore]${N} $*"; exit 1; }
+
+[ -f "$ENV_FILE" ] || die "manca ${ENV_FILE}: esegui prima join-mesh-android.sh"
+[ -x "$PY" ] || die "manca l'ambiente Python in ${VENV}: riesegui join-mesh-android.sh"
+mkdir -p "$LOG_DIR" "$RUN_DIR"
+
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
+
+NODE_PORT="${NODE_PORT:-8084}"
+NODE_BIND="${NODE_BIND:-127.0.0.1}"
+OLLAMA_HOST_PORT="${OLLAMA_URL#http://}"
+OLLAMA_HOST_PORT="${OLLAMA_HOST_PORT%/}"
+
+pid_alive() { [ -f "$RUN_DIR/$1.pid" ] && kill -0 "$(cat "$RUN_DIR/$1.pid")" 2>/dev/null; }
+
+start_one() {  # nome, directory, comando...
+    local name="$1" dir="$2"; shift 2
+    if pid_alive "$name"; then
+        log "$name già attivo (pid $(cat "$RUN_DIR/$name.pid"))"
+        return 0
+    fi
+    (
+        cd "$dir" || exit 1
+        nohup "$@" >> "$LOG_DIR/$name.log" 2>&1 &
+        echo $! > "$RUN_DIR/$name.pid"
+    )
+    sleep 1
+    if pid_alive "$name"; then
+        log "$name avviato (pid $(cat "$RUN_DIR/$name.pid"))"
+    else
+        warn "$name non è partito: 00mesh logs $name"
+    fi
+}
+
+stop_one() {
+    local name="$1"
+    if pid_alive "$name"; then
+        kill "$(cat "$RUN_DIR/$name.pid")" 2>/dev/null
+        log "$name fermato"
+    fi
+    rm -f "$RUN_DIR/$name.pid"
+}
+
+wait_http() {  # url, secondi
+    local url="$1" secs="${2:-20}" i
+    for ((i = 0; i < secs; i++)); do
+        curl -sf --max-time 2 "$url" >/dev/null 2>&1 && return 0
+        sleep 1
+    done
+    return 1
+}
+
+current_ts_ip() {
+    "$PY" - <<'PYEOF' 2>/dev/null
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("100.100.100.100", 53))
+ip = s.getsockname()[0]
+print(ip if ip.startswith("100.") else "")
+PYEOF
+}
+
+node_url() {  # dove ascolta davvero il nodo avviato
+    local host
+    host="$(cat "$RUN_DIR/node.bind" 2>/dev/null || echo "$NODE_BIND")"
+    [ "$host" = "0.0.0.0" ] && host=127.0.0.1
+    echo "http://${host}:${NODE_PORT}"
+}
+
+serve_models() {
+    case "$(echo "${NODE_SERVE_MODELS:-true}" | tr '[:upper:]' '[:lower:]')" in
+        false|0|no|off) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+cmd_start() {
+    command -v termux-wake-lock >/dev/null && termux-wake-lock
+    if serve_models; then
+        if command -v ollama >/dev/null; then
+            start_one ollama "$HOME_DIR" env OLLAMA_HOST="$OLLAMA_HOST_PORT" ollama serve
+            wait_http "${OLLAMA_URL}/api/tags" 20 || warn "Ollama non risponde ancora su ${OLLAMA_URL}"
+        else
+            warn "ollama non installato: il nodo resta in mesh senza servire modelli"
+        fi
+        start_one proxy "$APP_DIR/node" \
+            "$PY" -m uvicorn ollama_proxy:app --host 127.0.0.1 --port 11435
+    fi
+    # Il nodo ascolta solo sull'IP Tailscale: chi è sulla stessa Wi-Fi non lo
+    # raggiunge. Se all'avvio la VPN è spenta quell'IP non esiste e uvicorn non
+    # partirebbe: in quel caso il nodo resta locale finché non si riavvia.
+    if [[ "$NODE_BIND" == 100.* ]] && [ "$(current_ts_ip)" != "$NODE_BIND" ]; then
+        warn "Tailscale non attivo (atteso ${NODE_BIND}): il nodo parte solo in locale."
+        warn "Attiva la VPN Tailscale e poi: 00mesh restart"
+        NODE_BIND=127.0.0.1
+    fi
+    echo "$NODE_BIND" > "$RUN_DIR/node.bind"
+    start_one node "$APP_DIR/node" \
+        "$PY" -m uvicorn main:app --host "$NODE_BIND" --port "$NODE_PORT"
+    if wait_http "$(node_url)/health" 30; then
+        cmd_status
+    else
+        warn "il nodo non risponde ancora: 00mesh logs node"
+    fi
+}
+
+cmd_stop() {
+    stop_one node
+    stop_one proxy
+    stop_one ollama
+    command -v termux-wake-unlock >/dev/null && termux-wake-unlock
+}
+
+cmd_status() {
+    local alive=""
+    for s in node proxy ollama; do
+        if pid_alive "$s"; then alive+="${s}:on "; else alive+="${s}:off "; fi
+    done
+    echo -e "${B}${C}⧢ 00mesh — nodo mobile${N}   ${alive}"
+    STATUS_JSON="$(curl -sf --max-time 5 "$(node_url)/status" 2>/dev/null)" "$PY" - <<'PYEOF'
+import json, os
+try:
+    s = json.loads(os.environ.get("STATUS_JSON") or "")
+except ValueError:
+    raise SystemExit("  il nodo non risponde su /status")
+p = s.get("power") or {}
+g = s.get("mobile_gate") or {}
+temp = p.get("temperature_c")
+presa = "in presa" if p.get("ac_line") else "a batteria"
+print(f"  nodo      {s.get('node_id', '?')[:12]}  tier={s.get('tier')}  v{s.get('version')}")
+print(f"  endpoint  {s.get('endpoint')}")
+print(f"  peer      {s.get('peers_active', 0)} attivi su {s.get('peers_total', 0)}")
+print(f"  batteria  {p.get('battery_pct')}%  {presa}"
+      + (f"  {temp}°C" if temp is not None else "") + f"  ({p.get('source')})")
+if g:
+    stato = "APERTO, accetta lavoro" if g.get("open") else "CHIUSO, " + g.get("summary", "")
+    finestra = f"  [finestra {g.get('window')}]" if g.get("window") else ""
+    print(f"  gate      {stato}{finestra}")
+print(f"  carico    {s.get('active_requests', 0)} attive, {s.get('queued_requests', 0)} in coda, "
+      f"degraded={s.get('degraded')}")
+PYEOF
+}
+
+cmd_logs() {
+    local name="${1:-node}"
+    [ -f "$LOG_DIR/$name.log" ] || die "nessun log per $name (node|proxy|ollama)"
+    tail -n 80 -f "$LOG_DIR/$name.log"
+}
+
+cmd_bench() {
+    local model="${1:-${OLLAMA_MODEL:-}}"
+    local prompt="${2:-Spiega in cinque frasi come funziona una rete mesh di nodi AI distribuiti.}"
+    [ -n "$model" ] || die "indica un modello: 00mesh bench qwen3:4b"
+    wait_http "${OLLAMA_URL}/api/tags" 3 || die "Ollama non è attivo: 00mesh start"
+    log "bench ${model} (il primo giro include il caricamento in memoria)..."
+    local before after
+    before=$(termux-battery-status 2>/dev/null | "$PY" -c 'import json,sys;print(json.load(sys.stdin).get("temperature",""))' 2>/dev/null)
+    BENCH_MODEL="$model" BENCH_PROMPT="$prompt" "$PY" - <<'PYEOF'
+import json, os, urllib.request
+url = os.environ["OLLAMA_URL"].rstrip("/") + "/api/generate"
+body = json.dumps({"model": os.environ["BENCH_MODEL"], "prompt": os.environ["BENCH_PROMPT"],
+                   "stream": False, "think": False}).encode()
+req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+with urllib.request.urlopen(req, timeout=900) as r:
+    d = json.load(r)
+ns = 1e9
+load = d.get("load_duration", 0) / ns
+pe, pd = d.get("prompt_eval_count", 0), d.get("prompt_eval_duration", 0) / ns
+ec, ed = d.get("eval_count", 0), d.get("eval_duration", 0) / ns
+print(f"  caricamento  {load:6.1f} s")
+print(f"  prompt       {pe} token in {pd:.1f} s" + (f"  ({pe/pd:.1f} tok/s)" if pd else ""))
+print(f"  generazione  {ec} token in {ed:.1f} s" + (f"  ({ec/ed:.1f} tok/s)" if ed else ""))
+PYEOF
+    after=$(termux-battery-status 2>/dev/null | "$PY" -c 'import json,sys;print(json.load(sys.stdin).get("temperature",""))' 2>/dev/null)
+    [ -n "$before" ] && echo "  batteria     ${before}°C -> ${after}°C"
+}
+
+cmd_update() {
+    [ -d "$APP_DIR/.git" ] || die "codice non gestito da git in $APP_DIR"
+    git -C "$APP_DIR" pull --ff-only && log "codice aggiornato: 00mesh restart per applicarlo"
+}
+
+case "${1:-status}" in
+    start)   cmd_start ;;
+    stop)    cmd_stop ;;
+    restart) cmd_stop; sleep 1; cmd_start ;;
+    status)  cmd_status ;;
+    logs)    cmd_logs "${2:-node}" ;;
+    bench)   cmd_bench "${2:-}" "${3:-}" ;;
+    pull)    [ -n "${2:-}" ] || die "uso: 00mesh pull <modello>"
+             env OLLAMA_HOST="$OLLAMA_HOST_PORT" ollama pull "$2" ;;
+    models)  env OLLAMA_HOST="$OLLAMA_HOST_PORT" ollama list ;;
+    config)  "${EDITOR:-nano}" "$ENV_FILE" && log "salvato: 00mesh restart per applicare" ;;
+    update)  cmd_update ;;
+    *)       sed -n '7,17p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac

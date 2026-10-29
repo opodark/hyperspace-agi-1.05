@@ -9846,3 +9846,72 @@ Accolgo integralmente i 3 rilievi di Claude, che hanno evidenziato scorciatoie t
    - Nuova suite: [`tests/test_unsloth_adapter.py`](tests/test_unsloth_adapter.py) (3 test unitari dedicati).
    - Esecuzione congiunta con licensing: **12/12 PASSED**.
    - Nessun commit di questo blocco senza conferma dell'utente.
+
+
+## 2026-10-29 13:40 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Avvio Endurance & R&D Session (1 Ora, Nodi Aggiornati)
+
+1. **Stato dei Nodi Rilevato & Verificato**:
+   - ASUS V16 (`100.64.31.18:8081` e `:11434`): Flint 40B MoE attivo, latenza ping 6.72ms - 10.31ms.
+   - HP OMEN 16 (`100.104.238.125:8081`): LFM 24B MoE attivo, worker response HTTP 200 con firma ECDSA, latenza 108ms.
+   - Mac M5 Hub (`127.0.0.1:8085` / `:8090`): Control Plane e Cockpit HUD operativi, latenza < 0.2ms.
+
+2. **Ottimizzazione Configurazione Endurance (`scripts/diagnostics/mesh_1hour_endurance_session.py`)**:
+   - Allineato il context window di Flint su ASUS a `num_ctx=32768` (da 128k) per mantenere l'allocazione VRAM entro 5.5 GB ed evitare spillover in RAM di sistema su GPU da 8 GB.
+   - Connesso `UnslothDatasetAdapter` (`shared/unsloth_dataset_adapter.py`) per esportare ed aggiornare automaticamente ad ogni completamento il dataset Alpaca in `data/unsloth/alpaca_dataset.json`.
+
+3. **Pre-flight Check & Esecuzione di Sanità**:
+   - Suite unitaria (34 test tra Unsloth adapter, R&D consolidation, Atomic patterns, Licensing): **34/34 PASSED** (0.62s).
+   - Micro-ciclo di prova completato con successo: OMEN 32.07 tok/s (firma ECDSA valida), ASUS Flint 35.3 tok/s, AST check attivo, 404 campioni Unsloth estratti.
+
+4. **Lancio Sessione Endurance 60 Minuti**:
+   - Processo lanciato in background con durata programmata di 60 minuti (~80 cicli previsti) alternando Co-Dev di architettura/codice e handshake di telemetria incidenti/remediation in JSON puro.
+   - Monitoraggio real-time: log continuo in `data/research/endurance_session_1h.log`, report live interrogabile in `data/reports/endurance_session_live.json` e telemetria live su Cockpit (`http://localhost:8090/analytics.html`).
+   - Nessun commit o push effettuato (in rispetto della Regola 3 di `AGENTS.md`).
+
+
+## 2026-10-29 13:55 — Claude (claude.ai, sessione cloud) → utente, Cips/Cline, Codex, Antigravity — Nodo mobile Android (Termux), tier `mobile`
+
+Lavoro fatto su un clone di `main` (commit `70ab9c6`), consegnato all'utente come patch. Nessun commit, nessun push.
+
+1. **`shared/power_sense.py`**: rilevamento Android (`is_android()`), lettura batteria con `termux-battery-status`
+   (percentuale, presa, stato, **temperatura**), cache 20 s, sysfs come ripiego. Su Android il fallback non è più
+   "presa fissa" ma "a batteria" (`source: android_unknown`). Il comportamento su Mac/Linux/Windows/WSL è invariato.
+2. **`shared/mobile_gate.py`** (nuovo): il nodo mobile lavora solo se in carica, sopra `MOBILE_MIN_BATTERY_PCT`,
+   sotto `MOBILE_MAX_TEMP_C` (isteresi con `MOBILE_RESUME_TEMP_C`) e dentro `MOBILE_WORK_WINDOW`. Lettura batteria in
+   un thread, gli endpoint leggono lo stato pronto.
+3. **`node/main.py`**: `NODE_TIER=mobile` ammesso; con il gate chiuso `/execute` e `/v1/chat/completions` (stream e
+   non) rispondono 503 `node_power_gated`; `degraded` in `/status`, `/metrics`, registry e telemetria include il gate,
+   così il CP smette di scegliere il nodo (in `routing.py` un tier sconosciuto vale come `leaf`, quindi `mobile` non
+   rompe lo scoring). Il dream worker non parte a gate chiuso. Nuovo campo `mobile_gate` in `/status`.
+   Comportamento invariato per gli altri tier (gate spento salvo `MOBILE_GATE=on`).
+4. **`shared/mesh_sync.py`**: `shared/mobile_gate.py` aggiunto agli ambiti `worker-leaf`, `worker-cpu`, `leaf`
+   (dipendenza nuova di `node/main.py`); nuovo ruolo `mobile`.
+5. **`join-mesh-android.sh`** + **`scripts/android/00mesh`**: installer Termux (sparse checkout di node/shared,
+   venv con cryptography da pkg, Tailscale, env in `~/.00mesh/node.env`, avvio con Termux:Boot) e comando di
+   gestione `00mesh start|stop|status|logs|bench|pull|config|update`.
+6. **Doc**: `docs/android-node.md`. **Test**: `tests/test_mobile_gate.py` (24).
+
+Verifiche nella sandbox: `test_mobile_gate`, `test_power_policy`, `test_power_routing`, `test_node_telemetry`,
+`test_mesh_sync`, `test_request_budget`, `test_dreaming`, `test_doctor_mesh` verdi; `bash -n` sugli script;
+`00mesh start/status/stop` provato con un nodo finto. **Non verificato**: avvio reale del nodo (PyPI non raggiungibile
+dalla sandbox, fastapi assente) e lo script su un telefono vero. Va provato sull'S24 e con la suite completa nel `.venv`.
+
+**Per Codex**: valutare se il CP debba leggere `mobile_gate.reasons` per mostrare in dashboard perché un nodo mobile è
+fermo, e se `tier_s` debba pesare `mobile` sotto `leaf`.
+
+
+## 2026-10-29 14:22 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Applicazione e Push del Nodo Mobile Android (Termux)
+
+1. **Applicazione Patch `00mesh-android-node.patch`**:
+   - Applicati con successo tutti i file della patch di Claude (`docs/android-node.md`, `join-mesh-android.sh`, `node/main.py`, `scripts/android/00mesh`, `shared/mesh_sync.py`, `shared/mobile_gate.py`, `shared/power_sense.py`, `tests/test_mobile_gate.py`).
+   - Incluso e tracciato `00mesh-android-node.patch` nella root su richiesta dell'utente.
+
+2. **Verifiche & Test di Regressione**:
+   - `tests/test_mobile_gate.py`: **24/24 PASSED** (0.05s).
+   - Test correlati (power policy, power routing, node telemetry, mesh sync, request budget, dreaming, doctor mesh): **66/66 PASSED** (0.82s).
+   - Licensing suite: **7/7 PASSED**.
+   - Sintassi shell: `bash -n join-mesh-android.sh` e `bash -n scripts/android/00mesh` superate senza errori.
+
+3. **Commit & Push**:
+   - Eseguito commit e push su branch `main` (`origin/main`) su esplicita richiesta utente per consentire il bootstrap del nodo Android (Termux) via `join-mesh-android.sh` o curl.
+

@@ -60,6 +60,7 @@ from shared.mesh_sync import (
     verify_patch_rbac,
 )
 from shared.power_sense import detect_host_power
+from shared.mobile_gate import MOBILE_TIER, MobileGate, MobileGateConfig
 from shared import ollama_native
 from datetime import datetime, timezone
 
@@ -290,7 +291,7 @@ def detect_vram_gb() -> float:
         return 0.0
 
 def calculate_tier(vram_gb: float, uptime_s: float, reputation: float = 0.5) -> str:
-    if _FORCED_TIER in ("hub", "root", "leaf"):
+    if _FORCED_TIER in ("hub", "root", "leaf", MOBILE_TIER):
         return _FORCED_TIER
     root_score = min(uptime_s / 604800, 1.0) * 25 + 0.5 * 35 + reputation * 40
     if root_score >= 85.0: return "root"
@@ -332,6 +333,44 @@ if VRAM_GB > 0 or os.getenv("OLLAMA_URL"):
     NODE_CAPABILITIES.append("ollama")
 NODE_CAPABILITIES.append("ollama-proxy")
 NODE_CAPABILITIES.append("v1-chat-completions")
+
+# ── NODO MOBILE (telefono Android in Termux) ─────────────────────────────
+# NODE_TIER=mobile accende il gate di shared/mobile_gate.py: il nodo accetta
+# lavoro solo in carica, sopra una batteria minima, sotto una temperatura
+# massima e (se configurata) dentro MOBILE_WORK_WINDOW. Quando il gate è
+# chiuso il nodo si dichiara degraded, così il control-plane non lo sceglie.
+# MOBILE_GATE=on/off forza il gate anche su altri tier (o lo spegne).
+IS_MOBILE_NODE = _FORCED_TIER == MOBILE_TIER
+if IS_MOBILE_NODE:
+    NODE_CAPABILITIES.append("mobile")
+_mobile_gate_env = os.getenv("MOBILE_GATE", "").strip().lower()
+_mobile_gate = MobileGate(
+    MobileGateConfig.from_env(),
+    detect_host_power,
+    enabled=(_mobile_gate_env in ("1", "true", "on", "yes")) or (IS_MOBILE_NODE and _mobile_gate_env not in ("0", "false", "off", "no")),
+    refresh_s=float(os.getenv("MOBILE_GATE_REFRESH_S", "30")),
+)
+
+
+def _gate_closed() -> bool:
+    return _mobile_gate.enabled and not _mobile_gate.allows_work()
+
+
+def _node_degraded() -> bool:
+    """Degradato per QoS (latenza/throughput) o per il gate mobile."""
+    return bool(_qos_monitor.degraded) or _gate_closed()
+
+
+def _power_gated_response():
+    gate = _mobile_gate.snapshot()
+    return Response(
+        content=json.dumps({"error": {
+            "message": f"nodo mobile in pausa: {gate.get('summary', 'gate chiuso')}",
+            "type": "node_power_gated",
+            "reasons": gate.get("reasons", []),
+        }}),
+        status_code=503, media_type="application/json",
+    )
 
 
 def _model_fit_status() -> dict:
@@ -467,7 +506,7 @@ async def register_to_registry():
             "queued_requests": str(queued_u),
             "capacity":        str(_load_limiter.capacity),
             "saturation":      str(_qos_monitor.saturation),
-            "degraded":        "true" if _qos_monitor.degraded else "false",
+            "degraded":        "true" if _node_degraded() else "false",
             "degradation_pct": str(_qos_monitor.degradation_pct),
         }
     }
@@ -721,7 +760,7 @@ async def startup_event():
     from dreaming import DreamWorker
     _dream_worker = DreamWorker(
         DATA_DIR, NODE_ID, os.getenv("DREAM_MODEL", DEFAULT_MODEL), _read_memory,
-        lambda: not (_load_limiter.active_requests or _load_limiter.queued_requests or _load_limiter.degraded),
+        lambda: not (_load_limiter.active_requests or _load_limiter.queued_requests or _load_limiter.degraded or _gate_closed()),
         _load_limiter.acquire_idle, _release_slot,
         _generate_dream, _publish_dream,
         enabled=os.getenv("DREAM_ENABLED", "false").lower() == "true" and INFERENCE_BACKEND == "ollama",
@@ -731,6 +770,13 @@ async def startup_event():
     _dream_loop = asyncio.create_task(_dream_worker.run())
     t = threading.Thread(target=heartbeat_loop, daemon=True)
     t.start()
+    _mobile_gate.start()
+    if _mobile_gate.enabled:
+        _g = _mobile_gate.snapshot()
+        _c = _mobile_gate.cfg
+        print(f"[NODE:{NODE_ID[:10]}] mobile gate ON: charger={'required' if _c.require_charger else 'optional'} "
+              f"min_battery={_c.min_battery_pct:.0f}% max_temp={_c.max_temp_c:.0f}C "
+              f"window={_c.window_spec or 'always'} -> {_g.get('summary')}")
     print(f"[NODE:{NODE_ID[:10]}] started v1.05.0")
     print(f"[NODE:{NODE_ID[:10]}] tier={NODE_PROFILE['tier']} (forced={_FORCED_TIER or 'no'})")
     print(f"[NODE:{NODE_ID[:10]}] advertised={NODE_ADVERTISED_ENDPOINT}")
@@ -822,8 +868,9 @@ def status():
         "queued_requests":  _load_limiter.queued_requests,
         "capacity":         _load_limiter.capacity,
         "saturation":       _qos_monitor.saturation,
-        "degraded":         _qos_monitor.degraded,
+        "degraded":         _node_degraded(),
         "degradation_pct":  _qos_monitor.degradation_pct,
+        **({"mobile_gate": _mobile_gate.snapshot()} if _mobile_gate.enabled else {}),
         "running":        True,
     }
 
@@ -844,7 +891,7 @@ async def node_metrics():
         "queued_requests": _load_limiter.queued_requests,
         "capacity":        round(_load_limiter.capacity, 2),
         "saturation":      _qos_monitor.saturation,
-        "degraded":        _qos_monitor.degraded,
+        "degraded":        _node_degraded(),
         "degradation_pct": _qos_monitor.degradation_pct,
         # Quale modello sta EFFETTIVAMENTE eseguendo richieste adesso
         # (modello -> conteggio richieste in-flight).
@@ -864,7 +911,7 @@ def _gather_local_telemetry():
             "queued_requests": _load_limiter.queued_requests,
             "capacity": round(_load_limiter.capacity, 2),
             "saturation": _qos_monitor.saturation,
-            "degraded": _qos_monitor.degraded,
+            "degraded": _node_degraded(),
             "degradation_pct": _qos_monitor.degradation_pct,
             "active_by_model": dict(_load_limiter.active_by_model),
             "engine": INFERENCE_BACKEND,
@@ -1099,6 +1146,8 @@ async def execute_task(task: dict):
     )
     model = task.get("model") or task.get("payload", {}).get("model") or DEFAULT_MODEL
 
+    if _gate_closed():
+        return _power_gated_response()
     if not await _try_acquire_slot(model):
         return _busy_response()
     try:
@@ -1158,6 +1207,8 @@ async def v1_chat_completions_proxy(request: Request):
     model  = payload.get("model", "") or DEFAULT_MODEL
 
     if stream:
+        if _gate_closed():
+            return _power_gated_response()
         if not await _try_acquire_slot(model):
             return _busy_response()
 
@@ -1177,6 +1228,8 @@ async def v1_chat_completions_proxy(request: Request):
                 await _release_slot(model)
         return StreamingResponse(_stream_gen(), media_type="text/event-stream")
 
+    if _gate_closed():
+        return _power_gated_response()
     if not await _try_acquire_slot(model):
         return _busy_response()
     try:

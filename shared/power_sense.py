@@ -2,7 +2,8 @@
 # shared/power_sense.py
 # HyperSpace AGI — Energy Management & Power Sensing
 """Rilevamento dello stato energetico (AC vs Batteria, percentuale di carica)
-per nodi portatili della mesh su macOS, Linux, Windows e ambienti containerizzati (Docker/WSL2)."""
+per nodi portatili della mesh su macOS, Linux, Windows, Android (Termux) e ambienti
+containerizzati (Docker/WSL2)."""
 
 import json
 import os
@@ -167,6 +168,80 @@ def _parse_wsl_powershell() -> Optional[Dict[str, Any]]:
     return None
 
 
+def is_android() -> bool:
+    """True su Android (Termux o Python ufficiale per Android).
+
+    In Termux platform.system() risponde "Linux": il segnale affidabile è
+    l'ambiente Android (ANDROID_ROOT) o l'API level esposto da sys."""
+    import sys
+    if platform.system() == "Android":
+        return True
+    if hasattr(sys, "getandroidapilevel"):
+        return True
+    return bool(os.environ.get("ANDROID_ROOT")) and bool(os.environ.get("ANDROID_DATA"))
+
+
+# termux-battery-status passa da un intent verso l'app Termux:API: costa
+# qualche centinaio di ms e senza l'app installata resta appeso. /status, il
+# gate mobile e la telemetria lo chiedono spesso, quindi il risultato è
+# condiviso per qualche secondo.
+_TERMUX_CACHE: Dict[str, Any] = {"ts": 0.0, "value": None}
+TERMUX_CACHE_TTL_S = float(os.getenv("TERMUX_BATTERY_CACHE_S", "20"))
+
+
+def _map_termux_battery(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Converte l'output JSON di termux-battery-status nel formato comune."""
+    if not isinstance(data, dict) or "percentage" not in data:
+        return None
+    plugged = str(data.get("plugged") or "UNPLUGGED").upper()
+    status = str(data.get("status") or "").upper()
+    try:
+        pct = float(data["percentage"])
+    except (TypeError, ValueError):
+        pct = None
+    temp = data.get("temperature")
+    try:
+        temp = round(float(temp), 1) if temp is not None else None
+    except (TypeError, ValueError):
+        temp = None
+    ac_line = plugged != "UNPLUGGED"
+    return {
+        "ac_line": ac_line,
+        "battery_pct": pct,
+        "is_battery": True,
+        "charging": status == "CHARGING",
+        # Con la protezione batteria Samsung (carica ferma all'80%) il telefono
+        # è collegato ma "NOT_CHARGING": non sta scaricando, conta come presa.
+        "discharging": status == "DISCHARGING" or not ac_line,
+        "plugged": plugged.lower(),
+        "battery_status": status.lower() or None,
+        "temperature_c": temp,
+        "source": "termux_api",
+    }
+
+
+def _parse_termux_battery() -> Optional[Dict[str, Any]]:
+    """Legge la batteria tramite termux-battery-status (pacchetto termux-api
+    + app Termux:API). Su Android recenti /sys/class/power_supply è spesso
+    illeggibile per SELinux, quindi questa è la via principale."""
+    now = time.monotonic()
+    if _TERMUX_CACHE["value"] is not None and now - _TERMUX_CACHE["ts"] < TERMUX_CACHE_TTL_S:
+        return dict(_TERMUX_CACHE["value"])
+    exe = shutil.which("termux-battery-status")
+    if not exe:
+        return None
+    try:
+        p = subprocess.run([exe], capture_output=True, text=True, timeout=4)
+        if p.returncode != 0 or not p.stdout.strip():
+            return None
+        res = _map_termux_battery(json.loads(p.stdout))
+    except Exception:
+        return None
+    if res:
+        _TERMUX_CACHE.update(ts=now, value=dict(res))
+    return res
+
+
 def _read_host_power_file(data_dir: Optional[Path] = None, max_age_s: float = DEFAULT_FRESHNESS_S) -> Optional[Dict[str, Any]]:
     """Cerca host_power.json nelle directory dati condivise."""
     candidates = []
@@ -234,8 +309,10 @@ def detect_host_power(data_dir: Optional[Path] = None) -> Dict[str, Any]:
 
     Ordine di risoluzione:
       1. File condiviso host_power.json (se recente < 60s, vitale per container Docker)
-      2. Rilevamento nativo host (pmset su Mac, sysfs su Linux, Win32 API su Windows, PowerShell su WSL2)
-      3. Fallback di sicurezza: alimentazione da rete presunta (ac_line=True, is_battery=False).
+      2. Rilevamento nativo host (termux-battery-status su Android, pmset su Mac, sysfs su Linux,
+         Win32 API su Windows, PowerShell su WSL2)
+      3. Fallback di sicurezza: alimentazione da rete presunta (ac_line=True, is_battery=False),
+         tranne su Android, dove il fallback è prudente (batteria, nessuna presa).
     """
     # 1. File host condiviso
     file_status = _read_host_power_file(data_dir=data_dir)
@@ -244,6 +321,21 @@ def detect_host_power(data_dir: Optional[Path] = None) -> Dict[str, Any]:
 
     # 2. Rilevamento nativo per OS
     sys_name = platform.system()
+    if is_android():
+        # Termux: termux-battery-status prima, sysfs come ripiego (spesso
+        # bloccato da SELinux). Mai il fallback "presa fissa": su un telefono
+        # dichiarare AC senza saperlo farebbe lavorare il nodo a batteria.
+        res_android = _parse_termux_battery() or _parse_linux_sysfs()
+        if res_android:
+            return res_android
+        return {
+            "ac_line": False,
+            "battery_pct": None,
+            "is_battery": True,
+            "charging": False,
+            "discharging": True,
+            "source": "android_unknown",
+        }
     if sys_name == "Darwin":
         res = _parse_mac_pmset()
         if res:

@@ -54,6 +54,7 @@ ROLE_WRITE_SCOPES: Dict[str, List[str]] = {
         "worker/**",
         "node/**",
         "shared/power_sense.py",
+        "shared/mobile_gate.py",
         "tests/test_node*.py",
         "tests/test_mesh*.py",
     ],
@@ -61,6 +62,7 @@ ROLE_WRITE_SCOPES: Dict[str, List[str]] = {
         "worker/**",
         "node/**",
         "shared/power_sense.py",
+        "shared/mobile_gate.py",
         "tests/test_node*.py",
         "tests/test_mesh*.py",
     ],
@@ -68,8 +70,18 @@ ROLE_WRITE_SCOPES: Dict[str, List[str]] = {
         "worker/**",
         "node/**",
         "shared/power_sense.py",
+        "shared/mobile_gate.py",
         "tests/test_node*.py",
         "tests/test_mesh*.py",
+    ],
+    # Telefono Android in Termux (NODE_TIER=mobile): come un leaf, più il
+    # gate di lavoro e il proprio comando di gestione.
+    "mobile": [
+        "node/**",
+        "shared/power_sense.py",
+        "shared/mobile_gate.py",
+        "scripts/android/**",
+        "tests/test_mobile_gate.py",
     ],
     "edge-web": [
         "web-node/**",
