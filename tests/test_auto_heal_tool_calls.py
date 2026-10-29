@@ -86,6 +86,33 @@ class TestAutoHealToolCalls(unittest.TestCase):
         self.assertEqual(healed["choices"][0]["finish_reason"], "stop")
         self.assertNotIn("tool_calls", healed["choices"][0]["message"])
 
+    def test_unclosed_block_with_complete_json_is_recovered(self):
+        text = 'Leggo. <tool_call>{"name": "read_files", "arguments": {"files": [{"path": "AGENTS.md"}]}}'
+        cleaned, calls = _extract_raw_tool_calls(text)
+        self.assertEqual(cleaned, "Leggo.")
+        self.assertEqual([c["function"]["name"] for c in calls], ["read_files"])
+
+    def test_unclosed_block_truncated_is_left_alone(self):
+        text = "<think>ok</think><tool_call>run_commands"
+        cleaned, calls = _extract_raw_tool_calls(text)
+        self.assertEqual(calls, [])
+        self.assertEqual(cleaned, text)
+
+    def test_undeclared_tool_name_is_not_healed(self):
+        resp = {"choices": [{"finish_reason": "stop", "message": {
+            "role": "assistant",
+            "content": "<tool_call>{\"name\": \"shell_command\", \"arguments\": {}}</tool_call>"}}]}
+        healed = _auto_heal_response_tool_calls(resp, {"run_commands", "read_files"})
+        self.assertEqual(healed["choices"][0]["finish_reason"], "stop")
+        self.assertNotIn("tool_calls", healed["choices"][0]["message"])
+
+    def test_declared_tool_name_is_healed(self):
+        resp = {"choices": [{"finish_reason": "stop", "message": {
+            "role": "assistant",
+            "content": "<tool_call>{\"name\": \"run_commands\", \"arguments\": {}}</tool_call>"}}]}
+        healed = _auto_heal_response_tool_calls(resp, {"run_commands"})
+        self.assertEqual(healed["choices"][0]["finish_reason"], "tool_calls")
+
 
 if __name__ == "__main__":
     unittest.main()

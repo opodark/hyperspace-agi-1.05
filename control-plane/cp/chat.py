@@ -346,9 +346,12 @@ def _extract_raw_tool_calls(content: str):
         return content, []
 
     patterns = [
-        r'<\|tool_call_start\|>(.*?)<\|tool_call_end\|>',
-        r'<tool_call>(.*?)</tool_call>',
-        r'\[TOOL_CALL\](.*?)\[/TOOL_CALL\]',
+        # Il terminatore è facoltativo: un modello che sfora il limite di token
+        # lascia il blocco aperto (`<tool_call>{...}` senza chiusura). Se il
+        # JSON/AST è completo lo si recupera, se è troncato non si tocca nulla.
+        r'<\|tool_call_start\|>(.*?)(?:<\|tool_call_end\|>|$)',
+        r'<tool_call>(.*?)(?:</tool_call>|$)',
+        r'\[TOOL_CALL\](.*?)(?:\[/TOOL_CALL\]|$)',
     ]
 
     extracted_calls = []
@@ -414,8 +417,12 @@ def _extract_raw_tool_calls(content: str):
     return cleaned_content.strip(), extracted_calls
 
 
-def _auto_heal_response_tool_calls(resp):
-    """Se il modello ha emesso i token speciali nel testo invece che nel JSON, li converte in tool_calls nativi."""
+def _auto_heal_response_tool_calls(resp, allowed_names=None):
+    """Se il modello ha emesso i token speciali nel testo invece che nel JSON, li converte in tool_calls nativi.
+
+    `allowed_names`: i tool realmente dichiarati per la richiesta. Un nome
+    inventato dal modello (`read_fileTool`, `shell_command`) non diventa un
+    tool call: il client lo rifiuterebbe con un errore a vuoto."""
     if not isinstance(resp, dict):
         return resp
     choices = resp.get("choices") or []
@@ -426,6 +433,8 @@ def _auto_heal_response_tool_calls(resp):
         return resp
     raw_content = message.get("content", "")
     cleaned, extracted = _extract_raw_tool_calls(raw_content)
+    if extracted and allowed_names is not None:
+        extracted = [tc for tc in extracted if tc["function"]["name"] in allowed_names]
     if extracted:
         message["content"] = cleaned
         message["tool_calls"] = extracted
@@ -871,7 +880,9 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
             continue
 
         _heal_fn  = globals().get("_auto_heal_response_tool_calls")
-        resp      = _heal_fn(resp) if callable(_heal_fn) else resp
+        resp      = (_heal_fn(resp, {t["function"]["name"] for t in all_tools
+                                     if t.get("function", {}).get("name")})
+                     if callable(_heal_fn) else resp)
         last_resp = resp
         choice    = resp.get("choices", [{}])[0]
         message   = choice.get("message", {})
