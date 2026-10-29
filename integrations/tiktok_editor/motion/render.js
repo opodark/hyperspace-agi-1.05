@@ -22,7 +22,7 @@ try { ({ chromium } = require('playwright')); } catch (e) {
 
 const [page_, out, flag, list] = process.argv.slice(2);
 if (!page_ || !out) { console.error('uso: node render.js <pagina.render.html> <uscita> [--stills t1,t2]'); process.exit(2); }
-const FPS = 30, DUR = 30;
+const FPS = 30;
 
 (async () => {
   const browser = await chromium.launch();
@@ -32,6 +32,7 @@ const FPS = 30, DUR = 30;
   await page.goto('file://' + path.resolve(page_));
   await page.evaluate(() => window.__ready);
   if (failed) { await browser.close(); process.exit(1); }
+  const DUR = await page.evaluate(() => window.__dur || 30); // durata e formato vengono dalla pagina
   const grab = async t => Buffer.from((await page.evaluate(t => {
     window.__renderAt(t); return document.getElementById('cv').toDataURL('image/png');
   }, t)).split(',')[1], 'base64');

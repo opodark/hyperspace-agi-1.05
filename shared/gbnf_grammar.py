@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""GBNF (GGML BNF) Grammar Generator & Constraint Enforcer per HyperSpace Mesh.
+"""GBNF (GGML BNF) Grammar Generator & Schema Constraints per HyperSpace Mesh.
 
-Ispirato al paradigma local-first di Atomic Agent:
-vincola fisicamente il campionamento dei token dei modelli open-weight (Qwen, LFM, Flint)
-in esecuzione su llama.cpp o endpoint compatibili, impedendo alla radice allucinazioni sintattiche,
-JSON corrotti o deviazioni nelle chiamate dei tool.
+Ispirato al paradigma di campionamento vincolato di Atomic Agent:
+- Per backend nativi llama.cpp / llama-server: genera e inietta grammatiche GBNF formali
+  (parametro `grammar`) vincolando a livello token l'output.
+- Per backend Ollama (>= 0.5): inietta Structured Outputs nativi via schema JSON nel
+  parametro `format` (poiché Ollama standard ignora la sintassi GBNF nelle options).
+- Per backend OpenAI-compatibili / vLLM: inietta `response_format: {"type": "json_schema"}`
+  o `response_format: {"type": "json_object"}`.
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 
-# Grammatiche GBNF canoniche per campionamento vincolato
+# Grammatiche GBNF canoniche per campionamento vincolato su llama.cpp
 GBNF_WS = 'ws ::= [ \\t\\n\\r]*\n'
 
 GBNF_PRIMITIVES = (
@@ -52,7 +55,7 @@ GBNF_PYTHON_AST_PROPOSAL = (
 
 
 class GBNFBuilder:
-    """Generatore dinamico di grammatiche GBNF per schemi e tool call."""
+    """Generatore dinamico di grammatiche GBNF e schemi strutturati."""
 
     @classmethod
     def escape_gbnf_string(cls, text: str) -> str:
@@ -78,7 +81,6 @@ class GBNFBuilder:
             tool_id = f"tool_{re.sub(r'[^a-zA-Z0-9_]', '_', name)}"
             tool_identifiers.append(tool_id)
 
-            # Regola specifica per ciascun tool
             rule = (
                 f'{tool_id} ::= "{{" ws '
                 f'"\\"name\\"" ws ":" ws "\\"{cls.escape_gbnf_string(name)}\\"" ws "," ws '
@@ -102,56 +104,75 @@ class GBNFBuilder:
 
     @classmethod
     def build_schema_grammar(cls, properties: Dict[str, str], required: Optional[List[str]] = None) -> str:
-        """Genera una grammatica GBNF a chiavi prefissate per formati strutturati.
-
-        properties: dict di campo -> tipo ('string', 'number', 'boolean', 'object', 'array')
-        """
-        req_set = set(required or properties.keys())
+        """Genera una grammatica GBNF per llama.cpp a chiavi prefissate."""
         pair_rules = []
         for prop, ptype in properties.items():
             rule_type = ptype if ptype in ("string", "number", "boolean", "object", "array") else "value"
             pair_rules.append(f'"\\"{cls.escape_gbnf_string(prop)}\\"" ws ":" ws {rule_type}')
 
-        # Costruisce la sequenza dei campi
         inner = ' ws "," ws '.join(pair_rules)
         root_rule = f'root ::= "{{" ws {inner} ws "}}"\n'
         return root_rule + GBNF_WS + GBNF_PRIMITIVES
+
+    @classmethod
+    def build_json_schema(cls, properties: Dict[str, str], required: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Genera un JSON Schema compatibile con gli Structured Outputs di Ollama e OpenAI."""
+        schema_props = {}
+        for prop, ptype in properties.items():
+            norm_type = ptype if ptype in ("string", "number", "boolean", "object", "array", "integer") else "string"
+            schema_props[prop] = {"type": norm_type}
+
+        req = required if required is not None else list(properties.keys())
+        return {
+            "type": "object",
+            "properties": schema_props,
+            "required": req,
+        }
 
 
 def inject_gbnf_constraint(
     payload: Dict[str, Any],
     grammar: Optional[str] = None,
+    json_schema: Optional[Dict[str, Any]] = None,
     backend: str = "llama.cpp",
     tools: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Inietta il vincolo grammaticale nel payload di inferenza.
+    """Inietta il vincolo strutturale/grammaticale nel payload in base al backend effettivo.
 
-    Supporta llama.cpp (parametro `grammar`), endpoint OpenAI-compatibili
-    (`response_format: {"type": "json_object"}`) e Ollama options.
+    - Ollama: usa `format: <json_schema>` (Structured Output nativo) o `format: "json"`.
+    - llama.cpp / llama-server: usa il parametro nativo `grammar`.
+    - OpenAI / vLLM: usa `response_format`.
     """
     out = dict(payload)
-
-    # Se non è passata una grammatica esplicita ma ci sono i tool, costruiscila
-    if not grammar and tools:
-        grammar = GBNFBuilder.build_tool_call_grammar(tools)
-    elif not grammar:
-        grammar = GBNF_JSON_OBJECT
-
     backend_norm = (backend or "").lower().strip()
 
+    # Se non è passata una grammatica ma ci sono i tool, costruiscila
+    if not grammar and tools:
+        grammar = GBNFBuilder.build_tool_call_grammar(tools)
+    elif not grammar and not json_schema:
+        grammar = GBNF_JSON_OBJECT
+
     if "ollama" in backend_norm:
-        # Ollama nativo usa `format: "json"`
-        out["format"] = "json"
-        options = dict(out.get("options") or {})
-        # Alcuni build Ollama con custom mod accettano la grammatica nelle options
-        options["grammar"] = grammar
-        out["options"] = options
+        # Nota: Ollama standard non interpreta stringhe GBNF in options.
+        # Per vincolare lo schema si passa direttamente il dizionario JSON Schema in 'format'.
+        if json_schema:
+            out["format"] = json_schema
+        else:
+            out["format"] = "json"
+
     elif "llama" in backend_norm or "cpp" in backend_norm or backend_norm == "local":
-        out["grammar"] = grammar
-        # Molte versioni di llama-server accettano anche response_format json
+        if grammar:
+            out["grammar"] = grammar
         out["response_format"] = {"type": "json_object"}
+
     else:
         # Standard OpenAI / vLLM
-        out["response_format"] = {"type": "json_object"}
+        if json_schema:
+            out["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "response_constraint", "schema": json_schema, "strict": True},
+            }
+        else:
+            out["response_format"] = {"type": "json_object"}
 
     return out

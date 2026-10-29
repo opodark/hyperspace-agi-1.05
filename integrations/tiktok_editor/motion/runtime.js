@@ -1,14 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
-/* HyperSpace Motion Reels — motore condiviso (canvas 1080×1920, 30 s).
-   build.py lo concatena in quest'ordine dentro un'unica IIFE:
-   runtime.js (helper e motivi) → reels/<id>.js (scene + const REEL) → player.js. */
+/* HyperSpace Motion Reels — motore condiviso (canvas 1080×1920 o 1920×1080, 30 s o più).
+   build.py lo concatena in quest'ordine dentro un'unica IIFE, preceduto da `const CFG = {dur, land}`:
+   runtime.js (helper e motivi) → reels/<id>.js (scene + const REEL) → player.js.
+   Le scene disegnano sempre in coordinate verticali 1080×1920. In orizzontale (CFG.land) le scene vanno
+   su una tela verticale fuori schermo: header() scrive il titolo nella colonna sinistra e la parte
+   visiva (REEL.crop, in y verticali) viene copiata nella colonna destra. */
 
-const W = 1080, H = 1920, DUR = 30;
+const LAND = CFG.land, W = LAND ? 1920 : 1080, H = LAND ? 1080 : 1920, DUR = CFG.dur, PW = 1080, PH = 1920;
 const C = { bg:'#07080A', panel:'#0E1013', ink:'#E8EAE3', mute:'#9EA39A', dim:'#6E736C', line:'#2C3036', grid:'#15171B',
   acc:'#C6F432', ac2:'#A99BFF', term:'#050607', tint:'#1C2209', dark:'#0A0B07' };
 const FD = '"MeshDisplay","Inter Display",system-ui,sans-serif';
 const FM = '"MeshMono","DejaVu Sans Mono",ui-monospace,monospace';
-const cv = document.getElementById('cv'), x = cv.getContext('2d');
+const cv = document.getElementById('cv'), X0 = cv.getContext('2d');
+const pcv = LAND ? Object.assign(document.createElement('canvas'), { width: PW, height: PH }) : null;
+const PX = pcv ? pcv.getContext('2d') : X0;
+let x = X0; // contesto corrente: in orizzontale le scene disegnano su PX
+function onMain(fn) { const k = x; x = X0; try { fn(); } finally { x = k; } }
+let HNUM = null; // numero di scena imposto da un reel che ne raccoglie altri (vedi header)
 
 /* ---------- math & easing ---------- */
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -100,14 +108,14 @@ function bg(t) {
   for (let gx = -64 + o; gx < W + 64; gx += 64) { x.moveTo(gx, 0); x.lineTo(gx, H); }
   for (let gy = -64 + o; gy < H + 64; gy += 64) { x.moveTo(0, gy); x.lineTo(W, gy); }
   x.stroke(); x.restore();
-  const gx = 540 + Math.sin(t * .35) * 260, gy = 960 + Math.cos(t * .27) * 420;
+  const gx = W / 2 + Math.sin(t * .35) * W * .24, gy = H / 2 + Math.cos(t * .27) * H * .22;
   let g = x.createRadialGradient(gx, gy, 0, gx, gy, 640);
   g.addColorStop(0, 'rgba(198,244,50,0.07)'); g.addColorStop(1, 'rgba(198,244,50,0)');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   g = x.createRadialGradient(W - gx + 80, H - gy, 0, W - gx + 80, H - gy, 560);
   g.addColorStop(0, 'rgba(169,155,255,0.07)'); g.addColorStop(1, 'rgba(169,155,255,0)');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
-  g = x.createRadialGradient(540, 960, 380, 540, 960, 1150);
+  g = x.createRadialGradient(W / 2, H / 2, 380, W / 2, H / 2, 1150);
   g.addColorStop(0, 'rgba(7,8,10,0)'); g.addColorStop(1, 'rgba(7,8,10,0.94)');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
 }
@@ -122,15 +130,16 @@ function hud(t) {
   const a = P(t, .5, 1.1);
   if (a <= 0) return;
   x.save(); x.globalAlpha = a;
-  logo(98, 150, t);
-  T('00MESH', 134, 160, { w: 700, size: 28, ls: 2 });
-  T('HYPERSPACE AGI 1.05', 1000, 160, { size: 22, col: C.mute, al: 'right', ls: 4 });
-  T('R&D LOG · ' + REEL.date, 80, 1702, { size: 20, col: C.mute, ls: 3 });
+  const ty = LAND ? 80 : 160, by = LAND ? H - 76 : 1702, bar = by + 34, R = W - 80;
+  logo(98, ty - 10, t);
+  T('00MESH', 134, ty, { w: 700, size: 28, ls: 2 });
+  T('HYPERSPACE AGI 1.05', R, ty, { size: 22, col: C.mute, al: 'right', ls: 4 });
+  T('R&D LOG · ' + REEL.date, 80, by, { size: 20, col: C.mute, ls: 3 });
   let cur = null; for (const s of REEL.sc) if (t >= s.a + .2 && t < s.b - .2) cur = s;
-  if (cur) T(cur.n + ' / ' + String(REEL.sc.length).padStart(2, '0'), 1000, 1702, { w: 700, size: 20, col: C.acc, al: 'right', ls: 3 });
-  seg(80, 1736, 1000, 1736, { col: C.line, lw: 4 });
-  seg(80, 1736, 1000, 1736, { col: C.acc, lw: 4, p: t / DUR });
-  for (const s of REEL.sc) circ(lerp(80, 1000, s.a / DUR), 1736, 6, { fill: t >= s.a ? C.acc : C.line });
+  if (cur) T(cur.n + ' / ' + String(REEL.sc.length).padStart(2, '0'), R, by, { w: 700, size: 20, col: C.acc, al: 'right', ls: 3 });
+  seg(80, bar, R, bar, { col: C.line, lw: 4 });
+  seg(80, bar, R, bar, { col: C.acc, lw: 4, p: t / DUR });
+  for (const s of REEL.sc) circ(lerp(80, R, s.a / DUR), bar, 6, { fill: t >= s.a ? C.acc : C.line });
   x.restore();
 }
 function cuts(t) {
@@ -181,27 +190,33 @@ function mesh(cx, cy, R, t, f, a = 1, labels = true) {
 function header(t, a, b, num, kicker, lines) {
   const e = env(t, a, b, .35, .35);
   if (e <= 0) return;
-  x.save(); x.globalAlpha = e * .9; setF(900, 640, FD); x.letterSpacing = '-20px'; x.textAlign = 'right';
-  x.lineWidth = 3; x.strokeStyle = '#1F2227'; x.strokeText(num, W + 60 - 150 * P(t, a, b), 1330); x.restore();
-  const n = Math.floor(kicker.length * P(t, a + .15, a + .7));
-  const cursor = (t < a + .9 && Math.floor(t * 6) % 2 === 0) ? '▍' : '';
-  T(kicker.slice(0, n) + cursor, 80, 330, { w: 700, size: 24, col: C.acc, ls: 3, a: e });
-  words(t, lines, 80, 444, 96, 86, a + .25, .09, .8, b - .55);
+  if (HNUM) { num = HNUM; kicker = kicker.replace(/^\d\d/, HNUM); }
+  onMain(() => {
+    x.save(); x.globalAlpha = e * .9; setF(900, LAND ? 560 : 640, FD); x.letterSpacing = '-20px'; x.textAlign = 'right';
+    x.lineWidth = 3; x.strokeStyle = '#1F2227';
+    x.strokeText(num, LAND ? 900 - 120 * P(t, a, b) : W + 60 - 150 * P(t, a, b), LAND ? 980 : 1330); x.restore();
+    const n = Math.floor(kicker.length * P(t, a + .15, a + .7));
+    const cursor = (t < a + .9 && Math.floor(t * 6) % 2 === 0) ? '▍' : '';
+    T(kicker.slice(0, n) + cursor, 80, LAND ? 300 : 330, { w: 700, size: 24, col: C.acc, ls: 3, a: e });
+    words(t, lines, 80, LAND ? 420 : 444, LAND ? 92 : 96, LAND ? 82 : 86, a + .25, .09, .8, b - .55);
+  });
 }
 
 /* ---------- scene 0 · intro (0 – 3.2s) ---------- */
+const LY = LAND ? { my: 400, mr: 210, wy: 850, ws: 150, sy: 925, oy: 330, or: 170, oly: 700, osy: 770, oty: 850, opy: 945 }
+  : { my: 880, mr: 300, wy: 1400, ws: 170, sy: 1480, oy: 800, or: 230, oly: 1250, osy: 1330, oty: 1430, opy: 1530 };
 function intro(t) {
   if (t > 3.3) return;
   const e = 1 - iCub(P(t, 2.75, 3.2));
-  const s = 1 + .15 * iCub(P(t, 2.6, 3.2));
-  x.save(); x.globalAlpha = e; x.translate(540, 900); x.scale(s, s); x.translate(-540, -900);
+  const s = 1 + .15 * iCub(P(t, 2.6, 3.2)), cx = W / 2;
+  x.save(); x.globalAlpha = e; x.translate(cx, LY.my + 20); x.scale(s, s); x.translate(-cx, -LY.my - 20);
   const sp = ioCub(P(t, .9, 1.7));
   if (sp <= 0) {
-    for (let k = 0; k < 3; k++) { const u = P(t, .3 + k * .2, 1.3 + k * .2); if (u > 0 && u < 1) circ(540, 880, 16 + u * 230, { stroke: C.acc, lw: 3, a: (1 - u) * .8 }); }
-    circ(540, 880, 20 * oBack(P(t, .15, .65)), { fill: C.acc });
-  } else mesh(540, 880, 300, t, sp, 1);
-  letters(t, '00MESH', 540, 1400, 170, 1.5, .06, .8);
-  T('HYPERSPACE AGI 1.05', 540, 1480, { size: 30, al: 'center', col: C.mute, ls: 10, a: P(t, 2.0, 2.4) });
+    for (let k = 0; k < 3; k++) { const u = P(t, .3 + k * .2, 1.3 + k * .2); if (u > 0 && u < 1) circ(cx, LY.my, 16 + u * 230, { stroke: C.acc, lw: 3, a: (1 - u) * .8 }); }
+    circ(cx, LY.my, 20 * oBack(P(t, .15, .65)), { fill: C.acc });
+  } else mesh(cx, LY.my, LY.mr, t, sp, 1);
+  letters(t, '00MESH', cx, LY.wy, LY.ws, 1.5, .06, .8);
+  T('HYPERSPACE AGI 1.05', cx, LY.sy, { size: 30, al: 'center', col: C.mute, ls: 10, a: P(t, 2.0, 2.4) });
   x.restore();
 }
 
@@ -234,20 +249,20 @@ function pill(cx, cy, w, h, label, o = {}) {
   x.restore();
 }
 
-/* ---------- scene 7 · outro (27.4 – 30s) ---------- */
+/* ---------- scene 7 · outro (ultimi 2.6 s) ---------- */
 function outro(t) {
-  const a = 27.4;
+  const a = DUR - 2.6, cx = W / 2;
   if (t < a) return;
   const e = oCub(P(t, a, a + .4));
   x.save(); x.globalAlpha = e;
-  mesh(540, 800, 230, t, oBack(P(t, 27.5, 28.2)), 1, false);
-  letters(t, '00MESH', 540, 1250, 170, 27.8, .06, .8);
-  T('HYPERSPACE AGI 1.05', 540, 1330, { size: 30, al: 'center', col: C.mute, ls: 10, a: P(t, 28.2, 28.6) });
-  T(REEL.tagline, 540, 1430, { w: 600, size: 42, fam: FD, al: 'center', a: oCub(P(t, 28.4, 28.9)) });
-  const ps = oBack(P(t, 28.7, 29.1));
+  mesh(cx, LY.oy, LY.or, t, oBack(P(t, a + .1, a + .8)), 1, false);
+  letters(t, '00MESH', cx, LY.oly, LY.ws, a + .4, .06, .8);
+  T('HYPERSPACE AGI 1.05', cx, LY.osy, { size: 30, al: 'center', col: C.mute, ls: 10, a: P(t, a + .8, a + 1.2) });
+  T(REEL.tagline, cx, LY.oty, { w: 600, size: 42, fam: FD, al: 'center', a: oCub(P(t, a + 1.0, a + 1.5)) });
+  const ps = oBack(P(t, a + 1.3, a + 1.7));
   if (ps > 0) {
     const lb = 'mesh.zerozerocomputer.it', wd = measure(lb, 700, 30, FM) + 64;
-    x.save(); x.translate(540, 1530); x.scale(ps, ps); rrect(-wd / 2, -38, wd, 76, 38); x.fillStyle = C.acc; x.fill();
+    x.save(); x.translate(cx, LY.opy); x.scale(ps, ps); rrect(-wd / 2, -38, wd, 76, 38); x.fillStyle = C.acc; x.fill();
     T(lb, 0, 11, { w: 700, size: 30, al: 'center', col: C.dark }); x.restore();
   }
   x.restore();
@@ -255,11 +270,18 @@ function outro(t) {
 
 /* ---------- compositor ---------- */
 function frame(t) {
-  x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.shadowBlur = 0;
+  x = X0; x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.shadowBlur = 0;
   bg(t); intro(t);
-  for (const scene of REEL.scenes) scene(t);
+  if (LAND) {
+    PX.setTransform(1, 0, 0, 1, 0, 0); PX.globalAlpha = 1; PX.clearRect(0, 0, PW, PH);
+    x = PX; for (const scene of REEL.scenes) scene(t); x = X0;
+    // fascia verticale (y) che va nella colonna destra: REEL.crop, fissa o in funzione di t
+    const crop = typeof REEL.crop === 'function' ? REEL.crop(t) : REEL.crop || [600, 1540], ch = crop[1] - crop[0];
+    const dh = H - 240, dw = PW * dh / ch;
+    x.drawImage(pcv, 0, crop[0], PW, ch, W - 60 - dw, 120, dw, dh);
+  } else for (const scene of REEL.scenes) scene(t);
   outro(t); hud(t); cuts(t);
-  const k = Math.max(1 - P(t, 0, .35), P(t, 29.6, 30));
+  const k = Math.max(1 - P(t, 0, .35), P(t, DUR - .4, DUR));
   if (k > 0) { x.globalAlpha = k; x.fillStyle = C.bg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
 }
 

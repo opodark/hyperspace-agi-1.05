@@ -75,9 +75,15 @@ class TestGBNFGrammar(unittest.TestCase):
 
     def test_inject_gbnf_constraint_ollama(self):
         payload = {"prompt": "hello"}
+        # 1. Default Ollama format
         constrained = inject_gbnf_constraint(payload, backend="ollama")
         self.assertEqual(constrained.get("format"), "json")
-        self.assertIn("grammar", constrained.get("options", {}))
+
+        # 2. Structured Outputs con JSON Schema nativo
+        schema = GBNFBuilder.build_json_schema({"verdict": "string", "score": "number"})
+        constrained_schema = inject_gbnf_constraint(payload, json_schema=schema, backend="ollama")
+        self.assertIsInstance(constrained_schema.get("format"), dict)
+        self.assertEqual(constrained_schema["format"]["type"], "object")
 
 
 class TestNDJSONTracer(unittest.TestCase):

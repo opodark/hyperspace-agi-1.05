@@ -25,15 +25,27 @@ _spec.loader.exec_module(motion_build)
 OUT_ROOT = motion_build.REPO / "data" / "reel-projects" / "motion"
 TIMES_RE = re.compile(r"^\s*\d+(?:\.\d+)?(?:\s*,\s*\d+(?:\.\d+)?)*\s*$")
 FRAME_RE = re.compile(r"^frame (\d+)/(\d+)")
-DUR_S = 30  # durata fissa dei reel (DUR in runtime.js e render.js)
+
+
+def _meta(rid: str) -> dict:
+    return motion_build.read_meta((motion_build.REELS / f"{rid}.js").read_text(encoding="utf-8"), rid)
 
 
 def _reels() -> list[tuple[str, str]]:
     out = []
     for rid in motion_build.reel_ids():
-        meta = motion_build.read_meta((motion_build.REELS / f"{rid}.js").read_text(encoding="utf-8"), rid)
-        out.append((f"{meta['title']} · {rid}", rid))
+        meta = _meta(rid)
+        out.append((f"{meta['title']} · {meta['dur']} s · {rid}", rid))
     return out
+
+
+def _fmt(rid: str, fmt: str | None) -> str:
+    formats = _meta(rid)["formats"]
+    return fmt if fmt in formats else formats[0]
+
+
+def _mp4(rid: str, meta: dict) -> Path:
+    return _out_dir(rid) / f"{rid}{motion_build.suffix(meta, meta['format'])}.mp4"
 
 
 def _check(rid: str | None) -> str:
@@ -74,8 +86,9 @@ def _iframe(page: str) -> str:
 
 
 def _info(rid: str, meta: dict) -> str:
-    mp4 = _out_dir(rid) / f"{rid}.mp4"
-    lines = [f"### {meta['title']}", meta["aria"]]
+    mp4 = _mp4(rid, meta)
+    w, h = meta["size"]
+    lines = [f"### {meta['title']}", f"{w}×{h} · {meta['dur']} s · formato {meta['format']}", meta["aria"]]
     if mp4.is_file():
         when = time.strftime("%d/%m %H:%M", time.localtime(mp4.stat().st_mtime))
         lines.append(f"🎥 MP4 già registrato il {when} ({mp4.stat().st_size / 1e6:.1f} MB).")
@@ -84,26 +97,33 @@ def _info(rid: str, meta: dict) -> str:
     return "\n\n".join(lines)
 
 
-def on_select(rid):
+def on_formats(rid):
+    """Al cambio di reel: i formati che quel reel prevede."""
+    formats = _meta(_check(rid))["formats"]
+    return gr.update(choices=formats, value=formats[0], visible=len(formats) > 1)
+
+
+def on_select(rid, fmt=None):
     rid = _check(rid)
-    page, meta = motion_build.build_page(rid)
-    html_path, _ = motion_build.write_outputs(rid, _out_dir(rid))
-    mp4 = _out_dir(rid) / f"{rid}.mp4"
+    page, meta = motion_build.build_page(rid, _fmt(rid, fmt))
+    html_path, _ = motion_build.write_outputs(rid, _out_dir(rid), meta["format"])
+    mp4 = _mp4(rid, meta)
     existing = str(mp4) if mp4.is_file() else None
     files = [str(html_path)] + ([existing] if existing else [])
     return _iframe(page), _info(rid, meta), existing, files
 
 
-def on_stills(rid, times):
+def on_stills(rid, times, fmt=None):
     rid = _check(rid)
+    fmt, dur = _fmt(rid, fmt), _meta(rid)["dur"]
     times = (times or "").strip() or "4,9,14,19,24,29"
-    if not TIMES_RE.match(times) or any(float(t) > DUR_S for t in times.split(",")):
-        raise gr.Error(f"Scrivi istanti in secondi separati da virgola, fra 0 e {DUR_S:g}.")
+    if not TIMES_RE.match(times) or any(float(t) > dur for t in times.split(",")):
+        raise gr.Error(f"Scrivi istanti in secondi separati da virgola, fra 0 e {dur:g}.")
     if not _playwright_ok():
         raise gr.Error("Per i fotogrammi servono node e Playwright: vedi lo stato strumenti in alto.")
     out = _out_dir(rid)
-    _, render_page = motion_build.write_outputs(rid, out)
-    stills = out / "stills"
+    html_path, render_page = motion_build.write_outputs(rid, out, fmt)
+    stills = out / "stills" / html_path.stem
     try:
         motion_build.run_render(render_page, stills, ",".join(t.strip() for t in times.split(",")))
     except (subprocess.CalledProcessError, SystemExit) as exc:
@@ -111,14 +131,14 @@ def on_stills(rid, times):
     return [(str(stills / f"still-{float(t):g}.png"), f"{float(t):g} s") for t in times.split(",")]
 
 
-def on_render(rid, progress=gr.Progress()):
+def on_render(rid, fmt=None, progress=gr.Progress()):
     rid = _check(rid)
     node = shutil.which("node")
     if not node or not shutil.which("ffmpeg") or not _playwright_ok():
         raise gr.Error("Per l'MP4 servono node, ffmpeg e Playwright: vedi lo stato strumenti in alto.")
     out = _out_dir(rid)
-    html_path, render_page = motion_build.write_outputs(rid, out)
-    final, part = out / f"{rid}.mp4", out / f"{rid}.part.mp4"
+    html_path, render_page = motion_build.write_outputs(rid, out, _fmt(rid, fmt))
+    final, part = out / f"{html_path.stem}.mp4", out / f"{html_path.stem}.part.mp4"
     progress(0, desc="Avvio di Chromium…")
     proc = subprocess.Popen([node, str(MOTION_DIR / "render.js"), str(render_page), str(part)],
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -134,7 +154,7 @@ def on_render(rid, progress=gr.Progress()):
         part.unlink(missing_ok=True)
         raise gr.Error("Render non riuscito: " + (" · ".join(t for t in tail if t) or f"codice {proc.returncode}"))
     part.replace(final)
-    _, meta = motion_build.build_page(rid)
+    _, meta = motion_build.build_page(rid, _fmt(rid, fmt))
     return str(final), [str(html_path), str(final)], _info(rid, meta)
 
 
@@ -145,26 +165,30 @@ def build_motion_tab(demo: gr.Blocks) -> None:
         with gr.Column(scale=2, min_width=340):
             preview = gr.HTML(label="Anteprima dal vivo")
         with gr.Column(scale=3, min_width=420):
-            gr.Markdown("Reel verticali di 30 s disegnati in codice (`integrations/tiktok_editor/motion/reels/`). "
-                        "Scegli un reel: l'anteprima a sinistra è lo stesso codice da cui nasce l'MP4.")
+            gr.Markdown("Reel di 30 o 60 s disegnati in codice (`integrations/tiktok_editor/motion/reels/`), "
+                        "verticali 9:16 e, quando il reel lo prevede, anche orizzontali 16:9 per YouTube. "
+                        "L'anteprima a sinistra è lo stesso codice da cui nasce l'MP4.")
             with gr.Row():
                 reel_dd = gr.Dropdown(choices, value=choices[-1][1] if choices else None,
                                       label="Reel", scale=4)
                 refresh_btn = gr.Button("↻ Aggiorna", scale=1)
+            fmt = gr.Radio(["9:16"], value="9:16", label="Formato", visible=False)
             info = gr.Markdown()
             with gr.Row():
                 times = gr.Textbox(value="4,9,14,19,24,29", label="Istanti dei fotogrammi (s)", scale=3)
                 stills_btn = gr.Button("🖼️ Fotogrammi di controllo", scale=2)
-            render_btn = gr.Button("🎥 Registra MP4 1080×1920 · 30 fps", variant="primary", size="lg")
-            gr.Markdown("Il render dura un paio di minuti. Il video è muto: aggiungi la musica nell'app del "
+            render_btn = gr.Button("🎥 Registra MP4 · 30 fps", variant="primary", size="lg")
+            gr.Markdown("Il render dura un paio di minuti per 30 s. Il video è muto: aggiungi la musica nell'app del "
                         "social oppure caricalo nella scheda «Reel da foto e video».", elem_classes="hs-note")
             stills = gr.Gallery(label="Fotogrammi", columns=6, height=300, allow_preview=True)
             video = gr.Video(label="MP4 registrato", height=520)
             files = gr.File(label="File del reel (pagina HTML autonoma e MP4)", file_count="multiple")
             gr.Markdown(tools_status, elem_classes="hs-note")
 
-    reel_dd.change(on_select, inputs=[reel_dd], outputs=[preview, info, video, files])
+    shown = [preview, info, video, files]
+    reel_dd.change(on_formats, inputs=[reel_dd], outputs=[fmt]).then(on_select, inputs=[reel_dd, fmt], outputs=shown)
+    fmt.input(on_select, inputs=[reel_dd, fmt], outputs=shown)
     refresh_btn.click(lambda: gr.update(choices=_reels()), outputs=[reel_dd])
-    stills_btn.click(on_stills, inputs=[reel_dd, times], outputs=[stills])
-    render_btn.click(on_render, inputs=[reel_dd], outputs=[video, files, info])
-    demo.load(on_select, inputs=[reel_dd], outputs=[preview, info, video, files])
+    stills_btn.click(on_stills, inputs=[reel_dd, times, fmt], outputs=[stills])
+    render_btn.click(on_render, inputs=[reel_dd, fmt], outputs=[video, files, info])
+    demo.load(on_formats, inputs=[reel_dd], outputs=[fmt]).then(on_select, inputs=[reel_dd, fmt], outputs=shown)

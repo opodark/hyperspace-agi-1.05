@@ -1,7 +1,9 @@
 # Motion Reels
 
-I Motion Reel sono video verticali di 30 secondi in motion design, disegnati in
-JavaScript su un canvas 1080×1920 e registrati fotogramma per fotogramma in MP4.
+I Motion Reel sono video in motion design, di norma verticali e di 30 secondi,
+disegnati in JavaScript su un canvas 1080×1920 e registrati fotogramma per
+fotogramma in MP4. Un reel può durare di più e uscire anche in orizzontale
+1920×1080 per YouTube (vedi [Durata, formati e reel di raccolta](#durata-formati-e-reel-di-raccolta)).
 Raccontano gli avanzamenti R&D di HyperSpace e servono per i social. Sono
 complementari al [Reel Editor](tiktok-editor.md), che monta foto e video sul
 beat: qui non ci sono media di partenza, tutto è grafica generata dal codice.
@@ -24,6 +26,8 @@ Reel presenti:
 - `resilienza-2026-10-28`: circuit breaker adattivo, token bucket, PID di latenza, causal AI in Mission Control, 37/37 test.
 - `pipeline-2026-10-28`: pipeline R&D, da Agent-Reach (24 ispirazioni, 6 canali) ai prototipi notturni (141), alla promozione in `shared/` (15 promozioni, 10 moduli) e alla memoria unica Hermes.
 - `endurance-2026-10-28`: i quattro moduli del commit `113c769`, cioè validatore di bozze speculative, heartbeat con quorum anti split-brain, pool KV a blocchi con auto-eviction, sync di stato a 60 Hz con rollback, 8/8 test.
+- `atomic-2026-10-29`: lo sprint del commit `5bb44d0`, con i tre pattern da Atomic Agent (grammatiche GBNF, traccia NDJSON replayabile con i 10 eventi veri di `data/traces/atomic_dual_sprint_20261029_091406.ndjson`, Mutation Guard con le tre proposte `prop_*`), i tre moduli promossi e 15/15 test.
+- `panoramica-2026-10-29`: 60 s in 9:16 e 16:9, dieci scene prese dai cinque reel precedenti più il diario finale.
 
 ## Generare un reel dal Reel Editor
 
@@ -74,6 +78,32 @@ Le scene illustrano, non misurano: grafici e simulazioni (curve PID, livello
 VRAM, code del rate limiter) sono animazioni dimostrative. I numeri scritti a
 schermo, come i conteggi dei test, vanno presi dai risultati reali.
 
+## Durata, formati e reel di raccolta
+
+La riga `// @meta` accetta tre chiavi facoltative:
+
+| Chiave | Default | Effetto |
+|---|---|---|
+| `"dur": 60` | `30` | durata in secondi: player, scrubber, HUD, chiusura e render si adeguano |
+| `"formats": ["9:16", "16:9"]` | `["9:16"]` | formati disponibili, il primo è il predefinito |
+| `"parts": ["rd-2026-10-27", …]` | nessuna | reel di cui riusare le scene, letti da `PARTS['<id>']` |
+
+Le scene si scrivono sempre in coordinate verticali 1080×1920. In 16:9 il
+runtime le disegna su una tela verticale fuori schermo: `header()` mette kicker e
+titolo nella colonna sinistra, mentre la fascia `REEL.crop` (default
+`[600, 1540]`, in y verticali) finisce nella colonna destra. Il reel di raccolta
+`panoramica-2026-10-29` non ridisegna nulla: prende le scene da `PARTS`, le
+sposta nel tempo e le rinumera con `HNUM`.
+
+```bash
+python3 integrations/tiktok_editor/motion/build.py panoramica-2026-10-29 --render                # 9:16
+python3 integrations/tiktok_editor/motion/build.py panoramica-2026-10-29 --format 16:9 --render  # 16:9
+```
+
+Il formato predefinito tiene i nomi di sempre (`<id>.mp4`), gli altri aggiungono
+il suffisso (`<id>-16x9.mp4`). Nella scheda Motion Reels compare la scelta del
+formato quando il reel ne ha più d'uno.
+
 ## Font
 
 Il display è Inter Display (Black, SemiBold, Medium), il monospazio DejaVu Sans
@@ -88,6 +118,7 @@ di uscita), con le relative licenze in `fonts/`.
 .venv/bin/python -m pytest tests/test_motion_reels.py -q
 ```
 
-Il test compone ogni reel, controlla segnaposto, font, ordine dei tagli e che
-ogni scena elencata esista; se `node` c'è, verifica anche la sintassi dello
-script assemblato.
+Il test compone ogni reel in ogni suo formato, controlla segnaposto, font,
+dimensioni, ordine dei tagli entro la durata, che ogni scena elencata esista e
+che le parti di un reel di raccolta esistano; se `node` c'è, verifica anche la
+sintassi dello script assemblato.

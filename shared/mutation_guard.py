@@ -8,6 +8,7 @@ inspect, ast) dalle azioni mutanti (file write/delete, shell run, git commit, se
 Le azioni mutanti generano una `MutationProposal` tipizzata e controllabile,
 che richiede approvazione esplicita prima di essere applicata, rispettando
 la regola fondante del repository (AGENTS.md: nessun commit o push senza conferma).
+Distingue chiaramente approvazioni manuali (HITL) da esecuzioni dichiarate autonome.
 """
 
 from __future__ import annotations
@@ -29,7 +30,8 @@ class ActionCategory(str, enum.Enum):
 
 class ProposalStatus(str, enum.Enum):
     PENDING_APPROVAL = "PENDING_APPROVAL"
-    APPROVED = "APPROVED"
+    APPROVED = "APPROVED"                    # Approvato esplicitamente da operatore umano
+    APPROVED_AUTOMATIC = "APPROVED_AUTOMATIC" # Approvato da pipeline in modalità autonoma esplicita
     REJECTED = "REJECTED"
     EXECUTED = "EXECUTED"
     FAILED = "FAILED"
@@ -88,6 +90,7 @@ class MutationProposal:
     created_at: float = field(default_factory=time.time)
     resolved_at: Optional[float] = None
     rejection_reason: Optional[str] = None
+    approved_by: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
@@ -128,6 +131,7 @@ class MutationGuard:
                     created_at=data.get("created_at", time.time()),
                     resolved_at=data.get("resolved_at"),
                     rejection_reason=data.get("rejection_reason"),
+                    approved_by=data.get("approved_by"),
                 )
                 self._proposals[prop.proposal_id] = prop
             except Exception:
@@ -143,18 +147,15 @@ class MutationGuard:
         t_name = (tool_name or "").lower().strip()
         args = arguments or {}
 
-        # 1. Se è un tool read-only dichiarato
         if t_name in READ_ONLY_TOOLS:
             return ActionCategory.READ_ONLY
 
-        # 2. Se è sandbox o runner con parametro action
         if "action" in args:
             action = str(args["action"]).lower().strip()
             if action in READ_ONLY_SANDBOX_ACTIONS:
                 return ActionCategory.READ_ONLY
             return ActionCategory.MUTATING
 
-        # 3. Se è un comando shell
         if t_name in ("run_command", "shell_exec", "terminal", "execute_command"):
             cmd = str(args.get("command") or args.get("cmd") or "").strip().lower()
             if any(pat in cmd for pat in ("git commit", "git push", "rm -rf", "reboot", "shutdown")):
@@ -164,7 +165,6 @@ class MutationGuard:
             if cmd.startswith(("ls", "dir", "cat ", "head ", "tail ", "grep ", "git status", "git diff", "git log")):
                 return ActionCategory.READ_ONLY
 
-        # Default sicuro per qualsiasi altro tool: MUTATING
         return ActionCategory.MUTATING
 
     def create_proposal(
@@ -196,15 +196,23 @@ class MutationGuard:
         self._save_proposal(proposal)
         return proposal
 
-    def approve(self, proposal_id: str) -> bool:
-        """Approva formalmente una proposta pendente."""
+    def approve(self, proposal_id: str, approver: str = "human_operator") -> bool:
+        """Approva formalmente una proposta pendente.
+
+        Distingue se l'approvazione è data da un 'human_operator' reale o da 'autonomous_pipeline'.
+        """
         proposal = self._proposals.get(proposal_id)
         if not proposal:
             return False
         if proposal.status != ProposalStatus.PENDING_APPROVAL:
             return False
 
-        proposal.status = ProposalStatus.APPROVED
+        if approver == "human_operator":
+            proposal.status = ProposalStatus.APPROVED
+        else:
+            proposal.status = ProposalStatus.APPROVED_AUTOMATIC
+
+        proposal.approved_by = approver
         proposal.resolved_at = time.time()
         self._save_proposal(proposal)
         return True
@@ -249,7 +257,7 @@ class MutationGuard:
             prop = self._proposals.get(proposal_id)
             if not prop:
                 return False, f"Proposta '{proposal_id}' non trovata."
-            if prop.status != ProposalStatus.APPROVED:
+            if prop.status not in (ProposalStatus.APPROVED, ProposalStatus.APPROVED_AUTOMATIC):
                 return False, f"Proposta '{proposal_id}' non approvata (stato={prop.status.value})."
 
             try:
