@@ -176,6 +176,7 @@
         <a class="nw-tile" href="/missions.html" id="nw-missions"><span class="nw-k">Missioni</span><b>--</b><small>&nbsp;</small></a>
         <a class="nw-tile" href="/research.html" id="nw-research"><span class="nw-k">R&amp;D Lab</span><b>--</b><small>&nbsp;</small></a>
         <a class="nw-tile" href="/" id="nw-devloop" onclick="return false"><span class="nw-k">Dev loop OMEN</span><b>--</b><small>&nbsp;</small></a>
+        <a class="nw-tile" href="/api/scout/deep-dives" id="nw-scout" target="_blank" rel="noopener"><span class="nw-k">Scout notturno</span><b>--</b><small>&nbsp;</small></a>
         <a class="nw-tile" href="/analytics.html" id="nw-endurance"><span class="nw-k">Ultimo test di resistenza</span><b>--</b><small>&nbsp;</small></a>
       </div>
     </section>
@@ -1067,6 +1068,12 @@
           const lastC = rc.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
           tile('nw-devloop', `${dev.total_cycles ?? '--'} cicli · ${dev.cot_samples_count ?? '--'} campioni CoT`,
             lastC ? `Ultimo ciclo ${ago(lastC.timestamp)} · QA ${okc}/${rc.length} ok` : 'Nessun ciclo recente');
+        }
+        const sc = await getJSON('/api/scout/deep-dives');
+        if (sc) {
+          if (!sc.ran_at) tile('nw-scout', 'Mai eseguito', 'browser isolato · ogni notte alle 02:40');
+          else tile('nw-scout', `<span class="${sc.ok_count ? 'ok' : (sc.targets ? 'ko' : '')}">${sc.ok_count}</span>/${sc.targets} pagine approfondite`,
+            `${ago(sc.ran_at)} · ${esc((sc.model || '').split('/').pop())}`);
         }
         if (an && an.endurance) {
           const e = an.endurance, tot = e.cycles_completed || 0, ok = e.successful_cycles || 0;

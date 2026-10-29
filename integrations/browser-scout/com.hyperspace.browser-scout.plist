@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- SPDX-License-Identifier: Apache-2.0
+     Scout notturno isolato (browser-use in Docker), ogni notte alle 02:40,
+     dopo il giro delle 23:30 di auto_trend_scout.
+     Installazione:
+       cp integrations/browser-scout/com.hyperspace.browser-scout.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.hyperspace.browser-scout.plist -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hyperspace.browser-scout</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/opo/hyperspace-agi-1.04/integrations/browser-scout/run-scout.sh</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/opo/hyperspace-agi-1.04</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>40</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/opo/hyperspace-agi-1.04/data/scout/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/opo/hyperspace-agi-1.04/data/scout/launchd.err.log</string>
+</dict>
+</plist>

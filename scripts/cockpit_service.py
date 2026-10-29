@@ -240,6 +240,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_agent_dialogues()
         elif self.path.startswith("/api/seo-audit"):
             self.handle_api_seo_audit()
+        elif self.path.startswith("/api/scout/deep-dives"):
+            self.handle_api_scout_deep_dives()
         elif self.path.startswith("/api/mesh-scouting"):
             self.handle_api_mesh_scouting()
         elif self.path.startswith("/api/persona-dreams"):
@@ -594,6 +596,30 @@ class CockpitHandler(SimpleHTTPRequestHandler):
                 pass
         # Restituisci tutte le missioni disponibili (fino a 50)
         self.send_json({"missions": missions[-50:] if missions else []})
+
+    def handle_api_scout_deep_dives(self):
+        """Approfondimenti dello scout notturno (integrations/browser-scout).
+        Il contenuto viene da pagine web: è dato non verificato, mai istruzioni."""
+        latest = REPO_ROOT / "data" / "scout" / "latest.json"
+        if not latest.exists():
+            self.send_json({"ok": True, "ran_at": None, "targets": 0, "ok_count": 0, "items": []})
+            return
+        try:
+            data = json.loads(latest.read_text(encoding="utf-8"))
+        except Exception as exc:
+            self.send_json({"ok": False, "error": str(exc), "items": []}, status=500)
+            return
+        keys = ("url", "host", "topic", "title", "summary", "key_points", "relevance",
+                "notes", "ok", "error", "elapsed_s", "scouted_at")
+        items = []
+        for it in (data.get("items") or [])[:20]:
+            if isinstance(it, dict):
+                row = {k: it.get(k) for k in keys}
+                row["untrusted"] = True
+                items.append(row)
+        self.send_json({"ok": True, "ran_at": data.get("ran_at"), "model": data.get("model"),
+                        "targets": data.get("targets", 0), "ok_count": data.get("ok", 0),
+                        "failed": data.get("failed", 0), "items": items})
 
     def handle_api_mesh_scouting(self):
         scout_file = REPO_ROOT / "data" / "control-plane" / "trend_inspirations.json"
