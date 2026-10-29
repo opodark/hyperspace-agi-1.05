@@ -261,7 +261,7 @@ function outro(t) {
   T(REEL.tagline, cx, LY.oty, { w: 600, size: 42, fam: FD, al: 'center', a: oCub(P(t, a + 1.0, a + 1.5)) });
   const ps = oBack(P(t, a + 1.3, a + 1.7));
   if (ps > 0) {
-    const lb = 'mesh.zerozerocomputer.it', wd = measure(lb, 700, 30, FM) + 64;
+    const lb = REEL.cta || 'os.zerozerocomputer.it', wd = measure(lb, 700, 30, FM) + 64;
     x.save(); x.translate(cx, LY.opy); x.scale(ps, ps); rrect(-wd / 2, -38, wd, 76, 38); x.fillStyle = C.acc; x.fill();
     T(lb, 0, 11, { w: 700, size: 30, al: 'center', col: C.dark }); x.restore();
   }
@@ -269,9 +269,12 @@ function outro(t) {
 }
 
 /* ---------- compositor ---------- */
+/* REEL.layers può sostituire i livelli fissi ({ bg, intro, outro, hud, cuts }, una funzione di t;
+   `() => {}` lo spegne) e il colore della dissolvenza in apertura e chiusura (fade). */
 function frame(t) {
+  const L = REEL.layers || {};
   x = X0; x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.shadowBlur = 0;
-  bg(t); intro(t);
+  (L.bg || bg)(t); (L.intro || intro)(t);
   if (LAND) {
     PX.setTransform(1, 0, 0, 1, 0, 0); PX.globalAlpha = 1; PX.clearRect(0, 0, PW, PH);
     x = PX; for (const scene of REEL.scenes) scene(t); x = X0;
@@ -280,8 +283,8 @@ function frame(t) {
     const dh = H - 240, dw = PW * dh / ch;
     x.drawImage(pcv, 0, crop[0], PW, ch, W - 60 - dw, 120, dw, dh);
   } else for (const scene of REEL.scenes) scene(t);
-  outro(t); hud(t); cuts(t);
+  (L.outro || outro)(t); (L.hud || hud)(t); (L.cuts || cuts)(t);
   const k = Math.max(1 - P(t, 0, .35), P(t, DUR - .4, DUR));
-  if (k > 0) { x.globalAlpha = k; x.fillStyle = C.bg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
+  if (k > 0) { x.globalAlpha = k; x.fillStyle = L.fade || C.bg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; }
 }
 

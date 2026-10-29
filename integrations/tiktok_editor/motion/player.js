@@ -5,7 +5,8 @@ const iPlay = document.getElementById('i-play'), iPause = document.getElementByI
 let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 let playing = !reduce, cur = reduce ? DUR - .7 : 0, t0 = performance.now() - cur * 1000, dirty = true;
 function setPlaying(v) {
-  playing = v; iPlay.toggleAttribute('hidden', v); iPause.toggleAttribute('hidden', !v); // le <svg> non hanno .hidden btn.setAttribute('aria-label', v ? 'Pausa' : 'Riproduci');
+  playing = v; iPlay.toggleAttribute('hidden', v); iPause.toggleAttribute('hidden', !v); // le <svg> non hanno .hidden
+  btn.setAttribute('aria-label', v ? 'Pausa' : 'Riproduci');
   t0 = performance.now() - cur * 1000;
 }
 btn.addEventListener('click', () => setPlaying(!playing));

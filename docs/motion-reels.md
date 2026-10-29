@@ -28,6 +28,7 @@ Reel presenti:
 - `endurance-2026-10-28`: i quattro moduli del commit `113c769`, cioè validatore di bozze speculative, heartbeat con quorum anti split-brain, pool KV a blocchi con auto-eviction, sync di stato a 60 Hz con rollback, 8/8 test.
 - `atomic-2026-10-29`: lo sprint del commit `5bb44d0`, con i tre pattern da Atomic Agent (grammatiche GBNF, traccia NDJSON replayabile con i 10 eventi veri di `data/traces/atomic_dual_sprint_20261029_091406.ndjson`, Mutation Guard con le tre proposte `prop_*`), i tre moduli promossi e 15/15 test.
 - `panoramica-2026-10-29`: 60 s in 9:16 e 16:9, dieci scene prese dai cinque reel precedenti più il diario finale.
+- `voglio-te-2026-10-29`: primo reel commerciale, in stile manifesto d'epoca (carta, rosso, blu notte). Un personaggio col cilindro punta il dito: «Piccola azienda! Voglio te, per i tuoi social». Seguono il problema, il turno di notte sui computer dell'ufficio, l'approvazione al mattino col tasto annulla e l'invito finale. Sostituisce sfondo, intro, HUD, chiusura e tagli con `REEL.layers`.
 
 ## Generare un reel dal Reel Editor
 
@@ -73,6 +74,15 @@ sempre lo stesso fotogramma, quindi due render dello stesso reel coincidono.
 3. In `REEL` elenca le scene in ordine, le loro finestre `sc` (per l'HUD) e i
    tagli `cuts` (la linea lime che attraversa lo schermo fra una scena e l'altra).
 4. Controlla con `--stills` qualche istante, poi `--render`.
+
+Per uno stile diverso da quello del log R&D, `REEL.layers` sostituisce i livelli
+fissi del runtime: `bg`, `intro`, `outro`, `hud`, `cuts` (funzioni di `t`;
+`() => {}` ne spegne uno) e `fade`, il colore della dissolvenza iniziale e
+finale. I livelli non indicati restano quelli di sempre.
+
+L'indirizzo nella pillola di chiusura è `REEL.cta`, di default
+`os.zerozerocomputer.it`. Nei reel pubblici non va mai `mesh.zerozerocomputer.it`,
+che è l'API interna dei bot.
 
 Le scene illustrano, non misurano: grafici e simulazioni (curve PID, livello
 VRAM, code del rate limiter) sono animazioni dimostrative. I numeri scritti a
