@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+# MoneyPrinterTurbo per 00MESH: servizio separato, raggiungibile solo dal Mac.
+# Avvio:   integrations/moneyprinter/setup.sh   (la prima volta)
+#          docker compose -f integrations/moneyprinter/docker-compose.yml up -d
+# Arresto: docker compose -f integrations/moneyprinter/docker-compose.yml down
+#
+# - LLM: Ollama della mesh (ollama_base_url in config.toml)
+# - Voce: Kokoro locale del Mac (scripts/kokoro_tts_service.py, porta 8880)
+# - Musica: solo i brani in ./music, registrati in music/licenze.json.
+#   La cartella di brani inclusa nell'immagine viene coperta da una cartella
+#   vuota, perché quei brani non hanno una licenza chiara.
+# - Pubblicazione automatica sui social: spenta.
+
+x-mpt: &mpt
+  image: ghcr.io/harry0703/moneyprinterturbo:1.3.9
+  volumes:
+    - ./config.toml:/MoneyPrinterTurbo/config.toml
+    - ./storage:/MoneyPrinterTurbo/storage
+    - ./music:/MoneyPrinterTurbo/storage/bgm:ro
+    - ./empty-songs:/MoneyPrinterTurbo/resource/songs:ro
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *mpt
+    container_name: hyperspace-mpt-api
+    command: ["python3", "main.py"]
+    ports:
+      - "127.0.0.1:8095:8080"
+    mem_limit: 6g
+
+  webui:
+    <<: *mpt
+    container_name: hyperspace-mpt-webui
+    command: ["streamlit", "run", "./webui/Main.py", "--server.address=0.0.0.0", "--server.port=8501",
+              "--browser.serverAddress=127.0.0.1", "--browser.gatherUsageStats=False",
+              "--client.toolbarMode=minimal", "--server.showEmailPrompt=False"]
+    ports:
+      - "127.0.0.1:8501:8501"
+    mem_limit: 6g
+    profiles: ["webui"]

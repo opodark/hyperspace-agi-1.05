@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0
+# Configurazione di MoneyPrinterTurbo per 00MESH.
+# setup.sh copia questo file in config.toml e compila i valori tra {{ }}.
+# config.toml contiene chiavi: non va in git (è nel .gitignore di questa cartella).
+# Le opzioni non elencate qui usano i valori predefiniti di MoneyPrinterTurbo.
+
+log_level = "INFO"
+listen_host = "0.0.0.0"   # dentro il container; all'esterno la porta è legata a 127.0.0.1
+listen_port = 8080
+
+[app]
+# Chiave richiesta dall'API (header x-api-key). La usa mpt_bridge.py.
+api_key = "{{API_KEY}}"
+endpoint = "http://127.0.0.1:8095"
+max_concurrent_tasks = 1
+
+# Testi dei video: modello locale della mesh via Ollama (API compatibile OpenAI).
+llm_provider = "ollama"
+ollama_base_url = "{{OLLAMA_URL}}/v1"
+ollama_model_name = "{{OLLAMA_MODEL}}"
+
+# Video di repertorio: Pexels (chiave gratuita su https://www.pexels.com/api/).
+video_source = "pexels"
+pexels_api_keys = [{{PEXELS_KEYS}}]
+pixabay_api_keys = []
+
+# Sottotitoli: con Kokoro la temporizzazione è stimata sulla frase.
+# "whisper" li allinea all'audio, ma scarica un modello da ~1,6 GB.
+subtitle_provider = "edge"
+
+# Pubblicazione automatica: spenta. I video si rivedono prima di pubblicarli.
+upload_post_enabled = false
+upload_post_auto_upload = false
+
+[whisper]
+model_size = "large-v3-turbo"
+
+[kokoro]
+base_url = "http://host.docker.internal:8880/v1"
+api_key = ""
+model_id = "kokoro"
+voices = ["if_sara", "im_nicola", "documentarista", "giornalista", "poetica", "teatrale"]
+
+[ui]
+language = "it"
+video_language = "it-IT"
+tts_server = "kokoro"
+voice_name = "kokoro:if_sara"
+voice_mode = "tts"
+bgm_type = "random"
+bgm_volume = 0.15
+subtitle_enabled = true
