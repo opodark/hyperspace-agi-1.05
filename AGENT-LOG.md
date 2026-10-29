@@ -9678,3 +9678,74 @@ Diagnosi:
    - `tests/test_promoted_research_modules.py`: 5/5 PASSED.
    - `tests/test_licensing.py`: 7/7 PASSED.
    - Aggiornato `web-node/apps/playground/analytics.html` con il badge `PROMOSSO IN PRODUZIONE` per tutti e 4 i nuovi moduli.
+
+## 2026-10-28 15:40 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Motion reel «endurance» sui 4 moduli del commit 113c769
+
+- Nuovo `integrations/tiktok_editor/motion/reels/endurance-2026-10-28.js`, stessa struttura del reel resilienza: `SpeculativeDraftValidator`, `DistributedHeartbeatSync`, `DynamicKVMemoryPool`, `ArcadeStateSyncEngine`, test 8/8 (`tests/test_mesh_r_and_d_modules.py`: 4 + 1 + 2 + 1, riverificati).
+- Parametri a schermo presi dal codice: quorum > 50%, timeout 6 s, 128 blocchi da 1 MB, idle 5 min, 60 Hz, buffer di 30 tick. Due differenze rispetto alla descrizione circolata: `select_best_draft` verifica le bozze in sequenza, non in parallelo, e sceglie la valida con più nodi AST; `DynamicKVMemoryPool` non ha reference-count. Il reel segue il codice. Bozze, blocchi occupati e ritardo di 24 tick sono dimostrativi.
+- Render in `data/reel-projects/motion/endurance-2026-10-28/`, copia in `~/Downloads/00MESH-HyperSpace-1.05-reel-endurance.mp4`. Da committare su conferma dell'utente.
+
+## 2026-10-28 20:06 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Avvio R&D Notturno Standalone su HP OMEN 16
+
+1. **Configurazione Sessione Notturna (Overnight ~10h)**:
+   - Target esclusivo: **HP OMEN 16** (`100.104.238.125:8081`) con modello **LFM2.5 24B MoE @ 64k**.
+   - **ASUS V16**: Offline/spento su indicazione dell'utente; pipeline configurata per operare al 100% in modalità single-node OMEN + Mac Hub.
+   - Script di orchestrazione creato: [`scripts/diagnostics/mesh_nightly_omen_session.py`](scripts/diagnostics/mesh_nightly_omen_session.py).
+   - PID in background: `25150`. Log live in `data/research/nightly_omen_session.log`.
+
+2. **Sicurezza e Telemetria**:
+   - Watchdog attivo su alimentazione da rete (AC line) e guardie termiche GPU (`data/thermal_pause.flag`).
+   - Cicli con pausa di raffreddamento controllata (35s) tra un modulo e il successivo.
+   - Streaming in tempo reale su Cockpit: [`http://localhost:8090/analytics.html`](http://localhost:8090/analytics.html).
+   - Validazione AST Python automatica su ciascun prototipo generato in `data/research/prototypes/` e registrazione sul `CausalMemoryGraph`.
+
+
+## 2026-10-29 01:15 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Integrazione Pattern Chiave da Atomic Agent
+
+1. **Vincoli Grammaticali GBNF per Nodi Locali (`shared/gbnf_grammar.py`)**:
+   - Ispirato al motore di campionamento vincolato di Atomic Agent: impedisce alla radice allucinazioni sintattiche nei modelli quantizzati (OMEN LFM 24B, ASUS Flint 40B, Mac M5).
+   - `GBNFBuilder`: genera grammatiche GGML/GBNF per schemi di tool call (`{"name": "...", "arguments": {...}}`), JSON arbitrari e payload Python AST.
+   - `inject_gbnf_constraint()`: inietta automaticamente il vincolo grammaticale per `llama.cpp` (`grammar` / `response_format`), Ollama (`format: "json"`, `options.grammar`) ed endpoint OpenAI-compatibili.
+
+2. **Tracce di Esecuzione NDJSON Replayabili (`shared/ndjson_tracer.py`)**:
+   - Tracer thread-safe per stream Newline-Delimited JSON (NDJSON) immutabili e append-only (`data/traces/<session_id>.ndjson`).
+   - Registrazione granulare di inferenze LLM (token in/out, latenza, status), tool calls (durata, successo, riassunti esito) ed eventi arbitrari.
+   - Metodi di replay sequenziale (`replay()`) ed elaborazione automatica di metriche/KPI (`get_summary()`).
+
+3. **Proposal Gate & Guardrail HITL (`shared/mutation_guard.py`)**:
+   - Separazione categorica tra scoperte in sola lettura (`READ_ONLY`: grep, read_file, ast_inspect, metriche) e azioni mutanti (`MUTATING`/`CRITICAL_SYSTEM`: write, delete, shell run, git commit/push, service restart).
+   - Le mutazioni non autorizzate generano una `MutationProposal` tipizzata in `data/proposals/` con stato `PENDING_APPROVAL`, rispettando la regola fondante 3 di `AGENTS.md`.
+   - Flusso di approvazione/rifiuto con gate di esecuzione (`execute_with_guard()`).
+
+4. **Documentazione e Test**:
+   - Nuova guida architetturale: [`docs/atomic-agent-patterns.md`](docs/atomic-agent-patterns.md).
+   - Test suite dedicata: [`tests/test_atomic_agent_patterns.py`](tests/test_atomic_agent_patterns.py) (12 test unitari dedicati; 19/19 complessivi con licensing, tutti superati).
+
+
+## 2026-10-29 10:18 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Esito R&D Notturna e Dual-Node Atomic Sprint (ASUS + OMEN)
+
+1. **Chiusura Sessione Notturna Standalone OMEN 16**:
+   - Completati 213 cicli di sintesi autonoma (151 al primo colpo).
+   - Generati **115 nuovi prototipi R&D** con validazione AST in `data/research/prototypes/`.
+   - Generati **804.845 token** complessivi con throughput medio di 33.3 tok/s.
+
+2. **Accensione e Allineamento Nodo ASUS V16**:
+   - Rilevato online su Tailscale: Node Worker `http://100.64.31.18:8081` e Ollama `http://100.64.31.18:11434`.
+   - Modello `flint:latest` (Flint 40B MoE @ 128k context) caricato a caldo in VRAM con keep-alive.
+
+3. **Esecuzione Dual-Node Atomic Sprint (`scripts/diagnostics/mesh_dual_node_atomic_sprint.py`)**:
+   - Collaborazione integrata: ASUS Flint 40B (Lead Architect/Supervisor) + OMEN LFM 24B (Lead Coder).
+   - Pattern Atomic Agent applicati operativamente end-to-end:
+     - Output strutturati vincolati con grammatiche GBNF/JSON (`shared/gbnf_grammar.py`).
+     - Traccia immutabile della sessione salvata in NDJSON: `data/traces/atomic_dual_sprint_20261029_091406.ndjson` (10 eventi sequenziali, 100% success rate).
+     - Proposte di mutazione filesystem intermediate e approvate via `MutationGuard` (`shared/mutation_guard.py`).
+
+4. **Promozione 3 Moduli Chiave in `shared/`**:
+   - `shared/autonomous_failure_isolator.py`: isolamento predittivo nodi degradati, failover graceful e monitoraggio thread-safe.
+   - `shared/cross_context_semantic_cache.py`: cache LRU cross-agente con normalizzazione e matching semantico/fuzzy.
+   - `shared/distributed_prioritized_work_stealing.py`: code decentralizzate thread-safe con priorità deadline/costo e bilanciamento del carico tra worker.
+
+5. **Test Suite & Verifiche**:
+   - Nuova suite: [`tests/test_promoted_atomic_sprint_modules.py`](tests/test_promoted_atomic_sprint_modules.py).
+   - Esecuzione congiunta con i pattern Atomic Agent e licensing: **22/22 PASSED** (0.27s).
+   - Nessun commit git eseguito, in attesa di conferma utente.

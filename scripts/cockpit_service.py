@@ -1570,7 +1570,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
 
         # Terminale live e flusso di lavoro dei nodi
         terminal_lines = []
-        endurance_log = REPO_ROOT / "data" / "research" / "endurance_session_1h.log"
+        nightly_log = REPO_ROOT / "data" / "research" / "nightly_omen_session.log"
+        endurance_log = nightly_log if nightly_log.exists() else (REPO_ROOT / "data" / "research" / "endurance_session_1h.log")
         if endurance_log.exists():
             try:
                 raw_lines = endurance_log.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -1597,7 +1598,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
         params = parse_qs(parsed_url.query)
         limit_param = params.get("limit", ["200"])[0].lower()
 
-        endurance_log = REPO_ROOT / "data" / "research" / "endurance_session_1h.log"
+        nightly_log = REPO_ROOT / "data" / "research" / "nightly_omen_session.log"
+        endurance_log = nightly_log if nightly_log.exists() else (REPO_ROOT / "data" / "research" / "endurance_session_1h.log")
         endurance_file = REPO_ROOT / "data" / "reports" / "endurance_session_live.json"
 
         raw_lines = []

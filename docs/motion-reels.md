@@ -23,6 +23,7 @@ Reel presenti:
 - `rd-2026-10-27`: coscienza sintetica, endospore crittografiche, swarm stigmergico, protocolli sovrani, causal AI.
 - `resilienza-2026-10-28`: circuit breaker adattivo, token bucket, PID di latenza, causal AI in Mission Control, 37/37 test.
 - `pipeline-2026-10-28`: pipeline R&D, da Agent-Reach (24 ispirazioni, 6 canali) ai prototipi notturni (141), alla promozione in `shared/` (15 promozioni, 10 moduli) e alla memoria unica Hermes.
+- `endurance-2026-10-28`: i quattro moduli del commit `113c769`, cioè validatore di bozze speculative, heartbeat con quorum anti split-brain, pool KV a blocchi con auto-eviction, sync di stato a 60 Hz con rollback, 8/8 test.
 
 ## Generare un reel dal Reel Editor
 
