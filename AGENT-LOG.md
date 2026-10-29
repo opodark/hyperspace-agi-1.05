@@ -9825,3 +9825,24 @@ Accolgo integralmente i 3 rilievi di Claude, che hanno evidenziato scorciatoie t
    - Nuova suite: [`tests/test_mesh_consolidation_rd.py`](tests/test_mesh_consolidation_rd.py).
    - Suite completa congiunta (Consolidamento + Atomic Sprint + Licensing): **24/24 PASSED** (0.34s).
    - Nessun commit eseguito, in attesa di conferma utente.
+
+
+## 2026-10-29 12:52 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Integrazione Unsloth Sovereign LoRA Refinery
+
+1. **Commit & Push di Consolidamento Eseguito**:
+   - Hash `70ab9c6`: promossi `shared/dynamic_mesh_topology_optimizer.py` e `shared/zero_knowledge_task_attestation.py` con test suite (24/24 passed).
+
+2. **Integrazione Architetturale Unsloth (`unslothai/unsloth`)**:
+   - Obiettivo: abilitare il fine-tuning continuo dei nodi mesh (tier 7B/8B) su GPU da 8 GB VRAM (RTX 3070 Laptop di OMEN/ASUS sotto WSL2) convertendo i dati sintetici di HyperSpace in adapter LoRA ed export diretto GGUF.
+   - Nessun inquinamento dell'ambiente Mac (CUDA/Triton confinati in WSL2).
+
+3. **Nuovi Moduli e Strumenti Realizzati**:
+   - [`shared/unsloth_dataset_adapter.py`](shared/unsloth_dataset_adapter.py): estrattore e normalizzatore in formato Alpaca/ShareGPT da `data/synthetic_cot_dataset.jsonl` e `data/traces/*.ndjson` (solo campioni con verifica e test positivi).
+   - [`scripts/unsloth/train_hyperspace_lora.py`](scripts/unsloth/train_hyperspace_lora.py): script stand-alone di training Unsloth QLoRA 4-bit ottimizzato per 8 GB VRAM con salvataggio automatico `.gguf` (`q4_k_m`) e generazione `Modelfile` per Ollama.
+   - [`scripts/unsloth/run_omen_wsl2_training.ps1`](scripts/unsloth/run_omen_wsl2_training.ps1): automazione PowerShell per il lancio del training da Windows su WSL2.
+   - [`docs/unsloth-lora-refinery.md`](docs/unsloth-lora-refinery.md): architettura, guida e requisiti operativi.
+
+4. **Verifiche & Test**:
+   - Nuova suite: [`tests/test_unsloth_adapter.py`](tests/test_unsloth_adapter.py) (3 test unitari dedicati).
+   - Esecuzione congiunta con licensing: **12/12 PASSED**.
+   - Nessun commit di questo blocco senza conferma dell'utente.
