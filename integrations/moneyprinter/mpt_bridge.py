@@ -4,6 +4,7 @@
 
     python integrations/moneyprinter/mpt_bridge.py "Che cos'è una mesh di AI locali"
     python integrations/moneyprinter/mpt_bridge.py "Tema" --script-file testo.txt --voice kokoro:im_nicola
+    python integrations/moneyprinter/mpt_bridge.py "Tema" --voice "voicebox:Albi ita@qwen"   # tua voce clonata
     python integrations/moneyprinter/mpt_bridge.py "Tema" --dry-run
 
 Il video finisce in data/reels/mpt/ con un file .json accanto (tema, voce,
@@ -87,6 +88,21 @@ def choose_music(choice: str, tracks: list[dict]) -> dict | None:
     raise SystemExit(f"Il brano '{choice}' non è registrato in music/licenze.json (o manca il file).")
 
 
+def mpt_voice(voice: str) -> str:
+    """MoneyPrinterTurbo conosce solo `kokoro:<voce>`: le voci clonate di Voicebox
+    passano da lì (il servizio su :8880 le inoltra all'app Voicebox)."""
+    return "kokoro:" + voice if voice.lower().startswith("voicebox:") else voice
+
+
+def check_voicebox(voice: str) -> None:
+    sys.path.insert(0, str(REPO))
+    from shared import voicebox_client as vb
+    try:
+        vb.find_profile(vb.parse_voice(voice)[0])
+    except vb.VoiceboxError as e:
+        raise SystemExit(str(e)) from None
+
+
 def build_payload(args, music: dict | None) -> dict:
     script = ""
     if args.script_file:
@@ -99,7 +115,7 @@ def build_payload(args, music: dict | None) -> dict:
         "video_source": "pexels",
         "video_clip_duration": args.clip_duration,
         "video_count": 1,
-        "voice_name": args.voice,
+        "voice_name": mpt_voice(args.voice),
         "voice_rate": 1.0,
         "bgm_type": "custom" if music else "",
         "bgm_file": music["file"] if music else "",
@@ -137,7 +153,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Genera un video con MoneyPrinterTurbo e lo mette da parte per la revisione.")
     ap.add_argument("subject", help="tema del video")
     ap.add_argument("--script-file", help="testo già scritto (altrimenti lo scrive il modello locale)")
-    ap.add_argument("--voice", default="kokoro:if_sara", help="voce, es. kokoro:if_sara, kokoro:im_nicola, kokoro:documentarista")
+    ap.add_argument("--voice", default="kokoro:if_sara", help="voce, es. kokoro:if_sara, kokoro:documentarista, voicebox:<profilo>[@qwen|@chatterbox]")
     ap.add_argument("--language", default="it-IT")
     ap.add_argument("--aspect", default="9:16", choices=["9:16", "16:9", "1:1"])
     ap.add_argument("--clip-duration", type=int, default=4)
@@ -158,8 +174,10 @@ def main() -> int:
         return 0
     if not key:
         raise SystemExit("Manca MPT_API_KEY: lancia prima integrations/moneyprinter/setup.sh")
-    if args.voice.startswith("kokoro:"):
+    if args.voice.startswith(("kokoro:", "voicebox:")):
         check_kokoro()
+    if args.voice.lower().startswith("voicebox:"):
+        check_voicebox(args.voice)
 
     task_id = (http("POST", f"{api}/api/v1/videos", key, payload).get("data") or {}).get("task_id")
     if not task_id:

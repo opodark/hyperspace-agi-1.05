@@ -32,6 +32,9 @@ import wave
 
 from flask import Flask, Response, jsonify, request
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared import voicebox_client  # noqa: E402  (voci clonate: voice = "voicebox:<profilo>[@motore]")
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 MODELS_DIR = DATA_DIR / "models" / "kokoro"
@@ -213,7 +216,7 @@ def health():
 def list_voices():
     """Elenco voci disponibili (con supporto nativo italiano e stili miscelati)."""
     return jsonify({
-        "voices": [
+        "voices": voicebox_client.voice_listing() + [
             {"id": "if_sara", "name": "Sara (Standard)", "gender": "female", "language": "it", "description": "Voce italiana naturale di riferimento"},
             {"id": "poetica", "name": "Sara (Stile Poetico)", "gender": "female", "language": "it", "description": "Cadenza lirica, morbida e melodica (Sara + Aoede)"},
             {"id": "documentarista", "name": "Sara (Stile Documentarista)", "gender": "female", "language": "it", "description": "Cadenza autorevole, riflessiva da reportage (Sara + Emma)"},
@@ -260,6 +263,13 @@ def audio_speech():
         return jsonify({"error": "Parametro 'input' mancante o vuoto"}), 400
 
     raw_voice = str(data.get("voice", DEFAULT_VOICE)).strip() or DEFAULT_VOICE
+    if voicebox_client.is_voicebox_voice(raw_voice):
+        # Voce clonata: la sintesi la fa l'app Voicebox sul Mac, non Kokoro.
+        try:
+            wav = voicebox_client.synthesize(raw_voice, text, data.get("language"))
+        except voicebox_client.VoiceboxError as exc:
+            return jsonify({"error": str(exc)}), 502
+        return Response(wav, mimetype="audio/wav")
     play_on_speaker = bool(data.get("play", False))
     voice, lang = _resolve_voice(raw_voice, text)
     speed = float(data.get("speed", 1.0))

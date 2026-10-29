@@ -116,3 +116,25 @@ Esempio di `music/licenze.json`:
 
 Se la licenza chiede l'attribuzione, il testo è nel `.json` accanto al video:
 va riportato nella descrizione quando lo si pubblica.
+
+## 3. Voce clonata (Voicebox) per HyperSpace e MoneyPrinterTurbo
+
+Voicebox (app sul Mac, API su `127.0.0.1:17493`) tiene i profili di voce clonata e i motori
+`qwen` (Qwen3-TTS 1.7B/0.6B), `qwen_custom_voice`, `luxtts`, `chatterbox`, `chatterbox_turbo`, `tada`, `kokoro`.
+Il testo non esce dal Mac. L'app deve essere aperta.
+
+| Cosa | Come |
+|---|---|
+| Elenco profili | `python scripts/diagnostics/voicebox_tts.py list` |
+| Un testo con una voce | `… say "Albi ita" "Testo" --engine qwen -o prova.wav` |
+| Confronto fra motori | `… compare "Albi ita" "Testo" --engines qwen,chatterbox --out-dir /tmp/confronto` |
+| Da HyperSpace / Open WebUI | servizio `:8880`, `POST /v1/audio/speech` con `"voice": "voicebox:Albi ita@qwen"` |
+| Da MoneyPrinterTurbo | `mpt_bridge.py "Tema" --voice "voicebox:Albi ita@qwen"` (diventa `kokoro:voicebox:…`) |
+
+`voicebox:<profilo>[@motore]`: il profilo si cerca per nome o id; senza motore vale quello del profilo, poi `qwen`.
+`GET /v1/audio/voices` elenca anche i profili Voicebox. Codice: `shared/voicebox_client.py`.
+
+Note: la prima generazione carica il modello e può richiedere oltre un minuto (misurato 76 s con Qwen, 51 s con
+Chatterbox su un testo di una frase); le successive sono più rapide. Il servizio `:8880` va riavviato dopo l'aggiornamento
+(`scripts/start-all-macos.sh`). Non verificato: un video completo in MoneyPrinterTurbo con voce Voicebox
+(manca `PEXELS_API_KEY`), in particolare che MPT passi intatto il nome con spazi e `@`.
