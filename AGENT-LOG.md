@@ -10010,3 +10010,11 @@ L'outro di `runtime.js` mostra ora `REEL.cta`, di default **os.zerozerocomputer.
 4. **`scripts/diagnostics/voicebox_tts.py`**: `list`, `say`, `compare` (stesso testo con più motori). Doc in `docs/scout-notturno-e-video.md` §3. Test: `tests/test_voicebox_client.py` (6).
 5. **Prova reale**: profilo «Albi ita» con `qwen` e `chatterbox`, anche via `:8880` → WAV 24 kHz validi. Lenti alla prima chiamata (76 s / 51 s). **Non verificato**: video completo in MPT (manca `PEXELS_API_KEY`).
 6. Committato anche il rinforzo del parser dei tool call (voce del log 21:00), su conferma dell'utente.
+
+## 2026-10-29 23:05 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Primo video MPT con voce clonata e Pixabay
+
+1. **Pixabay**: `mpt_bridge.py --source pixabay|pexels` (default pixabay; rilascio chiavi Pexels sospeso), `setup.sh` accetta `PIXABAY_API_KEY` (riempie solo campi vuoti), template aggiornato. Chiave dell'utente in `integrations/moneyprinter/config.toml` (ignorato da git, 600), verificata contro l'API.
+2. **MPT su :8096** (la 8095 è del federation gateway). **LLM di MPT = control-plane del Mac** (`host.docker.internal:8085`): da Docker gli IP Tailscale (Ollama dell'ASUS) non si raggiungono.
+3. **Voce lenta**: Voicebox a modello caldo impiega ~7× (Chatterbox) / ~10× (Qwen 1.7B) il tempo reale; MPT chiude a 120 s. **Cache audio** in `shared/voicebox_client.py` (`data/voicebox-cache`, chiave profilo + testo normalizzato, il motore non conta): il servizio :8880 restituisce subito l'audio registrato. `voicebox_tts.py import-audio "<profilo>" audio.wav testo.txt` registra un WAV fatto nell'app.
+4. **Risultato**: `data/reels/mpt/20261029-2259-perche-una-piccola-azienda-….mp4`, 1080×1920, 33 s, voce clonata «Albi ita», senza musica, `da_rivedere`. Testo in `integrations/moneyprinter/testi/piccola-azienda.txt`.
+5. **Aperto**: scene ComfyUI/motion al posto dello stock (piano concordato); ponte ComfyUI dell'OMEN con `-Url http://100.81.234.102:8085`. Nessun commit.
