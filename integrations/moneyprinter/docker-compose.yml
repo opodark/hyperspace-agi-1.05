@@ -30,7 +30,7 @@ services:
     container_name: hyperspace-mpt-api
     command: ["python3", "main.py"]
     ports:
-      - "127.0.0.1:8095:8080"
+      - "127.0.0.1:8096:8080"
     mem_limit: 6g
 
   webui:

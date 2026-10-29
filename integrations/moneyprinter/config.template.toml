@@ -11,7 +11,7 @@ listen_port = 8080
 [app]
 # Chiave richiesta dall'API (header x-api-key). La usa mpt_bridge.py.
 api_key = "{{API_KEY}}"
-endpoint = "http://127.0.0.1:8095"
+endpoint = "http://127.0.0.1:8096"
 max_concurrent_tasks = 1
 
 # Testi dei video: modello locale della mesh via Ollama (API compatibile OpenAI).
@@ -19,10 +19,12 @@ llm_provider = "ollama"
 ollama_base_url = "{{OLLAMA_URL}}/v1"
 ollama_model_name = "{{OLLAMA_MODEL}}"
 
-# Video di repertorio: Pexels (chiave gratuita su https://www.pexels.com/api/).
-video_source = "pexels"
+# Video di repertorio: Pixabay (chiave gratuita su https://pixabay.com/api/docs/) o
+# Pexels (rilascio chiavi sospeso al 2026-10-29). La fonte per singolo video si sceglie
+# con `mpt_bridge.py --source`; questo è il valore usato dall'interfaccia web.
+video_source = "pixabay"
 pexels_api_keys = [{{PEXELS_KEYS}}]
-pixabay_api_keys = []
+pixabay_api_keys = [{{PIXABAY_KEYS}}]
 
 # Sottotitoli: con Kokoro la temporizzazione è stimata sulla frase.
 # "whisper" li allinea all'audio, ma scarica un modello da ~1,6 GB.

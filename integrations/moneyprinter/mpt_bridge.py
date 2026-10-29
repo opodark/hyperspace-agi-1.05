@@ -112,7 +112,7 @@ def build_payload(args, music: dict | None) -> dict:
         "video_script": script,
         "video_language": args.language,
         "video_aspect": args.aspect,
-        "video_source": "pexels",
+        "video_source": args.source,
         "video_clip_duration": args.clip_duration,
         "video_count": 1,
         "voice_name": mpt_voice(args.voice),
@@ -153,6 +153,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Genera un video con MoneyPrinterTurbo e lo mette da parte per la revisione.")
     ap.add_argument("subject", help="tema del video")
     ap.add_argument("--script-file", help="testo già scritto (altrimenti lo scrive il modello locale)")
+    ap.add_argument("--source", choices=("pixabay", "pexels"), default=os.getenv("MPT_VIDEO_SOURCE", "pixabay"),
+                    help="archivio dei video di repertorio (default: pixabay; Pexels ha il rilascio chiavi sospeso)")
     ap.add_argument("--voice", default="kokoro:if_sara", help="voce, es. kokoro:if_sara, kokoro:documentarista, voicebox:<profilo>[@qwen|@chatterbox]")
     ap.add_argument("--language", default="it-IT")
     ap.add_argument("--aspect", default="9:16", choices=["9:16", "16:9", "1:1"])
@@ -164,7 +166,7 @@ def main() -> int:
     args = ap.parse_args()
 
     env = load_env()
-    api = env.get("MPT_API_URL", "http://127.0.0.1:8095").rstrip("/")
+    api = env.get("MPT_API_URL", "http://127.0.0.1:8096").rstrip("/")
     key = env.get("MPT_API_KEY", "")
     music = choose_music(args.music, licensed_tracks())
     payload = build_payload(args, music)

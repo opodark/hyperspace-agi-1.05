@@ -2,6 +2,7 @@
 """Client Voicebox: risoluzione profilo/motore e ciclo generate -> history -> audio, contro un server finto."""
 import json
 import sys
+import tempfile
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -60,6 +61,20 @@ class VoiceboxClientTests(unittest.TestCase):
 
     def setUp(self):
         Fake.seen, Fake.polls = [], 0
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        vb.CACHE_DIR = Path(self._tmp.name)
+
+    def test_second_call_and_imported_audio_come_from_cache(self):
+        vb.synthesize("voicebox:Albi ita", "Ciao, mondo!", base=self.base)
+        n = len(Fake.seen)
+        self.assertEqual(vb.synthesize("voicebox:Albi ita@qwen", "ciao mondo", base=self.base), b"RIFFwav")
+        self.assertEqual(len(Fake.seen), n)  # nessuna nuova /generate
+        vb.cache_put("voicebox:Albi ita", "Testo importato.", b"RIFFmio", base=self.base)
+        self.assertEqual(vb.synthesize("voicebox:Albi ita", "testo importato", base=self.base), b"RIFFmio")
+        self.assertEqual(len(Fake.seen), n)
+        vb.synthesize("voicebox:Albi ita", "ciao mondo", base=self.base, use_cache=False)
+        self.assertEqual(len(Fake.seen), n + 1)
 
     def test_parse_voice(self):
         self.assertEqual(vb.parse_voice("voicebox:Albi ita@qwen"), ("Albi ita", "qwen"))

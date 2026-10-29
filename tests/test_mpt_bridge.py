@@ -47,12 +47,13 @@ def test_choose_music_refuses_unregistered_file():
 
 def test_payload_without_music_disables_bgm():
     args = SimpleNamespace(subject="Mesh", script_file=None, language="it-IT", aspect="9:16",
-                           clip_duration=4, voice="kokoro:if_sara", paragraphs=1)
+                           clip_duration=4, voice="kokoro:if_sara", paragraphs=1, source="pixabay")
     p = bridge.build_payload(args, None)
     assert p["bgm_type"] == "" and p["bgm_file"] == ""
     p = bridge.build_payload(args, {"file": "ok.mp3", "licenza": "CC0"})
     assert p["bgm_type"] == "custom" and p["bgm_file"] == "ok.mp3"
     assert p["voice_name"] == "kokoro:if_sara" and p["video_language"] == "it-IT"
+    assert p["video_source"] == "pixabay"
 
 
 def test_slugify():

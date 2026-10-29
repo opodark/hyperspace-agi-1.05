@@ -73,7 +73,7 @@ file `.json` accanto, e `da_rivedere` resta vero.
 
 | Cosa | Dove |
 |---|---|
-| Servizio | `integrations/moneyprinter/docker-compose.yml` (API su `127.0.0.1:8095`) |
+| Servizio | `integrations/moneyprinter/docker-compose.yml` (API su `127.0.0.1:8096`; la 8095 è del federation gateway) |
 | Configurazione | `integrations/moneyprinter/config.toml` (creato da `setup.sh`, fuori da git) |
 | Ponte dalla mesh | `integrations/moneyprinter/mpt_bridge.py` |
 | Musica | `integrations/moneyprinter/music/` + `music/licenze.json` |

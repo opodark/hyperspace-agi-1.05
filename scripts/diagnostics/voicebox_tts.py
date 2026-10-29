@@ -8,6 +8,7 @@ profili; `say` scrive un file audio in locale, non pubblica nulla.
     python scripts/diagnostics/voicebox_tts.py list
     python scripts/diagnostics/voicebox_tts.py say "Albi ita" "Ciao a tutti" -o prova.wav
     python scripts/diagnostics/voicebox_tts.py say "Albi ita" "Ciao" --engine qwen -o qwen.wav
+    python scripts/diagnostics/voicebox_tts.py import-audio "Albi ita" audio.wav testo.txt
     python scripts/diagnostics/voicebox_tts.py compare "Albi ita" "Testo di prova" --out-dir /tmp/confronto
 """
 
@@ -32,6 +33,10 @@ def main() -> int:
     s.add_argument("--engine", choices=vb.ENGINES)
     s.add_argument("--language")
     s.add_argument("-o", "--output", default="voicebox.wav")
+    i = sub.add_parser("import-audio", help="registra un WAV fatto nell'app per un testo: il servizio :8880 lo riusa")
+    i.add_argument("profile")
+    i.add_argument("wav")
+    i.add_argument("text_file", help="il testo esatto letto nell'audio (è anche lo script da dare a MoneyPrinterTurbo)")
     c = sub.add_parser("compare", help="stesso testo con più motori, per confrontarli all'ascolto")
     c.add_argument("profile")
     c.add_argument("text")
@@ -47,10 +52,16 @@ def main() -> int:
                       f"tipo={p.get('voice_type')} id={p.get('id')}")
             print("motori:", ", ".join(vb.ENGINES))
             return 0
+        if a.cmd == "import-audio":
+            dest = vb.cache_put(f"{vb.PREFIX}{a.profile}", Path(a.text_file).read_text(encoding="utf-8"),
+                                Path(a.wav).read_bytes())
+            print(f"registrato: {dest.name} ({dest.stat().st_size // 1024} KB)")
+            return 0
         engines = [a.engine] if a.cmd == "say" else [e.strip() for e in a.engines.split(",") if e.strip()]
         for eng in engines:
             t0 = time.monotonic()
-            wav = vb.synthesize(f"{vb.PREFIX}{a.profile}" + (f"@{eng}" if eng else ""), a.text, a.language)
+            wav = vb.synthesize(f"{vb.PREFIX}{a.profile}" + (f"@{eng}" if eng else ""), a.text, a.language,
+                                use_cache=False)
             if a.cmd == "say":
                 out = Path(a.output)
             else:
