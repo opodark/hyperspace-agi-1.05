@@ -29,6 +29,7 @@ Reel presenti:
 - `atomic-2026-10-29`: lo sprint del commit `5bb44d0`, con i tre pattern da Atomic Agent (grammatiche GBNF, traccia NDJSON replayabile con i 10 eventi veri di `data/traces/atomic_dual_sprint_20261029_091406.ndjson`, Mutation Guard con le tre proposte `prop_*`), i tre moduli promossi e 15/15 test.
 - `panoramica-2026-10-29`: 60 s in 9:16 e 16:9, dieci scene prese dai cinque reel precedenti più il diario finale.
 - `voglio-te-2026-10-29`: primo reel commerciale, in stile manifesto d'epoca (carta, rosso, blu notte). Un personaggio col cilindro punta il dito: «Piccola azienda! Voglio te, per i tuoi social». Seguono il problema, il turno di notte sui computer dell'ufficio, l'approvazione al mattino col tasto annulla e l'invito finale. Sostituisce sfondo, intro, HUD, chiusura e tagli con `REEL.layers`.
+- `piccola-azienda-2026-10-29`, `studio-commercialista-2026-10-30`, `artigiani-2026-10-30`, `ristoranti-2026-10-30`: infografiche commerciali sulla narrazione registrata (voce clonata, testi in `integrations/moneyprinter/testi/`), con `REEL.layers` per togliere intro, chiusura R&D e HUD. Tempi delle scene dalle pause del parlato (`ffmpeg -af silencedetect`); nomi, scadenze e prezzi sono di fantasia. Il reel dei ristoranti è un'anteprima di un servizio non ancora realizzato. L'audio si unisce all'MP4 con `ffmpeg` (`-map 0:v -map 1:a`)
 
 ## Generare un reel dal Reel Editor
 
