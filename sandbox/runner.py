@@ -28,7 +28,9 @@ from pathlib import Path
 SEED = Path(os.getenv("SANDBOX_SEED_DIR", "/seed"))
 EXCHANGE = Path(os.getenv("SANDBOX_EXCHANGE_DIR", "/exchange"))
 WORKSPACES = Path(os.getenv("SANDBOX_WORKSPACE_DIR", "/workspaces"))
-MAX_WORKSPACES = max(1, int(os.getenv("SANDBOX_MAX_WORKSPACES", "6")))
+MAX_WORKSPACES = max(1, int(os.getenv("SANDBOX_MAX_WORKSPACES", "12")))
+WORKSPACE_TTL_DAYS = max(1, int(os.getenv("SANDBOX_WORKSPACE_TTL_DAYS", "30")))
+GC_INTERVAL_S = 3600
 MAX_FILE_BYTES = max(1024, int(os.getenv("SANDBOX_MAX_FILE_BYTES", "1048576")))
 MAX_OUTPUT_BYTES = max(4096, int(os.getenv("SANDBOX_MAX_OUTPUT_BYTES", "131072")))
 MAX_DIFF_BYTES = max(4096, int(os.getenv("SANDBOX_MAX_DIFF_BYTES", "262144")))
@@ -118,7 +120,30 @@ def _ignore(_directory, names):
     return ignored
 
 
+def _gc_expired(now: float | None = None) -> list[str]:
+    """Svuota i workspace piu' vecchi di WORKSPACE_TTL_DAYS giorni.
+
+    L'eta' e' `created_at` dei metadati (data di modifica della cartella se i
+    metadati mancano o sono illeggibili). Ritorna gli id eliminati.
+    """
+    now = time.time() if now is None else now
+    limit = WORKSPACE_TTL_DAYS * 86400
+    removed = []
+    for root in WORKSPACES.iterdir():
+        if not root.is_dir() or not WORKSPACE_RE.match(root.name):
+            continue
+        try:
+            created = float(json.loads((root / "metadata.json").read_text(encoding="utf-8"))["created_at"])
+        except (OSError, ValueError, KeyError, TypeError):
+            created = root.stat().st_mtime
+        if now - created > limit:
+            shutil.rmtree(root, ignore_errors=True)
+            removed.append(root.name)
+    return removed
+
+
 def _create(job: dict) -> dict:
+    _gc_expired()
     existing = [item for item in WORKSPACES.iterdir() if item.is_dir()]
     if len(existing) >= MAX_WORKSPACES:
         raise RuntimeError("workspace limit reached; discard an old workspace")
@@ -639,7 +664,11 @@ def main() -> None:
     jobs.mkdir(parents=True, exist_ok=True)
     results.mkdir(parents=True, exist_ok=True)
     WORKSPACES.mkdir(parents=True, exist_ok=True)
+    next_gc = 0.0
     while True:
+        if time.time() >= next_gc:
+            _gc_expired()
+            next_gc = time.time() + GC_INTERVAL_S
         (EXCHANGE / "heartbeat").write_text(str(time.time()), encoding="ascii")
         for path in sorted(jobs.glob("*.json")):
             _process(path)

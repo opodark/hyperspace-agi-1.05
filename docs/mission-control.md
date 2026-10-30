@@ -146,7 +146,7 @@ dall'utente non privilegiato che esegue i job: il Dockerfile chiude con
 `chmod -R a-w /seed && chmod -R a+rX /seed` (un file 0600 nel repo — per esempio
 una cache `graphify-out/` — faceva fallire *ogni* `create` con "Permission
 denied") e `.dockerignore` tiene fuori le cache rigenerabili. Il runner accetta
-al massimo `SANDBOX_MAX_WORKSPACES` workspace (default 6) e risponde
+al massimo `SANDBOX_MAX_WORKSPACES` workspace (default 12) e risponde
 `workspace limit reached` a limite raggiunto: prima di una missione conviene
 chiudere i workspace vecchi con `discard`.
 

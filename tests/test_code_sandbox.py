@@ -85,6 +85,26 @@ class RunnerTests(unittest.TestCase):
     def create(self):
         return runner._create({"label": "test"})["workspace_id"]
 
+    def test_gc_empties_only_workspaces_older_than_ttl(self):
+        old, fresh = self.create(), self.create()
+        day = 86400
+        meta = self.workspaces / old / "metadata.json"
+        data = json.loads(meta.read_text(encoding="utf-8"))
+        data["created_at"] = time.time() - (runner.WORKSPACE_TTL_DAYS + 1) * day
+        meta.write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(runner._gc_expired(), [old])
+        self.assertFalse((self.workspaces / old).exists())
+        self.assertTrue((self.workspaces / fresh).exists())
+
+    def test_create_frees_expired_slots_before_the_limit_check(self):
+        runner.MAX_WORKSPACES = 1
+        old = self.create()
+        meta = self.workspaces / old / "metadata.json"
+        data = json.loads(meta.read_text(encoding="utf-8"))
+        data["created_at"] = time.time() - (runner.WORKSPACE_TTL_DAYS + 1) * 86400
+        meta.write_text(json.dumps(data), encoding="utf-8")
+        self.assertNotEqual(self.create(), old)
+
     def test_inspect_reports_pdf_signature_pages_and_text(self):
         workspace_id = self.create()
         runner._write({"workspace_id": workspace_id, "path": "out/brief.pdf",

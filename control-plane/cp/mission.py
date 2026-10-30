@@ -40,7 +40,7 @@ MISSION_PLANNER_MODEL = os.getenv("MISSION_PLANNER_MODEL", "").strip() or MISSIO
 MISSION_FOREGROUND_PAUSE_S = int(os.getenv("MISSION_FOREGROUND_PAUSE_S", "120"))
 MISSION_TICK_SECONDS = int(os.getenv("MISSION_TICK_SECONDS", "15"))
 MISSION_INFERENCE_URL = os.getenv("MISSION_INFERENCE_URL", "").strip()
-SANDBOX_MAX_WORKSPACES = max(1, int(os.getenv("SANDBOX_MAX_WORKSPACES", "6")))
+SANDBOX_MAX_WORKSPACES = max(1, int(os.getenv("SANDBOX_MAX_WORKSPACES", "12")))
 
 _contesto = None
 _mission_store = None
