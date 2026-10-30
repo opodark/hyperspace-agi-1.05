@@ -11,6 +11,7 @@ La riga `// @meta` può aggiungere, oltre a id, title e aria:
   "dur": 60                      durata in secondi (default 30)
   "formats": ["9:16", "16:9"]    formati disponibili; il primo è quello predefinito
   "parts": ["rd-2026-10-27"]     reel di cui riusare le scene: nel codice sono `PARTS['<id>']`
+  "assets": {"nome": "percorso"} immagini (percorso dalla radice del repo) incorporate come data URI: `IMGS['nome']`
 
     python3 build.py --list
     python3 build.py resilienza-2026-10-28                 # solo HTML
@@ -63,6 +64,7 @@ def read_meta(js: str, reel_id: str) -> dict:
     meta.setdefault("dur", 30)
     meta.setdefault("formats", ["9:16"])
     meta.setdefault("parts", [])
+    meta.setdefault("assets", {})
     if unknown := [f for f in meta["formats"] if f not in SIZES]:
         raise SystemExit(f"reels/{reel_id}.js: formato sconosciuto {unknown} (validi: {', '.join(SIZES)})")
     return meta
@@ -97,6 +99,18 @@ def _part(part_id: str) -> str:
     return f"PARTS[{json.dumps(part_id)}] = (() => {{\n{_strip_header(js)}\nreturn REEL;\n}})();"
 
 
+def asset_uris(meta: dict, reel_id: str) -> dict:
+    """Le immagini del reel come data URI: la pagina resta autonoma e il render non dipende da file esterni."""
+    mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml"}
+    out = {}
+    for name, rel in meta["assets"].items():
+        f = (REPO / rel).resolve()
+        if REPO not in f.parents or not f.is_file() or f.suffix.lower() not in mime:
+            raise SystemExit(f"reels/{reel_id}.js: asset `{name}` non valido ({rel}): serve un'immagine dentro il repository")
+        out[name] = f"data:{mime[f.suffix.lower()]};base64," + base64.b64encode(f.read_bytes()).decode()
+    return out
+
+
 def build_page(reel_id: str, fmt: str | None = None) -> tuple[str, dict]:
     path = REELS / f"{reel_id}.js"
     if not path.exists():
@@ -107,7 +121,7 @@ def build_page(reel_id: str, fmt: str | None = None) -> tuple[str, dict]:
     if fmt not in meta["formats"]:
         raise SystemExit(f"{reel_id}: formato {fmt} non previsto (disponibili: {', '.join(meta['formats'])})")
     w, h = SIZES[fmt]
-    cfg = f"const CFG = {json.dumps({'dur': meta['dur'], 'land': w > h})};"
+    cfg = f"const CFG = {json.dumps({'dur': meta['dur'], 'land': w > h})};\nconst ASSETS = {json.dumps(asset_uris(meta, reel_id))};"
     lib = ["const PARTS = {};"] + [_part(p) for p in meta["parts"]] if meta["parts"] else []
     parts = [cfg, (HERE / "runtime.js").read_text(encoding="utf-8"), *lib, reel_js, (HERE / "player.js").read_text(encoding="utf-8")]
     script = "\n".join(_strip_header(p) for p in parts)

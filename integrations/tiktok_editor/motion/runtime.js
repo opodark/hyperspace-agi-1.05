@@ -16,6 +16,10 @@ const pcv = LAND ? Object.assign(document.createElement('canvas'), { width: PW, 
 const PX = pcv ? pcv.getContext('2d') : X0;
 let x = X0; // contesto corrente: in orizzontale le scene disegnano su PX
 function onMain(fn) { const k = x; x = X0; try { fn(); } finally { x = k; } }
+/* Immagini incorporate dal build (@meta "assets"): ASSETS = {nome: data URI}; IMGS = {nome: Image} pronte prima del primo frame. */
+const IMGS = {};
+const imagesReady = Promise.all(Object.entries(typeof ASSETS === 'undefined' ? {} : ASSETS).map(([k, u]) =>
+  new Promise(r => { const i = new Image(); i.onload = () => { IMGS[k] = i; r(); }; i.onerror = r; i.src = u; })));
 let HNUM = null; // numero di scena imposto da un reel che ne raccoglie altri (vedi header)
 
 /* ---------- math & easing ---------- */
@@ -269,13 +273,14 @@ function outro(t) {
 }
 
 /* ---------- compositor ---------- */
-/* REEL.layers può sostituire i livelli fissi ({ bg, intro, outro, hud, cuts }, una funzione di t;
+/* REEL.native (solo 16:9): le scene disegnano direttamente su 1920×1080 invece che sulla tela verticale ritagliata.
+   REEL.layers può sostituire i livelli fissi ({ bg, intro, outro, hud, cuts }, una funzione di t;
    `() => {}` lo spegne) e il colore della dissolvenza in apertura e chiusura (fade). */
 function frame(t) {
   const L = REEL.layers || {};
   x = X0; x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.shadowBlur = 0;
   (L.bg || bg)(t); (L.intro || intro)(t);
-  if (LAND) {
+  if (LAND && !REEL.native) {
     PX.setTransform(1, 0, 0, 1, 0, 0); PX.globalAlpha = 1; PX.clearRect(0, 0, PW, PH);
     x = PX; for (const scene of REEL.scenes) scene(t); x = X0;
     // fascia verticale (y) che va nella colonna destra: REEL.crop, fissa o in funzione di t

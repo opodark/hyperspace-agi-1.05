@@ -115,6 +115,31 @@ Il formato predefinito tiene i nomi di sempre (`<id>.mp4`), gli altri aggiungono
 il suffisso (`<id>-16x9.mp4`). Nella scheda Motion Reels compare la scelta del
 formato quando il reel ne ha più d'uno.
 
+## Video lunghi per YouTube: 16:9 nativo, immagini e audio a capitoli
+
+Per un video orizzontale vero (non una striscia verticale ritagliata) il reel imposta `"formats": ["16:9"]` in `@meta`
+e `native: true` in `REEL`: le scene disegnano direttamente su 1920×1080 (`W`, `H`) e `header()` non serve.
+
+| Chiave `@meta` | Effetto |
+|---|---|
+| `"assets": {"nome": "percorso"}` | immagini (percorso dalla radice del repo, dentro il repo) incorporate come data URI; nel codice `IMGS['nome']`, pronte prima del primo frame. Un percorso fuori dal repo o un file non immagine rifiuta il build |
+| `"voice": [{"file", "at"}]` | voci registrate e istante d'inizio in secondi, usate da `mix_youtube.py` |
+
+`youtube-presentazione-2026-10-30` (264,5 s) è il primo reel così: stile anni cinquanta a spigoli (carta, riempimenti fuori
+registro, contorni a matita doppi), otto capitoli, ritagli reali delle schermate in `data/youtube-assets/screens/ritagli/`.
+Gli offset dei capitoli stanno in `OFF` nel codice e in `"voice"` nel meta: vanno tenuti uguali.
+
+```bash
+python3 integrations/tiktok_editor/motion/build.py youtube-presentazione-2026-10-30 --format 16:9 --render
+python3 integrations/tiktok_editor/motion/mix_youtube.py youtube-presentazione-2026-10-30                     # solo voce
+python3 integrations/tiktok_editor/motion/mix_youtube.py youtube-presentazione-2026-10-30 --music b.mp3 --music-license "CC0, <fonte>"
+```
+
+`mix_youtube.py` mette ogni voce al suo istante, abbassa il brano (−20 dB) e lo comprime ulteriormente quando qualcuno parla.
+**Musica:** senza `--music-license` lo script si rifiuta di mixare un brano; `--draft` permette una bozza locale che esce con
+`-BOZZA-NON-PUBBLICARE` nel nome. Per i video da pubblicare vale la regola di `integrations/moneyprinter/music/licenze.json`:
+solo brani con licenza chiara. Le schermate vanno riviste prima dell'uso (IP, ID dei nodi, errori, nomi di persona).
+
 ## Font
 
 Il display è Inter Display (Black, SemiBold, Medium), il monospazio DejaVu Sans

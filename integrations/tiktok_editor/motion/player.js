@@ -21,5 +21,5 @@ const fontsReady = Promise.all(['900 40px MeshDisplay', '600 40px MeshDisplay', 
   .map(f => document.fonts.load(f).catch(() => null)));
 window.__renderAt = frame;
 window.__dur = DUR;
-window.__ready = fontsReady;
-fontsReady.then(() => { setPlaying(playing); requestAnimationFrame(loop); });
+window.__ready = Promise.all([fontsReady, imagesReady]);
+window.__ready.then(() => { setPlaying(playing); requestAnimationFrame(loop); });
