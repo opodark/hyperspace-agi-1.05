@@ -124,6 +124,14 @@ class NightlyDevelopmentDream:
         except (OSError, ValueError):
             pass
 
+    def _create_workspace(self, label):
+        """Create a workspace or raise the sandbox's own error, not a bare KeyError."""
+        created = self.sandbox.call("create", {"label": label})
+        if not created.get("workspace_id"):
+            raise RuntimeError("sandbox create failed: "
+                               + str(created.get("error") or created.get("error_code") or created))
+        return created
+
     def _save(self):
         self.directory.mkdir(parents=True, exist_ok=True)
         temporary = self.state_path.with_suffix(".tmp")
@@ -159,7 +167,7 @@ class NightlyDevelopmentDream:
             "objective": objective or "Choose one small, low-risk improvement from the repository.",
         }
         try:
-            primary = self.sandbox.call("create", {"label": dream_id})
+            primary = self._create_workspace(dream_id)
             primary_id = primary["workspace_id"]
             report.update(workspace_id=primary_id, backend=primary.get("backend", "unknown"))
             prompt = (
@@ -182,7 +190,7 @@ class NightlyDevelopmentDream:
                 report["verification"] = {"ok": False, "error": "diff is truncated or binary"}
                 return report
 
-            verifier = self.sandbox.call("create", {"label": dream_id + "-verify"})
+            verifier = self._create_workspace(dream_id + "-verify")
             verifier_id = verifier["workspace_id"]
             self.sandbox.call("write", {"workspace_id": verifier_id,
                               "path": ".hyperspace-development.patch", "content": report["diff"]})

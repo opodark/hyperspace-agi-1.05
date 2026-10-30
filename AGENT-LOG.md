@@ -10033,3 +10033,25 @@ L'outro di `runtime.js` mostra ora `REEL.cta`, di default **os.zerozerocomputer.
 3. **`mix_youtube.py`**: voce ai suoi istanti (`@meta "voice"`), musica sotto la voce con sidechain. **Rifiuta un brano senza `--music-license`**; `--draft` produce un file `-BOZZA-NON-PUBBLICARE`. La bozza usa un brano commerciale indicato dall'utente: non è registrato in `licenze.json` e non va pubblicato; va sostituito con un brano a licenza chiara.
 4. **Test**: `tests/test_youtube_motion.py` (assets, 16:9, mix, rifiuto senza licenza). Il testo del blocco 05 non cita più «venticinque anni» (su richiesta).
 5. **Da non promettere**: collegamenti a ogni sistema (non provati), «audio non conservato», studio medico (solo agenda, parere privacy), ristorante = anteprima non realizzata, scout notturno (solo dry-run).
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Sogno di sviluppo: causa del fallimento `'workspace_id'`
+
+1. **Causa**: `hyperspace_code_sandbox` ha `SANDBOX_MAX_WORKSPACES=6` ed è piena di 6 workspace orfani (15–26 ott: 4 identici a `base`, 2 con un file in più su «P2P Consensus»). `create` risponde `workspace limit reached` senza `workspace_id` e il sogno cadeva in `KeyError` (4 notti di fila, 27–30/10). Backend `sbx` (`host.docker.internal:8765`) non raggiungibile: si usa il fallback Docker.
+2. **Codice**: `shared/development_dream.py` ha `_create_workspace`, che riporta l'errore vero della sandbox; +1 test in `tests/test_development_dream.py` (13 passed con `test_dream_routes.py`).
+3. **Non fatto**: lo scarto dei 6 workspace è stato bloccato (cancellazione irreversibile) e aspetta conferma dell'utente. I due file extra sono copiati in `…/scratchpad/sandbox-salvage/`. Ora di test e R&D su tutti i nodi **non lanciata**.
+Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Sandbox: capienza 12 e svuotamento a 30 giorni
+
+1. **Capienza**: `SANDBOX_MAX_WORKSPACES` passa da 6 a **12** (default in `sandbox/runner.py`, `control-plane/cp/mission.py`, i due `docker-compose*.yml`, `.env.example`, docs). Con i 6 orfani ancora presenti, il sogno di sviluppo ha di nuovo 6 posti liberi: nessuno scarto manuale necessario.
+2. **Garbage collector**: `sandbox/runner.py::_gc_expired` elimina i workspace con `created_at` più vecchio di `SANDBOX_WORKSPACE_TTL_DAYS` (default **30**). Gira all'avvio, ogni ora e prima di ogni `create`. +2 test in `tests/test_code_sandbox.py` (54 passed con i test del sogno).
+3. `code-sandbox` e `control-plane` ricostruiti; il volume `sandbox_workspaces` non è stato toccato. Gli orfani (15–26 ott) scadono da soli tra il 14 e il 25 novembre.
+Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Sogno di sviluppo: run manuale riparato, primo giro reale
+
+1. **Bug nel run manuale**: `POST /development-dreams/run` è fra le rotte che segnano attività foreground; subito dopo `_run_development_dream_once` trovava `_background_work_allowed()` falso e usciva in silenzio (202 senza lavoro). Ora `control-plane/main.py` passa `force=True` dal run manuale; lo scheduler continua a rispettare notte/idle. Control-plane ricostruito.
+2. **Primo giro reale** (11:27–11:28 UTC): workspace creato e scartato, ma `no_changes`: l'agente ha scritto un'ipotesi su un frontend React inesistente senza usare `code_sandbox`. La pipeline funziona; la qualità dipende dal modello usato per il sogno.
+3. **AST**: 644 file `.py` tracciati, 0 errori di sintassi. Suite completa sul Mac lanciata.
+4. **Nodi remoti**: ASUS/OMEN/S24 espongono solo `/status` e `/execute` (inferenza firmata); non esiste un endpoint per eseguire test da remoto e il gate `mobile` sta sul telefono. L'unica via è `mesh_distribute.py` → `mesh_patch_watcher.py` (test-gate per ruolo), che richiede un commit: aspetta conferma dell'utente.
+Nessun commit.

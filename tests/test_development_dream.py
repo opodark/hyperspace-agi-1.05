@@ -71,6 +71,17 @@ class NightlyDevelopmentDreamTests(unittest.TestCase):
         report = self.worker(FakeSandbox(tests_ok=False)).run_once()
         self.assertEqual(report["status"], "failed")
 
+    def test_create_failure_reports_the_sandbox_error(self):
+        class Full(FakeSandbox):
+            def call(self, action, args):
+                if action == "create":
+                    return {"ok": False, "error": "workspace limit reached; discard an old workspace"}
+                return super().call(action, args)
+        worker = self.worker(Full())
+        report = worker.run_once()
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("workspace limit reached", report["error"])
+
 
 class DevelopmentDreamJournalTests(unittest.TestCase):
     def test_approval_is_attributed_but_does_not_apply_code(self):

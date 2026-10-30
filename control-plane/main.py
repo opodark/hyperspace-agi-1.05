@@ -2791,7 +2791,7 @@ def development_dream_run():
         return jsonify({"error": "nightly development dream is already running"}), 409
     data = request.get_json(force=True, silent=True) or {}
     objective = str(data.get("objective", ""))[:1000]
-    threading.Thread(target=_run_development_dream_once, args=(objective,), daemon=True).start()
+    threading.Thread(target=_run_development_dream_once, args=(objective, True), daemon=True).start()
     return jsonify({"ok": True, "started": True}), 202
 
 
@@ -3972,8 +3972,11 @@ def get_tasks():
 # Thread separato da heartbeat_loop (stato operativo) così la cadenza della
 # telemetria non dipende dal ciclo di routing.
 
-def _run_development_dream_once(objective=""):
-    if not _background_work_allowed():
+def _run_development_dream_once(objective="", force=False):
+    # `force`: richiesta esplicita dell'operatore (POST /development-dreams/run).
+    # Quella rotta conta come attivita' foreground, quindi la guardia notte/idle
+    # la scarterebbe sempre: lo scheduler la rispetta, il run manuale no.
+    if not force and not _background_work_allowed():
         return
     if _development_dream is None or not _development_dream_lock.acquire(blocking=False):
         return
