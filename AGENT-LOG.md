@@ -10055,3 +10055,17 @@ Nessun commit.
 3. **AST**: 644 file `.py` tracciati, 0 errori di sintassi. Suite completa sul Mac lanciata.
 4. **Nodi remoti**: ASUS/OMEN/S24 espongono solo `/status` e `/execute` (inferenza firmata); non esiste un endpoint per eseguire test da remoto e il gate `mobile` sta sul telefono. L'unica via è `mesh_distribute.py` → `mesh_patch_watcher.py` (test-gate per ruolo), che richiede un commit: aspetta conferma dell'utente.
 Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Chatbot su Flint 40B (ASUS)
+
+1. **Distribuzione**: commit `a5e33c2` (sandbox 12 workspace + GC 30 giorni) e `3b9b9d7` (sogno di sviluppo) mandati con `mesh_distribute.py --base 8b56c46 --all`: `QUEUED` su ASUS, OMEN, S24. Esito dei watcher non leggibile da qui (nodi dichiarano commit `9bdc7dc`/`34fdbc7`, più vecchi della base: possibili conflitti).
+2. **Sogno di sviluppo**: `NIGHTLY_DEV_MODEL=LFM2.5-24B` (`.env`), ma il percorso del sogno usa l'Ollama del Mac, dove quel modello non c'è: giro `no_changes`, riepilogo vuoto. Da fare: farlo passare dal CP/mesh o usare un modello presente sul Mac.
+3. **Chatbot**: `CHANNEL_MODEL` e `INSTAGRAM_REPLY_MODEL` → `flint:latest` (Flint 40B MoE; **non** usare il suffisso `::nodo`: il percorso dei canali lo passa a Ollama e l'ASUS risponde 400, bot muti — trovato con `/channel/reply` sul canale `webui`, chat `test-claude-code`; ~30–42 tok/s, sull'OMEN solo ~12). Prova con una domanda profonda: risposta pulita in italiano in 40 s; LFM2.5-24B e gemma-4 12B mostravano il ragionamento nel testo. Ripristino: rimettere `huihui_ai/gemma-4-abliterated:12b` nelle due variabili (il valore precedente è nel commento in `.env`) e ricreare `control-plane`. Con il nome semplice il CP sceglie il nodo (risposte in 2–6 s con `max_chars` 600).
+4. **Da non dare per scontato**: Flint con i tool (il 29/10 Cline lo faceva inventare nomi di tool); latenza ~40 s a risposta da verificare coi timeout dei driver.
+Nessun commit di questo blocco.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Strix (Ollama diretto) e prototipo persona-console con tool shell
+
+1. **Strix**: suite di penetration test (`~/.strix/bin/strix`, v1.7.0; immagine `ghcr.io/usestrix/strix-sandbox:1.3.0`, alias locali 1.3.1/1.7.0/latest). litellm gira sull'**host**: usare `LLM_API_BASE=http://localhost:11434/v1` (Ollama Mac), non `localhost:8085` (il CP inietta i suoi tool) né `host.docker.internal` (non si risolve sull'host). Per i modelli grossi: ASUS/OMEN `:11434` ora **non esposti** (HTTP 000) e `:8081` vuole firma mesh → per usare 24B/Flint serve esporre Ollama sulla tailnet di quei nodi. Il locale 8B emette tool call in modo inaffidabile (verificato: inventa invece di chiamare).
+2. **`scripts/persona_console.py`** (nuovo, prototipo, solo stdlib): REPL che parla col CP `/v1/chat/completions`, superficie `terminal` (persona attiva), header `X-Hyperspace-Tools: off` (solo il tool del client, niente builtin del CP). Tool `shell` eseguito **solo su conferma** (default NO; `a`=approva sessione; `--auto-deny` per i test; timeout 120s, output a 4000 char). Loop tool verificato con stub deterministico: conferma → esecuzione reale → risultato rimandato al modello. La persona risponde ("sono Anna"); il tool scatta davvero solo con un buon tool-caller (i grossi, ora irraggiungibili).
+Nessun commit.
