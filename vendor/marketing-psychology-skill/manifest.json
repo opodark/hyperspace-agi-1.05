@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/coreyhaines31/marketingskills",
+  "commit": "88c79f6528a9347420e57ceb1fff9a60de651768",
+  "files": {
+    "LICENSE": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591",
+    "skills/marketing-psychology/SKILL.md": "573bbe4f6e300e7fb75299e314f56e26382d284782caa2ae0e0f33eb2e646548"
+  },
+  "upstream_paths": {
+    "LICENSE": "LICENSE",
+    "skills/marketing-psychology/SKILL.md": "skills/marketing-psychology/SKILL.md"
+  }
+}

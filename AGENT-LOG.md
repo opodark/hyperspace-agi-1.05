@@ -10112,4 +10112,166 @@ Nessun commit.
 3. **Verifica, Licenze e Test per `persona-shell` / `strixpersona` / `strixpersona-viewer`**:
    - Aggiunto l'header `// SPDX-License-Identifier: Apache-2.0` a `scripts/strixpersona-viewer/static/assets/index-B1JzV4Vu.js` e documentata la provenienza upstream (`usestrix/strix`, Apache-2.0 + React MIT nel bundle compilato) in `THIRD-PARTY-NOTICES.md`.
    - Aggiunta la suite `tests/test_strixpersona.py` (verifica ciclo completo `TuiLiveView`, server HTTP con cookie di sessione, 403 senza sessione, conferma interattiva via `/api/agents/steer`, e help/sintassi di `persona-shell.mjs` e `strixpersona.mjs`).
-   - Test: `tests/test_licensing.py`, `tests/test_strixpersona.py`, `tests/test_dream_routes.py`, `tests/test_development_dream.py` tutti verdi. File messi in stage pronti per il commit.
+   - Test: `tests/test_licensing.py`, `tests/test_strixpersona.py`, `tests/test_dream_routes.py`, `tests/test_development_dream.py` tutti verdi. Committato in `3f89ff1`.
+
+## 2026-10-31 12:34 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Viewer web nativo senza container, Fix test connettori e Base Preventivi/Fatture PMI
+
+1. **StrixPersona Viewer Web nativo (`scripts/strixpersona-viewer/run.py`)**:
+   - Disaccoppiato dal container pesante: di default ora esegue i comandi confermati via shell locale sul Mac/Windows (`run_locally`), mantenendo l'interfaccia React di Strix nel browser per la visualizzazione e conferma dei tool. Il flag `--sandbox` resta disponibile come opzione se si vuole eseguire dentro Docker.
+
+2. **Riparata la suite connettori (`tests/test_connectors.py`)**:
+   - I connettori `scout` e `seo` ora espongono `REQUIRED_ENV` coerente (`CONNECTOR_SCOUT_ENABLED`, `CONNECTOR_SEO_ENABLED`), coperti dalla tabella `_ENV_META` del Control Plane e da `test_connectors.py`.
+   - Risolti tutti i 6 fallimenti precedenti: la suite connettori torna **100% verde** (32 passed, 62 subtests).
+
+3. **Consolidamento PMI: Modulo Generazione Preventivi e Fatture (`shared/business_docs.py`)**:
+   - Nuovo motore deterministico basato su ReportLab per la creazione di preventivi e fatture PDF eleganti per botteghe, studi e artigiani.
+   - Calcolo esatto di imponibile, aliquote IVA multiple (4%, 10%, 22%), ritenuta d'acconto per professionisti e totale a saldo.
+   - Creata la test suite `tests/test_business_docs.py` (3/3 passed). Tutti i test di licenza conformi ad Apache-2.0.
+
+## 2026-10-31 12:58 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Persona "Vittoria" per PMI, Tool PDF su Control Plane Container e Test Live
+
+1. **Tool `business_create_document` nel Container Control Plane**:
+   - Aggiunto `reportlab>=4.0.0` a `control-plane/requirements.txt` e aggiornato `THIRD-PARTY-NOTICES.md` con licenza BSD-3-Clause.
+   - Ricostruita l'immagine con `docker compose up -d --build --no-deps control-plane`.
+   - Registrato il tool nativo `business_create_document` in `control-plane/cp/tools_defs.py` ed handler `_business_create_document` in `control-plane/main.py`.
+   - Verificata la route protetta `/tools/execute`: generati con successo PDF sia di preventivo (`data/documents/preventivo_PREV-2026-001.pdf`) sia di fattura (`data/documents/fattura_FAT-2026-042.pdf`).
+
+2. **Nuova Persona Aziendale "Vittoria" (`data/persona-vittoria.json`)**:
+   - Identità e boundaries disegnate espressamente per la consulenza esecutiva e operativa di PMI, artigiani e professionisti.
+   - Separazione netta dei ruoli: Anna e Aurora mantengono il focus spicy/creativo per canali social e cerchia privata; Vittoria mantiene un registro strettamente professionale, sobrio, orientato all'approvazione umana (HITL), all'esattezza dei calcoli e al rifiuto di toni intimi o non professionali.
+   - Test di dialogo end-to-end eseguito dal vivo sulla mesh contro `flint:latest`: ha gestito una richiesta di preventivo identificando puntualmente i dati anagrafici mancanti e calcolando con precisione aritmetica imponibile, IVA al 22% e totale.
+
+## 2026-10-31 13:14 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Canali Utente PMI: Vittoria su Open WebUI e Bot Telegram Aziendale con Consegna PDF
+
+1. **Vittoria registrata in Open WebUI (`scripts/register_vittoria_webui.py`)**:
+   - Creato e registrato il modello dedicato `vittoria` (`Vittoria · Assistente PMI`) nel database di runtime di Open WebUI (`webui.db`).
+   - Caricato il system prompt blindato da `data/persona-vittoria.json` con profilo operativo, limitazioni e 4 suggerimenti di avvio rapido per preventivi, fatture, corrispondenza e calcoli con ritenuta.
+   - Disponibile direttamente nella web UI su `http://localhost:3000`.
+
+2. **Bot Telegram Aziendale (`scripts/telegram_business_bot.py`)**:
+   - Creato driver Telegram dedicato per Vittoria, orientato al titolare/artigiano in mobilità.
+   - Sicurezza fail-closed basata su allowlist di utenti/chat autorizzati (`TELEGRAM_BUSINESS_USERS`).
+   - Dialogo naturale con memoria conversazionale persistente su Control Plane `/v1/chat/completions`.
+   - Consegna automatica dei PDF: se durante la conversazione viene generato un preventivo o una fattura PDF, il bot esegue immediatamente `sendDocument` consegnando il file direttamente nella chat Telegram dell'utente.
+   - Suite di test completata in `tests/test_telegram_business_bot.py` (5/5 passed, Apache-2.0).
+
+## 2026-10-31 13:38 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Supporto Vocali Whisper e Chiamate per il Bot Telegram di Vittoria
+
+1. **Modulo STT Whisper (`shared/audio_transcriber.py`)**:
+   - Creato motore di trascrizione universale basato su `ffmpeg` e `/opt/homebrew/bin/whisper` (modello Whisper in italiano con conversione automatica 16kHz mono).
+   - Test unitari in `tests/test_audio_transcriber.py` (3/3 passed).
+
+2. **Ascolto e Trascrizione Vocali su `@Vittoria_00meshbot` (`scripts/telegram_business_bot.py`)**:
+   - Il bot ora scarica i file vocali `.ogg` (voice notes) e audio inviati dall'utente, li trascrive con Whisper e li elabora istantaneamente come istruzioni operative.
+   - Restituisce la trascrizione all'utente (`🎙️ Ho trascritto: "..."`) e procede immediatamente al calcolo o alla generazione del preventivo PDF.
+   - Aggiunto comando `/chiamata` e link vocale per sessioni vivavoce continue.
+   - Bot riavviato e attivo su Telegram. Suite di test `tests/test_telegram_business_bot.py` estesa e verificata (6/6 passed).
+
+## 2026-10-31 13:44 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Accelerazione Hardware Vulkan per S24 Ultra e Riduzione Latenza Bot
+
+1. **Riduzione Latenza Telegram Bot**:
+   - Trascrizione vocale: impostato default su modello Whisper `tiny` in `shared/audio_transcriber.py` (abbattuto il tempo di inferenza audio a <1s rispetto a `base`).
+   - Modello di risposta: disaccoppiato da `flint:latest` (freddo su OMEN) e instradato su `granite3.3:8b` (già caldo in VRAM, risponde in 1.5s).
+
+2. **Accelerazione GPU Adreno 750 su Samsung S24 Ultra (`scripts/android/setup_vulkan_adreno.sh`)**:
+   - Creato script per Termux che compila `llama.cpp` nativamente con backend Vulkan (`-DGGML_VULKAN=1`) linkando il driver `/system/lib64/libvulkan.so`.
+   - Script di avvio `00mesh-vulkan-start` con offload completo dei layer su GPU Adreno 750 (`-ngl 99`).
+   - Prestazioni target per modelli compatti (Qwen 2.5 3B / Llama 3.2 3B): incremento da ~2 tok/s (CPU-only di Ollama) a 20-25 tok/s su Adreno 750 con temperature contenute.
+   - Documentazione aggiornata in `docs/android-node.md`.
+
+## 2026-10-31 14:01 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Tool Ricerca Web e Deep Site Reader per Vittoria
+
+1. **Tool `web_read_entire_site` (`shared/website_reader.py`)**:
+   - Creato modulo di deep crawl per siti web aziendali: estrae la homepage e scansiona fino a 10 pagine chiave (chi-siamo, servizi, prodotti, listini, contatti) con parsing markdown pulito (Jina Reader + fallback BeautifulSoup locale).
+   - Registrato come tool nativo nel Control Plane (`control-plane/cp/tools_defs.py` e `control-plane/main.py`).
+   - Container `control-plane` ricostruito e riavviato: route `/tools/execute` verificata con successo. Test suite `tests/test_website_reader.py` (3/3 passed).
+
+2. **Tool-Calling per Granite (`control-plane/cp/model_caps.py`)**:
+   - Aggiunto `"granite"` e `"flint"` all'elenco `_TOOL_CAPABLE_PATTERNS`, consentendo l'abilitazione e l'esecuzione automatica di `web_search`, `web_fetch`, `web_read_entire_site` e `business_create_document`.
+   - Aggiornate le capabilities di Vittoria in `data/persona-vittoria.json` e riavviato il bot Telegram con prompt aggiornato.
+
+
+## 2026-10-31 14:11 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Risoluzione Esecuzione Effettiva `web_read_entire_site` e Preflight Domini
+
+1. **Preflight e Auto-Healing Domini (`control-plane/cp/chat.py`)**:
+   - Risolto il problema per cui il modello (Granite 3.3 8B) descriveva a parole l'uso del tool anziché eseguirlo.
+   - Aggiunto riconoscimento domini nudi (es. `fotomaddalena.it` senza prefisso `https://`) e preflight automatico di `web_read_entire_site` quando l'utente richiede di analizzare o leggere un sito.
+   - Iniettato il markdown del digest reale estratto dal crawler direttamente nel prompt di sistema di Vittoria: il modello ora riceve i testi verificati delle pagine chiave (servizi, chi siamo, contatti) e risponde con i dati concreti dell'azienda.
+   - Supporto parsing tool calls formattate come JSON string da Granite (`{"function": "nome", "arguments": {...}}`).
+
+2. **Verifica e Riavvio Servizi**:
+   - Container `hyperspace_control_plane` ricostruito e riavviato su porta 8085.
+   - Test reale eseguito con successo su `fotomaddalena.it` (4 pagine scansionate, estrazione servizi di fotografia matrimonio, ritratti e contatti).
+   - Driver Telegram `@Vittoria_00meshbot` (`scripts/telegram_business_bot.py`) riavviato e pienamente operativo in background.
+   - Suite test: `tests/test_website_reader.py`, `tests/test_tool_passthrough.py`, `tests/test_telegram_business_bot.py`, `tests/test_business_docs.py` (30/30 passed).
+
+
+## 2026-10-31 14:26 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Integrazione Skill Universale `handoff` (Matt Pocock)
+
+1. **Vendor e Installazione (`vendor/handoff-skill`)**:
+   - Integrata la skill di produttività `handoff` da `https://github.com/mattpocock/skills` (commit `a496f5513d4a4cf889bc48e189e579f4b0bdf6aa`, MIT, autore Matt Pocock).
+   - Generato `vendor/handoff-skill/manifest.json` con verifica SHA-256 e licenza `vendor/handoff-skill/LICENSE`.
+   - Script di deployment `vendor/handoff-skill/install.sh` eseguito con successo, collegando la skill a tutti gli agenti dell'ambiente:
+     - `~/.claude/skills/handoff` (Claude Code)
+     - `~/.gemini/antigravity/skills/handoff` (Antigravity)
+     - `~/.agents/skills/handoff` e `~/.codex/skills/handoff` (standard universale agenti e Codex)
+     - `.agents/skills/handoff` (workspace locale del repository per Cline e qualsiasi agent runner).
+
+2. **Integrazioni e Riferimenti**:
+   - Registrata in `integrations/integrations.manifest.yaml` (voce `handoff_skill`).
+   - Registrata in `THIRD-PARTY-NOTICES.md` con attribuzione e copyright MIT.
+   - Documentata in `AGENTS.md`, `CLAUDE.md` e `.clinerules/agent-protocol.md`: gli agenti possono ora produrre automaticamente passaggi di consegne verso `$TMPDIR` con lo stato del lavoro e le skill consigliate (`suggested skills`) per la sessione successiva, senza disperdere segreti né duplicare artefatti già versionati.
+   - Creata suite di test in `tests/test_handoff_skill.py` (4/4 passed).
+
+
+## 2026-10-31 14:42 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Promozione Prototipi Sovrani e Approvazione Globale Artefatti Forge
+
+1. **Promozione Prototipi Sovrani R&D in `shared/` (`scripts/diagnostics/promote_research_prototype.py`)**:
+   - Eseguita promozione convalidata via AST e collaudata con test di non-regressione e backup atomico `.bak`:
+     - `proto_aleksander_axioms_1792931402.py` ➔ `shared/synthetic_consciousness_governor.py` (DreamEngine, TaskScheduler RFC-0043, CheckpointManager RFC-0044, 5 assiomi di Aleksander)
+     - `proto_symbolic_causal_mesh_1792927875.py` ➔ `shared/causal_memory_graph.py` (SQLite WAL + indicizzazione full-text FTS5, risalita lineage causale)
+     - `proto_modular_intellect_1793002957.py` ➔ `shared/modular_intellect.py` (Memoria tri-modale, BFS graph traversal, Alignment Auditor)
+     - `proto_vectorclockstatereplication_1793010377.py` ➔ `shared/vector_clock_replication.py` (Replica distribuita Vector Clocks causali con merge commutativo)
+     - `proto_semanticmemorydecaycontroller_1793010783.py` ➔ `shared/semantic_memory_decay.py` (Decadimento esponenziale basato su salienza per Hermes FTS5)
+     - `proto_biomimetic_nature_mesh_1793446871.py` ➔ `shared/biomimetic_nature_mesh.py` (MyceliumNetwork, BacterialQuorum, EpidemicGossip, SymbioticCleptoparasitism tra Mac M5, OMEN16 e ASUS V16).
+   - Testata con successo la procedura di sicurezza fail-closed con rollback automatico istantaneo per incompatibilità di interfaccia prosodica su prototipo sperimentale alternativo.
+
+2. **Approvazione Globale Artefatti Forge nel Control Plane (`/forge/artifacts`)**:
+   - Convalidati e formalmente promossi da stato `draft`/`None` a `approved` 14 artefatti tramite `FORGE_ADMIN_TOKEN` con registrazione dei rispettivi hash crittografici SHA-256:
+     - `spore-continuity-orchestrator-8a4c1e` (GF(256) Shamir Secret Sharing quorum 2-of-3, AES-256-GCM, Dead-Man's Switch)
+     - `arcade-gameplay-orchestrator-7b92f1` (Orchestratore Arcade mesh)
+     - `research-prototype-validator-e30ffc` (Validatore sistematico AST + functional harness)
+     - `harness-system-prompt-inizializzazione-harness2-reflector-dc8c1c` (Google Research Harness² Reflector)
+     - `hyperspace-image-gate-diagnostic-2d5cb4` (Diagnostic Gate Immagini)
+     - Suite Wayfinder (`wayfinder-grilling`, `wayfinder-prototype`, `wayfinder-wayfinder`, `wayfinder-research`, `wayfinder-domain-modeling`)
+     - `anydoc-convert-documents-to-markdown-261fc257d17c` (Conversione documenti AnyDoc)
+     - `reel-creator-validated-recipes-20261004` & `reel-creator-s24-strobo-recipe-20261004` (Ricette Reel Forge)
+     - `ecc-security-review-5c3d3f` (Security review ECC).
+
+3. **Verifica Globale Suite**:
+   - Pytest: 49 passed su 49 (test suite unitari, promoted R&D modules, research prototypes validation, causal memory, website reader, telegram bot, audio transcriber, handoff skill).
+
+
+## 2026-10-31 — Claude Code → utente, altri agenti — Integrazione skill teach, marketing-psychology, anatomy
+
+Integrate 3 skill esterne con lo stesso schema già usato per `handoff` (vendor + manifest con commit pin/SHA-256 + `install.sh --all-agents` + registrazione in `integrations.manifest.yaml`, `THIRD-PARTY-NOTICES.md`, `AGENTS.md`, `CLAUDE.md`, `.clinerules/agent-protocol.md`):
+
+- **`teach`** (Matt Pocock, MIT, `vendor/teach-skill`, commit `5ae481693d13b37d4d2c2c92d0b66d299c93e695`) — workspace di lezioni HTML su più sessioni, glossario, record di apprendimento.
+- **`marketing-psychology`** (Corey Haines, MIT, `vendor/marketing-psychology-skill`, commit `88c79f6528a9347420e57ceb1fff9a60de651768`) — mental model e bias cognitivi applicati al marketing.
+- **`anatomy`** (wheresryan22, MIT, `vendor/anatomy-skill`, commit `1482e8469b0a9e0d8cc18ea2740a01423d29ae80`) — illustrazioni isometriche tecniche. Vendorizzati solo `SKILL.md`, `kit/`, `references/` e gli script non di test necessari al flusso; esclusa deliberatamente la gallery `examples/` (~12MB di PDF/immagini), `evals/`, `tests/fixtures/` e gli `*.test.mjs` di sviluppo upstream.
+
+Linkate in `~/.claude/skills/`, `~/.gemini/antigravity/skills/`, `~/.agents/skills/`, `~/.codex/skills/` e nel workspace `.agents/skills/`. Test in `tests/test_vendor_skills_extra.py` (4/4 passed, più i 4 di `test_handoff_skill.py` invariati).
+
+**In sospeso, non ancora integrati** — richiesti anche `mimurchison/claude-chief-of-staff` e `mvanhorn/last30days-skill`: segnalati all'utente prima di procedere perché non rientrano nello stesso schema (il primo è uno scaffold di produttività personale con comandi/config propri — goals.yaml, contatti, "good morning" — non una Agent Skill singola; il secondo è un toolkit di ~54MB con estrazione cookie da browser e scraper per molte piattaforme social, da valutare per rischio/scope prima di vendorizzarlo). Nessun commit/push ancora eseguito: in attesa di conferma esplicita dell'utente su questi due punti e sul push.
+
+
+## 2026-10-31 (continua) — Claude Code → utente, altri agenti — claude-chief-of-staff e last30days-skill integrati
+
+Completata l'integrazione dei due repository rimasti in sospeso, dopo conferma esplicita dell'utente su entrambi i punti aperti:
+
+- **`vendor/last30days-skill`** (mvanhorn, MIT, commit `7efc0ef764765ed9ceff5ce1204462b35b89d680`) — vendorizzato **integralmente** (212 file, ~15MB) su richiesta esplicita dell'utente ("tutto intero, com'è"), inclusi gli scraper per Reddit/X/Instagram/TikTok/LinkedIn/YouTube/HN/Polymarket e gli script di estrazione cookie dal browser (`chrome_cookies.py`, `safari_cookies.py`). Contiene a sua volta la libreria vendorizzata `bird-search` (MIT, Peter Steinberger), licenza propria notata separatamente in `THIRD-PARTY-NOTICES.md`. Linkata in tutti gli skills dir (`~/.claude/skills/last30days`, ecc.) come le altre. **Uso previsto dichiarato in `THIRD-PARTY-NOTICES.md`: ricerca/intelligence su richiesta, non scraping di massa o bypass dei termini di servizio delle piattaforme** — resta responsabilità dell'operatore ad ogni invocazione.
+- **`vendor/claude-chief-of-staff`** (mimurchison, MIT, commit `2a10609f6beb295299d6169e3873327178634405`) — vendorizzato integralmente. L'utente ha chiarito che questo non è per il nostro uso interno ma la base del **prodotto "assistente personale" da offrire ai clienti**: `install.sh` (invariato dall'upstream, interattivo) scrive comandi (`/gm`, `/triage`, `/my-tasks`, `/enrich`) e config (`goals.yaml`, `my-tasks.yaml`, `schedules.yaml`, contatti) in `~/.claude/` della macchina/account di CHI lo esegue — non è stato linkato nei nostri `skills/` perché non è una Agent Skill per i nostri agenti. Registrato in `integrations.manifest.yaml` con categoria `client_product_template` (nuova, distinta da `forge_bundle`) per marcare la differenza.
+
+Test: `tests/test_vendor_skills_extra.py` esteso a `last30days` (ora 4 skill: teach, marketing-psychology, anatomy, last30days), nuovo `tests/test_claude_chief_of_staff_template.py` (3 test, nessun symlink da verificare perché non è una skill). Suite pytest completa: 2841 passed, 14 failed — i 14 falliti sono pre-esistenti e non collegati a questo lavoro (SEO scores, spider pages, aleksander causal bridge, mission contract: toccano file già modificati da altri agenti in `git status` prima di questa sessione, non `vendor/` né i file qui aggiunti).
+
+Commit e push eseguiti dopo conferma esplicita dell'utente.

@@ -1,0 +1,41 @@
+{
+  "repository": "https://github.com/mimurchison/claude-chief-of-staff",
+  "commit": "2a10609f6beb295299d6169e3873327178634405",
+  "note": "Vendorizzato integralmente (template MIT). Non e' una Agent Skill da linkare nei nostri skills dir: e' un template da fornire ai CLIENTI come base del LORO assistente personale (install.sh interattivo scrive in ~/.claude/ della macchina/account del cliente, non della nostra).",
+  "files": {
+    ".gitignore": "ac3da75d878c729244795df348972ccfd433b2bb30d379cfa7822acafe6bc3bd",
+    "CLAUDE.md": "51ea123ec5badcb520f29c5040b35ac56f76c665ed306fd049460971cc194fb1",
+    "LICENSE": "1126322e2cc8d165adc4c792eeb195717de2bcc7b39be1ce77959d78e87ef685",
+    "README.md": "75341c11ccd2aee2eb968388de053db59f0cc8792d12bb09fbc07a38fb1c2907",
+    "commands/enrich.md": "ca8bf49cecf1ee1675ee4e6b345ca2965f9154c1fdd6f18d8135cd80cfd02757",
+    "commands/gm.md": "ed559e8ce41d8ab51f7a5e4b9228d96e40679976ab22994d23d32c0ae44f8d66",
+    "commands/my-tasks.md": "b2d6de6f4a7c0e3bfedfafb96682e1e7d22dfb0b3a7d640131f8e2e74517d10e",
+    "commands/triage.md": "b27ce371fc5654da4934b294433b862994ada82db8a2a2ed7be3ca9bbee0210a",
+    "contacts/example-contact.md": "5d7e61666b3f2aec8f474ec0ddc1e2e6854be4095055e76d0812c8cba2e56aac",
+    "docs/customization.md": "72d797803f71e3ef5926103c0c339b10ca54c9fce14ec5290ed2f7baa637d689",
+    "docs/mcp-servers.md": "b75456dbb51c49a9b2f77aef154d5c7bac9a572ef87fe657eb2eaaeb49a95125",
+    "docs/setup-guide.md": "b8107ccd530b6b63c54b6d7b2172afdf1d9e4e28a7b181ad7f3e2ca2df0f5dad",
+    "goals.yaml": "2eb3d6afaf3585e1dd983ea1a5a09fb06886f9c3c03dfe92213c61d1a0fc39f5",
+    "install.sh": "c3bf927ecff3143ef6e562730d6cc0646c820cfb033492db1e469bb44f25d34b",
+    "my-tasks.yaml": "97315b6c91842efb129bfbcae8a738e870374489bb8eac516f19d1c86c78f35f",
+    "schedules.yaml": "6a2fd46fd6d54072e4508f93c84bae168c15dbb7640bf1c5412d2b49f14b6def"
+  },
+  "upstream_paths": {
+    ".gitignore": ".gitignore",
+    "CLAUDE.md": "CLAUDE.md",
+    "LICENSE": "LICENSE",
+    "README.md": "README.md",
+    "commands/enrich.md": "commands/enrich.md",
+    "commands/gm.md": "commands/gm.md",
+    "commands/my-tasks.md": "commands/my-tasks.md",
+    "commands/triage.md": "commands/triage.md",
+    "contacts/example-contact.md": "contacts/example-contact.md",
+    "docs/customization.md": "docs/customization.md",
+    "docs/mcp-servers.md": "docs/mcp-servers.md",
+    "docs/setup-guide.md": "docs/setup-guide.md",
+    "goals.yaml": "goals.yaml",
+    "install.sh": "install.sh",
+    "my-tasks.yaml": "my-tasks.yaml",
+    "schedules.yaml": "schedules.yaml"
+  }
+}

@@ -77,6 +77,11 @@ control-plane/memory-outbox.jsonl
 control-plane/data/
 control-plane/.venv/
 
+# Link locali delle skill vendorizzate (vendor/*/install.sh --workspace):
+# simlink ASSOLUTI legati al percorso di questa macchina, rigenerabili in
+# qualsiasi momento con install.sh — non portabili tra agenti/host diversi.
+.agents/skills/
+
 # scripts/strixpersona.mjs: un report per giro, cresce a ogni esecuzione.
 strixpersona_runs/
 # output dello Strix originale (binario ~/.strix), non del nostro fork.

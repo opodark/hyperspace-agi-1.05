@@ -1,0 +1,52 @@
+# Schedules — Automation Configuration
+#
+# Define recurring automations that Claude runs on schedule.
+# These require a cron-like scheduler to trigger Claude Code sessions.
+#
+# See docs/setup-guide.md for how to set up automated scheduling.
+#
+# Each schedule entry defines:
+#   - skill: The /command to run
+#   - frequency: Cron-like schedule description
+#   - enabled: Whether this automation is active
+#   - notes: What this automation does
+
+schedules:
+  - name: "Morning Briefing"
+    skill: "/gm"
+    frequency: "Daily at 7:00am"
+    enabled: true
+    notes: "Full briefing with calendar, tasks, and urgent items"
+
+  - name: "Midday Triage"
+    skill: "/triage"
+    frequency: "Daily at 12:00pm"
+    enabled: true
+    notes: "Scan all channels for items needing attention"
+
+  - name: "Evening Triage"
+    skill: "/triage"
+    frequency: "Daily at 5:00pm"
+    enabled: true
+    notes: "End of day inbox check"
+
+  - name: "Task Check"
+    skill: "/my-tasks overdue"
+    frequency: "Every 2 hours, 8am-8pm"
+    enabled: true
+    notes: "Warn about overdue or at-risk tasks"
+
+  - name: "Relationship Check"
+    skill: "/enrich stale"
+    frequency: "Weekly, Monday at 9am"
+    enabled: false
+    notes: "Surface contacts that need attention"
+
+# To set up automated scheduling, you need a way to trigger
+# Claude Code sessions on a schedule. Options:
+#
+# 1. macOS: Use cron or launchd to run `claude --command "/gm"`
+# 2. Linux: Use cron to run `claude --command "/gm"`
+# 3. Manual: Just type /gm when you start your day
+#
+# Most users start with manual invocation and add automation later.

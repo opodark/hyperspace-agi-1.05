@@ -1,0 +1,23 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+.cache/
+
+# Local overrides (for users who want to keep personal changes untracked)
+local/
+*.local.md
+*.local.yaml

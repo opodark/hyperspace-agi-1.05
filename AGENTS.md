@@ -20,6 +20,27 @@ indirizzati qui dall'utente.
 | **Cline** (VS Code) | `/Users/opo/hyperspace-agi-1.04` | lavora dentro il repository |
 | **Codex** | `/Users/opo/hyperspace-agi-1.04` | infrastruttura (Control Plane, Registry, bridge); ha risposto al primo passaggio di consegne |
 | **Claude Code** | `/Users/opo/Downloads/tiktok_editor` | cantiere storico dell'editor, memory ferma al 2026-09-09; non ha ancora risposto |
+| **Antigravity** | `/Users/opo/hyperspace-agi-1.04` | pair programming, mesh/tools, agenti aziendali, skill e conformità |
+
+## Passaggio di consegne (Skill `handoff`)
+
+Per passare il lavoro tra agenti o compattare una sessione prima di cedere il passo a un altro agente, è integrata la skill universale **`handoff`** (Matt Pocock, MIT, `vendor/handoff-skill`):
+- **Cosa fa**: produce un documento di handoff salvandolo nella cartella temporanea di sistema (`$TMPDIR` o `/tmp`) senza sporcare il workspace.
+- **Struttura**: sintetizza il lavoro svolto, richiama artefatti e file per percorso (senza duplicazioni), rimuove eventuali segreti/token e raccomanda le skill da invocare all'avvio della sessione successiva.
+- **Disponibilità per tutti gli agenti**: è linkata in `~/.claude/skills/handoff`, `~/.gemini/antigravity/skills/handoff`, `~/.agents/skills/handoff` e nel workspace `.agents/skills/handoff`. Può essere gestita o ripristinata con `vendor/handoff-skill/install.sh`.
+
+## Altre skill vendorizzate (produttività, marketing, illustrazione)
+
+Stesso schema di `handoff` (vendor, manifest con commit pin + SHA-256, `install.sh --all-agents`), registrate anche in `THIRD-PARTY-NOTICES.md` e `integrations/integrations.manifest.yaml`:
+
+- **`teach`** (Matt Pocock, MIT, `vendor/teach-skill`) — insegna un argomento all'utente su più sessioni (workspace di lezioni HTML, glossario, record di apprendimento).
+- **`marketing-psychology`** (Corey Haines, MIT, `vendor/marketing-psychology-skill`) — mental model e bias cognitivi applicati al marketing.
+- **`anatomy`** (wheresryan22, MIT, `vendor/anatomy-skill`) — illustrazioni isometriche tecniche dettagliate (SVG + shader WebGL opzionali); vendorizzati solo `SKILL.md`, `kit/`, `references/` e gli script necessari al flusso, esclusa la gallery `examples/` (~12MB).
+- **`last30days`** (mvanhorn, MIT, `vendor/last30days-skill`) — ricerca/intelligence su Reddit, X, YouTube, TikTok, HN, Polymarket e web. Vendorizzato **integralmente** (212 file, inclusi scraper social e script di estrazione cookie dal browser) su richiesta esplicita dell'utente — vedi `THIRD-PARTY-NOTICES.md` per i limiti d'uso previsti. Include la libreria terza parte `bird-search` (MIT, Peter Steinberger) vendorizzata a sua volta dall'upstream.
+
+## Template prodotto cliente (non skill per i nostri agenti)
+
+- **`claude-chief-of-staff`** (mimurchison, MIT, `vendor/claude-chief-of-staff`) — template di assistente personale (goals/task/contatti/comandi `/gm`, `/triage`, `/my-tasks`, `/enrich`) pensato per il PRODOTTO: va fornito ai clienti come base del LORO assistente, non collegato ai nostri `skills/`. `install.sh` interattivo (invariato) scrive in `~/.claude/` di chi lo esegue.
 
 ## Regole
 

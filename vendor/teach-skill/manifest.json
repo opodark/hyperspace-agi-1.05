@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/mattpocock/skills",
+  "commit": "5ae481693d13b37d4d2c2c92d0b66d299c93e695",
+  "files": {
+    "LICENSE": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+    "skills/teach/SKILL.md": "550482c2d674b085c9043b87bfdc14a8f2ec453c736119e7fcbb1e9332bffeba",
+    "skills/teach/GLOSSARY-FORMAT.md": "9b99859ec28437668130d8f2ce5a342938970f8a1ed4fd38c3eab4f4b5fff210",
+    "skills/teach/LEARNING-RECORD-FORMAT.md": "701fa34b6748aa89e6c960ffb815257f481a7d77fb2900f9028f7edf3fdd6052",
+    "skills/teach/MISSION-FORMAT.md": "8cacbb3c0644d3ae0ea4965564797099401a6930a23f7cf462918576587f2418",
+    "skills/teach/RESOURCES-FORMAT.md": "e9cacf34026e11a8d1c8f9de88abe5bcbf654f4ebdb25cae8c0de0d5f48f44ec"
+  },
+  "upstream_paths": {
+    "LICENSE": "LICENSE",
+    "skills/teach/SKILL.md": "skills/productivity/teach/SKILL.md",
+    "skills/teach/GLOSSARY-FORMAT.md": "skills/productivity/teach/GLOSSARY-FORMAT.md",
+    "skills/teach/LEARNING-RECORD-FORMAT.md": "skills/productivity/teach/LEARNING-RECORD-FORMAT.md",
+    "skills/teach/MISSION-FORMAT.md": "skills/productivity/teach/MISSION-FORMAT.md",
+    "skills/teach/RESOURCES-FORMAT.md": "skills/productivity/teach/RESOURCES-FORMAT.md"
+  }
+}

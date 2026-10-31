@@ -1,0 +1,58 @@
+# Goals — Your Quarterly Objectives
+#
+# This file is the source of truth for "what should I be working on?"
+# Claude references it constantly when prioritizing your time,
+# triaging your inbox, and deciding what meetings to accept.
+#
+# Update quarterly. Review weekly.
+#
+# How to use:
+#   - Define 3-5 objectives (fewer is better)
+#   - Each objective should be specific, measurable, and time-bound
+#   - Include key results that define success
+#   - Update progress (0.0 to 1.0) as you make headway
+#   - Claude will flag when progress stalls
+
+quarter: "Q1 2026"
+last_updated: "2026-01-01"
+
+objectives:
+  - name: "Example: Launch new product feature"
+    target: "Ship to 100% of users by end of Q1"
+    priority: 1
+    key_results:
+      - "Feature spec complete by Jan 31"
+      - "Beta with 10 customers by Feb 28"
+      - "Full rollout by Mar 31"
+    progress: 0.0
+    status: "on_track"   # on_track | at_risk | behind | complete
+    notes: ""
+
+  - name: "Example: Grow revenue 30%"
+    target: "$X pipeline by end of quarter"
+    priority: 2
+    key_results:
+      - "Hire 2 sales reps by Feb 15"
+      - "Launch outbound motion by Feb 28"
+      - "Close 5 new enterprise deals by Mar 31"
+    progress: 0.0
+    status: "on_track"
+    notes: ""
+
+  - name: "Example: Build high-performing team"
+    target: "Complete hiring plan and establish rituals"
+    priority: 3
+    key_results:
+      - "Fill 3 open roles by Feb 28"
+      - "Launch weekly team sync and monthly retrospective"
+      - "Complete first round of performance reviews"
+    progress: 0.0
+    status: "on_track"
+    notes: ""
+
+# Personal goals (optional — Claude respects work-life balance)
+personal:
+  - name: "Example: Exercise 4x per week"
+    progress: 0.0
+  - name: "Example: Read 12 books this year"
+    progress: 0.0

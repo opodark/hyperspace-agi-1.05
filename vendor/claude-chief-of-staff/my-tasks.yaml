@@ -1,0 +1,33 @@
+# Tasks — Your Active Task List
+#
+# Claude checks this file at the start of every session.
+# Tasks approaching their due date will be flagged.
+# Claude will actively help execute tasks, not just remind you.
+#
+# Status: pending | in_progress | blocked | complete
+# Priority: 1 (urgent) | 2 (high) | 3 (normal) | 4 (low)
+
+tasks: []
+
+# Example task format:
+#
+# tasks:
+#   - id: "task-001"
+#     title: "Draft Q1 board update"
+#     description: "Prepare quarterly board update deck with metrics and narrative"
+#     status: "pending"
+#     priority: 2
+#     due_date: "2026-03-15"
+#     goal_alignment: "board-communication"
+#     created: "2026-01-15"
+#     notes: ""
+#
+#   - id: "task-002"
+#     title: "Review hiring pipeline"
+#     description: "Review all open roles and candidate pipeline with recruiting"
+#     status: "in_progress"
+#     priority: 3
+#     due_date: "2026-02-01"
+#     goal_alignment: "build-team"
+#     created: "2026-01-20"
+#     notes: "Sarah shared updated spreadsheet on Jan 25"

@@ -28,6 +28,9 @@ Apache-2.0, quindi non impongono nulla sulle scelte di licenza del progetto.
 | google-auth-oauthlib | Apache-2.0 | pypi |
 | firecrawl-anydoc | MIT | pypi |
 | pdf-inspector | MIT | pypi |
+| pypdfium2 | Apache-2.0 | pypi |
+| Pillow | HPND | pypi |
+| reportlab | BSD-3-Clause | pypi |
 
 > **Aperto:** `O365` non dichiara la licenza nel metadata PyPI. E' l'unica
 > dipendenza di questo progetto di cui non si conosce la licenza, e va verificata
@@ -105,6 +108,89 @@ modifiche; l'adattamento a Hyperspace è aggiunto dal loader come contesto
 separato, e l'import resta inerte (nessuna esecuzione, nessun fetch). Hyperspace
 non include né esegue il runtime Firecrawl, non usa `FIRECRAWL_API_KEY` e non
 effettua chiamate di rete per queste skill: sono solo testo di metodo.
+
+## handoff — passaggio di consegne tra agenti
+
+`vendor/handoff-skill` contiene la Agent Skill `handoff` dal repository ufficiale
+[mattpocock/skills](https://github.com/mattpocock/skills), commit
+`a496f5513d4a4cf889bc48e189e579f4b0bdf6aa`, sotto licenza MIT.
+Copyright (c) 2026 Matt Pocock. La licenza integrale è conservata in
+`vendor/handoff-skill/LICENSE`; provenienza e SHA-256 sono in
+`vendor/handoff-skill/manifest.json`. La skill è distribuita senza modifiche;
+è utilizzata da Antigravity, Claude Code, Cline, Codex e agenti standard per
+produrre documenti di handoff verso `$TMPDIR` in modo trasparente e confidenziale.
+
+## teach — insegnare un argomento su più sessioni
+
+`vendor/teach-skill` contiene la Agent Skill `teach` dal repository ufficiale
+[mattpocock/skills](https://github.com/mattpocock/skills), commit
+`5ae481693d13b37d4d2c2c92d0b66d299c93e695`, sotto licenza MIT.
+Copyright (c) 2026 Matt Pocock. La licenza integrale è conservata in
+`vendor/teach-skill/LICENSE`; provenienza e SHA-256 sono in
+`vendor/teach-skill/manifest.json`. La skill è distribuita senza modifiche;
+gestisce una workspace di lezioni HTML, glossario e record di apprendimento
+nella directory corrente, nessuna chiamata di rete propria.
+
+## marketing-psychology — mental model per il marketing
+
+`vendor/marketing-psychology-skill` contiene la Agent Skill `marketing-psychology`
+dal repository ufficiale [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills),
+commit `88c79f6528a9347420e57ceb1fff9a60de651768`, sotto licenza MIT.
+Copyright (c) 2026 Corey Haines. La licenza integrale è conservata in
+`vendor/marketing-psychology-skill/LICENSE`; provenienza e SHA-256 sono in
+`vendor/marketing-psychology-skill/manifest.json`. La skill è distribuita
+senza modifiche: solo testo di metodo, nessuna chiamata di rete.
+
+## anatomy — illustrazioni isometriche tecniche
+
+`vendor/anatomy-skill` contiene la Agent Skill `anatomy` dal repository
+ufficiale [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy),
+commit `1482e8469b0a9e0d8cc18ea2740a01423d29ae80`, sotto licenza MIT.
+Copyright (c) 2026 wheresryan22. La licenza integrale è conservata in
+`vendor/anatomy-skill/LICENSE`; provenienza e SHA-256 sono in
+`vendor/anatomy-skill/manifest.json`. Vendorizzati solo `SKILL.md`, `kit/`,
+`references/` e gli script non di test necessari al flusso (capture, drive,
+lines, print, publish, session, turn-*); esclusi deliberatamente `examples/`
+(gallery ~12MB di PDF/immagini), `evals/`, `tests/fixtures/` e gli `*.test.mjs`
+dello sviluppo upstream, non necessari per usare la skill. Build locale via
+Node (nessuna dipendenza npm); richiede Chrome/Chromium solo per gli script
+di verifica (`capture.mjs`, `drive.mjs`), mai eseguiti automaticamente.
+
+## last30days — ricerca/intelligence su piattaforme social e web
+
+`vendor/last30days-skill` contiene l'intero repository
+[mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill),
+commit `7efc0ef764765ed9ceff5ce1204462b35b89d680`, sotto licenza MIT.
+Copyright (c) 2026 mvanhorn. La licenza integrale è conservata in
+`vendor/last30days-skill/LICENSE`; provenienza e SHA-256 per 212 file sono in
+`vendor/last30days-skill/manifest.json`. Vendorizzato **integralmente**, su
+richiesta esplicita dell'utente, inclusi gli script di raccolta per varie
+piattaforme (Reddit, X/Twitter, Instagram, TikTok, LinkedIn, YouTube, Hacker
+News, Polymarket) e gli script di estrazione cookie dal browser
+(`chrome_cookies.py`, `safari_cookies.py`) usati per autenticarsi su alcune di
+esse. **Uso previsto: ricerca/intelligence su richiesta, non scraping di
+massa, automazione invisibile o bypass di restrizioni di accesso delle
+piattaforme** — l'operatore resta responsabile di rispettare i termini di
+servizio di ciascuna piattaforma quando la skill viene invocata.
+
+All'interno, `vendor/last30days-skill/skills/last30days/scripts/lib/vendor/bird-search`
+contiene una libreria di terze parti vendorizzata a sua volta dal progetto
+upstream: licenza MIT propria, Copyright (c) 2025 Peter Steinberger, conservata
+in `.../vendor/bird-search/LICENSE`. Non modificata.
+
+## AI Chief of Staff — template per il prodotto cliente
+
+`vendor/claude-chief-of-staff` contiene l'intero repository
+[mimurchison/claude-chief-of-staff](https://github.com/mimurchison/claude-chief-of-staff),
+commit `2a10609f6beb295299d6169e3873327178634405`, sotto licenza MIT.
+Copyright (c) 2026 mimurchison. La licenza integrale è conservata in
+`vendor/claude-chief-of-staff/LICENSE`; provenienza e SHA-256 sono in
+`vendor/claude-chief-of-staff/manifest.json`. Non è una Agent Skill per i
+nostri agenti: è il template di partenza per il prodotto "assistente
+personale" da fornire ai clienti (comandi `/gm`, `/triage`, `/my-tasks`,
+`/enrich`, config `goals.yaml`/`my-tasks.yaml`/`schedules.yaml`, contatti).
+L'`install.sh` interattivo (invariato dall'upstream) scrive in `~/.claude/`
+della macchina/account del cliente che lo esegue, non della nostra.
 
 ## pdf-inspector — classificazione dei PDF
 

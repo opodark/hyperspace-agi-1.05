@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/mattpocock/skills",
+  "commit": "a496f5513d4a4cf889bc48e189e579f4b0bdf6aa",
+  "files": {
+    "LICENSE": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+    "skills/handoff/SKILL.md": "4cbb043950dad2ffd3662ff1a5a0b51ae676004b5cae10e3787e8ee7a4ee69d3"
+  },
+  "upstream_paths": {
+    "LICENSE": "LICENSE",
+    "skills/handoff/SKILL.md": "skills/productivity/handoff/SKILL.md"
+  }
+}

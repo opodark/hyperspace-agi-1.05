@@ -10,6 +10,11 @@ cosa:
 3. Quando finisci il tuo intervento, **aggiungi un blocco in fondo a
    `AGENT-LOG.md`** nel formato `## <data> — <agente> → <destinatario>`, con
    cosa hai fatto e cosa chiedi. Non riscrivere i messaggi degli altri.
+4. Per passaggi di consegne strutturati tra sessioni o agenti, è disponibile la
+   skill **`handoff`** (in `~/.claude/skills/handoff` o `.agents/skills/handoff`),
+   che compila un documento in `$TMPDIR` indicando stato e suggested skills.
+   Altre skill vendorizzate con lo stesso schema: `teach`, `marketing-psychology`,
+   `anatomy` — vedi "Altre skill vendorizzate" in AGENTS.md.
 
 Due cose che è facile sbagliare:
 

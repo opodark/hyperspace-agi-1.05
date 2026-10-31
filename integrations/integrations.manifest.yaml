@@ -180,6 +180,66 @@ integrations:
     active_branch: main
     test_command: node vendor/taste-skill/skills/taste-skill/scripts/draw.mjs --help
     auto_sync: true
+  handoff_skill:
+    name: Handoff Agent Skill (Matt Pocock)
+    category: forge_bundle
+    local_path: vendor/handoff-skill
+    description: Skill universale di passaggio di consegne tra agenti (creazione handoff doc in $TMPDIR, suggested skills, redaction segreti)
+    upstream_url: https://github.com/mattpocock/skills.git
+    pinned_ref: a496f5513d4a4cf889bc48e189e579f4b0bdf6aa
+    active_branch: main
+    test_command: test -f vendor/handoff-skill/skills/handoff/SKILL.md
+    auto_sync: false
+  teach_skill:
+    name: Teach Agent Skill (Matt Pocock)
+    category: forge_bundle
+    local_path: vendor/teach-skill
+    description: Skill per insegnare un argomento all'utente su piu' sessioni (workspace di lezioni, glossario, record di apprendimento)
+    upstream_url: https://github.com/mattpocock/skills.git
+    pinned_ref: 5ae481693d13b37d4d2c2c92d0b66d299c93e695
+    active_branch: main
+    test_command: test -f vendor/teach-skill/skills/teach/SKILL.md
+    auto_sync: false
+  marketing_psychology_skill:
+    name: Marketing Psychology Skill (Corey Haines)
+    category: forge_bundle
+    local_path: vendor/marketing-psychology-skill
+    description: Skill di psicologia e mental model applicati al marketing (bias cognitivi, persuasione, decisioni d'acquisto)
+    upstream_url: https://github.com/coreyhaines31/marketingskills.git
+    pinned_ref: 88c79f6528a9347420e57ceb1fff9a60de651768
+    active_branch: main
+    test_command: test -f vendor/marketing-psychology-skill/skills/marketing-psychology/SKILL.md
+    auto_sync: false
+  anatomy_skill:
+    name: Anatomy Agent Skill (wheresryan22)
+    category: forge_bundle
+    local_path: vendor/anatomy-skill
+    description: Skill per illustrazioni isometriche interattive dettagliate di macchine/sistemi reali (SVG + shader WebGL opzionali); vendorizzati SKILL.md, kit/, references/ e gli script non di test, esclusa la gallery examples/ (~12MB)
+    upstream_url: https://github.com/wheresryan22/anatomy.git
+    pinned_ref: 1482e8469b0a9e0d8cc18ea2740a01423d29ae80
+    active_branch: main
+    test_command: test -f vendor/anatomy-skill/skills/anatomy/SKILL.md
+    auto_sync: false
+  last30days_skill:
+    name: Last30Days Agent Skill (mvanhorn)
+    category: forge_bundle
+    local_path: vendor/last30days-skill
+    description: Ricerca/intelligence su Reddit, X, YouTube, HN, Polymarket e web con sintesi finale; include scraper per varie piattaforme social e la libreria vendorizzata bird-search (MIT, Peter Steinberger). Vendorizzato integralmente su richiesta esplicita dell'utente, uso previsto research/intelligence non scraping di massa
+    upstream_url: https://github.com/mvanhorn/last30days-skill.git
+    pinned_ref: 7efc0ef764765ed9ceff5ce1204462b35b89d680
+    active_branch: main
+    test_command: test -f vendor/last30days-skill/skills/last30days/SKILL.md
+    auto_sync: false
+  claude_chief_of_staff:
+    name: AI Chief of Staff template (mimurchison)
+    category: client_product_template
+    local_path: vendor/claude-chief-of-staff
+    description: Template di assistente personale (goals/task/contatti/comandi gm,triage,my-tasks,enrich) da fornire ai CLIENTI come base del LORO assistente personale; install.sh interattivo scrive in ~/.claude/ della macchina/account del cliente, non e' una skill per i nostri agenti
+    upstream_url: https://github.com/mimurchison/claude-chief-of-staff.git
+    pinned_ref: 2a10609f6beb295299d6169e3873327178634405
+    active_branch: main
+    test_command: test -f vendor/claude-chief-of-staff/install.sh
+    auto_sync: false
   linkedin_liftli:
     name: Liftli LinkedIn DevPost Generator & Skill
     category: forge_bundle
