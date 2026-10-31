@@ -156,6 +156,16 @@ const dur = (sec) => (sec == null ? "?" : sec < 90 ? `${Math.round(sec)}s` : sec
 const short = (t, n) => { t = String(t || "").replace(/\s+/g, " "); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
 const FINAL = new Set(["done", "completed", "failed", "cancelled", "canceled", "rejected"]);
 
+function wrapText(text, n) {
+  const out = []; let line = "";
+  for (const w of String(text).split(/\s+/)) {
+    if (line && (line + " " + w).length > n) { out.push(line); line = w; }
+    else line = line ? line + " " + w : w;
+  }
+  if (line) out.push(line);
+  return out.length ? out : [""];
+}
+
 function nodeUrl() {
   let host = "127.0.0.1";
   try { host = fs.readFileSync(path.join(env.HOME || "", ".00mesh/run/node.bind"), "utf8").trim() || host; } catch { /* nodo non avviato */ }
@@ -189,7 +199,11 @@ function evaluate(s) {
   if (s.failover) push("failover", "Mac non raggiungibile: il telefono fa da CP");
   else if (s.cpDown) push("cpdown", "né il Mac né il hub rispondono");
   if (env.ANNA_EXPECT_HUB && !s.hub) push("hubdown", "Pocket Hub non risponde");
-  if (s.hub && s.hub.state === "active_failover") push("hubactive", "hub in failover attivo");
+  if (s.hub && s.hub.state === "active_failover") {
+    // Se il watchdog raggiunge il Mac ma il hub no, il problema è l'indirizzo che il hub controlla.
+    if (!s.failover && !s.cpDown) push("hubactive", `hub in failover ma il Mac risponde: il hub controlla ${s.hub.primary_cp_url || "(nessun URL)"} → ${s.hub.last_probe_error || "?"}`);
+    else push("hubactive", "hub in failover attivo");
+  }
   if (s.hub && s.hub.outbox && s.hub.outbox.pending > 0 && s.hub.last_probe_ok) push("outbox", `${s.hub.outbox.pending} voci non ancora riconsegnate a Hermes`);
   if (s.nodes) {
     // i nodi mobile sono "degradati" a gate chiuso, per progetto: lo dice già la riga del gate
@@ -205,11 +219,33 @@ function evaluate(s) {
   return al;
 }
 
+// Un nodo per riga, con pallino colorato: verde attivo, giallo degradato/in pausa, grigio non-worker.
+function nodeLines(s) {
+  const me = String((s.node && s.node.node_id) || "");
+  const browser = s.nodes.filter((n) => String(n.endpoint || "").startsWith("browser://"));
+  const real = s.nodes.filter((n) => !String(n.endpoint || "").startsWith("browser://"));
+  const lines = real.map((n) => {
+    const mine = me && String(n.node_id || "").startsWith(me.slice(0, 12));
+    const mobile = n.tier === "mobile";
+    const dot = n.status !== "active" ? RED + "●" : mobile ? D + "●" : n.degraded ? Y + "●" : G + "●";
+    const name = short(n.alias || String(n.node_id || "?").slice(0, 8), 14).padEnd(14);
+    const extra = [];
+    if (mine) extra.push(T + "tu" + R);
+    if (n.degraded && !mobile) extra.push(Y + "degradato" + R);
+    if (mobile) extra.push(D + "non-worker" + R);
+    if (num(n.active_requests)) extra.push(Y + n.active_requests + " attive" + R);
+    if (n.battery_pct != null && mobile) extra.push(D + Math.round(n.battery_pct) + "%" + R);
+    return `${dot}${R} ${name} ${D}${String(n.tier || "?").padEnd(6)}${R} ${extra.join(" ")}`;
+  });
+  if (browser.length) lines.push(`${D}● + ${browser.length} nodi browser${R}`);
+  return lines.length ? lines : [`${D}nessun nodo attivo${R}`];
+}
+
 function renderWatch(s, alerts) {
   const hh = new Date(s.at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const verdict = alerts.length ? `${Y}${B}▲ ATTENZIONE ${alerts.length}${R}` : `${G}${B}● OK${R}`;
   const out = [`${T}${B}ANNA${R} ${D}watchdog · ${hh}${R}  ${verdict}`, ""];
-  if (alerts.length) out.push(panel("allarmi", alerts.map((a) => `${Y}▲${R} ${a.msg}`), Y));
+  if (alerts.length) out.push(panel("allarmi", alerts.flatMap((a) => wrapText(a.msg, W() - 8).map((l, i) => (i ? "  " : `${Y}▲${R} `) + l)), Y));
 
   // telefono
   const nd = s.node || {}, p = nd.power || {}, g = nd.mobile_gate || {}, h = s.hub;
@@ -231,10 +267,7 @@ function renderWatch(s, alerts) {
   }
   // mesh + telemetria
   const mesh = [];
-  if (s.nodes) {
-    const deg = s.nodes.filter((n) => n.degraded && n.tier !== "mobile").length;
-    mesh.push(`nodi        ${G}${s.nodes.length} attivi${R}${deg ? Y + " · " + deg + " degradati" + R : ""}`);
-  }
+  if (s.nodes) out.push(panel(`nodi · ${s.nodes.length}`, nodeLines(s), G));
   if (s.hb) mesh.push(`heartbeat   ciclo ${s.hb.cycle} · ${dur(age(s.hb.last_tick))} fa`);
   if (s.metrics) {
     const m = s.metrics;

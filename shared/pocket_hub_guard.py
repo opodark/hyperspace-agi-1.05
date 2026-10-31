@@ -61,6 +61,7 @@ class PocketHubGuard:
         self._last_probe_ts: Optional[float] = None
         self._last_probe_ok: Optional[bool] = None
         self._last_probe_latency_ms: Optional[float] = None
+        self._last_probe_error: str = ""
         self._last_state_change_ts: float = time.time()
         self._promotions_total: int = 0
         self._demotions_total: int = 0
@@ -90,6 +91,7 @@ class PocketHubGuard:
     def probe_primary(self, timeout: float = 3.0) -> Tuple[bool, float]:
         """Esegue un check HTTP GET /health verso il Control Plane primario."""
         if not self.primary_cp_url:
+            self._last_probe_error = "nessun URL del primario configurato (POCKET_HUB_PRIMARY_CP / CONTROL_PLANE_URL)"
             return False, -1.0
 
         t0 = time.time()
@@ -110,9 +112,11 @@ class PocketHubGuard:
             conn.close()
 
             elapsed_ms = round((time.time() - t0) * 1000, 2)
+            self._last_probe_error = "" if status == 200 else f"HTTP {status} su {path}"
             return status == 200, elapsed_ms
         except Exception as e:
             elapsed_ms = round((time.time() - t0) * 1000, 2)
+            self._last_probe_error = f"{type(e).__name__}: {e}"[:200]
             logger.debug(f"[PocketHubGuard] Probe failed for {self.primary_cp_url}: {e}")
             return False, elapsed_ms
 
@@ -228,6 +232,7 @@ class PocketHubGuard:
                 "last_probe_ts": self._last_probe_ts,
                 "last_probe_ok": self._last_probe_ok,
                 "last_probe_latency_ms": self._last_probe_latency_ms,
+                "last_probe_error": self._last_probe_error,
                 "last_state_change_ts": self._last_state_change_ts,
                 "promotions_total": self._promotions_total,
                 "demotions_total": self._demotions_total,

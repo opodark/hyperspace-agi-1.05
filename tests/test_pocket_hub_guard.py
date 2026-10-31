@@ -129,5 +129,18 @@ class TestPocketHubGuard(unittest.TestCase):
         self.assertIsNone(guard._watchdog_thread)
 
 
+class TestProbeError(unittest.TestCase):
+    def test_probe_records_why_it_failed(self):
+        guard = PocketHubGuard(primary_cp_url="http://127.0.0.1:1", enabled=True)
+        ok, _ = guard.probe_primary(timeout=1.0)
+        self.assertFalse(ok)
+        self.assertIn("Error", guard.snapshot()["last_probe_error"])
+
+    def test_probe_without_url_says_so(self):
+        guard = PocketHubGuard(primary_cp_url="", enabled=True)
+        guard.probe_primary()
+        self.assertIn("POCKET_HUB_PRIMARY_CP", guard.snapshot()["last_probe_error"])
+
+
 if __name__ == "__main__":
     unittest.main()

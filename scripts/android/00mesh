@@ -311,6 +311,8 @@ primario = "risponde" if ok else ("NON risponde" if ok is False else "non ancora
 print(f"  Pocket Hub  stato={d['state']}  serve={d['serving']}")
 print(f"  primario    {d['primary_cp_url']}  {primario}  (mancati {d['consecutive_misses']}/{d['failover_threshold_misses']})")
 print(f"  da riconsegnare a Hermes: {d['outbox']['pending']} voci   promozioni: {d['promotions_total']}")
+if d.get("last_probe_error"):
+    print(f"  ultimo errore verso il primario: {d['last_probe_error']}")
 PYEOF
 }
 
