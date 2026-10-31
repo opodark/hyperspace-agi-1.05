@@ -205,3 +205,7 @@ famiglie, incorporati come data URI nelle pagine e nei video dei Motion Reels
 |---|---|---|
 | Inter Display (Black, SemiBold, Medium) — The Inter Project Authors | OFL-1.1 | `motion/fonts/LICENSE-Inter.txt` |
 | DejaVu Sans Mono (Book, Bold) — Bitstream Vera + modifiche DejaVu | Bitstream Vera License; modifiche in pubblico dominio | `motion/fonts/LICENSE-DejaVu.txt` |
+
+## StrixPersona Viewer — bundle web statico
+
+`scripts/strixpersona-viewer/` include una proiezione ridotta di `live_view.py` e il bundle React compilato (`static/`) provenienti da [usestrix/strix](https://github.com/usestrix/strix) (Copyright (c) 2025 OmniSecure Inc.), sotto licenza **Apache-2.0** (testo integrale in `scripts/strixpersona-viewer/LICENSE-strix-viewer-upstream.txt`). Il bundle statico compilato incorpora il runtime di produzione di React (Copyright (c) Meta Platforms, Inc., licenza MIT).

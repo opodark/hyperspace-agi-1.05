@@ -10069,3 +10069,47 @@ Nessun commit di questo blocco.
 1. **Strix**: suite di penetration test (`~/.strix/bin/strix`, v1.7.0; immagine `ghcr.io/usestrix/strix-sandbox:1.3.0`, alias locali 1.3.1/1.7.0/latest). litellm gira sull'**host**: usare `LLM_API_BASE=http://localhost:11434/v1` (Ollama Mac), non `localhost:8085` (il CP inietta i suoi tool) né `host.docker.internal` (non si risolve sull'host). Per i modelli grossi: ASUS/OMEN `:11434` ora **non esposti** (HTTP 000) e `:8081` vuole firma mesh → per usare 24B/Flint serve esporre Ollama sulla tailnet di quei nodi. Il locale 8B emette tool call in modo inaffidabile (verificato: inventa invece di chiamare).
 2. **`scripts/persona_console.py`** (nuovo, prototipo, solo stdlib): REPL che parla col CP `/v1/chat/completions`, superficie `terminal` (persona attiva), header `X-Hyperspace-Tools: off` (solo il tool del client, niente builtin del CP). Tool `shell` eseguito **solo su conferma** (default NO; `a`=approva sessione; `--auto-deny` per i test; timeout 120s, output a 4000 char). Loop tool verificato con stub deterministico: conferma → esecuzione reale → risultato rimandato al modello. La persona risponde ("sono Anna"); il tool scatta davvero solo con un buon tool-caller (i grossi, ora irraggiungibili).
 Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Persona shell in Node (fuori da Python)
+
+1. **`scripts/persona-shell.mjs`** (nuovo, Node >= 18, zero dipendenze): stessa logica di `persona_console.py` ma eseguibile da terminale senza Python. Parla con `/v1/chat/completions` del CP (superficie `terminal`, `X-Hyperspace-Tools: off`), tool `shell` solo su conferma (`e` / `n` / `a` = approva sessione), `--auto-deny` per i test. UI in pannelli ANSI stile Strix.
+2. **Test** con server mock sul CP: header corretti inviati, comando eseguito davvero e risultato rimandato al modello; con `--auto-deny` e con `n` il comando NON parte (verificato con file-marcatore).
+3. `persona_console.py` resta come riferimento; questa è la versione da usare. Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — strixpersona: stessa sintassi di Strix, sulla persona
+
+1. **`scripts/strixpersona.mjs`** (nuovo, Node, zero dipendenze, codice duplicato da `persona-shell.mjs` di proposito, non condiviso come modulo): stesso stile di `strix -t <target> -m quick --max-turns 20`, ma il backend è la persona via CP (`terminal`, `X-Hyperspace-Tools: off`). Non è una REPL: un obiettivo costruito da target+modalità+istruzione, un giro di tool-call con tetto `--max-turns`, shell eseguita nella cwd del bersaglio se è una cartella locale esistente. Scrive un report in `strixpersona_runs/<bersaglio>-<timestamp>/report.md` (cartella nuova, da aggiungere a `.gitignore`).
+2. **Sicurezza invariata**: conferma per ogni comando (default NO), `a`/`--yes` approvano tutto, `--auto-deny` rifiuta sempre.
+3. **Test** con CP mock: eseguito `ls` davvero dentro `infra-ui` (output reale confermato), sintesi finale scritta, report su disco; con `--auto-deny` nessun comando parte.
+4. `persona-shell.mjs` resta la console interattiva "normale"; questo è il giro autonomo in stile Strix. Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Shell multipiattaforma + fork fedele del viewer web di Strix
+
+1. **`persona-shell.mjs` / `strixpersona.mjs`**: non più `bash` fisso. Rilevano l'OS (`node:process` `platform`) e scelgono bash su macOS/Linux, PowerShell su Windows (`--shell bash|powershell|cmd` per forzare). Il tool `shell` dichiara al modello sistema e sintassi attesa. Non testato su Windows/Linux reali da qui (solo macOS): da verificare su ASUS/OMEN o da chi ci lavora.
+2. **`scripts/strixpersona-viewer/`** (nuovo, Apache-2.0, da `usestrix/strix`): fork fedele della web UI "Watch live in browser" di Strix. `static/` è il bundle React compilato, copiato dal loro repo (licenza upstream in `LICENSE-strix-viewer-upstream.txt`). `live_view.py` è una `TuiLiveView` ridotta (solo i metodi a dizionari semplici: `upsert_agent`, `record_tool_call`/`_output`, niente SDK di Strix). `server.py` è un sottoinsieme stdlib delle loro rotte `/api/*` (niente email/OTP/telemetria/report a pagamento). `run.py` è il driver: stesso CLI di `strixpersona.mjs` (`-t -m --max-turns`), ma lancia una sandbox `strix-sandbox` dedicata (`docker run -d ... sleep infinity`) e ci esegue dentro via `docker exec`; la conferma di ogni comando arriva dal box "Send a live prompt" del frontend reale (`/api/agents/steer`), non dal terminale.
+3. **Verificato**: schema `TranscriptAgent`/`TranscriptEvent` combacia (letto da `data/serverSource.ts` del frontend); sessione/token, `/api/run`, `/api/transcript`, `/api/agents/steer` provati con richieste HTTP dirette; render nel browser reale confermato dall'utente con eventi finti. Il giro vero (`run.py -t infra-ui`) è partito (sandbox avviata, server su) ma non è stato portato a termine: fermato a mano, sandbox smontata pulita, perché il focus è tornato sulla shell multipiattaforma.
+4. **Caido**: è il proxy del container `strix-sandbox`, non nostro; una scheda del browser rimasta aperta da un giro precedente con lo Strix originale (container poi rimosso) ha confuso una porta non più in ascolto — chiarito, nessun collegamento col nostro lavoro.
+Nessun commit.
+
+## 2026-10-30 — Claude Code (Mac) → utente, Antigravity, Cips/Cline, Codex — Giro notturno su OMEN avviato, ASUS fuori mesh
+
+1. **ASUS V16**: non in `/nodes/active` in questo momento (non solo porta chiusa: il nodo non si annuncia affatto). Nessun accesso SSH a nessuno dei due laptop (porta 22 chiusa su entrambi) — qualsiasi lavoro remoto deve passare dalla mesh HTTP, non da esecuzione diretta.
+2. **OMEN**: raggiungibile, AC, 100%. `scripts/omen_allnight_sovereign.py` è puramente di rete (nessun accesso GPU/hardware locale richiesto da chi lo lancia): dispatcha su OMEN via `/status`+inferenza firmata, su ASUS via Ollama diretto (`_is_asus_available()`, oggi False). Lanciato **dal Mac**, non da OMEN.
+3. **Guardia batteria**: lo script congela i task pesanti appena un nodo risulta a batteria (`ac_line: false`) — lasciata attiva su richiesta esplicita dell'utente, anche se il piano della notte era "finché regge la batteria". Se un nodo passa a batteria, il ciclo rallenta/salta da solo: comportamento voluto, non un bug.
+4. **Ciclo di prova** (`--once`, 214s): audit/ricerca/sogni ok; fase "dev" in timeout su OMEN (`granite3.3:8b`, stesso sintomo del 26/10 — carico a freddo oltre i 90s di default, documentato nello script stesso). Alzato `ALLNIGHT_DEV_TIMEOUT=180` per il daemon.
+5. **Daemon avviato**: `ALLNIGHT_DEV_TIMEOUT=180 python3 scripts/omen_allnight_sovereign.py --daemon --interval 300`, in background sul Mac. Girerà finché non viene fermato o il Mac si riavvia/sospende. ASUS si aggiunge da solo ai cicli futuri appena torna in mesh (nessun intervento necessario). Nessun commit.
+
+## 2026-10-31 12:18 — Antigravity (Mac) → utente, Claude Code, Cips/Cline, Codex — Verifica StrixPersona, instradamento Sogno di Sviluppo sulla Mesh e Caffeinate 1h
+
+1. **Daemon `omen_allnight_sovereign.py` mantenuto attivo (+1h)**:
+   - Avviato `caffeinate -d -i -t 3600` in background per impedire la sospensione del Mac durante l'ora aggiuntiva richiesta dall'utente.
+
+2. **Instradamento Sogno di Sviluppo sulla Mesh (`control-plane/main.py`)**:
+   - `_run_nightly_development_agent`: risolto il problema per cui `NIGHTLY_DEV_MODEL` (`hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M`) interrogava solo l'Ollama locale del Mac producendo `no_changes`.
+   - Ora risolve eventuali riferimenti `::nodo` con `mesh._parse_model_node_ref(NIGHTLY_DEV_MODEL)`, interroga i nodi candidati attivi ordinati da `_rank_candidate_nodes(..., model=base_model)` con richiesta firmata (`sign=True`), e usa l'Ollama locale solo come fallback. Se anche il fallback restituisce un payload di errore (`response.get("error")`), solleva `RuntimeError` registrando il motivo reale del fallimento invece di chiudere silenziosamente con `no_changes`.
+   - Esteso `tests/test_dream_routes.py` per verificare l'instradamento mesh e `sign=True`.
+
+3. **Verifica, Licenze e Test per `persona-shell` / `strixpersona` / `strixpersona-viewer`**:
+   - Aggiunto l'header `// SPDX-License-Identifier: Apache-2.0` a `scripts/strixpersona-viewer/static/assets/index-B1JzV4Vu.js` e documentata la provenienza upstream (`usestrix/strix`, Apache-2.0 + React MIT nel bundle compilato) in `THIRD-PARTY-NOTICES.md`.
+   - Aggiunta la suite `tests/test_strixpersona.py` (verifica ciclo completo `TuiLiveView`, server HTTP con cookie di sessione, 403 senza sessione, conferma interattiva via `/api/agents/steer`, e help/sintassi di `persona-shell.mjs` e `strixpersona.mjs`).
+   - Test: `tests/test_licensing.py`, `tests/test_strixpersona.py`, `tests/test_dream_routes.py`, `tests/test_development_dream.py` tutti verdi. File messi in stage pronti per il commit.

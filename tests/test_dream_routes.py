@@ -50,6 +50,8 @@ class DreamRouteSecurityTests(unittest.TestCase):
     def test_nightly_agent_only_receives_code_sandbox_tool(self):
         source = ast.unparse(self.control_plane["_run_nightly_development_agent"])
         self.assertIn("builtin_tools=[CODE_SANDBOX_TOOL]", source)
+        self.assertIn("_rank_candidate_nodes(", source)
+        self.assertIn("sign=True", source)
 
     def test_dashboard_uses_password_field_and_authorization_header(self):
         self.assertIn('id="dreamReviewToken"', self.dashboard)
