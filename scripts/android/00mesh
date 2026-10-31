@@ -15,6 +15,7 @@
 #   00mesh models         modelli presenti
 #   00mesh config         apre la configurazione nell'editor
 #   00mesh update         aggiorna il codice del nodo dal repository
+#   00mesh theme [--uninstall]  installa (o toglie) il tema Strix di Termux
 #
 # Configurazione: ~/.00mesh/node.env  (perimetro: solo ~/.00mesh e i processi
 # che questo comando avvia; non tocca nient'altro sul telefono).
@@ -217,6 +218,12 @@ cmd_update() {
     git -C "$APP_DIR" pull --ff-only && log "codice aggiornato: 00mesh restart per applicarlo"
 }
 
+cmd_theme() {
+    local inst="$APP_DIR/scripts/android/termux-strix/install-termux-strix.sh"
+    [ -f "$inst" ] || die "manca $inst: prova prima 00mesh update"
+    bash "$inst" "$@"
+}
+
 case "${1:-status}" in
     start)   cmd_start ;;
     stop)    cmd_stop ;;
@@ -229,5 +236,6 @@ case "${1:-status}" in
     models)  env OLLAMA_HOST="$OLLAMA_HOST_PORT" ollama list ;;
     config)  "${EDITOR:-nano}" "$ENV_FILE" && log "salvato: 00mesh restart per applicare" ;;
     update)  cmd_update ;;
-    *)       sed -n '7,17p' "$0" | sed 's/^# \{0,1\}//' ;;
+    theme)   shift; cmd_theme "$@" ;;
+    *)       sed -n '7,18p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
