@@ -20,7 +20,17 @@ import { argv, env, exit, stdout } from "node:process";
 import { fileURLToPath } from "node:url";
 
 const PRIMARY = (env.CP_URL || "http://100.81.234.102:8085").replace(/\/$/, "");
-const HUB = (env.POCKET_HUB_URL || "http://127.0.0.1:8086").replace(/\/$/, "");
+// Il hub ascolta sull'IP Tailscale del telefono: 00mesh lo scrive in run/hub.bind.
+function hubUrl() {
+  if (env.POCKET_HUB_URL) return env.POCKET_HUB_URL;
+  let host = "127.0.0.1";
+  try {
+    host = fs.readFileSync(path.join(env.HOME || "", ".00mesh/run/hub.bind"), "utf8").trim() || host;
+  } catch { /* nessun hub avviato: resta il locale */ }
+  if (host === "0.0.0.0") host = "127.0.0.1";
+  return `http://${host}:${env.POCKET_HUB_PORT || 8086}`;
+}
+const HUB = hubUrl().replace(/\/$/, "");
 let CP = PRIMARY;
 let FAILOVER = false;
 const COLOR = stdout.isTTY && env.NO_COLOR === undefined;
