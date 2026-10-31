@@ -9,10 +9,13 @@ a Hermes quando il Mac torna. Codice: `shared/pocket_hub_guard.py` (stati),
 
 1. `STANDBY`: il hub controlla `GET <primario>/health` ogni 30 s (`POCKET_HUB_CHECK_S`). In standby gli
    endpoint di hub rispondono 503; `/health` e `/pocket/status` rispondono sempre.
-2. Dopo 3 mancate risposte (~90 s) → `ACTIVE_FAILOVER`. Serve `GET /nodes/active`,
-   `POST /mesh/announce` e `POST /v1/chat/completions` (inoltrata all'Ollama del
-   telefono, con un prompt di emergenza se non c'è un system prompt). Già dal
-   primo mancato controllo risponde alla chat, per non lasciare Anna muta fino alla promozione.
+2. Dopo 3 mancate risposte (~90 s) → `ACTIVE_FAILOVER`. Solo da lì serve
+   `GET /nodes/active`, `POST /mesh/announce` e `POST /v1/chat/completions`
+   (inoltrata all'Ollama del telefono, con un prompt di **console di debug
+   d'emergenza**). Sostituire il CP è l'eccezione, non un compito: un singolo
+   controllo fallito non basta, e il modello del telefono non è pensato per
+   rimpiazzare i modelli degli altri nodi ma per capire cosa è successo e
+   rimettere in piedi la mesh.
 3. Registra in `~/.00mesh/pocket_hub/outbox.ndjson`: transizioni di stato, un
    annuncio per nodo ed episodio, e ogni chat (testo incluso).
 4. Con il primario di nuovo vivo (`RECOVERING`/`STANDBY`) riconsegna in ordine a

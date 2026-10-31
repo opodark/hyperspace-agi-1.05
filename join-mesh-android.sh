@@ -220,6 +220,11 @@ OLLAMA_NUM_PARALLEL=1
 OLLAMA_MAX_LOADED_MODELS=1
 DREAM_ENABLED=false
 
+# Ruolo: failover = il telefono non fa da worker; il suo modello serve solo ad Anna/CP
+# in emergenza (Pocket Hub). Per tornare worker: 00mesh role worker.
+MOBILE_ROLE=failover
+POCKET_HUB_ENABLED=true
+
 MOBILE_REQUIRE_CHARGER=true
 MOBILE_WORK_WINDOW=${WINDOW}
 MOBILE_MIN_BATTERY_PCT=${MIN_PCT}

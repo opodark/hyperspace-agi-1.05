@@ -147,3 +147,15 @@ def test_flush_keeps_entries_when_cp_returns_error(tmp_path, monkeypatch):
     hub.guard.tick(force_probe_result=True)
     monkeypatch.setattr(httpx, "post", lambda url, **kw: httpx.Response(503, request=httpx.Request("POST", url)))
     assert hub.flush() == {"sent": 0, "remaining": 1}
+
+
+def test_single_missed_probe_does_not_make_phone_serve(tmp_path):
+    """Sostituire il CP è l'eccezione: un controllo andato male non deve bastare."""
+    hub = make_hub(tmp_path)
+    hub.guard.tick(force_probe_result=False)
+    assert hub.guard.state == PocketHubState.STANDBY and not hub.serving()
+    c = TestClient(create_app(hub))
+    assert c.post("/v1/chat/completions", json={"messages": []}).status_code == 503
+    for _ in range(2):
+        hub.guard.tick(force_probe_result=False)
+    assert hub.serving()

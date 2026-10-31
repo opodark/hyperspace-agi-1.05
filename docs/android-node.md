@@ -48,6 +48,8 @@ REPO_BRANCH=nome-branch bash join-mesh-android.sh
 00mesh pull <modello>
 00mesh logs [node|proxy|ollama]
 00mesh config         # modifica ~/.00mesh/node.env, poi 00mesh restart
+00mesh watch          # watchdog unico: telefono, mesh, telemetria, ricerca, sogni
+00mesh watch --every 60 | --once | --no-notify
 00mesh stop | start | restart | update
 ```
 
@@ -62,6 +64,31 @@ REPO_BRANCH=nome-branch bash join-mesh-android.sh
 | `MOBILE_MAX_TEMP_C` | `41` | ferma il lavoro a questa temperatura della batteria |
 | `MOBILE_RESUME_TEMP_C` | `38` | riparte solo sotto questa (isteresi) |
 | `MOBILE_WORK_WINDOW` | vuota | es. `23:00-07:00`; vuota = sempre |
+
+### Ruolo: monitor e watchdog 24/7, non worker (`MOBILE_ROLE=failover`)
+
+Il telefono è acceso sempre, ma non per fare inferenza per gli altri: con
+`MOBILE_ROLE=failover` il gate resta **sempre chiuso** (motivo `failover_only`),
+qualunque siano caricatore, batteria, temperatura e `MOBILE_WORK_WINDOW`. Il CP
+non gli manda lavoro e i sogni non girano sul telefono. Lavora invece come:
+
+- **watchdog 24/7** (`watchd`, parte con `00mesh start`): controlla Mac, mesh,
+  sogni, missioni e il telefono stesso, notifica gli allarmi (Termux:API) e il
+  rientro, scrive lo stato in `~/.00mesh/run/watch.json` e apertura/chiusura degli
+  allarmi in `~/.00mesh/logs/watchdog.ndjson`. Si spegne con
+  `WATCHDOG_ENABLED=false`. `watch.json` (campo `schema: 1`) è l'interfaccia per
+  la futura app companion Android;
+- **console di debug estrema** (Pocket Hub): in caso di cataclisma, cioè con il
+  Mac irraggiungibile per 3 controlli di fila, il suo modello piccolo risponde
+  ad Anna via `anna chat` e il registro delle conversazioni va a Hermes al
+  ritorno. Vedi [pocket-hub.md](pocket-hub.md). Sostituire il CP o i modelli degli
+  altri nodi è raro per progetto.
+
+Attenzione: **togliere la finestra di lavoro non basta** per fermare il lavoro —
+una finestra vuota significa "sempre aperto", il contrario. Si cambia con
+`00mesh role failover|worker` (scrive `MOBILE_ROLE` in `node.env`; poi
+`00mesh restart`). Il setup nuovo parte già in failover; senza `MOBILE_ROLE` il
+comportamento è quello di prima.
 
 Con il gate chiuso il nodo risponde `503` con `type: node_power_gated` e si
 dichiara `degraded` in `/status`, `/metrics` e nel registry: il control-plane
@@ -110,3 +137,19 @@ Con un modello come **Qwen2.5 3B Q4** o **Llama 3.2 3B Q4**, la velocità passa 
 | Data | Telefono | Modello | Prompt tok/s | Generazione tok/s | Temp. inizio → fine |
 |---|---|---|---|---|---|
 | | S24 Ultra | | | | |
+
+## Watchdog unico (`00mesh watch`)
+
+Una schermata (la stessa logica gira in background come `watchd`) che si aggiorna ogni 30 s (`--every S` o `ANNA_WATCH_S`) con: il
+telefono (batteria, temperatura, gate di lavoro, Pocket Hub e registro da
+riconsegnare), la mesh (nodi attivi/degradati, heartbeat del CP), la telemetria
+(richieste e token, generazioni in corso, modello più usato), la ricerca
+(missioni di Mission Control in corso, task fatti, esito dell'ultima) e i sogni
+(notturni e development dream). In cima il verdetto `● OK` o `▲ ATTENZIONE n` con
+gli allarmi. Con Termux:API installato, un allarme **nuovo** diventa una
+notifica (non quelli già noti, non al primo giro). `--once` fa una passata sola
+ed esce con codice 1 se ci sono allarmi.
+
+Se il Mac non risponde passa al Pocket Hub del telefono e lo dice. I nodi
+`mobile` non generano allarme "degradato": a gate chiuso lo sono per progetto.
+Sola lettura: non scrive e non riavvia nulla.

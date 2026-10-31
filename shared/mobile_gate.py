@@ -35,12 +35,14 @@ REASON_NOT_PLUGGED = "not_plugged"
 REASON_BATTERY_LOW = "battery_low"
 REASON_TOO_HOT = "too_hot"
 REASON_OUTSIDE_WINDOW = "outside_window"
+REASON_FAILOVER_ONLY = "failover_only"
 
 _REASON_TEXT = {
     REASON_NOT_PLUGGED: "non collegato al caricatore",
     REASON_BATTERY_LOW: "batteria sotto la soglia minima",
     REASON_TOO_HOT: "batteria troppo calda",
     REASON_OUTSIDE_WINDOW: "fuori dalla finestra di lavoro",
+    REASON_FAILOVER_ONLY: "telefono riservato al failover: nessun lavoro dal CP",
 }
 
 
@@ -93,6 +95,9 @@ class MobileGateConfig:
     resume_temp_c: float = 38.0
     window: Optional[Tuple[dtime, dtime]] = None
     window_spec: str = ""
+    # MOBILE_ROLE=failover: il telefono non fa da worker. Il gate resta chiuso, il CP non gli
+    # manda lavoro e non sogna; il suo modello serve solo al Pocket Hub (node/pocket_hub.py).
+    failover_only: bool = False
 
     @classmethod
     def from_env(cls) -> "MobileGateConfig":
@@ -106,6 +111,7 @@ class MobileGateConfig:
             resume_temp_c=resume_t,
             window=parse_window(spec),
             window_spec=spec if parse_window(spec) else "",
+            failover_only=os.getenv("MOBILE_ROLE", "").strip().lower() in ("failover", "failover_only"),
         )
 
 
@@ -122,6 +128,20 @@ def evaluate_mobile_gate(
     `resume_temp_c`, non solo sotto `max_temp_c`."""
     p = power or {}
     reasons: List[str] = []
+
+    if cfg.failover_only:
+        # Caricatore, batteria e orario non contano: non c'è lavoro da accettare.
+        return {
+            "open": False,
+            "reasons": [REASON_FAILOVER_ONLY],
+            "summary": _REASON_TEXT[REASON_FAILOVER_ONLY],
+            "hot": False,
+            "ac_line": bool(p.get("ac_line", False)),
+            "battery_pct": p.get("battery_pct"),
+            "temperature_c": p.get("temperature_c"),
+            "window": cfg.window_spec or None,
+            "role": "failover",
+        }
 
     ac_line = bool(p.get("ac_line", False))
     pct = p.get("battery_pct")

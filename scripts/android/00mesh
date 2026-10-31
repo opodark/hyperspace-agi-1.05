@@ -15,7 +15,10 @@
 #   00mesh models         modelli presenti
 #   00mesh config         apre la configurazione nell'editor
 #   00mesh update         aggiorna il codice del nodo dal repository
+#   00mesh role [failover|worker]  failover = monitor/watchdog + console di debug d'emergenza (default); worker = anche inferenza
 #   00mesh hub             stato del Pocket Hub (failover del CP) e del registro da riconsegnare
+#   (watchd: il watchdog 24/7 parte da solo con 00mesh start; log in 00mesh logs watchd)
+#   00mesh watch [--every S]  watchdog unico: telefono, mesh, telemetria, ricerca, sogni (notifica gli allarmi)
 #   00mesh anna [dash|chat]  Anna: dashboard dei sogni e chat (comandi sul telefono, con conferma)
 #   00mesh theme [--uninstall]  installa (o toglie) il tema Strix di Termux
 #
@@ -107,6 +110,14 @@ node_url() {  # dove ascolta davvero il nodo avviato
     echo "http://${host}:${NODE_PORT}"
 }
 
+watchd_enabled() {
+    command -v node >/dev/null 2>&1 && [ -f "$HOME_DIR/anna.mjs" ] || return 1
+    case "$(echo "${WATCHDOG_ENABLED:-true}" | tr '[:upper:]' '[:lower:]')" in
+        false|0|no|off) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
 hub_enabled() {
     case "$(echo "${POCKET_HUB_ENABLED:-false}" | tr '[:upper:]' '[:lower:]')" in
         true|1|yes|on) return 0 ;;
@@ -155,6 +166,11 @@ cmd_start() {
         start_one hub "$APP_DIR/node" \
             "$PY" -m uvicorn pocket_hub:create_app --factory --host "$NODE_BIND" --port "${POCKET_HUB_PORT:-8086}"
     fi
+    if watchd_enabled; then
+        # Watchdog 24/7: allarmi come notifiche, stato in run/watch.json (per la futura app companion).
+        start_one watchd "$HOME_DIR" env ANNA_EXPECT_HUB="$(hub_enabled && echo 1)" CP_URL="${POCKET_HUB_PRIMARY_CP:-${CONTROL_PLANE_URL:-}}" \
+            node "$HOME_DIR/anna.mjs" watchd
+    fi
     start_one node "$APP_DIR/node" \
         "$PY" -m uvicorn main:app --host "$NODE_BIND" --port "$NODE_PORT"
     if wait_http "$(node_url)/health" 30; then
@@ -165,6 +181,7 @@ cmd_start() {
 }
 
 cmd_stop() {
+    stop_one watchd
     stop_one hub
     stop_one node
     stop_one proxy
@@ -174,7 +191,7 @@ cmd_stop() {
 
 cmd_status() {
     local alive=""
-    for s in node proxy ollama hub; do
+    for s in node proxy ollama hub watchd; do
         if pid_alive "$s"; then alive+="${s}:on "; else alive+="${s}:off "; fi
     done
     echo -e "${B}${C}⧢ 00mesh — nodo mobile${N}   ${alive}"
@@ -204,7 +221,7 @@ PYEOF
 
 cmd_logs() {
     local name="${1:-node}"
-    [ -f "$LOG_DIR/$name.log" ] || die "nessun log per $name (node|proxy|ollama|hub)"
+    [ -f "$LOG_DIR/$name.log" ] || die "nessun log per $name (node|proxy|ollama|hub|watchd)"
     tail -n 80 -f "$LOG_DIR/$name.log"
 }
 
@@ -247,6 +264,39 @@ cmd_update() {
     log "codice aggiornato: 00mesh restart per applicarlo"
 }
 
+set_env() {  # chiave valore: riscrive (o aggiunge) la riga in node.env
+    "$PY" - "$ENV_FILE" "$1" "$2" <<'PYEOF'
+import re, sys
+path, key, val = sys.argv[1:4]
+out, done = [], False
+for line in open(path).read().splitlines():
+    if re.match(rf"^{re.escape(key)}=", line):
+        out.append(f"{key}={val}"); done = True
+    else:
+        out.append(line)
+if not done:
+    out.append(f"{key}={val}")
+open(path, "w").write("\n".join(out) + "\n")
+PYEOF
+}
+
+cmd_role() {
+    case "${1:-}" in
+        failover)
+            set_env MOBILE_ROLE failover
+            set_env POCKET_HUB_ENABLED true
+            log "ruolo: monitor/watchdog 24/7 + console di debug d'emergenza. Nessun lavoro dal CP al telefono."
+            log "applica con: 00mesh restart" ;;
+        worker)
+            set_env MOBILE_ROLE worker
+            log "ruolo: WORKER (gate: caricatore, batteria, temperatura, MOBILE_WORK_WINDOW). Il hub resta com'è."
+            log "applica con: 00mesh restart" ;;
+        "")
+            echo "ruolo: ${MOBILE_ROLE:-worker}   (cambia con: 00mesh role failover|worker)" ;;
+        *) die "uso: 00mesh role [failover|worker]" ;;
+    esac
+}
+
 cmd_hub() {
     hub_enabled || { warn "Pocket Hub spento: POCKET_HUB_ENABLED=true in 00mesh config, poi 00mesh restart"; return 0; }
     pid_alive hub || die "hub non attivo: 00mesh start (log: 00mesh logs hub)"
@@ -283,7 +333,9 @@ case "${1:-status}" in
     config)  "${EDITOR:-nano}" "$ENV_FILE" && log "salvato: 00mesh restart per applicare" ;;
     update)  cmd_update ;;
     hub)     cmd_hub ;;
+    role)    shift; cmd_role "$@" ;;
+    watch)   shift; node "$HOME_DIR/anna.mjs" watch "$@" ;;
     anna)    shift; node "$HOME_DIR/anna.mjs" "$@" ;;
     theme)   shift; cmd_theme "$@" ;;
-    *)       sed -n '7,20p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *)       sed -n '7,23p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

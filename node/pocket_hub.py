@@ -13,7 +13,7 @@ Collega `shared/pocket_hub_guard.py` (macchina a stati) a un piccolo servizio:
   - quando il CP torna, riconsegna il registro a `POST /memory/push`, da dove
     entra in Hermes. Una voce è considerata spedita solo se il CP risponde 2xx.
 
-In STANDBY questi endpoint rispondono 503: il telefono non si finge hub quando il
+In STANDBY (e finché il primario non è fuori da N controlli di fila) questi endpoint rispondono 503: il telefono non si finge hub quando il
 primario funziona. `/health` e `/pocket/status` rispondono sempre.
 
 Avvio (lo fa `00mesh start` con POCKET_HUB_ENABLED=true):
@@ -52,10 +52,11 @@ from shared.pocket_hub_outbox import Outbox  # noqa: E402
 logger = logging.getLogger("hyperspace.pocket_hub")
 
 EMERGENCY_SYSTEM = (
-    "Sei Anna. Il control-plane principale è offline e stai rispondendo dal telefono "
-    "in modalità di emergenza, con un modello piccolo e senza la tua memoria completa. "
-    "Sii onesta su questi limiti, breve e concreta. Tutto quello che ci diciamo qui "
-    "verrà riconsegnato alla memoria quando il Mac torna."
+    "Sei Anna, in console di debug d'emergenza sul telefono: il control-plane principale "
+    "è irraggiungibile e hai un modello piccolo, senza la tua memoria completa. Serve a "
+    "capire cosa è successo e a rimettere in piedi la mesh, non a sostituirla. Sii onesta "
+    "sui tuoi limiti, breve e concreta. Tutto quello che ci diciamo qui verrà riconsegnato "
+    "alla memoria quando il Mac torna."
 )
 
 
@@ -91,10 +92,9 @@ class PocketHub:
 
     # ── stato ────────────────────────────────────────────────────────────
     def serving(self) -> bool:
-        """Serve se è hub attivo, o se il primario sta già fallendo (prima di
-        arrivare alla soglia di promozione l'utente non deve restare senza risposta)."""
-        snap = self.guard.snapshot()
-        return bool(snap["is_active_hub"]) or snap["last_probe_ok"] is False
+        """Solo quando il telefono è davvero hub attivo (CP giù per N controlli di fila).
+        Sostituire il CP è l'eccezione: un controllo andato male non basta."""
+        return bool(self.guard.snapshot()["is_active_hub"])
 
     def _on_state_change(self, old: PocketHubState, new: PocketHubState) -> None:
         self.outbox.append("state", {"from": old.value, "to": new.value})

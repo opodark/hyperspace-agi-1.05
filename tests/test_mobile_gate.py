@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 from shared import power_sense
 from shared.mobile_gate import (
     REASON_BATTERY_LOW,
+    REASON_FAILOVER_ONLY,
     REASON_NOT_PLUGGED,
     REASON_OUTSIDE_WINDOW,
     REASON_TOO_HOT,
@@ -202,6 +203,28 @@ class TestNodeWiring(unittest.TestCase):
 
     def test_mobile_tier_can_be_forced(self):
         self.assertIn('("hub", "root", "leaf", MOBILE_TIER)', self.src)
+
+class TestFailoverRole(unittest.TestCase):
+    def test_failover_role_keeps_gate_closed_in_ideal_conditions(self):
+        cfg = MobileGateConfig(failover_only=True)  # niente finestra: per un worker vorrebbe dire "sempre"
+        res = evaluate_mobile_gate(PLUGGED_COOL, cfg, now=dtime(3, 0))
+        self.assertFalse(res["open"])
+        self.assertEqual(res["reasons"], [REASON_FAILOVER_ONLY])
+        self.assertEqual(res["role"], "failover")
+
+    def test_failover_role_ignores_window(self):
+        cfg = MobileGateConfig(failover_only=True, window=parse_window("01:00-05:00"), window_spec="01:00-05:00")
+        self.assertFalse(evaluate_mobile_gate(PLUGGED_COOL, cfg, now=dtime(3, 0))["open"])
+
+    def test_role_from_env(self):
+        with mock.patch.dict("os.environ", {"MOBILE_ROLE": "failover"}):
+            self.assertTrue(MobileGateConfig.from_env().failover_only)
+        with mock.patch.dict("os.environ", {"MOBILE_ROLE": "worker"}):
+            self.assertFalse(MobileGateConfig.from_env().failover_only)
+        with mock.patch.dict("os.environ", {}, clear=False):
+            import os
+            os.environ.pop("MOBILE_ROLE", None)
+            self.assertFalse(MobileGateConfig.from_env().failover_only)  # default: comportamento invariato
 
 
 if __name__ == "__main__":
