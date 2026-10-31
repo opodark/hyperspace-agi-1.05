@@ -86,9 +86,12 @@ def crawl_entire_website(start_url: str, max_pages: int = 5, timeout: int = 10) 
     except Exception as exc:
         return {"ok": False, "error": f"Impossibile connettersi a {start_url}: {exc}"}
 
-    # Estrazione link interni
+    # Estrazione link interni.
+    # Solo tag <a ... href="...">: un href generico prende anche <link
+    # rel="icon" href="favicon.ico"> e <link rel="stylesheet" href="...css">,
+    # che non sono pagine (trovato 2026-10-31, qualità del crawl).
     links: set[str] = set()
-    for match in re.finditer(r'href=["\']([^"\']+)["\']', homepage_html, re.IGNORECASE):
+    for match in re.finditer(r'<a\s[^>]*href=["\']([^"\']+)["\']', homepage_html, re.IGNORECASE):
         href = match.group(1).split("#")[0].strip()
         if not href or href.startswith(("mailto:", "tel:", "javascript:")):
             continue
@@ -97,9 +100,12 @@ def crawl_entire_website(start_url: str, max_pages: int = 5, timeout: int = 10) 
         # Solo pagine dello stesso dominio (con o senza www)
         link_domain = parsed_link.netloc.lower().replace("www.", "")
         if link_domain == root_domain:
-            # Escludi file binari o immagini
+            # Escludi file binari, immagini e altre risorse non-pagina
             path_lower = parsed_link.path.lower()
-            if not any(path_lower.endswith(ext) for ext in (".jpg", ".png", ".pdf", ".zip", ".gif", ".webp", ".svg")):
+            non_page_ext = (".jpg", ".jpeg", ".png", ".pdf", ".zip", ".gif", ".webp", ".svg",
+                             ".ico", ".css", ".js", ".json", ".xml", ".woff", ".woff2", ".ttf",
+                             ".mp4", ".mp3", ".txt")
+            if not any(path_lower.endswith(ext) for ext in non_page_ext):
                 clean_full = f"{parsed_link.scheme}://{parsed_link.netloc}{parsed_link.path}"
                 if clean_full != start_url:
                     links.add(clean_full)

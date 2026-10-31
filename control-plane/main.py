@@ -2879,7 +2879,7 @@ def metrics_summary():
     rows  = db.query_logs(type_='webui_interaction', page=1, per_page=limit)
     per_model = {}
     total_req = total_tok_in = total_tok_out = 0
-    tps_values = []
+    tok_sum_global = dur_s_sum_global = 0.0
     for row in rows:
         try:
             detail = json.loads(row.get('detail') or '{}')
@@ -2888,29 +2888,38 @@ def metrics_summary():
         model   = detail.get('model') or 'unknown'
         tok_in  = detail.get('tokens_in') or 0
         tok_out = detail.get('tokens_out') or 0
-        tps     = detail.get('tokens_per_sec')
-        m = per_model.setdefault(model, {"requests": 0, "tokens_in": 0, "tokens_out": 0, "tps_sum": 0.0, "tps_n": 0})
+        dur_ms  = detail.get('duration_ms') or 0
+        m = per_model.setdefault(model, {"requests": 0, "tokens_in": 0, "tokens_out": 0,
+                                          "tok_sum": 0.0, "dur_s_sum": 0.0})
         m["requests"]   += 1
         m["tokens_in"]  += tok_in
         m["tokens_out"] += tok_out
-        if tps:
-            m["tps_sum"] += tps
-            m["tps_n"]   += 1
-            tps_values.append(tps)
+        # Media pesata (token totali / tempo totale), non media delle velocità
+        # per richiesta: trovato 2026-10-31 che un campione con pochi token e
+        # durata vicina a zero (es. 1 token in 25 microsecondi) produce un tps
+        # fisicamente valido ma enorme (~39000 tok/s) che da solo sposta di
+        # molto una media non pesata su pochi campioni (vedi AGENT-LOG.md).
+        # Sotto 50ms la durata è troppo rumorosa (arrotondamento, cache) per
+        # contribuire al throughput medio.
+        if tok_out and dur_ms and dur_ms >= 50:
+            m["tok_sum"]    += tok_out
+            m["dur_s_sum"]  += dur_ms / 1000.0
+            tok_sum_global   += tok_out
+            dur_s_sum_global += dur_ms / 1000.0
         total_req     += 1
         total_tok_in  += tok_in
         total_tok_out += tok_out
     models = [{
         "model": name, "requests": m["requests"], "tokens_in": m["tokens_in"],
         "tokens_out": m["tokens_out"],
-        "avg_tokens_per_sec": round(m["tps_sum"] / m["tps_n"], 2) if m["tps_n"] else None,
+        "avg_tokens_per_sec": round(m["tok_sum"] / m["dur_s_sum"], 2) if m["dur_s_sum"] else None,
     } for name, m in per_model.items()]
     models.sort(key=lambda x: -x["requests"])
     return jsonify({
         "requests":           total_req,
         "tokens_in":          total_tok_in,
         "tokens_out":         total_tok_out,
-        "avg_tokens_per_sec": round(sum(tps_values) / len(tps_values), 2) if tps_values else None,
+        "avg_tokens_per_sec": round(tok_sum_global / dur_s_sum_global, 2) if dur_s_sum_global else None,
         "models":             models,
         "sample_size":        len(rows),
     })
@@ -4810,8 +4819,25 @@ def _handlers_nativi_105() -> dict:
                 phone=str(iss_raw.get("phone") or "")
             )
             cli_raw = args.get("client") or {}
+            client_name = str(cli_raw.get("name") or "").strip()
+            if doc_type == "FATTURA" and not client_name:
+                # Trovato con Flint 40B (2026-10-31): una tool call nativa con
+                # 'client' assente o incompleto produceva una fattura col
+                # placeholder "Committente" generico (nessuna P.IVA/CF),
+                # anche quando il testo del modello citava dati reali del
+                # cliente. Per una fattura il destinatario è obbligatorio:
+                # meglio rifiutare e far rifare la chiamata con 'client.name'
+                # che generare un documento fiscale incompleto.
+                return json.dumps({
+                    "ok": False,
+                    "error": (
+                        "client.name mancante: per una FATTURA serve il nome del "
+                        "destinatario (e idealmente vat_number/tax_code). Richiama "
+                        "lo strumento con l'oggetto 'client' completo."
+                    )
+                }, ensure_ascii=False)
             client = DocumentParty(
-                name=str(cli_raw.get("name") or "Committente"),
+                name=client_name or "Committente",
                 address=str(cli_raw.get("address") or ""),
                 vat_number=str(cli_raw.get("vat_number") or ""),
                 tax_code=str(cli_raw.get("tax_code") or ""),

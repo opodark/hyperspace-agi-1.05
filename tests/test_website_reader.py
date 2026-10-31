@@ -53,6 +53,41 @@ class WebsiteReaderTests(unittest.TestCase):
         self.assertGreaterEqual(res["pages_crawled"], 1)
         self.assertIn("Analisi del Sito Web", res["digest"])
 
+    @patch("requests.get")
+    def test_crawl_ignores_favicon_and_other_non_page_link_tags(self, mock_get):
+        """Trovato 2026-10-31: <link rel="icon" href="favicon.ico"> veniva preso
+        come 'pagina' perché il vecchio regex matchava QUALSIASI href, non solo
+        quello dei tag <a>. Qui il favicon e un foglio di stile non devono
+        comparire fra le pagine scansionate."""
+        visited = []
+
+        def fake_get(url, *args, **kwargs):
+            visited.append(url)
+            m = MagicMock()
+            m.status_code = 200
+            if "r.jina.ai" in url:
+                m.text = "Contenuto markdown di " + url
+            else:
+                m.text = """
+                <html>
+                <head>
+                    <link rel="icon" href="/favicon.ico">
+                    <link rel="stylesheet" href="/style.css">
+                </head>
+                <body>
+                    <a href="/chi-siamo">Chi Siamo</a>
+                </body>
+                </html>
+                """
+            return m
+
+        mock_get.side_effect = fake_get
+
+        res = crawl_entire_website("https://mia-azienda.it", max_pages=5)
+        self.assertTrue(res["ok"])
+        self.assertFalse(any(u.endswith((".ico", ".css")) for u in visited))
+        self.assertIn("chi-siamo", res["digest"])
+
 
 if __name__ == "__main__":
     unittest.main()

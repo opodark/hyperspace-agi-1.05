@@ -550,12 +550,40 @@ async def register_to_control_plane():
 
 
 # ── AUTO-DISCOVERY DAL REGISTRY ──────────────────────────
+def _nodes_from_active_response(data) -> list:
+    """`/nodes/active` ha due forme diverse secondo chi risponde: il registry
+    vero restituisce `{"nodes": [...]}` con endpoint in `public_address`; il
+    control-plane (`control-plane/main.py::get_nodes_active`) restituisce la
+    lista grezza con endpoint in `endpoint`. Entrambe qui, normalizzate.
+    """
+    if isinstance(data, dict):
+        nodes = data.get("nodes", [])
+    elif isinstance(data, list):
+        nodes = data
+    else:
+        nodes = []
+    out = []
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        ep = n.get("public_address") or n.get("endpoint") or ""
+        out.append({"node_id": n.get("node_id", ""), "public_address": ep})
+    return out
+
+
 async def _discover_peers_from_registry():
     urls_to_try = []
     if REGISTRY_URL:
         urls_to_try.append(REGISTRY_URL)
     if REGISTRY_PUBLIC_URL and REGISTRY_PUBLIC_URL != REGISTRY_URL:
         urls_to_try.append(REGISTRY_PUBLIC_URL)
+    # Trovato 2026-10-31 (nodo mobile S24): il registry a volte conosce solo
+    # un nodo con endpoint interno a Docker (es. http://node-1:8084),
+    # irraggiungibile da un peer fuori dal compose (telefono in tailnet). Il
+    # control-plane invece pubblica /nodes/active con gli endpoint reali
+    # (tailnet) di tutti i nodi annunciati: lo si prova come fallback.
+    if CONTROL_PLANE_URL and CONTROL_PLANE_URL not in urls_to_try:
+        urls_to_try.append(CONTROL_PLANE_URL)
 
     discovered = []
     for base_url in urls_to_try:
@@ -563,10 +591,9 @@ async def _discover_peers_from_registry():
             async with httpx.AsyncClient(timeout=8.0) as client:
                 r = await client.get(f"{base_url}/nodes/active")
                 if r.status_code == 200:
-                    data = r.json()
-                    for n in data.get("nodes", []):
-                        ep = _normalize_endpoint(n.get("public_address", ""))
-                        nid = n.get("node_id", "")
+                    for n in _nodes_from_active_response(r.json()):
+                        ep = _normalize_endpoint(n["public_address"])
+                        nid = n["node_id"]
                         if ep and nid and nid != NODE_ID:
                             discovered.append(ep)
                     if discovered:
