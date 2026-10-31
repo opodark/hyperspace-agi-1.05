@@ -28,6 +28,8 @@ PROMPT_COMMAND=_strix_prompt
 alias ll='ls -lAh --color=auto'
 alias ls='ls --color=auto'
 alias mesh='00mesh status'
+# anna            dashboard sogni + chat | anna dash --watch 60 | anna chat
+anna() { node "$HOME/.00mesh/anna.mjs" "$@"; }
 
 strix_banner() {
   [ "${STRIX_BANNER:-1}" = 0 ] && return
@@ -43,4 +45,16 @@ ART
   printf '%s  pocket hub · 00mesh%s\n' "$d" "$n"
   printf '%s  %s · %s%s\n\n' "$d" "$(uname -m)" "$(date '+%d/%m %H:%M')" "$n"
 }
-case $- in *i*) strix_banner ;; esac
+# Autostart: aprendo Termux parte Anna (dashboard + chat); uscendo resti nella shell.
+# Spegni con STRIX_AUTOSTART=0 oppure `touch ~/.00mesh/no-autostart` (riaccendi: rm).
+# Salta da solo se manca node/anna.mjs, se non è un terminale o se Anna è già in corso.
+strix_autostart() {
+  [ "${STRIX_AUTOSTART:-1}" = 0 ] && return 1
+  [ -f "$HOME/.00mesh/no-autostart" ] && return 1
+  [ -z "${STRIX_ANNA_RUNNING:-}" ] && [ -t 0 ] && [ -t 1 ] || return 1
+  command -v node >/dev/null 2>&1 && [ -f "$HOME/.00mesh/anna.mjs" ] || return 1
+  export STRIX_ANNA_RUNNING=1
+  anna
+  unset STRIX_ANNA_RUNNING
+}
+case $- in *i*) strix_autostart || strix_banner ;; esac

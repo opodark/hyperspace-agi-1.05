@@ -15,6 +15,8 @@
 #   00mesh models         modelli presenti
 #   00mesh config         apre la configurazione nell'editor
 #   00mesh update         aggiorna il codice del nodo dal repository
+#   00mesh hub             stato del Pocket Hub (failover del CP) e del registro da riconsegnare
+#   00mesh anna [dash|chat]  Anna: dashboard dei sogni e chat (comandi sul telefono, con conferma)
 #   00mesh theme [--uninstall]  installa (o toglie) il tema Strix di Termux
 #
 # Configurazione: ~/.00mesh/node.env  (perimetro: solo ~/.00mesh e i processi
@@ -105,6 +107,13 @@ node_url() {  # dove ascolta davvero il nodo avviato
     echo "http://${host}:${NODE_PORT}"
 }
 
+hub_enabled() {
+    case "$(echo "${POCKET_HUB_ENABLED:-false}" | tr '[:upper:]' '[:lower:]')" in
+        true|1|yes|on) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 serve_models() {
     case "$(echo "${NODE_SERVE_MODELS:-true}" | tr '[:upper:]' '[:lower:]')" in
         false|0|no|off) return 1 ;;
@@ -133,6 +142,11 @@ cmd_start() {
         NODE_BIND=127.0.0.1
     fi
     echo "$NODE_BIND" > "$RUN_DIR/node.bind"
+    if hub_enabled; then
+        # Pocket Hub: CP di riserva. Sorveglia POCKET_HUB_PRIMARY_CP (default CONTROL_PLANE_URL).
+        start_one hub "$APP_DIR/node" \
+            "$PY" -m uvicorn pocket_hub:create_app --factory --host "$NODE_BIND" --port "${POCKET_HUB_PORT:-8086}"
+    fi
     start_one node "$APP_DIR/node" \
         "$PY" -m uvicorn main:app --host "$NODE_BIND" --port "$NODE_PORT"
     if wait_http "$(node_url)/health" 30; then
@@ -143,6 +157,7 @@ cmd_start() {
 }
 
 cmd_stop() {
+    stop_one hub
     stop_one node
     stop_one proxy
     stop_one ollama
@@ -151,7 +166,7 @@ cmd_stop() {
 
 cmd_status() {
     local alive=""
-    for s in node proxy ollama; do
+    for s in node proxy ollama hub; do
         if pid_alive "$s"; then alive+="${s}:on "; else alive+="${s}:off "; fi
     done
     echo -e "${B}${C}⧢ 00mesh — nodo mobile${N}   ${alive}"
@@ -181,7 +196,7 @@ PYEOF
 
 cmd_logs() {
     local name="${1:-node}"
-    [ -f "$LOG_DIR/$name.log" ] || die "nessun log per $name (node|proxy|ollama)"
+    [ -f "$LOG_DIR/$name.log" ] || die "nessun log per $name (node|proxy|ollama|hub)"
     tail -n 80 -f "$LOG_DIR/$name.log"
 }
 
@@ -215,7 +230,30 @@ PYEOF
 
 cmd_update() {
     [ -d "$APP_DIR/.git" ] || die "codice non gestito da git in $APP_DIR"
-    git -C "$APP_DIR" pull --ff-only && log "codice aggiornato: 00mesh restart per applicarlo"
+    git -C "$APP_DIR" pull --ff-only || return 1
+    # il comando installato è una copia: senza questo resta indietro rispetto al repository
+    local src="$APP_DIR/scripts/android/00mesh" dst="${PREFIX:-}/bin/00mesh"
+    if [ -n "${PREFIX:-}" ] && [ -f "$src" ] && ! cmp -s "$src" "$dst"; then
+        cp "$src" "$dst" && chmod +x "$dst" && log "comando 00mesh aggiornato"
+    fi
+    log "codice aggiornato: 00mesh restart per applicarlo"
+}
+
+cmd_hub() {
+    hub_enabled || { warn "Pocket Hub spento: POCKET_HUB_ENABLED=true in 00mesh config, poi 00mesh restart"; return 0; }
+    pid_alive hub || die "hub non attivo: 00mesh start (log: 00mesh logs hub)"
+    HUB_JSON="$(curl -sf --max-time 5 "http://127.0.0.1:${POCKET_HUB_PORT:-8086}/pocket/status" 2>/dev/null)" "$PY" - <<'PYEOF'
+import json, os
+try:
+    d = json.loads(os.environ.get("HUB_JSON") or "")
+except ValueError:
+    raise SystemExit("  il hub non risponde su /pocket/status")
+ok = d["last_probe_ok"]
+primario = "risponde" if ok else ("NON risponde" if ok is False else "non ancora controllato")
+print(f"  Pocket Hub  stato={d['state']}  serve={d['serving']}")
+print(f"  primario    {d['primary_cp_url']}  {primario}  (mancati {d['consecutive_misses']}/{d['failover_threshold_misses']})")
+print(f"  da riconsegnare a Hermes: {d['outbox']['pending']} voci   promozioni: {d['promotions_total']}")
+PYEOF
 }
 
 cmd_theme() {
@@ -236,6 +274,8 @@ case "${1:-status}" in
     models)  env OLLAMA_HOST="$OLLAMA_HOST_PORT" ollama list ;;
     config)  "${EDITOR:-nano}" "$ENV_FILE" && log "salvato: 00mesh restart per applicare" ;;
     update)  cmd_update ;;
+    hub)     cmd_hub ;;
+    anna)    shift; node "$HOME_DIR/anna.mjs" "$@" ;;
     theme)   shift; cmd_theme "$@" ;;
-    *)       sed -n '7,18p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *)       sed -n '7,20p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
