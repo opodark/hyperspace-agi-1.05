@@ -10275,3 +10275,89 @@ Completata l'integrazione dei due repository rimasti in sospeso, dopo conferma e
 Test: `tests/test_vendor_skills_extra.py` esteso a `last30days` (ora 4 skill: teach, marketing-psychology, anatomy, last30days), nuovo `tests/test_claude_chief_of_staff_template.py` (3 test, nessun symlink da verificare perché non è una skill). Suite pytest completa: 2841 passed, 14 failed — i 14 falliti sono pre-esistenti e non collegati a questo lavoro (SEO scores, spider pages, aleksander causal bridge, mission contract: toccano file già modificati da altri agenti in `git status` prima di questa sessione, non `vendor/` né i file qui aggiunti).
 
 Commit e push eseguiti dopo conferma esplicita dell'utente.
+
+
+## 2026-10-31 (continua) — Claude Code → utente, altri agenti — Test di consolidamento bot Telegram Vittoria (tutte le feature)
+
+Test end-to-end di ~30 minuti su tutte le feature/tool di Vittoria, con un bug reale trovato e corretto.
+
+**Testato e confermato funzionante:**
+- Processo bot `@Vittoria_00meshbot` (`scripts/telegram_business_bot.py`, PID 28951) vivo e stabile, allowlist `*`, nessun errore in log control-plane.
+- Suite unitaria: `test_telegram_business_bot.py`, `test_business_docs.py`, `test_website_reader.py`, `test_audio_transcriber.py` → 15/15 passed (baseline).
+- `business_create_document` via `/tools/execute` (header `X-Hyperspace-Network-Token`): PDF reali generati per preventivo e fattura, calcoli verificati a mano (imponibile, IVA 22%, ritenuta d'acconto 20% → netto a pagare corretto in entrambi i casi).
+- `web_read_entire_site` via `/tools/execute`: crawl reale di un sito pubblico, contenuto Markdown autentico estratto (non simulato). Nota minore non bloccante: il crawler ha incluso anche un file non-HTML (`favicon.ico`) tra le "pagine" scansionate — da affinare il filtro di scoperta link, non urgente.
+- `shared/audio_transcriber.py`: trascrizione REALE (non mock) di un file audio generato al volo con `say`/`ffmpeg`, Whisper `tiny`, ~4.6s totali, testo trascritto correttamente in italiano.
+- Dialogo naturale con tool-calling automatico su `granite3.3:8b`: una richiesta in italiano di analizzare un sito reale ha prodotto una risposta grounded sui contenuti realmente estratti (non allucinata).
+
+**Bug trovato e corretto — `control-plane/cp/chat.py` (`_extract_raw_tool_calls`)**:
+- Una richiesta naturale di fattura ("Prepara una fattura numero FATT-TEST-999 per...") ha fatto sì che Granite mimasse la tool call come JSON "piatto" con chiave `"action"` (es. `{"action": "business_create_document", "doc_type": ..., "items": [...]}`), invece del formato `{"function"/"name": ..., "arguments": {...}}` previsto. Il regex di auto-heal richiedeva esplicitamente `"function"` o `"name"` nel blocco: il JSON passava come testo descrittivo, **nessun tool veniva eseguito, nessun PDF generato** — il bot Telegram non avrebbe avuto nulla da allegare in chat nonostante l'utente avesse ricevuto una risposta dall'aspetto completo.
+- Fix: regex estesa a `"action"`; quando la chiave è `"action"` e non ci sono `"arguments"`/`"parameters"` annidati, le chiavi rimanenti dello stesso oggetto diventano gli argomenti (formato "piatto").
+- Verificato: stesso identico scenario rieseguito dopo il rebuild del container → PDF reale generato (`fattura_FATT-TEST-999.pdf`), totali corretti, percorso citato nella risposta (il pattern che il bot Telegram intercetta per `sendDocument`).
+- Nuovo test di regressione: `tests/test_chat_tool_action_format.py` (3/3 passed) — copre il formato piatto nuovo, il formato originale (non rotto) e il caso senza tool call.
+- Container `hyperspace_control_plane` ricostruito e riavviato; bot Telegram non toccato (si riconnette da solo via HTTP).
+
+File di test generati durante la sessione (PDF di prova, audio sintetico) rimossi a fine test.
+
+
+## 2026-10-31 (continua) — Claude Code → utente, altri agenti — Bug trovato con Flint 40B: PDF fattura con dati incompleti (non ancora corretto)
+
+Finestra di 15 minuti con ASUS a piena potenza (solare) usata per ritestare lo stesso scenario fattura con `flint:latest` invece di `granite3.3:8b`.
+
+**Trovato**: a differenza di Granite (dove il fix precedente ha funzionato correttamente), con Flint il tool `business_create_document` viene chiamato con **argomenti incompleti**: `client` omesso (il PDF mostra "Committente" generico, niente P.IVA) e `withholding_tax_rate` omesso (nessuna riga ritenuta nel PDF, "Totale da Saldare" mostra il lordo 427,00€ invece del netto corretto 357,00€). Il codice di `shared/business_docs.py` è stato verificato CORRETTO con una chiamata diretta (`calculate_totals()` → `net_payable: 357.0`); il problema è che il testo della risposta di Flint cita cifre corrette (ritenuta 70€, netto 357€) mentre la tool call reale eseguita ha argomenti diversi/incompleti — testo e azione reale sono disallineati.
+
+Nessun log di auto-heal trovato per questa run: probabile che Flint abbia emesso una tool call nativa (non testo mimato), quindi il problema è nella qualità/completezza degli argomenti generati dal modello, non nel parser già corretto in precedenza.
+
+**Non ancora corretto** per mancanza di tempo nella finestra. Proposta per la prossima sessione: validare gli argomenti di `business_create_document` prima di generare il PDF (es. rifiutare o richiedere conferma se `client.name` è il default generico, o se il testo della risposta menziona una ritenuta ma `withholding_tax_rate` è 0) invece di generare silenziosamente un documento con dati mancanti.
+
+File di test (`fattura_FATT-FLINT-001.pdf`) lasciato in `data/documents/` per eventuale ispezione; da rimuovere quando non più utile.
+
+
+## 2026-10-31 17:05 — Antigravity (Mac M5) → utente, Claude Code, Cline, Codex — Inserimento Tag Statico Ufficiale Google AdSense (`ca-pub-4726342205200791`) in `<head>` con Google Consent Mode v2 su Tutte le 16 Pagine HTML & Deploy Aruba
+
+1. **Motivo dell'Intervento & Diagnosi**:
+   - In precedenza, lo script AdSense `pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791` era caricato esclusivamente per iniezione dinamica via DOM all'interno di una funzione JavaScript (`loadAdSenseAfterConsent`) condizionata a `localStorage.getItem('zzc_cookie_consent') === 'granted'`.
+   - Il crawler automatico di verifica di Google AdSense scansiona direttamente il codice HTML statico del tag `<head>` (senza eseguire preventivamente un'azione utente sul banner o possedere consensi pregressi in `localStorage`): non trovando il tag `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791" crossorigin="anonymous"></script>` nella risposta HTTP grezza, la procedura di verifica o revisione del sito falliva.
+
+2. **Soluzione Implementata Conforme alle Linee Guida Google**:
+   - Inserito il tag `<script>` statico richiesto esattamente in `<head>` su tutte le 16 pagine pubbliche di `web-node/`:
+     - `index.html` (nuova landing page 1.05)
+     - `mesh.html` (portale interattivo / calcolo distribuito)
+     - `chi-siamo.html` (trasparenza aziendale ed E-E-A-T)
+     - `contatti.html` (recapiti e contatti ufficiali)
+     - `guide.html` (hub di documentazione tecnica)
+     - Tutte le 7 guide ingegneristiche (`guide-architettura-mesh.html`, `guide-webgpu-browser.html`, `guide-vector-clocks.html`, `guide-memoria-tri-modale.html`, `guide-validazione-ast.html`, `guide-tokenomics-depin.html`, `guide-configurazione-nodo.html`)
+     - `progetto.html` (presentazione architetturale)
+     - `token.html` (tokenomics e trasparenza $00MESH)
+     - `join.html` (onboarding nodi)
+     - `bulletin.html` (bollettino di rete)
+   - **Piena conformità GDPR con Google Consent Mode v2**:
+     - La dichiarazione `gtag('consent', 'default', { ... })` precede il caricamento di `adsbygoogle.js`, impostando i parametri `ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage` su `denied` di default (modalità senza cookie / cookieless pings).
+     - Quando l'utente accetta i cookie tramite il banner, `gtag('consent', 'update', { ...: 'granted' })` abilita nativamente la personalizzazione senza dover ricorrere a iniezioni DOM artificiose.
+     - Aggiunto il banner cookie nativo in fondo a `index.html`.
+     - `loadAdSenseAfterConsent` mantenuto come funzione no-op di compatibilità per evitare errori nei listener esistenti.
+   - **Miglioramento resilienza script di deploy FTP (`scripts/deploy_web_node_aruba.py`)**:
+     - Timeout socket aumentato da 35s a 120s.
+     - Aggiunto meccanismo di retry automatico con riconnessione FTP su errori temporanei e timeout di rete.
+
+3. **Verifica & Deploy Aruba**:
+   - Pacchetto ricompilato con [`scripts/build-web-node-aruba.sh`](scripts/build-web-node-aruba.sh).
+   - Test suite verificata: unit test Node.js 10/10 passed, unit test Python mirati 19/19 passed.
+   - Deploy completato con successo via FTP su Aruba (`scripts/deploy_web_node_aruba.py`).
+   - Verifica live eseguita con `curl`:
+     - `https://www.zerozerocomputer.it/` $\rightarrow$ tag `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791" crossorigin="anonymous"></script>` presente direttamente in `<head>` (HTTP 200).
+     - `https://www.zerozerocomputer.it/chi-siamo.html` $\rightarrow$ tag statico presente (HTTP 200).
+     - `https://www.zerozerocomputer.it/ads.txt` $\rightarrow$ `google.com, pub-4726342205200791, DIRECT, f08c47fec0942fa0` online e verificabile.
+   - Nessun commit e nessun push senza conferma esplicita dell'utente (Regola 3).
+
+## 2026-10-31 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Reel «Security Ops» con musica
+
+1. **Nuovo reel** `integrations/tiktok_editor/motion/reels/secops-2026-10-31.js`: 67 s, 9:16, tema arcade cyberpunk (nero/neon, font pixel e alieni originali, scanline, glitch). Stage: Strix (*in sviluppo*), Security Lab Kali (tre muri), Code Sandbox, canale cifrato + Spore 2-su-3, regole `shell_policy` (verdetti reali: `git status` lettura, `git push --force`/`rm -rf`/`dd` distruttivi → conferma), Browser Scout, `/mcp` con token/bucket/breaker, rollback journal, mesh Tailscale con Pocket Hub S24 (*in sviluppo*); chiusura «game over per gli intrusi» → `os.zerozerocomputer.it` e avviso «pentest solo su sistemi propri o autorizzati».
+2. **Musica**: `/Users/opo/Downloads/Interressante Wand_320k.mp3` (fornita dall'utente), primi 67 s. Beat e drop calcolati con librosa nel `.venv` dell'editor: drop a 11,17 s e 39,22 s, pause 33,58–39,22 e 61,81–67,1; scene da 16 battute. Uscite (ignorate da git) in `data/reel-projects/motion/secops-2026-10-31/`: `secops-2026-10-31.mp4` muto e `secops-2026-10-31-musica.mp4`.
+3. **Licenza del brano non registrata**: prima di pubblicare va confermata e annotata in `integrations/moneyprinter/music/licenze.json`.
+4. `tests/test_motion_reels.py` 7 passed. Nessun commit.
+
+## 2026-10-31 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Reel «Contrattacco» (netdive anime)
+
+1. **Nuovo reel** `integrations/tiktok_editor/motion/reels/contrattacco-2026-10-31.js`: 76 s, 9:16, stile scelto dall'utente «cyberpunk anime netdive». Narrazione: allarmi notturni → «contrattacco» → «ti attacchiamo noi, prima di loro» (red team **autorizzato** sui sistemi del cliente; il reel non suggerisce attacchi verso terzi e chiude con «red team solo su sistemi propri o autorizzati») → Strix (*in sviluppo*), recon Security Lab, detonazione in sandbox, journal NDJSON con rollback, Spore 2-su-3, `/mcp` con scudo esagonale (401/429), mesh con Pocket Hub S24 (*in sviluppo*) → rullo finale e `os.zerozerocomputer.it`.
+2. **Musica**: `/Users/opo/Downloads/die stimmen gewinnen langsam_128k.mp3`, primi 76 s; beat con librosa (172 BPM, attacco 11,10 s, rullo finale 67,57–73,21 s). Uscite in `data/reel-projects/motion/contrattacco-2026-10-31/` (ignorate da git). Licenza del brano da registrare in `integrations/moneyprinter/music/licenze.json` prima della pubblicazione.
+3. `tests/test_motion_reels.py` 7 passed. Nessun commit.

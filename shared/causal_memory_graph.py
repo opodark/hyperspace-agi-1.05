@@ -3,7 +3,7 @@
 # shared/causal_memory_graph.py
 # Modulo promosso in produzione da HyperSpace R&D Sovereign Lab
 # Prototipo sorgente: proto_symbolic_causal_mesh_1792927875.py
-# Data promozione: 2026-10-26T08:36:40.810529+00:00
+# Data promozione: 2026-10-31T13:41:19.373343+00:00
 # Autore: antigravity_sovereign
 
 from __future__ import annotations

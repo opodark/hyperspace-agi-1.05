@@ -79,6 +79,23 @@ Wi-Fi locale. Ollama e ollama-proxy ascoltano solo su `127.0.0.1`. Se all'avvio
 la VPN è spenta, il nodo parte in locale e `00mesh status` lo segnala:
 `00mesh restart` dopo aver attivato Tailscale.
 
+## Accelerazione Hardware GPU (Adreno 750 / Vulkan)
+
+Per superare il vincolo CPU di Ollama e sfruttare la GPU Adreno 750 dello Snapdragon 8 Gen 3:
+
+```bash
+bash scripts/android/setup_vulkan_adreno.sh
+```
+
+Lo script compila `llama.cpp` con flag `-DGGML_VULKAN=1` linkando il loader Vulkan nativo di Android.
+Una volta completato, consente di avviare il server hardware-accelerated con:
+
+```bash
+00mesh-vulkan-start
+```
+
+Con un modello come **Qwen2.5 3B Q4** o **Llama 3.2 3B Q4**, la velocità passa dai ~2 tok/s su CPU a **oltre 20-25 tok/s su GPU Adreno 750**, con temperature sotto i 37°C.
+
 ## Limiti noti
 
 - Ollama in Termux usa la CPU: niente GPU né NPU del telefono. I numeri reali

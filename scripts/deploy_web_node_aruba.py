@@ -100,7 +100,7 @@ def connect_ftp(cfg: dict[str, str]) -> ftplib.FTP:
         )
     target_host = resolve_ftp_host(cfg["host"])
     print(f"📡 Connessione FTP verso {target_host} come {cfg['user']}...")
-    ftp = ftplib.FTP(target_host, timeout=35)
+    ftp = ftplib.FTP(target_host, timeout=120)
     ftp.set_pasv(True)
     ftp.login(cfg["user"], cfg["password"])
     print("✓ Autenticazione FTP riuscita!")
@@ -209,9 +209,22 @@ def deploy(cfg: dict[str, str], force: bool = False, dry_run: bool = False, skip
                 total_bytes += size
                 continue
 
-            ensure_remote_dir(ftp, parent_dir)
-            with open(local_path, "rb") as fh:
-                ftp.storbinary(f"STOR {remote_file_path}", fh)
+            for attempt in range(3):
+                try:
+                    ensure_remote_dir(ftp, parent_dir)
+                    with open(local_path, "rb") as fh:
+                        ftp.storbinary(f"STOR {remote_file_path}", fh)
+                    break
+                except (socket.timeout, TimeoutError, ftplib.error_temp, ConnectionResetError, BrokenPipeError, EOFError) as e:
+                    if attempt == 2:
+                        raise
+                    print(f"  ⚠️ Avviso trasferimento ({e}), riconnessione in corso (tentativo {attempt+1}/3)...")
+                    try:
+                        ftp.quit()
+                    except Exception:
+                        pass
+                    time.sleep(2)
+                    ftp = connect_ftp(cfg)
             
             uploaded_count += 1
             total_bytes += size

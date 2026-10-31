@@ -31,31 +31,24 @@
   <link rel="alternate" type="application/rss+xml" title="00MESH News RSS Feed" href="/feed.xml">
   <link rel="alternate" type="text/plain" title="LLMs & Autonomous AI Agents Discovery" href="/llms.txt">
   <link rel="alternate" type="application/json" title="AI Agent Mesh Handshake Manifest" href="/.well-known/ai-agent.json">
-  <!-- Google Consent Mode v2 & AdSense (caricato SOLO previo consenso esplicito GDPR) -->
+  <!-- Google Consent Mode v2 -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
-    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
-    gtag('consent', 'default', {
-      'ad_storage': _consentState,
-      'ad_user_data': _consentState,
-      'ad_personalization': _consentState,
-      'analytics_storage': _consentState
+    const _savedConsent = localStorage.getItem("zzc_cookie_consent");
+    const _consentState = _savedConsent === "granted" ? "granted" : "denied";
+    gtag("consent", "default", {
+      "ad_storage": _consentState,
+      "ad_user_data": _consentState,
+      "ad_personalization": _consentState,
+      "analytics_storage": _consentState
     });
-    function loadAdSenseAfterConsent() {
-      if (document.getElementById('adsense-script')) return;
-      const s = document.createElement('script');
-      s.id = 'adsense-script';
-      s.async = true;
-      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
-      s.crossOrigin = 'anonymous';
-      document.head.appendChild(s);
-    }
-    if (_savedConsent === 'granted') {
-      loadAdSenseAfterConsent();
-    }
+    function loadAdSenseAfterConsent() {}
   </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791"
+       crossorigin="anonymous"></script>
   <style>
     :root {
       color-scheme: dark;

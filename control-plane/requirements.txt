@@ -9,3 +9,4 @@ google-auth-oauthlib>=1.2.0
 firecrawl-anydoc>=0.1.5
 pdf-inspector>=1.25.2
 pypdfium2>=4.30,<6
+reportlab>=4.0.0

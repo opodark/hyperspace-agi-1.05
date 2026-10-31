@@ -72,6 +72,8 @@ STRUMENTI_DEL_CP = {
     "reel_cancel_daily": "_reel_cancel_daily",
     "reel_subject_fx_preview": "_reel_subject_fx_preview",
     "reel_subject_fx_status": "_reel_subject_fx_status",
+    "business_create_document": "_business_create_document",
+    "web_read_entire_site": "_web_read_entire_site",
     "shell_run": "_tool_shell_run",
     "shell_session": "_tool_shell_session",
     "kali_scan": "_tool_kali_scan",

@@ -23,31 +23,24 @@
 
   <title>Validazione Deterministica AST: Firewall Sintattico per Codice AI · 00MESH</title>
 
-  <!-- Google Consent Mode v2 & AdSense -->
+  <!-- Google Consent Mode v2 -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    const _savedConsent = localStorage.getItem('zzc_cookie_consent');
-    const _consentState = _savedConsent === 'granted' ? 'granted' : 'denied';
-    gtag('consent', 'default', {
-      'ad_storage': _consentState,
-      'ad_user_data': _consentState,
-      'ad_personalization': _consentState,
-      'analytics_storage': _consentState
+    const _savedConsent = localStorage.getItem("zzc_cookie_consent");
+    const _consentState = _savedConsent === "granted" ? "granted" : "denied";
+    gtag("consent", "default", {
+      "ad_storage": _consentState,
+      "ad_user_data": _consentState,
+      "ad_personalization": _consentState,
+      "analytics_storage": _consentState
     });
-    function loadAdSenseAfterConsent() {
-      if (document.getElementById('adsense-script')) return;
-      const s = document.createElement('script');
-      s.id = 'adsense-script';
-      s.async = true;
-      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791';
-      s.crossOrigin = 'anonymous';
-      document.head.appendChild(s);
-    }
-    if (_savedConsent === 'granted') {
-      loadAdSenseAfterConsent();
-    }
+    function loadAdSenseAfterConsent() {}
   </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4726342205200791"
+       crossorigin="anonymous"></script>
 
   <script type="application/ld+json">
   {

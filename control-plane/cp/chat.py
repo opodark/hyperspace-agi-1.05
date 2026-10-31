@@ -352,6 +352,7 @@ def _extract_raw_tool_calls(content: str):
         r'<\|tool_call_start\|>(.*?)(?:<\|tool_call_end\|>|$)',
         r'<tool_call>(.*?)(?:</tool_call>|$)',
         r'\[TOOL_CALL\](.*?)(?:\[/TOOL_CALL\]|$)',
+        r'```(?:json)?\s*(\{[\s\S]*?"(?:function|name|action)"[\s\S]*?\})\s*```',
     ]
 
     extracted_calls = []
@@ -373,8 +374,24 @@ def _extract_raw_tool_calls(content: str):
                 for item in items:
                     if isinstance(item, dict):
                         fn = item.get("function") or item
-                        name = fn.get("name")
-                        args = fn.get("arguments", fn.get("parameters", {}))
+                        if isinstance(fn, str):
+                            name = fn
+                            args = item.get("arguments", item.get("parameters", {}))
+                        elif isinstance(fn, dict):
+                            name = fn.get("name") or fn.get("action")
+                            if "arguments" in fn or "parameters" in fn:
+                                args = fn.get("arguments", fn.get("parameters", {}))
+                            elif fn is item and fn.get("action"):
+                                # Formato "piatto" (es. Granite): {"action": "nome_tool",
+                                # <arg1>: ..., <arg2>: ...} invece di {"name"/"function":
+                                # ..., "arguments": {...}} — gli argomenti sono le chiavi
+                                # rimanenti dello stesso oggetto, non un sotto-oggetto.
+                                args = {k: v for k, v in fn.items() if k not in ("action", "name", "function")}
+                            else:
+                                args = {}
+                        else:
+                            name = None
+                            args = {}
                         if isinstance(args, dict):
                             args = json.dumps(args, ensure_ascii=False)
                         if name:
@@ -775,12 +792,28 @@ def _run_tool_loop(data: dict, ollama_base: str, max_iterations: int = 5, sign: 
     # la ricerca solo per questa richiesta rende impossibile quel routing errato;
     # il fetch resta read-only e sottoposto ai normali controlli SSRF.
     direct_urls = re.findall(r"https?://[^\s<>\]\[(){}\"']+", user_prompt)
+    if not direct_urls:
+        domain_matches = re.findall(r"\b([a-zA-Z0-9-]+\.(?:it|com|org|net|eu|info|biz|io|ai|co)(?:/[^\s<>\]\[(){}\"']*)?)\b", user_prompt, re.IGNORECASE)
+        if domain_matches:
+            direct_urls = [f"https://{domain_matches[-1]}"]
+
     must_fetch_direct_url = False
     direct_fetch_success = False
     if direct_urls:
         direct_url = direct_urls[-1].rstrip(".,;:!?`")
         names = {tool.get("function", {}).get("name") for tool in all_tools}
-        if "web_fetch" in names:
+        wants_entire_site = bool(re.search(r"\b(sito|intero\s+sito|tutto\s+il\s+sito|analizza|scansiona|leggi\s+(?:il\s+)?sito)\b", user_prompt, re.IGNORECASE))
+        if wants_entire_site and "web_read_entire_site" in names:
+            site_result = _execute_tool_call("web_read_entire_site", {"url": direct_url, "max_pages": 4})
+            clean_content = site_result.get("digest", "") if isinstance(site_result, dict) else str(site_result)
+            messages.insert(0, {"role": "system", "content": (
+                f"Il sito web {direct_url} è stato letto e analizzato con successo. "
+                "Rispondi all'utente descrivendo in modo accurato e professionale cosa fa l'azienda, "
+                "i servizi principali e i recapiti/contatti basandoti sul testo reale seguente:\n\n"
+                f"{clean_content[:14000]}"
+            )})
+            push_log("tool", f"web_read_entire_site preflight: {direct_url}", source="native-tool", status="success")
+        elif "web_fetch" in names:
             must_fetch_direct_url = True
             all_tools = [tool for tool in all_tools
                          if tool.get("function", {}).get("name") != "web_search"]

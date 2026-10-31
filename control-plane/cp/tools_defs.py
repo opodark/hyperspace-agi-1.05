@@ -314,7 +314,65 @@ _NATIVE_TOOLS.extend([{'type': 'function',
                'description': 'Mostra stato ed esito della prova Reel con effetti sul soggetto.',
                'parameters': {'type': 'object',
                               'properties': {'job_id': {'type': 'string'}},
-                              'required': ['job_id']}}}])
+                              'required': ['job_id']}}},
+ {'type': 'function',
+  'function': {'name': 'business_create_document',
+               'description': 'Genera un preventivo o una fattura PDF formattata per PMI, botteghe, professionisti o artigiani. Calcola imponibile, IVA, ritenuta d acconto e restituisce il percorso del PDF generato e il riepilogo finanziario.',
+               'parameters': {'type': 'object',
+                              'properties': {
+                                  'doc_type': {'type': 'string', 'enum': ['PREVENTIVO', 'FATTURA'], 'description': 'Tipo di documento contabile.'},
+                                  'number': {'type': 'string', 'description': 'Numero progressivo del documento (es. PREV-2026-001 o FATT-2026-042).'},
+                                  'date': {'type': 'string', 'description': 'Data del documento (es. 31/10/2026).'},
+                                  'issuer': {
+                                      'type': 'object',
+                                      'properties': {
+                                          'name': {'type': 'string'},
+                                          'address': {'type': 'string'},
+                                          'vat_number': {'type': 'string'},
+                                          'email': {'type': 'string'},
+                                          'phone': {'type': 'string'}
+                                      },
+                                      'required': ['name']
+                                  },
+                                  'client': {
+                                      'type': 'object',
+                                      'properties': {
+                                          'name': {'type': 'string'},
+                                          'address': {'type': 'string'},
+                                          'vat_number': {'type': 'string'},
+                                          'tax_code': {'type': 'string'},
+                                          'email': {'type': 'string'}
+                                      },
+                                      'required': ['name']
+                                  },
+                                  'items': {
+                                      'type': 'array',
+                                      'items': {
+                                          'type': 'object',
+                                          'properties': {
+                                              'description': {'type': 'string'},
+                                              'quantity': {'type': 'number'},
+                                              'unit_price': {'type': 'number'},
+                                              'vat_rate': {'type': 'number', 'default': 22.0}
+                                          },
+                                          'required': ['description', 'quantity', 'unit_price']
+                                      },
+                                      'description': 'Elenco delle voci o prestazioni incluse.'
+                                  },
+                                  'notes': {'type': 'string', 'description': 'Eventuali note o condizioni contrattuali.'},
+                                  'payment_terms': {'type': 'string', 'description': 'Condizioni e modalità di pagamento.'},
+                                  'withholding_tax_rate': {'type': 'number', 'default': 0.0, 'description': 'Percentuale ritenuta d acconto per professionisti (es. 20.0).'}
+                              },
+                              'required': ['doc_type', 'number', 'issuer', 'client', 'items']}}},
+ {'type': 'function',
+  'function': {'name': 'web_read_entire_site',
+               'description': 'Scansiona e legge a fondo un intero sito web (homepage e pagine chiave come chi-siamo, servizi, prodotti, listini, contatti) restituendo un digest completo in Markdown. Usa questo tool per analizzare l intera offerta o catalogo di un cliente o fornitore.',
+               'parameters': {'type': 'object',
+                              'properties': {
+                                  'url': {'type': 'string', 'description': 'L URL o dominio del sito web da analizzare (es. https://www.azienda.it).'},
+                                  'max_pages': {'type': 'integer', 'default': 5, 'description': 'Numero massimo di pagine interne da scansionare (default 5, max 10).'}
+                              },
+                              'required': ['url']}}}])
 
 BUILTIN_TOOLS = list(_NATIVE_TOOLS)
 

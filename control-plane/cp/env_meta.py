@@ -303,6 +303,12 @@ _ENV_META = [
     {"section": "Connettori", "key": "CONNECTOR_INSTAGRAM_ENABLED", "type": "bool",
      "label": "Instagram abilitato", "hint": "Abilita lettura account; la pubblicazione richiede anche la policy write.",
      "default": "false"},
+    {"section": "Connettori", "key": "CONNECTOR_SCOUT_ENABLED", "type": "bool",
+     "label": "Trend Scout abilitato", "hint": "Abilita il connettore Trend Scout per web reading e trend analysis senza API key.",
+     "default": "false"},
+    {"section": "Connettori", "key": "CONNECTOR_SEO_ENABLED", "type": "bool",
+     "label": "SEO/GEO optimizer abilitato", "hint": "Abilita il connettore SEO & GEO (Generative Engine Optimization) per audit e schema JSON-LD.",
+     "default": "false"},
     # ── Policy read/write (shared/connector_policy.py) ───────────────────────
     {"section": "Connettori", "key": "CONNECTOR_READ_ONLY", "type": "bool",
      "label": "Connettori in sola lettura",

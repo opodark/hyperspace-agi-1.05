@@ -28,13 +28,17 @@ from connectors.google import GoogleWorkspaceConnector   # noqa: E402
 from connectors.instagram import InstagramConnector      # noqa: E402
 from connectors.manager import ConnectorManager          # noqa: E402
 from connectors.office365 import Office365Connector      # noqa: E402
+from connectors.scout import ScoutConnector              # noqa: E402
+from connectors.seo import SeoConnector                  # noqa: E402
 from shared.connector_policy import ConnectorPolicy      # noqa: E402
 
 
 EXPECTED_CONNECTORS = {"github": GitHubConnector,
                        "google": GoogleWorkspaceConnector,
                        "instagram": InstagramConnector,
-                       "office365": Office365Connector}
+                       "office365": Office365Connector,
+                       "scout": ScoutConnector,
+                       "seo": SeoConnector}
 
 # Chiavi che decidono se un connettore è attivo e cosa può scrivere. I test le
 # azzerano per non dipendere dall'ambiente della macchina che lancia la suite:
@@ -42,6 +46,7 @@ EXPECTED_CONNECTORS = {"github": GitHubConnector,
 CONNECTOR_KEYS = ("GITHUB_TOKEN", "MS_CLIENT_ID", "MS_CLIENT_SECRET", "MS_TENANT_ID",
                   "GOOGLE_CREDENTIALS_JSON", "GOOGLE_DELEGATE_EMAIL",
                   "INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_USER_ID",
+                  "CONNECTOR_SCOUT_ENABLED", "CONNECTOR_SEO_ENABLED",
                   "CONNECTOR_GITHUB_ENABLED", "CONNECTOR_OFFICE365_ENABLED",
                   "CONNECTOR_GOOGLE_ENABLED", "CONNECTOR_READ_ONLY",
                   "CONNECTOR_INSTAGRAM_ENABLED",
@@ -225,7 +230,8 @@ class ToolSchemaTests(unittest.TestCase):
 
     FAKE = {"GITHUB_TOKEN": "fake", "MS_CLIENT_ID": "fake", "MS_CLIENT_SECRET": "fake",
             "GOOGLE_CREDENTIALS_JSON": "{}", "INSTAGRAM_ACCESS_TOKEN": "fake",
-            "INSTAGRAM_USER_ID": "1784"}
+            "INSTAGRAM_USER_ID": "1784", "CONNECTOR_SCOUT_ENABLED": "true",
+            "CONNECTOR_SEO_ENABLED": "true"}
 
     def _manager(self):
         with connector_env(**self.FAKE):
@@ -287,7 +293,7 @@ class ToolSchemaTests(unittest.TestCase):
 
     def test_ogni_tool_ha_il_prefisso_del_suo_connettore(self):
         prefissi = {"github": "github_", "office365": "o365_", "google": "google_",
-                    "instagram": "instagram_"}
+                    "instagram": "instagram_", "scout": "scout_", "seo": "seo_"}
         for conn in self._manager().connectors:
             with self.subTest(connector=conn.name):
                 for tool in conn.get_tools():

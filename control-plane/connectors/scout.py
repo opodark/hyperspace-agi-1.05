@@ -23,9 +23,14 @@ class ScoutConnector(BaseConnector):
     """Connettore per trend scouting, lettura web pulita e ricerca social no-key."""
 
     name: str = "scout"
-    REQUIRED_ENV: tuple[str, ...] = ()
+    REQUIRED_ENV: tuple[str, ...] = ("CONNECTOR_SCOUT_ENABLED",)
     READ_TOOLS: tuple[str, ...] = ("scout_web_read", "scout_get_trends", "scout_harvest_trends")
     WRITE_TOOLS: tuple[str, ...] = ()
+
+    def is_available(self) -> bool:
+        # Abilitato se la variabile è esplicitamente accesa ('true', '1', 'yes')
+        val = os.getenv("CONNECTOR_SCOUT_ENABLED", "").strip().lower()
+        return val in ("true", "1", "yes")
 
     def __init__(self):
         self.reach_bin = os.getenv("AGENT_REACH_BIN") or shutil.which("agent-reach") or "/Users/opo/.local/bin/agent-reach"

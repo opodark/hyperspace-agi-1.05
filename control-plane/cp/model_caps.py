@@ -32,7 +32,7 @@ _TOOL_CAPABLE_PATTERNS = [
     "mistral-nemo", "mistral-small", "mixtral",
     "command-r", "firefunction", "functionary",
     "hermes", "nexusraven", "gorilla", "gemma4", "gemma-4", "deepseek-r1",
-    "phi4",
+    "phi4", "granite", "flint",
 ]
 # Varianti vision (es. qwen2.5vl) non supportano le tool call di Ollama anche
 # quando il modello testuale base e' in _TOOL_CAPABLE_PATTERNS — "qwen2.5vl"

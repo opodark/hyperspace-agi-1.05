@@ -69,11 +69,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("-m", "--mode", choices=sorted(MODES), default="quick")
     ap.add_argument("--max-turns", type=int, default=20)
     ap.add_argument("--instruction", default="")
-    ap.add_argument("--model", default="qwen3-8b-abliterated:latest")
+    ap.add_argument("--model", default="flint:latest")
     ap.add_argument("--persona", default="persona")
     ap.add_argument("--cp-url", default="http://localhost:8085")
     ap.add_argument("--timeout", type=int, default=240)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--sandbox", action="store_true", help="Usa il container docker strix-sandbox (default: esecuzione shell locale)")
     return ap.parse_args()
 
 
@@ -130,6 +131,21 @@ def run_in_sandbox(container: str, command: str) -> tuple[str, int | None]:
     return (text[:MAX_OUTPUT] + "\n…[troncato]" if len(text) > MAX_OUTPUT else text), done.returncode
 
 
+def run_locally(cwd: str | None, command: str) -> tuple[str, int | None]:
+    shell_cmd = ["bash", "-lc", command] if sys.platform != "win32" else ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command]
+    try:
+        done = subprocess.run(shell_cmd, cwd=cwd, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return "[timeout dopo 120s]", None
+    parts = [f"exit_code: {done.returncode}"]
+    if done.stdout.strip():
+        parts.append("stdout:\n" + done.stdout.strip())
+    if done.stderr.strip():
+        parts.append("stderr:\n" + done.stderr.strip())
+    text = "\n".join(parts)
+    return (text[:MAX_OUTPUT] + "\n…[troncato]" if len(text) > MAX_OUTPUT else text), done.returncode
+
+
 def build_objective(targets: list[str], mode: str, max_turns: int, instruction: str) -> str:
     righe = "\n".join(f"- {t}" for t in targets)
     istruzione = instruction or (
@@ -147,14 +163,23 @@ def build_objective(targets: list[str], mode: str, max_turns: int, instruction: 
 
 def main() -> None:
     args = parse_args()
-    print(f"Avvio sandbox ({SANDBOX_IMAGE}) su {args.targets[0]}…")
-    container = start_sandbox(args.targets[0])
-    print(f"Sandbox pronta: {container}")
+    container = None
+    first_target = args.targets[0]
+    local_cwd = str(Path(first_target).resolve()) if Path(first_target).is_dir() else None
+
+    if args.sandbox:
+        print(f"Avvio sandbox ({SANDBOX_IMAGE}) su {first_target}…")
+        container = start_sandbox(first_target)
+        print(f"Sandbox pronta: {container}")
+        run_name = container
+    else:
+        print(f"Esecuzione nativa shell locale sul bersaglio: {first_target} (nessun container Docker)")
+        run_name = f"strixpersona-local-{int(time.time())}"
 
     view = TuiLiveView()
     view.upsert_agent(ROOT_AGENT, name=args.persona, status="running")
     run_record = {
-        "run_name": container,
+        "run_name": run_name,
         "targets_info": [{"original": t} for t in args.targets],
         "scan_mode": args.mode,
         "status": "running",
@@ -217,7 +242,10 @@ def main() -> None:
                     approvato = state.ask_confirmation(ROOT_AGENT, command, explanation)
                     if approvato and command:
                         print(f"[eseguo] $ {command}")
-                        result, rc = run_in_sandbox(container, command)
+                        if container:
+                            result, rc = run_in_sandbox(container, command)
+                        else:
+                            result, rc = run_locally(local_cwd, command)
                         view.record_tool_output(ROOT_AGENT, call_id, "shell", result,
                                                 status="completed" if rc == 0 else "failed")
                     else:
@@ -233,15 +261,11 @@ def main() -> None:
         state.run_record["status"] = status
         state.run_record["end_time"] = datetime.now(UTC).isoformat()
         state.run_record["finished"] = True
-        print(f"\nRun terminata ({status}). Il viewer resta aperto; Ctrl-C per chiudere e smontare la sandbox.")
-        try:
-            while True:
-                time.sleep(3600)
-        except KeyboardInterrupt:
-            pass
+        print(f"\nRun terminata ({status}). Il viewer resta aperto; premi Ctrl-C per chiudere.")
+        if container:
+            stop_sandbox(container)
+            print("Sandbox smontata.")
         httpd.shutdown()
-        stop_sandbox(container)
-        print("Sandbox smontata.")
 
 
 if __name__ == "__main__":

@@ -20,9 +20,14 @@ class SeoConnector(BaseConnector):
     """Connettore per il monitoraggio SEO, indicizzazione e ottimizzazione per AI Search Engines (GEO)."""
 
     name: str = "seo"
-    REQUIRED_ENV: tuple[str, ...] = ()
+    REQUIRED_ENV: tuple[str, ...] = ("CONNECTOR_SEO_ENABLED",)
     READ_TOOLS: tuple[str, ...] = ("seo_audit_site", "seo_get_latest_report", "seo_inspect_llms", "seo_generate_schema_jsonld")
     WRITE_TOOLS: tuple[str, ...] = ()
+
+    def is_available(self) -> bool:
+        # Abilitato se la variabile è esplicitamente accesa ('true', '1', 'yes')
+        val = os.getenv("CONNECTOR_SEO_ENABLED", "").strip().lower()
+        return val in ("true", "1", "yes")
 
     def __init__(self):
         self.geo_bin = os.getenv("GEO_BIN") or shutil.which("geo") or "/Users/opo/.local/bin/geo"

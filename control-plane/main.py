@@ -4794,6 +4794,73 @@ def _handlers_nativi_105() -> dict:
         from shared.webui_custom_tools.reel_editor import reel_subject_fx_status
         return json.dumps(reel_subject_fx_status(str(args.get("job_id") or "")), ensure_ascii=False)
 
+    def _business_create_document(args):
+        from shared.business_docs import BusinessDocument, DocumentParty, DocumentItem
+        try:
+            doc_type = str(args.get("doc_type") or "PREVENTIVO").strip().upper()
+            number = str(args.get("number") or f"DOC-{int(time.time())}").strip()
+            date_str = str(args.get("date") or datetime.now().strftime("%d/%m/%Y")).strip()
+            
+            iss_raw = args.get("issuer") or {}
+            issuer = DocumentParty(
+                name=str(iss_raw.get("name") or "Azienda Emittente"),
+                address=str(iss_raw.get("address") or ""),
+                vat_number=str(iss_raw.get("vat_number") or ""),
+                email=str(iss_raw.get("email") or ""),
+                phone=str(iss_raw.get("phone") or "")
+            )
+            cli_raw = args.get("client") or {}
+            client = DocumentParty(
+                name=str(cli_raw.get("name") or "Committente"),
+                address=str(cli_raw.get("address") or ""),
+                vat_number=str(cli_raw.get("vat_number") or ""),
+                tax_code=str(cli_raw.get("tax_code") or ""),
+                email=str(cli_raw.get("email") or "")
+            )
+            items = []
+            for it in (args.get("items") or []):
+                items.append(DocumentItem(
+                    description=str(it.get("description") or "Prestazione"),
+                    quantity=float(it.get("quantity") or 1.0),
+                    unit_price=float(it.get("unit_price") or 0.0),
+                    vat_rate=float(it.get("vat_rate") if it.get("vat_rate") is not None else 22.0)
+                ))
+            if not items:
+                items.append(DocumentItem(description="Servizio", quantity=1.0, unit_price=0.0))
+
+            notes = str(args.get("notes") or "")
+            payment_terms = str(args.get("payment_terms") or "Bonifico Bancario 30gg data fattura")
+            withholding = float(args.get("withholding_tax_rate") or 0.0)
+
+            doc = BusinessDocument(
+                doc_type=doc_type, number=number, date=date_str,
+                issuer=issuer, client=client, items=items,
+                notes=notes, payment_terms=payment_terms, withholding_tax_rate=withholding
+            )
+            out_name = f"{doc_type.lower()}_{number.replace('/', '_')}.pdf"
+            out_path = os.path.join(NIGHTLY_DEV_DATA_DIR, "documents", out_name)
+            pdf_rendered = doc.render_pdf(out_path)
+            totals = doc.calculate_totals()
+            return json.dumps({
+                "ok": True,
+                "document_type": doc_type,
+                "number": number,
+                "pdf_path": pdf_rendered,
+                "totals": totals
+            }, ensure_ascii=False)
+        except Exception as err:
+            return json.dumps({"ok": False, "error": str(err)}, ensure_ascii=False)
+
+    def _web_read_entire_site(args):
+        from shared.website_reader import crawl_entire_website
+        try:
+            url = str(args.get("url") or "").strip()
+            max_pages = min(max(1, int(args.get("max_pages") or 5)), 10)
+            res = crawl_entire_website(url, max_pages=max_pages)
+            return json.dumps(res, ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+
     return {
         "create_website": _tool_create_website,
         "website_status": _tool_website_status,
@@ -4805,6 +4872,8 @@ def _handlers_nativi_105() -> dict:
         "reel_cancel_daily": _reel_cancel_daily,
         "reel_subject_fx_preview": _reel_subject_fx_preview,
         "reel_subject_fx_status": _reel_subject_fx_status,
+        "business_create_document": _business_create_document,
+        "web_read_entire_site": _web_read_entire_site,
     }
 
 

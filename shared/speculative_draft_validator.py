@@ -68,10 +68,6 @@ class SpeculativeDraftValidator:
             elapsed = (time.perf_counter() - t0) * 1000
             return ValidationResult(status="REJECTED", ast_valid=False, errors=["Bozza vuota"], elapsed_ms=elapsed)
 
-        for pat in self.disallow_patterns:
-            if pat in source:
-                errors.append(f"Pattern non consentito rilevato: '{pat}'")
-
         tree: Optional[ast.AST] = None
         ast_valid = False
         node_count = 0
@@ -91,6 +87,20 @@ class SpeculativeDraftValidator:
 
         except SyntaxError as syn_err:
             errors.append(f"SyntaxError (linea {syn_err.lineno}): {syn_err.msg}")
+
+        # Controllo pattern vietati: confronto sia sul testo grezzo sia sulla
+        # forma "unparsed" dell'AST (quando valido), che normalizza quote e
+        # spaziatura — un matching sul solo testo grezzo è bypassabile con
+        # virgolette diverse o spazi extra (vedi test_speculative_draft_validator.py).
+        check_texts = [source]
+        if tree is not None:
+            try:
+                check_texts.append(ast.unparse(tree))
+            except Exception:
+                pass
+        for pat in self.disallow_patterns:
+            if any(pat in text for text in check_texts):
+                errors.append(f"Pattern non consentito rilevato: '{pat}'")
 
         # Controllo costrutti richiesti
         if ast_valid and self.required_constructs:
