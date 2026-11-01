@@ -449,6 +449,19 @@ class CablaggioControlPlaneTests(unittest.TestCase):
         corpo = self._corpo("_omega_query")
         self.assertIn("memory_sync.read_local", corpo)
 
+    def test_l_agente_vede_il_livello_di_evidenza(self):
+        """Hermes o mirror, ogni ricordo arriva all'agente con il suo livello."""
+        self.assertIn("evidence_tier(e)", self._corpo("_omega_format_memories"))
+        self.assertIn("m['evidence']", self._corpo("_omega_query"))
+
+    def test_i_ricordi_smentiti_stanno_fuori_dalla_ricerca_normale(self):
+        corpo = self._corpo("_omega_query")
+        self.assertIn("evidence_tier(e) == REFUTED", corpo)
+        self.assertIn("refuted_only", corpo)
+
+    def test_la_ricerca_degradata_porta_il_livello_di_evidenza(self):
+        self.assertIn("with_evidence_tier", self._corpo("_memory_search_local"))
+
 
 if __name__ == "__main__":
     unittest.main()

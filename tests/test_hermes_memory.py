@@ -67,6 +67,22 @@ class HermesMemoryClientTests(TestCase):
         self.assertEqual(request.call_args.kwargs["json"]["entry"]["content"], "remember")
 
     @mock.patch("shared.hermes_memory.requests.request")
+    def test_query_and_entries_label_each_entry_with_its_evidence_tier(self, request):
+        proof = {"kind": "review", "by": "alice", "sources": ["memory-1"]}
+        response = mock.Mock()
+        response.json.return_value = {"ok": True, "entries": [
+            {"id": "a", "content": "senza livello"},
+            {"id": "b", "content": "con fonte", "evidence": {"tier": "sourced", "basis": [proof]}},
+            {"id": "c", "content": "dichiarato", "evidence": {"tier": "verified"}},
+        ]}
+        request.return_value = response
+        client = HermesMemoryClient("http://bridge", "token")
+
+        for entries in (client.query("x"), client.entries()):
+            self.assertEqual([entry["evidence_tier"] for entry in entries],
+                             ["plausible", "sourced", "plausible"])
+
+    @mock.patch("shared.hermes_memory.requests.request")
     def test_client_fails_closed_on_transport_error(self, request):
         request.side_effect = RuntimeError("connection refused")
         with self.assertRaises(RuntimeError):
@@ -198,6 +214,23 @@ class HermesBridgeTests(TestCase):
 
         memory.lifecycle(["cleanup-1"], "revoke", "confirmed purge")
         self.assertEqual(memory.entries(), [])
+
+    def test_refute_keeps_the_memory_visible_with_a_valid_refuted_tier(self):
+        from shared.memory_schema import evidence_tier, validate_entry
+
+        memory = self.bridge.HermesMemory(FakeDB())
+        memory.store({"id": "claim-1", "content": "OMEN ha due slot Ollama"})
+        with self.assertRaises(ValueError):
+            memory.lifecycle(["claim-1"], "refute", "  ")
+
+        result = memory.lifecycle(["claim-1"], "refute", "node/main.py fissa la concorrenza a 1")
+
+        self.assertEqual(result["changed"], ["claim-1"])
+        entry = memory.entries()[0]
+        self.assertEqual(entry.get("status", "active"), "active")
+        self.assertEqual(evidence_tier(entry), "refuted")
+        self.assertEqual(entry["evidence"]["history"][0]["from"], "plausible")
+        self.assertEqual(validate_entry(entry), [])
 
     def test_query_filters_node_model_status_and_date(self):
         memory = self.bridge.HermesMemory(FakeDB())

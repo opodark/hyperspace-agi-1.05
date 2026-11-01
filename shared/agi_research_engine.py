@@ -171,15 +171,38 @@ class AGIResearchEngine:
                 pass
 
         prototypes = [f.name for f in self.prototypes_dir.glob("*.py")]
+        valid_entries = [e for e in entries if str(e.get("findings_summary") or "").strip()]
         return {
             "total_studies": len(entries),
+            "valid_studies_count": len(valid_entries),
             "prototypes_count": len(prototypes),
             "prototypes": prototypes,
-            "pillars_covered": list(set(e.get("pillar_id") for e in entries if e.get("pillar_id"))),
+            "pillars_covered": list(set(e.get("pillar_id") for e in valid_entries if e.get("pillar_id"))),
             "latest_study": entries[-1] if entries else None,
+            "latest_valid_study": valid_entries[-1] if valid_entries else None,
             "has_synthesis_document": self.synthesis_md.exists(),
             "causal_graph_summary": self.causal_graph.export_graph_summary(),
         }
+
+    def get_valid_dossiers(self) -> List[Dict[str, Any]]:
+        """Restituisce solo i dossier di ricerca con sommario 'findings_summary' non vuoto."""
+        valid: List[Dict[str, Any]] = []
+        if self.deep_dives_log.exists():
+            try:
+                for line in self.deep_dives_log.read_text(encoding="utf-8").splitlines():
+                    if not line.strip():
+                        continue
+                    entry = json.loads(line)
+                    if str(entry.get("findings_summary") or "").strip():
+                        valid.append(entry)
+            except Exception:
+                pass
+        return valid
+
+    def get_latest_valid_dossier(self) -> Optional[Dict[str, Any]]:
+        """Restituisce l'ultimo dossier con findings_summary non vuoto, o None se assente."""
+        valid = self.get_valid_dossiers()
+        return valid[-1] if valid else None
 
     def execute_study_cycle(
         self,
@@ -295,6 +318,11 @@ class AGIResearchEngine:
             "ast_valid": ast_valid,
             "prototype_file": saved_prototype,
             "findings_summary": self._extract_summary(parsed.clean_text or parsed.raw_text or raw_response),
+            "evidence": {
+                "tier": "plausible",
+                "basis": [],
+                "assigned_by": "agi_research_engine",
+            },
             "causal_lineage": [
                 asdict(e) if is_dataclass(e) else (e.__dict__ if hasattr(e, "__dict__") else str(e))
                 for e in self.causal_graph.trace_lineage(f"proto:{saved_prototype}" if saved_prototype else infer_id)
@@ -309,6 +337,42 @@ class AGIResearchEngine:
         self._update_synthesis_document(record)
 
         return record
+
+    def add_dossier_critique(
+        self,
+        study_id: str,
+        critique_by: str,
+        content: str,
+        timestamp: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Allega una critica Red Team a un dossier registrato in agi_deep_dives.jsonl."""
+        from shared.mesh_critic import attach_critique
+        if not self.deep_dives_log.exists():
+            return None
+        lines = self.deep_dives_log.read_text(encoding="utf-8").splitlines()
+        updated_rows = []
+        target_record = None
+        for line in lines:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("id") == study_id:
+                critique = {
+                    "kind": "critique",
+                    "by": str(critique_by or "mesh_peer").strip()[:150],
+                    "content": str(content or "").strip()[:2500],
+                    "at": timestamp or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                }
+                attach_critique(row, critique)
+                target_record = row
+            updated_rows.append(row)
+
+        if target_record is not None:
+            with open(self.deep_dives_log, "w", encoding="utf-8") as f:
+                for r in updated_rows:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+            self._update_synthesis_document(target_record)
+        return target_record
 
     def register_production_promotion(
         self,
@@ -361,10 +425,34 @@ class AGIResearchEngine:
         clean = " ".join(text.split()[:80])
         return clean + ("..." if len(text.split()) > 80 else "")
 
-    def _update_synthesis_document(self, latest_record: Dict[str, Any]) -> None:
-        """Aggiorna il dossier markdown consultabile dell'architettura cognitiva."""
+    def _update_synthesis_document(self, latest_record: Optional[Dict[str, Any]] = None) -> None:
+        """Aggiorna il dossier markdown consultabile dell'architettura cognitiva.
+
+        Esclude dalla sintesi i dossier con findings_summary vuoto, selezionando
+        l'ultimo dossier valido disponibile.
+        """
         ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         graph_summary = self.causal_graph.export_graph_summary()
+
+        active_record = latest_record
+        if not (active_record and str(active_record.get("findings_summary") or "").strip()):
+            active_record = self.get_latest_valid_dossier()
+
+        if active_record and str(active_record.get("findings_summary") or "").strip():
+            tier = active_record.get("evidence", {}).get("tier", "plausible") if isinstance(active_record.get("evidence"), dict) else "plausible"
+            summary_lines = [
+                f"- **Ultimo Topic Indagato**: `{active_record.get('domain')}` ({active_record.get('pillar_id')})",
+                f"- **Sommario Risultati**: {active_record.get('findings_summary')}",
+                f"- **Livello Evidenza**: `{tier}`",
+                f"- **Modello Utilizzato**: `{active_record.get('model_used')}`",
+                f"- **Validazione AST Python**: `{'✓ Superata (100% Valido)' if active_record.get('ast_valid') else 'Non richiesta / Parziale'}`",
+                f"- **Prototipo Generato**: `data/research/prototypes/{active_record.get('prototype_file')}`",
+            ]
+        else:
+            summary_lines = [
+                "- *Nessuno studio con sommario valido registrato (esclusi dossier vuoti).*",
+            ]
+
         content = [
             "# HyperSpace AGI — Dossier di Ricerca Cognitiva & Swarm Intelligence",
             "",
@@ -392,10 +480,7 @@ class AGIResearchEngine:
             "- **Ponte Multimodale Poesia ➔ Immagine**: I versi poetici composti nei sogni notturni alimentano istantaneamente i grafi ComfyUI (`shared/poetry_image.py`) per una composizione visiva e tipografica ad alto contrasto.",
             "",
             "## 4. Registro Ultimi Studi e Prototipi Validati AST",
-            f"- **Ultimo Topic Indagato**: `{latest_record.get('domain')}` ({latest_record.get('pillar_id')})",
-            f"- **Modello Utilizzato**: `{latest_record.get('model_used')}`",
-            f"- **Validazione AST Python**: `{'✓ Superata (100% Valido)' if latest_record.get('ast_valid') else 'Non richiesta / Parziale'}`",
-            f"- **Prototipo Generato**: `data/research/prototypes/{latest_record.get('prototype_file')}`",
+            *summary_lines,
             "",
             "## 5. Grafo di Causalità & Lineage Cognitiva (Pearl-style Stigmergic Causal Graph)",
             f"- **Nodi Totali nel Grafo**: `{graph_summary.get('total_nodes', 0)}`",

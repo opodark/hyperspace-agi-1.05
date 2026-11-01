@@ -23,6 +23,26 @@
     "status": { "type": "string", "enum": ["active", "quarantined", "revoked"] },
     "priority": { "type": "integer", "minimum": 1, "maximum": 5 },
     "access_count": { "type": "integer", "minimum": 0 },
-    "retention": { "type": "string", "enum": ["operative", "project", "persistent"] }
+    "retention": { "type": "string", "enum": ["operative", "project", "persistent"] },
+    "evidence": {
+      "type": "object",
+      "description": "livello di evidenza e prove (docs/memory-evidence-tiers.md); assente = plausible",
+      "required": ["tier"],
+      "properties": {
+        "tier": { "type": "string", "enum": ["verified", "sourced", "plausible", "refuted"] },
+        "basis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": { "type": "string", "enum": ["check", "source", "review", "refutation", "critique"] }
+            }
+          }
+        },
+        "assigned_by": { "type": "string" },
+        "history": { "type": "array", "items": { "type": "object" } }
+      }
+    }
   }
 }

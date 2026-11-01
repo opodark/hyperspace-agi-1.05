@@ -192,6 +192,18 @@ personale" da fornire ai clienti (comandi `/gm`, `/triage`, `/my-tasks`,
 L'`install.sh` interattivo (invariato dall'upstream) scrive in `~/.claude/`
 della macchina/account del cliente che lo esegue, non della nostra.
 
+## CLI-Anything — software agent-native e catalogo CLI-Hub
+
+`vendor/cli-anything` contiene la Agent Skill `cli-hub-meta-skill` dal
+repository ufficiale [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything),
+commit `34f519533bc175d2fe287ab8316b0dd99bb9cc43`, sotto licenza Apache-2.0.
+Copyright (c) 2026 HKUDS CLI-Anything Team. La licenza integrale è conservata in
+`vendor/cli-anything/LICENSE`; provenienza e SHA-256 sono in
+`vendor/cli-anything/manifest.json`. La libreria client di consultazione e
+gestione `cli-anything-hub` (Apache-2.0) è installata nel runtime per consentire
+agli agenti di scoprire, installare e pilotare software desktop/server con
+output strutturato JSON.
+
 ## pdf-inspector — classificazione dei PDF
 
 `pdf-inspector` (PyPI, MIT) è il binding Python della libreria Rust omonima di

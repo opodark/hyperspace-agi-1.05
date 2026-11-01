@@ -10,23 +10,31 @@ coverage, so the result never pretends to measure what the data cannot support.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Token-overlap threshold above which a dream summary is considered a duplicate
-# of an existing memory for the novelty metric (Jaccard over whitespace tokens).
+# of an existing memory for the novelty metric (Jaccard over word tokens).
 NOVELTY_OVERLAP_THRESHOLD = 0.8
 
 
 def _tokens(text: str) -> set:
-    return {token for token in (text or "").lower().split() if token}
+    # Parole, non pezzi separati da spazi: "collegati." e "collegati!" sono la
+    # stessa parola, o un segno di punteggiatura basterebbe a sembrare nuovi.
+    return set(re.findall(r"\w+", (text or "").lower()))
 
 
-def _overlap(a: str, b: str) -> float:
+def token_overlap(a: str, b: str) -> float:
+    """Jaccard overlap of word tokens; also used by the node to block
+    near-twins of rejected dreams (``node/dreaming.py``)."""
     left, right = _tokens(a), _tokens(b)
     if not left or not right:
         return 0.0
     return len(left & right) / len(left | right)
+
+
+_overlap = token_overlap
 
 
 def _metric(value: Optional[float], coverage: float,

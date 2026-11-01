@@ -32,6 +32,7 @@ from cp.config import (MEMORY_BACKEND, MEMORY_FILE_GZ, MEMORY_MAX_ENTRIES,
                        MEMORY_TTL_DAYS, UI_BRIDGE_URL, _hermes_memory)
 from cp.log import push_log
 from shared.hermes_memory import HermesMemoryError
+from shared.memory_schema import with_evidence_tier
 from shared.hermes_resilience import HermesCryptoError, HermesMultiCloudVault
 from shared.memory_sync import MemorySync, from_env
 
@@ -229,7 +230,8 @@ def _memory_search_local(data: dict, *, reason: str = "", entries=None,
             return False
         return True
 
-    trovate = [voce for voce in voci if isinstance(voce, dict) and matches(voce)][:limite]
+    trovate = [with_evidence_tier(voce) for voce in voci
+               if isinstance(voce, dict) and matches(voce)][:limite]
     risposta = {"ok": True, "degraded": degraded, "source": source,
                 "entries": trovate, "count": len(trovate)}
     if reason:

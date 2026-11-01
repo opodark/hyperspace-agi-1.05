@@ -15,11 +15,13 @@ from __future__ import annotations
 import ast
 import datetime
 import difflib
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys
 import time
 from typing import Any, Dict, List, Optional
@@ -27,6 +29,8 @@ from typing import Any, Dict, List, Optional
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from shared.memory_schema import validate_evidence, VERIFIED, PLAUSIBLE
 
 RESEARCH_DIR = ROOT / "data" / "research"
 PROTOTYPES_DIR = RESEARCH_DIR / "prototypes"
@@ -334,6 +338,66 @@ class ASTInspector:
         }
 
 
+def find_exercising_tests(
+    target_module: str,
+    tests_dir: Optional[Path] = None,
+    repo_root: Optional[Path] = None,
+) -> List[str]:
+    """Trova tutti i file in tests/ che importano o esercitano direttamente il modulo target.
+
+    Analizza l'AST dei file di test cercando:
+    - import shared.<module>
+    - from shared.<module> import ...
+    - import <module>
+    - from <module> import ...
+    Restituisce i percorsi relativi alla radice del repository (es. 'tests/test_foo.py').
+    """
+    root = repo_root or ROOT
+    tdir = tests_dir or (root / "tests")
+    if not tdir.exists():
+        return []
+
+    stem = Path(target_module).stem
+    exercising: List[str] = []
+    target_names = {stem, f"shared.{stem}"}
+
+    for test_file in sorted(tdir.glob("test_*.py")):
+        try:
+            content = test_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        matched = False
+        try:
+            tree = ast.parse(content, filename=str(test_file))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name in target_names or alias.name.startswith(f"shared.{stem}."):
+                            matched = True
+                            break
+                elif isinstance(node, ast.ImportFrom):
+                    mod = node.module or ""
+                    if mod in target_names or mod.startswith(f"shared.{stem}"):
+                        matched = True
+                        break
+                if matched:
+                    break
+        except Exception:
+            pattern = rf"\b(from\s+(shared\.)?{re.escape(stem)}\b|import\s+(shared\.)?{re.escape(stem)}\b)"
+            if re.search(pattern, content):
+                matched = True
+
+        if matched:
+            try:
+                rel_path = test_file.relative_to(root).as_posix()
+            except ValueError:
+                rel_path = str(test_file)
+            exercising.append(rel_path)
+
+    return exercising
+
+
 class ResearchTreeManager:
     """Gestore dell'albero di ricerca, prototipi AST e pipeline di produzione."""
 
@@ -412,6 +476,9 @@ class ResearchTreeManager:
                 if not line.strip():
                     continue
                 entry = json.loads(line)
+                # Esclude dossier privi di findings_summary valido
+                if not str(entry.get("findings_summary") or "").strip():
+                    continue
                 study_id = entry.get("id", "")
                 node_id = f"node-{study_id}" if study_id else f"node-{int(time.time()*1000)}"
                 if node_id in existing_ids:
@@ -546,6 +613,7 @@ class ResearchTreeManager:
         prototype_filename: str,
         target_module_name: str,
         author: str = "local_creator",
+        verify_tests: bool = True,
     ) -> Dict[str, Any]:
         """
         Promuove un prototipo validato AST nella directory di produzione `shared/`.
@@ -554,6 +622,7 @@ class ResearchTreeManager:
         - Creazione di backup .bak se il file di destinazione esiste già
         - Scrittura del file pronto per la produzione con header HyperSpace
         - Verifica compilazione Python (`compile`)
+        - Rilevamento ed eventuale esecuzione test esercitanti con attribuzione evidence tier
         - Logging in `promotions.jsonl` e aggiornamento dell'albero R&D
         """
         proto_path = self.prototypes_dir / prototype_filename
@@ -611,7 +680,82 @@ class ResearchTreeManager:
         # 6. Scrittura effettiva
         target_path.write_text(final_code, encoding="utf-8")
 
-        # 7. Registrazione evento promozione
+        # 7. Rilevamento test esercitanti ed evidenza (Fase E3)
+        exercising_tests = find_exercising_tests(safe_name, repo_root=ROOT)
+        passing_tests: List[str] = []
+        test_cmd = None
+        test_exit_code = None
+        test_output_sha = None
+
+        if verify_tests and exercising_tests:
+            for tfile in exercising_tests:
+                try:
+                    proc = subprocess.run(
+                        [sys.executable, "-m", "pytest", tfile, "-q"],
+                        cwd=str(ROOT),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        timeout=30,
+                    )
+                    if proc.returncode == 0:
+                        passing_tests.append(tfile)
+                except Exception:
+                    pass
+
+            if passing_tests:
+                test_cmd = f"pytest {' '.join(passing_tests)} -q"
+                try:
+                    proc = subprocess.run(
+                        [sys.executable, "-m", "pytest"] + passing_tests + ["-q"],
+                        cwd=str(ROOT),
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        timeout=30,
+                    )
+                    test_exit_code = proc.returncode
+                    out_text = proc.stdout.strip()
+                    if proc.returncode == 0:
+                        test_output_sha = hashlib.sha256(out_text.encode("utf-8")).hexdigest()
+                    else:
+                        passing_tests = []
+                except Exception as exc:
+                    test_exit_code = 1
+                    passing_tests = []
+
+        now_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if passing_tests and test_exit_code == 0 and test_output_sha:
+            evidence = {
+                "tier": "verified",
+                "basis": [
+                    {
+                        "kind": "check",
+                        "command": test_cmd,
+                        "exit_code": 0,
+                        "output_sha256": test_output_sha,
+                        "at": now_utc,
+                    }
+                ],
+                "assigned_by": "research_tree_manager",
+                "exercising_tests": passing_tests,
+            }
+        else:
+            reason = "Nessun test esercita direttamente il modulo promosso" if not exercising_tests else "Verifica test non riuscita o parziale"
+            if not verify_tests:
+                reason = "Verifica test saltata"
+            evidence = {
+                "tier": "plausible",
+                "basis": [],
+                "assigned_by": "research_tree_manager",
+                "reason": reason,
+            }
+
+        evidence_errs = validate_evidence(evidence)
+        if evidence_errs:
+            raise ValueError(f"Contratto evidence non valido: {evidence_errs}")
+
+        # 8. Registrazione evento promozione
         now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
         record = {
             "timestamp": now_iso,
@@ -622,12 +766,17 @@ class ResearchTreeManager:
             "classes_promoted": [c["name"] for c in ast_info.get("classes", [])],
             "functions_promoted": [f["name"] for f in ast_info.get("functions", [])],
             "node_count": ast_info.get("node_count", 0),
+            "exercising_tests": exercising_tests,
+            "test_command": test_cmd if (passing_tests and test_exit_code == 0) else None,
+            "test_exit_code": test_exit_code if (passing_tests and test_exit_code == 0) else None,
+            "test_output_sha256": test_output_sha if (passing_tests and test_exit_code == 0) else None,
+            "evidence": evidence,
         }
 
         with open(self.promotions_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record) + "\n")
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-        # 8. Aggiorna l'albero di ricerca per segnare il nodo come 'production'
+        # 9. Aggiorna l'albero di ricerca per segnare il nodo come 'production'
         self._mark_node_as_promoted(prototype_filename, f"shared/{safe_name}")
 
         return {
@@ -636,6 +785,7 @@ class ResearchTreeManager:
             "target_file": f"shared/{safe_name}",
             "backup_file": backup_file,
             "record": record,
+            "evidence": evidence,
         }
 
     def _mark_node_as_promoted(self, prototype_filename: str, target_module: str):

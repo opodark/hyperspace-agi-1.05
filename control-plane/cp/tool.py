@@ -51,6 +51,7 @@ from cp.config import (DEFAULT_MODEL, INFERENCE_BACKEND, KALI_ENABLED,
 from cp.http import _network_admin_error
 from cp.log import push_log
 from shared.hermes_memory import HermesMemoryError
+from shared.memory_schema import REFUTED, evidence_tier
 from shared.mcp_auth import MIN_TOKEN_LENGTH as MIN_MCP_TOKEN_LENGTH
 from cp.memoria import _load_memory, _memory_append, _ts_to_iso, memory_sync
 from cp.battito import hb_state
@@ -292,6 +293,12 @@ def _tool_persona_note(args) -> str:
 def _omega_format_memories(entries: list) -> list:
     out = []
     for e in entries:
+        critiques = []
+        ev = e.get("evidence")
+        if isinstance(ev, dict):
+            for b in ev.get("basis") or []:
+                if isinstance(b, dict) and b.get("kind") == "critique":
+                    critiques.append(b)
         out.append({
             "content":      str(e.get("content") or e.get("summary") or e.get("detail") or e.get("prompt") or ""),
             "event_type":   str(e.get("type") or e.get("event_type") or "memory"),
@@ -300,6 +307,8 @@ def _omega_format_memories(entries: list) -> list:
             "priority":     int(e.get("priority", 3)),
             "access_count": int(e.get("access_count", 0)),
             "status":       str(e.get("status") or "active"),
+            "evidence":     evidence_tier(e),
+            "critiques":    critiques,
         })
     return out
 
@@ -309,9 +318,14 @@ def _omega_query(args: dict) -> str:
     limit      = int(args.get("limit", 10))
     event_type = str(args.get("event_type", "")).lower()
     mode       = str(args.get("mode", "semantic"))
+    # I ricordi smentiti stanno fuori dalla ricerca normale e rispondono solo
+    # alla domanda esplicita "questa idea è già stata smentita?".
+    refuted_only = str(args.get("evidence", "")).lower() == REFUTED
     if MEMORY_BACKEND == "hermes":
         try:
-            entries = _hermes_memory.query(query, limit, event_type, mode)
+            # Il filtro sul livello viene dopo la ricerca: per i soli smentiti si
+            # chiede il bacino massimo, o i pochi refuted resterebbero fuori.
+            entries = _hermes_memory.query(query, 100 if refuted_only else limit, event_type, mode)
         except HermesMemoryError as exc:
             # Ricerca degradata: senza Hermes non c'è ricerca semantica, ma il
             # mirror locale sa ancora cosa è stato detto di recente, e per l'agente
@@ -328,6 +342,8 @@ def _omega_query(args: dict) -> str:
         etype   = str(e.get("type") or e.get("event_type") or "memory").lower()
         if event_type and event_type not in etype:
             continue
+        if (evidence_tier(e) == REFUTED) != refuted_only:
+            continue
         if mode == "browse" or not query:
             results.append(e)
         elif query in content:
@@ -337,11 +353,16 @@ def _omega_query(args: dict) -> str:
         return "No memories found matching the query."
     lines = []
     for m in _omega_format_memories(results):
-        lines.append(
-            f"[{m['event_type']}] {m['created_at']}\n"
-            f"{m['content'][:300]}\n"
-            f"project: {m['project'] or 'hyperspace-agi'}\n---"
-        )
+        block = [
+            f"[{m['event_type']} · {m['evidence']}] {m['created_at']}",
+            f"{m['content'][:300]}",
+            f"project: {m['project'] or 'hyperspace-agi'}",
+        ]
+        if m.get("critiques"):
+            critique_lines = [f"  - ({c.get('by', 'red-team')}): {str(c.get('content', ''))[:200]}" for c in m["critiques"]]
+            block.append("obiezioni red-team:\n" + "\n".join(critique_lines))
+        block.append("---")
+        lines.append("\n".join(block))
     return "\n".join(lines)
 
 

@@ -9,6 +9,8 @@ spec = importlib.util.spec_from_file_location("dreaming", Path(__file__).parents
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 
+from shared.memory_schema import evidence_tier, validate_entry
+
 class DreamTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -189,6 +191,56 @@ class StructuredDreamTests(unittest.TestCase):
         self.assertEqual(revoked_insight["status"], "revoked")
         self.assertEqual(self.journal.insights(), [])
         self.assertEqual(len(self.journal.insights(active_only=False)), 1)
+
+    def test_promotion_without_cited_sources_stays_plausible(self):
+        _, insight = self.journal.review(
+            "dream-1", "promote", "alice", "Mi convince", timestamp=1000,
+        )
+        self.assertEqual(insight["evidence"]["tier"], "plausible")
+        self.assertEqual(evidence_tier(insight), "plausible")
+        self.assertNotIn("sources", insight["review"])
+
+    def test_promotion_with_cited_sources_is_sourced(self):
+        _, insight = self.journal.review(
+            "dream-1", "promote", "alice", "Confermata dalle note",
+            timestamp=1000, sources=["memory-1", " https://example.org/doc ", ""],
+        )
+        self.assertEqual(insight["review"]["sources"], ["memory-1", "https://example.org/doc"])
+        self.assertEqual(evidence_tier(insight), "sourced")
+        self.assertEqual(validate_entry(insight), [])
+
+    def test_sources_that_are_not_a_list_are_ignored(self):
+        _, insight = self.journal.review(
+            "dream-1", "promote", "alice", "ok", timestamp=1000, sources="memory-1",
+        )
+        self.assertEqual(evidence_tier(insight), "plausible")
+
+    def test_rejection_is_kept_in_an_append_only_ledger(self):
+        self.journal.review("dream-1", "reject", "alice", "falso: gli eventi sono scollegati", timestamp=1000)
+        [event] = self.journal.rejected()
+        self.assertEqual(event["dream_id"], "dream-1")
+        self.assertEqual(event["summary"], "Due eventi potrebbero essere collegati.")
+        # Il diario dei sogni si accorcia, il registro no.
+        self.journal._write(self.journal.path, [])
+        self.assertEqual(len(self.journal.rejected()), 1)
+
+    def test_reopening_a_rejection_lifts_the_block_without_erasing_it(self):
+        self.journal.review("dream-1", "reject", "alice", "falso", timestamp=1000)
+        self.journal.review("dream-1", "reopen", "alice", "nuove fonti", timestamp=1010)
+        self.assertEqual(self.journal.rejected(), [])
+        self.assertEqual(len(self.journal._read(self.journal.rejected_path)), 2)
+
+    def test_near_twin_of_a_rejected_dream_skips_the_inbox(self):
+        self.journal.review("dream-1", "reject", "alice", "falso", timestamp=1000)
+        twin = dict(self.dream, id="dream-2", summary="Due eventi potrebbero essere collegati!")
+        other = dict(self.dream, id="dream-3", summary="Il nodo ASUS si spegne di notte.")
+        for report in (twin, other):
+            mod._mark_if_already_rejected(report, self.journal, 2000)
+        self.assertEqual(other["status"], "hypothesis")
+        self.assertEqual(twin["status"], "rejected")
+        self.assertEqual(twin["duplicate_of"]["dream_id"], "dream-1")
+        self.assertEqual(twin["reviews"][0]["reviewer"], "dedup")
+        self.assertIn("reopen", mod.ALLOWED_ACTIONS[twin["status"]])
 
     def test_reject_defer_and_reopen_preserve_history(self):
         deferred, _ = self.journal.review(

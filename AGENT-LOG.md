@@ -10444,3 +10444,122 @@ Rassegna di quanto era aperto in questo registro e push di sviluppo mentre il Ma
 5. Pulito `data/documents/fattura_FATT-FLINT-001.pdf` (artefatto di test della sessione precedente, come annunciato).
 6. Suite completa rilanciata: `2867 passed`, le 15 failure rimaste sono preesistenti e non toccate da questa sessione (licensing header sui vendor, punteggi SEO, `test_aleksander_causal_bridge`, `test_memory_sync`, `test_connectors` — lavoro in corso di altri agenti).
 7. **Ancora aperto, non toccato stanotte**: tutto quanto richiede il device fisico ("Non provato sul S24" nelle entry precedenti — Anna chat/installer, watchdog 24/7, tema Termux) resta da verificare quando l'S24 è disponibile per un test diretto; non eseguibile dal Mac.
+
+
+## 2026-10-31 21:50 — Antigravity (Mac M5) → utente, Claude Code, Cips/Cline, Codex — Integrazione e Collaudo Ecosistema CLI-Anything (HKUDS) & CLI-Hub
+
+1. **Installazione Package Manager CLI-Hub (`cli-anything-hub`)**:
+   - Installato `cli-anything-hub` (v0.4.1, Apache-2.0) nel virtualenv del repository (`.venv`).
+   - Verificato il catalogo con 103 CLI agent-native disponibili su 35 categorie (3D, AI, automazione, video, audio, office, CAD, diagrammi).
+   - Testata l'installazione live dell'harness `mermaid` (`cli-anything-mermaid`): creazione diagrammi, gestione sessione stateful ed esportazione SVG deterministica con flag `--json` e compatibilità TLS/SSL.
+
+2. **Integrazione della Meta-Skill (`vendor/cli-anything`)**:
+   - Vendorizzata la skill `cli-hub-meta-skill` dal repository ufficiale [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything) (commit `34f519533bc175d2fe287ab8316b0dd99bb9cc43`, Apache-2.0).
+   - Generato `vendor/cli-anything/manifest.json` con hash SHA-256 e licenza `vendor/cli-anything/LICENSE`.
+   - Distribuita a tutti gli agenti tramite `vendor/cli-anything/install.sh --all-agents`:
+     - `~/.claude/skills/cli-hub-meta-skill` (Claude Code)
+     - `~/.gemini/antigravity/skills/cli-hub-meta-skill` (Antigravity)
+     - `~/.agents/skills/cli-hub-meta-skill` e `~/.codex/skills/cli-hub-meta-skill` (standard universale agenti e Codex)
+     - `.agents/skills/cli-hub-meta-skill` (workspace locale per Cline e runner di repo).
+
+3. **Registrazione e Conformità**:
+   - Registrata in `integrations/integrations.manifest.yaml` (voce `cli_anything`).
+   - Registrata in `THIRD-PARTY-NOTICES.md` e descritta in `AGENTS.md`.
+   - Creata suite di test di conformità in `tests/test_cli_anything_vendor.py` (4/4 passed).
+
+## 2026-10-31 notte — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Il "dev dream R&D fermo" non era fermo: due sistemi diversi, uno vero e attivo, uno in conflitto con lui
+
+L'utente ha chiesto di forzare subito il dev-dream del control-plane come eccezione ("fallo partire ora"). Diagnosi completa, utile per non ripetere l'indagine:
+
+1. **Due motori notturni distinti, non uno**: `/development-dreams` (control-plane, `shared/development_dream.py`) è il sistema più vecchio — una run al giorno, solo nella finestra locale 01:00–05:00, con `NIGHTLY_DEV_MODEL` di default (24B). `scripts/omen_allnight_sovereign.py --daemon` (avviato in questa stessa sessione, PID in background) è il **vero** motore "lavoro notturno autonomo" richiesto dall'utente stanotte: cicla ogni 5-8 minuti (audit → sviluppo autonomo con `flint:latest`/`qwen3.5-coder` → ricerca → sogni), saturando deliberatamente OMEN ("risorse calcolo allocate al 100% per ricerca e modelli 40B/24B").
+2. **Forzato `/development-dreams/run` fuori finestra** (`POST` locale, bypassa auth da operatore su localhost): falliva con `model inference failed` verso `100.64.31.18:11434` (ASUS, spento) — quello è il fallback diretto (`OLLAMA_URL`) quando nessun nodo mesh risulta eseguibile col modello richiesto.
+3. **Pinnato temporaneamente** `NIGHTLY_DEV_MODEL=granite3.3:8b::d7a16c80d536` (OMEN, modello già caldo) e riavviato il CP: falliva comunque, stavolta con `NodeBusyError: nodo saturo: coda oltre 10s` (confermato con una chiamata diretta `_run_tool_loop` dentro il container CP). **Causa reale**: OMEN ha un solo slot di concorrenza Ollama (hardcoded per `backend_type=model_manager`, vedi `node/main.py::_AdaptiveLoadLimiter`), ed è quel slot che il daemon sovrano tiene occupato quasi sempre nei suoi cicli. I due sistemi competono per la stessa risorsa.
+4. **Non era un bug da correggere**: il vero lavoro notturno (il daemon sovrano) stava già girando bene, con cicli completati regolarmente (vedi output del task in background). Ripristinato `.env` (`NIGHTLY_DEV_MODEL` al default, tolto il pin), CP riavviato una terza volta per tornare pulito. **Non serve** far girare anche `/development-dreams` stanotte: sarebbe solo un secondo cliente in coda per lo stesso slot.
+5. **Non toccato, da considerare in futuro se si vuole che i due sistemi coesistano**: aumentare `REQUEST_QUEUE_TIMEOUT_S` su OMEN (fix già pushato in `.env.windows`, non ancora applicato lì — vedi voci precedenti sulla demo aziendale) alzerebbe la tolleranza all'attesa ma non risolverebbe la concorrenza=1 sottostante; un vero secondo canale richiederebbe un secondo backend (es. vLLM) o rinunciare a uno dei due sistemi.
+
+## 2026-11-01 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Proposta: livelli di evidenza nella memoria (ispirata ad ACS Framework)
+
+1. **Solo documento, nessun codice toccato**: `docs/memory-evidence-tiers.md`. Propone un campo opzionale `evidence` nell'involucro `hyperspace.memory.v1` (compatibile: lo schema ha già `additionalProperties: true`) con quattro livelli `verified` / `sourced` / `plausible` / `refuted`. Default per qualunque output di modello e per i record vecchi: `plausible`.
+2. **Regole chiave**: nessun livello sale senza prova; il verificatore di `verified` è deterministico (test/script/hash), mai un altro LLM; scendere è automatico, salire no; `refuted` ≠ `revoked` (resta in un registro append-only consultabile per non riproporre ipotesi smentite).
+3. **Dati trovati che motivano la proposta**: in `data/research/agi_deep_dives.jsonl` 162 dossier su 346 hanno `findings_summary` vuoto ma alimentano comunque `AGI_SWARM_SYNTHESIS.md` e i semi dei sogni; `data/research/promotions.jsonl` (71 promozioni) non registra quali test sono girati né se esercitano il modulo promosso (la suite di `promote_research_prototype.py` è una lista fissa). @Antigravity: è il vostro motore sovrano, la fase E3 del documento vi riguarda — chiedo parere prima di implementare.
+4. **Licenza**: ACS è sotto SIP v1.1 (no uso commerciale senza licenza scritta). Preso solo il metodo; nessun testo o codice copiato, nessuna vendorizzazione.
+5. **Prossimo passo**: fase E0 (campo + validazione + test in `shared/memory_schema.py`), solo dopo conferma dell'utente. Nessun commit.
+
+## 2026-11-01 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Fase E0 dei livelli di evidenza implementata
+
+1. `shared/memory_schema.py`: costanti `VERIFIED`/`SOURCED`/`PLAUSIBLE`/`REFUTED`, `evidence_tier(entry)` (assente o sconosciuto ⇒ `plausible`), `validate_evidence(evidence)` richiamata da `validate_entry`; `normalize_entry` conserva `evidence`. Prova minima per livello: `verified` = `check` con `exit_code` 0, `output_sha256`, `at`; `sourced` = `source` con hash o `review` con `sources` non vuote; `refuted` = `refutation` con `reason`. Il tipo `critique` allega la critica di un altro modello e **non soddisfa alcun livello**.
+2. `memory/schema/hyperspace.memory.v1.schema.json` e `memory/schema/README.md` aggiornati; la versione resta `v1` (campo opzionale, `additionalProperties: true`). Stato aggiornato in `docs/memory-evidence-tiers.md`.
+3. `tests/test_memory_schema.py`: 11 test nuovi. Suite completa: `14 failed, 2884 passed, 24 skipped`; i 14 sono le famiglie già note (aleksander_causal_bridge, connectors/instagram, harness, licensing, marketing_engine, memory_sync, seo_enhancements, spider). `test_memory_sync::...test_la_coda_sta_accanto_al_file_di_memoria` passa da solo: dipende dall'ordine della suite, non da questa modifica.
+4. Nessun produttore scrive ancora `evidence`: il comportamento runtime non cambia. Prossimo: E1 (tier nel retrieval Hermes e nella promozione dei sogni) su conferma dell'utente. Nessun commit.
+
+## 2026-11-01 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Fase E1 dei livelli di evidenza: retrieval e promozione dei sogni
+
+1. **Lettura**: `shared/hermes_memory.py` (`query`, `entries`) e `control-plane/cp/memoria.py::_memory_search_local` (ripiego sul mirror) restituiscono ogni voce con `evidence_tier` (nuovo helper `shared/memory_schema.with_evidence_tier`). Il bridge su host non cambia: conserva già l'intero record in `display_metadata`.
+2. **Agenti**: `control-plane/cp/tool.py::_omega_query` stampa `[tipo · livello]`; la descrizione di `omega_query` in `cp/tools_defs.py` spiega i quattro livelli e chiede di non presentare un `plausible` come fatto.
+3. **Sogni**: `node/dreaming.py::DreamJournal.review` accetta `sources` (anche dal payload di `POST /dreams/{id}/review`, inoltrato invariato dal CP). Una promozione con fonti citate dal revisore produce `evidence.tier = sourced` con basis `review`; senza fonti resta `plausible`. Le `source_memory_ids` del sogno **non** bastano: la sintesi è del modello. La dashboard chiede le fonti al momento della promozione (Annulla = nessuna promozione; vuoto = `plausible`). Nota: `normalize_entry` scarta `review`/`dream_id` sulla strada verso Hermes (comportamento preesistente), ma le fonti sopravvivono dentro `evidence.basis`.
+4. **Irrobustito E0**: `evidence_tier` onora il livello dichiarato solo se la prova valida — `memory_sync` salva comunque le voci fuori contratto (con avviso), quindi un `verified` senza `check` veniva letto come `verified`. Ora è `plausible`.
+5. Test: nuovi in `test_memory_schema.py`, `test_dreaming.py`, `test_hermes_memory.py`, `test_memory_sync.py` (cablaggio AST). `node tests/dashboard.test.cjs` PASS. Suite completa: `14 failed, 2892 passed` = stessi 14 noti; `test_immagini_routes::...test_accodare_ritirare_e_chiudere` è fallito una volta su tre esecuzioni complete ed è passato da solo: intermittente, non toccato.
+6. **Ancora non fatto**: i `refuted` non sono esclusi dal retrieval normale (E2); nessun nodo ricostruito/riavviato, quindi il runtime gira ancora il codice vecchio finché non si ridistribuiscono CP e nodi. Nessun commit.
+
+## 2026-11-01 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Fase E2 dei livelli di evidenza: smentite e blocco dei sogni gemelli
+
+1. **Bridge Hermes** (`scripts/hermes_memory_bridge.py`): nuova azione lifecycle `refute` (motivo obbligatorio). Scrive una revisione con `evidence.tier = refuted`, basis `refutation` e storico del livello precedente; il record **resta attivo e leggibile** (non è un `revoke`). Il CP la inoltra già invariata via `POST /memory/lifecycle`. ⚠️ Il bridge gira sul host: va riavviato perché l'azione esista.
+2. **Agenti**: `cp/tool.py::_omega_query` esclude i `refuted` dalla ricerca normale e li restituisce solo con il nuovo parametro `evidence="refuted"` (in quel caso chiede a Hermes 100 risultati prima di filtrare). Descrizione aggiornata in `cp/tools_defs.py`: prima di proporre un'idea come nuova, controllare se è già smentita.
+3. **Sogni** (`node/dreaming.py`): registro append-only `data/dream_rejected.jsonl` per i rifiuti umani (`dreams.jsonl` ruota a 100 righe e li perdeva); `reopen` da `rejected` aggiunge un evento che toglie il blocco. Un sogno nuovo con sovrapposizione ≥ 0,8 a uno rifiutato viene salvato già `rejected` dal revisore `dedup`, con `duplicate_of` e motivo; `reopen` resta possibile. Chiude la decisione aperta di `docs/dreams.md` sui cicli ripetitivi.
+4. **`shared/dream_evaluation.py`**: `_overlap` diventa pubblico come `token_overlap`; i token ora sono parole (`\w+`) e non pezzi separati da spazi — prima "collegati." e "collegati!" erano parole diverse e la punteggiatura bastava ad aggirare sia la novità sia il blocco. Effetto collaterale voluto: la metrica di novità D3 conta qualche duplicato in più.
+5. **UI**: `infra-ui/dashboard.html` — pulsante "Smentisci" (motivo obbligatorio) e livello di evidenza accanto al tipo di ogni voce di memoria.
+6. Test: nuovo `tests/test_memory_evidence_retrieval.py` (estrazione AST del vero `_omega_query`), più casi in `test_hermes_memory.py`, `test_dreaming.py`, `test_memory_sync.py`. Test JS dashboard tutti PASS. Suite: `14 failed, 2900 passed` = i 14 noti.
+7. Nessun servizio ridistribuito o riavviato (CP, nodi, bridge). Prossimo: E3 sul motore di ricerca notturno — @Antigravity, è il vostro codice: attendo parere prima di toccarlo. Nessun commit.
+
+## 2026-11-01 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Fase E3 dei livelli di evidenza: motore di ricerca notturno e promozione prototipi
+
+Preso in carico il modulo di ricerca sovrano e il gestore delle promozioni secondo il contratto di `docs/memory-evidence-tiers.md` e `shared/memory_schema.py`.
+
+1. **Motore di ricerca notturno (`shared/agi_research_engine.py`)**:
+   - `execute_study_cycle` allega ora il blocco `evidence`: `{"tier": "plausible", "basis": [], "assigned_by": "agi_research_engine"}`. Conforme al validatore di `memory_schema`.
+   - Esclusione dei dossier con `findings_summary` vuoto da `AGI_SWARM_SYNTHESIS.md`: la sintesi analizza i dossier del journal e ripiega dinamicamente sull'ultimo record valido (o su un messaggio di attesa informativo), evitando che sintesi e semi dei sogni vengano inquinati da studi vuoti o interrotti.
+   - Aggiunti helper pubblici `get_valid_dossiers()` e `get_latest_valid_dossier()`; `get_research_status()` espone `valid_studies_count` e `latest_valid_study`.
+
+2. **Albero R&D e rilevamento test esercitanti (`shared/research_tree.py`)**:
+   - `_sync_deep_dives_to_tree` scarta i dossier con `findings_summary` vuoto/whitespace prima di generare nodi dell'albero R&D.
+   - Nuova funzione `find_exercising_tests(target_module, tests_dir, repo_root)`: analizza l'AST dei file in `tests/` (`ast.Import`, `ast.ImportFrom` e fallback regex) cercando riferimenti a `shared.<target>` o `<target>`.
+
+3. **Promozione prototipi deterministica (`scripts/diagnostics/promote_research_prototype.py` e `shared/research_tree.py`)**:
+   - Rilevamento automatico dei test che toccano il modulo prima del deploy.
+   - Se esistono test esercitanti che passano (`exit_code == 0`): promozione con `evidence.tier = "verified"`, corredata da `basis: [{"kind": "check", "command": ..., "exit_code": 0, "output_sha256": ..., "at": ...}]` (hash SHA-256 esadecimale a 64 caratteri dell'output reale, rieseguibile).
+   - Se nessun test in `tests/` importa o esercita il modulo: la promozione avviene con successo ma resta conservativa con `evidence.tier = "plausible"`, `basis: []` e motivazione esplicita ("Nessun test esercita direttamente il modulo promosso").
+   - `data/research/promotions.jsonl` registra in ogni voce: `exercising_tests`, `test_command`, `test_exit_code`, `test_output_sha256` e il blocco completo `evidence` (preventivamente validato con `validate_evidence()`).
+
+4. **Documentazione & Test Suite**:
+   - Aggiornato `docs/memory-evidence-tiers.md`: segnata la Fase E3 completata (E0, E1, E2, E3 ✅; aperta E4 sul contraddittore multi-nodo).
+   - Nuova suite mirata `tests/test_memory_evidence_e3.py` (9 test, tutti PASS in 0.10s).
+   - Suite completa rilanciata: `14 failed, 2909 passed, 24 skipped` = +9 passed, 0 regressioni, restano solo i 14 noti preesistenti.
+   - Nessun commit e nessun push (regola del repo, in attesa di conferma).
+
+## 2026-11-01 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Fase E4 dei livelli di evidenza: contraddittore distribuito su secondo nodo (Red Team)
+
+Completata l'ultima fase del design `docs/memory-evidence-tiers.md`: il ruolo 'Contraddittore' distribuito sulla mesh HyperSpace.
+
+1. **Nuovo modulo `shared/mesh_critic.py` (SPDX Apache-2.0)**:
+   - `build_critique_prompt`: isolamento epistemico e privacy garantiti. Il modello riceve unicamente l'ipotesi formulata e le eventuali domande aperte, senza mai esporre memorie sorgenti, chat o log interni (chiude la decisione aperta di `docs/dreams.md`).
+   - `select_critic_peer`: seleziona un peer mesh attivo filtrando ed escludendo il nodo proponente, i nodi degradati, i nodi browser e i nodi mobile in modalità failover.
+   - `attach_critique`: inserisce la critica in `evidence.basis` con kind `critique`, attribuzione `by` (nodo:modello) e timestamp. REGOLA FERREA: nessun livello sale per effetto di un modello (il tier resta `plausible`, e `validate_evidence()` rifiuta categoricamente `verified` se privo di check deterministico).
+   - `MeshCritic`: client resiliente con timeout breve e fail-open best-effort (se il secondo nodo è saturo o non risponde, non blocca il ciclo dei sogni o il control plane).
+
+2. **Integrazione Sogni Notturni (`node/dreaming.py`, `node/main.py`)**:
+   - `DreamJournal.add_critique(dream_id, critique_by, content)`: persiste la critica nel journal locale del nodo.
+   - `DreamJournal.review`: alla promozione con fonti a `dream_insight` (`sourced`), preserva integralmente le obiezioni del Red Team pregresse nel `basis` della nota promossa.
+   - Endpoint `POST /dreams/{dream_id}/critique` nel nodo e inoltro corrispondente nel Control Plane (`control-plane/main.py`).
+
+3. **Visualizzazione Agenti & Bridge Hermes (`control-plane/cp/tool.py`, `scripts/hermes_memory_bridge.py`)**:
+   - `_omega_query` estrae e formatta le critiche allegate nel blocco `obiezioni red-team:`, permettendo ad agenti in chat e all'operatore di valutare immediatamente tesi e antitesi prima di promuovere o smentire.
+   - Azione lifecycle `critique` nel bridge Hermes: revisione atomica con allegato in `evidence.basis` senza alterare il tier esistente.
+
+4. **Dossier di Ricerca (`shared/agi_research_engine.py`)**:
+   - `add_dossier_critique`: consente di allegare obiezioni del Red Team ai dossier teorici di `agi_deep_dives.jsonl` aggiornando la sintesi.
+
+5. **Documentazione & Test Suite**:
+   - Aggiornato `docs/memory-evidence-tiers.md`: l'intero ciclo E0–E4 è ora implementato e marcato con spunta verde (E0 ✅, E1 ✅, E2 ✅, E3 ✅, E4 ✅).
+   - Nuova suite `tests/test_memory_evidence_e4.py` (9 test, tutti PASS in 0.24s).
+   - Suite completa del repository: `14 failed, 2918 passed, 24 skipped` (+9 passed da E4, 0 regressioni, restano solo i 14 noti preesistenti).
+   - Nessun commit e nessun push (in attesa di conferma esplicita dell'utente).

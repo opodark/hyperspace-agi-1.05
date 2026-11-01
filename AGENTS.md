@@ -37,6 +37,7 @@ Stesso schema di `handoff` (vendor, manifest con commit pin + SHA-256, `install.
 - **`marketing-psychology`** (Corey Haines, MIT, `vendor/marketing-psychology-skill`) — mental model e bias cognitivi applicati al marketing.
 - **`anatomy`** (wheresryan22, MIT, `vendor/anatomy-skill`) — illustrazioni isometriche tecniche dettagliate (SVG + shader WebGL opzionali); vendorizzati solo `SKILL.md`, `kit/`, `references/` e gli script necessari al flusso, esclusa la gallery `examples/` (~12MB).
 - **`last30days`** (mvanhorn, MIT, `vendor/last30days-skill`) — ricerca/intelligence su Reddit, X, YouTube, TikTok, HN, Polymarket e web. Vendorizzato **integralmente** (212 file, inclusi scraper social e script di estrazione cookie dal browser) su richiesta esplicita dell'utente — vedi `THIRD-PARTY-NOTICES.md` per i limiti d'uso previsti. Include la libreria terza parte `bird-search` (MIT, Peter Steinberger) vendorizzata a sua volta dall'upstream.
+- **`cli-hub-meta-skill`** (HKUDS CLI-Anything, Apache-2.0, `vendor/cli-anything`) — discovery ed esecuzione di CLI agent-native per software professionale (oltre 100+ strumenti su CLI-Hub: Blender, FreeCAD, GIMP, LibreOffice, Mermaid, OpenWebUI, ecc.) con output JSON strutturato e gestione workflow matrices.
 
 ## Template prodotto cliente (non skill per i nostri agenti)
 

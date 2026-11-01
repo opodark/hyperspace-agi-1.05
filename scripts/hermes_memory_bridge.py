@@ -329,6 +329,36 @@ def _session_id(entry: Dict[str, Any]) -> str:
     return f"hyperspace-{_session_re.sub('-', origin).strip('-') or 'mesh'}-{stamp}"
 
 
+def _refuted_evidence(previous: Any, reason: str) -> Dict[str, Any]:
+    """Evidence block of a refuted memory, keeping the prior basis and history.
+
+    Mirrors ``shared/memory_schema`` (the bridge runs on the host and does not
+    import the repository): a ``refutation`` with the operator's reason.
+    """
+    previous = previous if isinstance(previous, dict) else {}
+    basis = [item for item in previous.get("basis") or [] if isinstance(item, dict)]
+    history = [item for item in previous.get("history") or [] if isinstance(item, dict)]
+    at = _iso()
+    history.append({"from": str(previous.get("tier") or "plausible"), "to": "refuted",
+                    "at": at, "by": "lifecycle", "reason": reason})
+    basis.append({"kind": "refutation", "reason": reason, "at": at})
+    return {"tier": "refuted", "basis": basis, "assigned_by": "lifecycle", "history": history}
+
+
+def _critique_evidence(previous: Any, by: str, content: str) -> Dict[str, Any]:
+    """Evidence block when attaching a critique from a second node.
+
+    Mirrors ``shared/memory_schema``: appends a ``critique`` without raising the tier.
+    """
+    previous = previous if isinstance(previous, dict) else {}
+    basis = [item for item in previous.get("basis") or [] if isinstance(item, dict)]
+    history = [item for item in previous.get("history") or [] if isinstance(item, dict)]
+    at = _iso()
+    tier = str(previous.get("tier") or "plausible")
+    basis.append({"kind": "critique", "by": str(by or "mesh_peer")[:150], "content": str(content or "")[:2500], "at": at})
+    return {"tier": tier, "basis": basis, "assigned_by": previous.get("assigned_by") or "mesh_critic", "history": history}
+
+
 class HermesMemory:
     def __init__(self, db: Optional[SessionDB] = None):
         self.db = db or SessionDB()
@@ -474,12 +504,16 @@ class HermesMemory:
         candidates = [entry for entry in candidates if matches(entry)]
         return candidates[max(0, offset):max(0, offset) + limit]
 
-    def lifecycle(self, ids: List[str], action: str, reason: str = "") -> Dict[str, Any]:
-        if action not in {"quarantine", "restore", "revoke"}:
-            raise ValueError("action must be quarantine, restore or revoke")
+    def lifecycle(self, ids: List[str], action: str, reason: str = "", by: str = "", content: str = "") -> Dict[str, Any]:
+        if action not in {"quarantine", "restore", "revoke", "refute", "critique"}:
+            raise ValueError("action must be quarantine, restore, revoke, refute or critique")
         wanted = {str(value) for value in ids if value}
         if not wanted or len(wanted) > 500:
             raise ValueError("ids must contain between 1 and 500 values")
+        if action == "refute" and not reason.strip():
+            raise ValueError("refute requires a reason")
+        if action == "critique" and not (content.strip() or reason.strip()):
+            raise ValueError("critique requires content")
         current = {str(entry.get("id")): entry for entry in self.entries(limit=5000)}
         changed, missing = [], []
         for memory_id in wanted:
@@ -488,8 +522,17 @@ class HermesMemory:
                 missing.append(memory_id)
                 continue
             revision = dict(original)
-            revision["status"] = {"quarantine": "quarantined", "restore": "active", "revoke": "revoked"}[action]
-            revision["lifecycle"] = {"action": action, "reason": reason, "at": _iso()}
+            if action == "refute":
+                # Smentita, non nascosta: resta attiva e leggibile, con il livello
+                # `refuted` (docs/memory-evidence-tiers.md). La revisione precedente
+                # resta nello storico come ogni altra.
+                revision["evidence"] = _refuted_evidence(original.get("evidence"), reason)
+            elif action == "critique":
+                # Critica del Red Team: allegata senza alzare il livello (docs/memory-evidence-tiers.md).
+                revision["evidence"] = _critique_evidence(original.get("evidence"), by, content or reason)
+            else:
+                revision["status"] = {"quarantine": "quarantined", "restore": "active", "revoke": "revoked"}[action]
+            revision["lifecycle"] = {"action": action, "reason": reason or content, "at": _iso()}
             result = self.store(revision)
             if result.get("stored"):
                 changed.append(memory_id)
@@ -579,7 +622,13 @@ class Handler(BaseHTTPRequestHandler):
             ids = body.get("ids")
             if not isinstance(ids, list):
                 raise ValueError("ids must be a list")
-            result = memory.lifecycle(ids, str(body.get("action", "")), str(body.get("reason", "")))
+            result = memory.lifecycle(
+                ids,
+                str(body.get("action", "")),
+                str(body.get("reason", "")),
+                by=str(body.get("by", "")),
+                content=str(body.get("content", "")),
+            )
             self._send(200 if result["ok"] else 207, result)
         else:
             self._send(404, {"ok": False, "error": "not found"})

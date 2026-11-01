@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from shared.memory_schema import with_evidence_tier
+
 
 class HermesMemoryError(RuntimeError):
     """The authoritative Hermes memory backend could not satisfy a request."""
@@ -94,7 +96,7 @@ class HermesMemoryClient:
 
     def entries(self, limit: int = 200) -> List[Dict[str, Any]]:
         body = self._request("GET", "/entries", params={"limit": max(1, min(limit, 5000))})
-        return list(body.get("entries") or [])
+        return [with_evidence_tier(entry) for entry in body.get("entries") or []]
 
     def query(self, query: str = "", limit: int = 10, event_type: str = "",
               mode: str = "semantic", **filters) -> List[Dict[str, Any]]:
@@ -102,7 +104,9 @@ class HermesMemoryClient:
             "query": query, "limit": max(1, min(limit, 100)),
             "event_type": event_type, "mode": mode, **filters,
         })
-        return list(body.get("entries") or [])
+        # Ogni voce letta porta il suo livello di evidenza effettivo
+        # (docs/memory-evidence-tiers.md): chi la usa non deve ricalcolarlo.
+        return [with_evidence_tier(entry) for entry in body.get("entries") or []]
 
     def lifecycle(self, ids: List[str], action: str, reason: str = "") -> Dict[str, Any]:
         return self._request("POST", "/lifecycle", json={

@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/HKUDS/CLI-Anything",
+  "commit": "34f519533bc175d2fe287ab8316b0dd99bb9cc43",
+  "files": {
+    "LICENSE": "0cff1a8ac2a381870a2c57cbe9b25f95bea0925b39b7fbf6a04ec23df7c77760",
+    "skills/cli-hub-meta-skill/SKILL.md": "66a65c056120d50d0e4e9cfd87187504b47b82bd08233f2401d5920b76af2558"
+  },
+  "upstream_paths": {
+    "LICENSE": "LICENSE",
+    "skills/cli-hub-meta-skill/SKILL.md": "skills/cli-hub-meta-skill/SKILL.md"
+  }
+}

@@ -762,6 +762,7 @@ async def review_dream(dream_id: str, payload: dict, request: Request):
             payload.get("action"),
             payload.get("reviewer", "operator"),
             payload.get("rationale"),
+            sources=payload.get("sources"),
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="Dream not found")
@@ -770,6 +771,26 @@ async def review_dream(dream_id: str, payload: dict, request: Request):
     if insight is not None:
         await _push_memory_to_cp(insight)
     return {"ok": True, "dream": dream, "insight": insight}
+
+
+@app.post("/dreams/{dream_id}/critique")
+async def critique_dream(dream_id: str, payload: dict, request: Request):
+    if len(DREAM_REVIEW_TOKEN) < 32:
+        raise HTTPException(status_code=503, detail="Dream review is not configured")
+    provided = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    if not token_authorized(provided, DREAM_REVIEW_TOKEN):
+        raise HTTPException(status_code=401, detail="Invalid dream review token")
+    by = payload.get("by", "mesh_peer")
+    content = payload.get("content", "")
+    if not str(content).strip():
+        raise HTTPException(status_code=400, detail="Critique content is required")
+    try:
+        dream = _dream_journal.add_critique(dream_id, by, content)
+        return {"ok": True, "dream": dream}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Dream not found")
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
 
 @app.on_event("shutdown")

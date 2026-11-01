@@ -250,6 +250,16 @@ integrations:
     active_branch: main
     test_command: .venv/bin/python -m pytest tests/test_linkedin_generator.py -q
     auto_sync: false
+  cli_anything:
+    name: CLI-Anything & CLI-Hub (HKUDS)
+    category: forge_bundle
+    local_path: vendor/cli-anything
+    description: Framework agent-native per rendere qualsiasi software accessibile da CLI con output JSON strutturato e catalogo CLI-Hub
+    upstream_url: https://github.com/HKUDS/CLI-Anything.git
+    pinned_ref: 34f519533bc175d2fe287ab8316b0dd99bb9cc43
+    active_branch: main
+    test_command: test -f vendor/cli-anything/skills/cli-hub-meta-skill/SKILL.md
+    auto_sync: false
   open_webui:
     name: Open WebUI Client & Tool Server
     category: docker_service

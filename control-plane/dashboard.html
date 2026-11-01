@@ -2779,6 +2779,7 @@ async function loadDreamInbox(){
 async function reviewDream(dreamId,action){
   var rationale=await requestApprovalRationale(action,'Review sogno '+dreamId+'. La decisione modifica lo stato della memoria secondo la policy di review.');if(!rationale)return;
   var payload={node_id:document.getElementById('dreamReviewNode').value,action:action,reviewer:document.getElementById('dreamReviewer').value||'operator',rationale:rationale.trim()};
+  if(action==='promote'){var sources=window.prompt('Fonti che reggono la nota (ID memoria o URL, separate da virgola). Vuoto = la nota resta "plausible".','');if(sources===null)return;payload.sources=sources.split(',').map(function(s){return s.trim();}).filter(Boolean);}
   var token=document.getElementById('dreamReviewToken').value;
   try{var response=await fetch('/dreams/'+encodeURIComponent(dreamId)+'/review',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});var data=await response.json();if(!response.ok)throw new Error(data.detail||data.error||'Revisione fallita');await loadDreamInbox();}catch(error){window.alert('Errore: '+error.message);}
 }

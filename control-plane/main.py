@@ -2768,6 +2768,27 @@ def dream_node_review(dream_id):
         return jsonify({"error": str(error)}), 502
 
 
+@app.route('/dreams/<dream_id>/critique', methods=['POST'])
+def dream_node_critique(dream_id):
+    auth_error = _dream_review_auth_error()
+    if auth_error:
+        return auth_error
+    data = request.get_json(force=True, silent=True) or {}
+    node = _reachable_dream_node(data.pop("node_id", ""))
+    if not node:
+        return jsonify({"error": "Nodo non raggiungibile"}), 404
+    try:
+        response = requests.post(
+            f"{_best_endpoint(node)}/dreams/{dream_id}/critique",
+            json=data,
+            headers={"Authorization": f"Bearer {DREAM_REVIEW_TOKEN}"},
+            timeout=8,
+        )
+        return jsonify(response.json()), response.status_code
+    except Exception as error:
+        return jsonify({"error": str(error)}), 502
+
+
 @app.route('/development-dreams/status')
 def development_dream_status():
     if _development_dream is None:

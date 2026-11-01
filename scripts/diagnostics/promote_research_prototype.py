@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import difflib
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -37,7 +38,8 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from shared.research_tree import ASTInspector, ResearchTreeManager
+from shared.memory_schema import validate_evidence, VERIFIED, PLAUSIBLE
+from shared.research_tree import ASTInspector, ResearchTreeManager, find_exercising_tests
 
 PROTOTYPES_DIR = ROOT / "data" / "research" / "prototypes"
 SHARED_DIR = ROOT / "shared"
@@ -103,6 +105,22 @@ def run_pytest_verification() -> Tuple[bool, str]:
         return (proc.returncode == 0, proc.stdout.strip())
     except Exception as exc:
         return (False, f"Errore esecuzione pytest: {exc}")
+
+
+def run_test_command(cmd_args: List[str], timeout: int = 45) -> Tuple[int, str]:
+    """Esegue un comando di test pytest restituendo exit_code e output."""
+    try:
+        proc = subprocess.run(
+            cmd_args,
+            cwd=str(ROOT),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=timeout,
+        )
+        return proc.returncode, proc.stdout.strip()
+    except Exception as exc:
+        return 1, f"Errore esecuzione comando pytest: {exc}"
 
 
 class PrototypePromoter:
@@ -190,7 +208,14 @@ class PrototypePromoter:
         # 5. Scrittura su shared/
         target_path.write_text(final_code, encoding="utf-8")
 
-        # 6. Verifica Pytest con Rollback Automatico
+        # 6. Verifica Pytest con Rollback Automatico ed Evidenza Determinista (Fase E3)
+        exercising_tests = find_exercising_tests(safe_target, repo_root=ROOT)
+        passing_exercising: List[str] = []
+        test_cmd: Optional[str] = None
+        test_exit_code: Optional[int] = None
+        test_output_sha: Optional[str] = None
+        now_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
         if verify_pytest:
             passed, test_output = run_pytest_verification()
             if not passed:
@@ -206,6 +231,52 @@ class PrototypePromoter:
                     "error": f"Verifica Pytest fallita. Eseguito ROLLBACK automatico: {rollback_msg}\nLog test:\n{test_output}",
                 }
 
+            # Verifica specifici test esercitanti
+            if exercising_tests:
+                for tfile in exercising_tests:
+                    code, out = run_test_command([sys.executable, "-m", "pytest", tfile, "-q"])
+                    if code == 0:
+                        passing_exercising.append(tfile)
+
+                if passing_exercising:
+                    test_cmd = f"pytest {' '.join(passing_exercising)} -q"
+                    code, combined_out = run_test_command([sys.executable, "-m", "pytest"] + passing_exercising + ["-q"])
+                    test_exit_code = code
+                    if code == 0:
+                        test_output_sha = hashlib.sha256(combined_out.encode("utf-8")).hexdigest()
+                    else:
+                        passing_exercising = []
+
+        if passing_exercising and test_exit_code == 0 and test_output_sha:
+            evidence = {
+                "tier": "verified",
+                "basis": [
+                    {
+                        "kind": "check",
+                        "command": test_cmd,
+                        "exit_code": 0,
+                        "output_sha256": test_output_sha,
+                        "at": now_utc,
+                    }
+                ],
+                "assigned_by": "promote_research_prototype",
+                "exercising_tests": passing_exercising,
+            }
+        else:
+            reason = "Nessun test esercita direttamente il modulo promosso" if not exercising_tests else "Nessun test esercitante superato con successo"
+            if not verify_pytest:
+                reason = "Verifica test saltata (--skip-pytest)"
+            evidence = {
+                "tier": "plausible",
+                "basis": [],
+                "assigned_by": "promote_research_prototype",
+                "reason": reason,
+            }
+
+        evidence_errs = validate_evidence(evidence)
+        if evidence_errs:
+            raise ValueError(f"Contratto evidence non valido: {evidence_errs}")
+
         # 7. Registrazione permanente in promotions.jsonl
         now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
         record = {
@@ -217,6 +288,11 @@ class PrototypePromoter:
             "classes_promoted": [c["name"] for c in ast_info.get("classes", [])],
             "functions_promoted": [fn["name"] for fn in ast_info.get("functions", [])],
             "node_count": ast_info.get("node_count", 0),
+            "exercising_tests": exercising_tests,
+            "test_command": test_cmd if (passing_exercising and test_exit_code == 0) else None,
+            "test_exit_code": test_exit_code if (passing_exercising and test_exit_code == 0) else None,
+            "test_output_sha256": test_output_sha if (passing_exercising and test_exit_code == 0) else None,
+            "evidence": evidence,
         }
         with open(PROMOTIONS_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -231,6 +307,8 @@ class PrototypePromoter:
             "backup_file": backup_file,
             "classes": record["classes_promoted"],
             "node_count": record["node_count"],
+            "evidence": evidence,
+            "exercising_tests": exercising_tests,
         }
 
     def _update_tree_after_promotion(self, prototype_filename: str, target_module: str):

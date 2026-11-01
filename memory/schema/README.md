@@ -33,6 +33,7 @@ Un record normalizzato contiene almeno:
 | `priority` | int | no | 1–5, default 3 |
 | `access_count` | int | no | contatore, default 0 |
 | `retention` | string | no | override esplicito del livello (vedi sotto) |
+| `evidence` | object | no | livello di evidenza e prove (vedi sotto); assente = `plausible` |
 
 Il contenuto ricercabile è derivato in quest'ordine: `content`, poi `summary`,
 poi `detail`, infine la coppia `prompt`+`response`.
@@ -59,11 +60,30 @@ deriva dal tipo:
 La classificazione è esposta da `classify_retention` /
 `is_persistent` / `is_operative` / `is_project`.
 
+## Livelli di evidenza
+
+La retention dice **quanto a lungo** vive un record; `evidence` dice **quanto è
+affidabile e perché**. Il design completo è in
+[`docs/memory-evidence-tiers.md`](../../docs/memory-evidence-tiers.md).
+
+| `evidence.tier` | Prova minima richiesta in `evidence.basis` |
+|---|---|
+| `verified` | un `check` riuscito: `command`, `exit_code` = 0, `output_sha256`, `at` |
+| `sourced` | un `source` (`ref`, `content_sha256`) oppure una `review` (`by`, `sources`) |
+| `plausible` | nessuna: default di ogni output di modello e dei record senza `evidence` |
+| `refuted` | una `refutation` con `reason` |
+
+Il tipo `critique` (`by`, `content`) allega la critica di un altro agente senza
+soddisfare alcun livello: un modello non alza mai il livello di un record. Il
+livello effettivo si legge con `evidence_tier`; un livello sconosciuto vale
+`plausible`.
+
 ## Validazione
 
 `validate_entry` restituisce l'elenco delle violazioni (vuoto = valido):
 contenuto assente, `type`/`status`/`retention` sconosciuti, timestamp non
-interpretabile, `priority` fuori intervallo.
+interpretabile, `priority` fuori intervallo, blocco `evidence` con livello
+sconosciuto o senza la prova che il livello richiede (`validate_evidence`).
 
 ## Collegamento con il resto del sistema
 

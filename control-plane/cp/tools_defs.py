@@ -60,13 +60,23 @@ _NATIVE_TOOLS = [
         "type": "function",
         "function": {
             "name": "omega_query",
-            "description": "Cerca nella memoria a lungo termine di HyperSpace AGI.",
+            "description": (
+                "Cerca nella memoria a lungo termine di HyperSpace AGI. Ogni ricordo porta "
+                "il suo livello di evidenza: verified (riprodotto da un test), sourced "
+                "(sostenuto da una fonte), plausible (prodotto da un modello, non "
+                "verificato), refuted (smentito). Cita il livello e non presentare un "
+                "ricordo plausible come un fatto. I ricordi smentiti non compaiono nella "
+                "ricerca normale: prima di proporre un'idea come nuova, cerca con "
+                "evidence='refuted' se è già stata smentita."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {"type": "string"},
                     "limit": {"type": "integer", "default": 10},
-                    "event_type": {"type": "string"}
+                    "event_type": {"type": "string"},
+                    "evidence": {"type": "string", "enum": ["", "refuted"],
+                                 "description": "'refuted' cerca solo fra i ricordi smentiti"}
                 },
                 "required": ["query"]
             }

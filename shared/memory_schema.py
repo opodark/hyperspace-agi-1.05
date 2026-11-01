@@ -48,6 +48,31 @@ _PERSISTENT_TYPES = {"dream_insight", "vault_note"}
 # Kinds that are runtime, TTL-bounded interaction memory by default.
 _OPERATIVE_TYPES = {"memory", "task_state"}
 
+# Evidence tiers (``evidence.tier``): how much a record can be trusted and why.
+# Orthogonal to retention, which only says how long a record lives. A record
+# without ``evidence`` (or with an unknown tier) is ``plausible``: every model
+# output starts there and a tier only rises when the matching proof is attached.
+# Design: docs/memory-evidence-tiers.md.
+VERIFIED = "verified"    # reproduced by a deterministic check (test, script, hash)
+SOURCED = "sourced"      # backed by a checkable source or an attributed review with sources
+PLAUSIBLE = "plausible"  # produced by a model, not verified
+REFUTED = "refuted"      # disproved; kept so the same claim is not proposed again
+EVIDENCE_TIERS = (VERIFIED, SOURCED, PLAUSIBLE, REFUTED)
+
+# Basis kinds that satisfy each tier, and the fields each kind must carry.
+_TIER_BASIS = {
+    VERIFIED: {"check"},
+    SOURCED: {"source", "review"},
+    REFUTED: {"refutation"},
+}
+_BASIS_FIELDS = {
+    "check": ("command", "exit_code", "output_sha256", "at"),
+    "source": ("ref", "content_sha256"),
+    "review": ("by", "sources"),
+    "refutation": ("reason",),
+    "critique": ("by", "content"),
+}
+
 DEFAULT_PRIORITY = 3
 _CONTENT_KEYS = ("content", "summary", "detail")
 _ID_KEYS = ("id", "memory_id")
@@ -140,10 +165,92 @@ def normalize_entry(entry: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     retention = raw.get("retention")
     if retention in RETENTION_TIERS:
         normalized["retention"] = retention
-    for key in ("plugin", "prompt", "response", "summary", "detail", "surface"):
+    for key in ("plugin", "prompt", "response", "summary", "detail", "surface", "evidence"):
         if raw.get(key) is not None:
             normalized[key] = raw[key]
     return normalized
+
+
+def evidence_tier(entry: Dict[str, Any]) -> str:
+    """Return the effective evidence tier of an entry.
+
+    Missing, unknown or unproven evidence means plausible: off-contract entries
+    are still stored (with a warning), so a claimed tier is only honoured when
+    its basis validates.
+    """
+    evidence = entry.get("evidence") if isinstance(entry, dict) else None
+    if isinstance(evidence, dict) and not validate_evidence(evidence):
+        return evidence["tier"]
+    return PLAUSIBLE
+
+
+def with_evidence_tier(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of a retrieved entry labelled with its effective tier."""
+    return {**entry, "evidence_tier": evidence_tier(entry)}
+
+
+def _is_sha256(value: Any) -> bool:
+    text = str(value or "")
+    return len(text) == 64 and all(ch in "0123456789abcdef" for ch in text.lower())
+
+
+def _basis_errors(index: int, item: Any) -> List[str]:
+    if not isinstance(item, dict):
+        return [f"evidence.basis[{index}] must be an object"]
+    kind = item.get("kind")
+    if kind not in _BASIS_FIELDS:
+        return [f"evidence.basis[{index}] has unknown kind: {kind}"]
+    errors = [
+        f"evidence.basis[{index}] ({kind}) missing {field}"
+        for field in _BASIS_FIELDS[kind]
+        if item.get(field) in (None, "", [])
+    ]
+    if errors:
+        return errors
+    if kind == "check":
+        if item["exit_code"] != 0:
+            errors.append(f"evidence.basis[{index}] (check) did not pass: exit_code {item['exit_code']}")
+        if not _is_sha256(item["output_sha256"]):
+            errors.append(f"evidence.basis[{index}] (check) output_sha256 is not a sha256 hex digest")
+        if _to_epoch(item["at"]) is None:
+            errors.append(f"evidence.basis[{index}] (check) has unparseable at")
+    elif kind == "source" and not _is_sha256(item["content_sha256"]):
+        errors.append(f"evidence.basis[{index}] (source) content_sha256 is not a sha256 hex digest")
+    elif kind == "review" and not isinstance(item["sources"], list):
+        errors.append(f"evidence.basis[{index}] (review) sources must be a list")
+    return errors
+
+
+def validate_evidence(evidence: Any) -> List[str]:
+    """Return the violations of an ``evidence`` block; empty means valid.
+
+    A tier above ``plausible`` needs at least one well-formed basis item of the
+    kind that tier requires: a passing ``check`` for ``verified``, a hashed
+    ``source`` or a ``review`` with sources for ``sourced``, a ``refutation``
+    for ``refuted``. Model self-confidence is never a basis.
+    """
+    if not isinstance(evidence, dict):
+        return ["evidence must be an object"]
+    tier = evidence.get("tier")
+    if tier not in EVIDENCE_TIERS:
+        return [f"unknown evidence tier: {tier}"]
+    basis = evidence.get("basis", [])
+    if not isinstance(basis, list):
+        return ["evidence.basis must be a list"]
+    errors: List[str] = []
+    valid_kinds = set()
+    for index, item in enumerate(basis):
+        item_errors = _basis_errors(index, item)
+        errors.extend(item_errors)
+        if not item_errors:
+            valid_kinds.add(item["kind"])
+    required = _TIER_BASIS.get(tier)
+    if required and not (required & valid_kinds):
+        errors.append(f"evidence tier {tier} requires a valid basis of kind: {', '.join(sorted(required))}")
+    history = evidence.get("history")
+    if history is not None and not isinstance(history, list):
+        errors.append("evidence.history must be a list")
+    return errors
 
 
 def validate_entry(entry: Dict[str, Any]) -> List[str]:
@@ -175,6 +282,8 @@ def validate_entry(entry: Dict[str, Any]) -> List[str]:
         else:
             if priority < 1 or priority > 5:
                 errors.append("priority must be between 1 and 5")
+    if entry.get("evidence") is not None:
+        errors.extend(validate_evidence(entry["evidence"]))
     return errors
 
 

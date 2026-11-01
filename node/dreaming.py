@@ -13,6 +13,9 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from shared.dream_evaluation import NOVELTY_OVERLAP_THRESHOLD, token_overlap
+from shared.memory_schema import PLAUSIBLE, SOURCED
+
 
 SCHEMA_VERSION = 1
 PROMPT_VERSION = "dream-json-v1"
@@ -39,6 +42,35 @@ def _canonical(value):
 
 def _iso_timestamp(timestamp):
     return datetime.fromtimestamp(timestamp, timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _insight_evidence(reviewer, sources):
+    """Evidence of a promoted insight: sourced only when the review cites sources."""
+    if sources:
+        return {"tier": SOURCED, "assigned_by": "dream_review",
+                "basis": [{"kind": "review", "by": reviewer, "sources": list(sources)}]}
+    return {"tier": PLAUSIBLE, "assigned_by": "dream_review", "basis": []}
+
+
+def _mark_if_already_rejected(report, journal, now):
+    """Keep a near-twin of a rejected dream out of the inbox.
+
+    The new dream is stored, not dropped: it is rejected by ``dedup`` with an
+    attributed review naming the twin, so ``reopen`` can still bring it back.
+    """
+    match = journal.similar_rejected(report.get("summary", ""))
+    if match is None:
+        return
+    twin, score = match
+    report["status"] = "rejected"
+    report["duplicate_of"] = {"dream_id": twin["dream_id"], "overlap": round(score, 3)}
+    report["reviews"] = [{
+        "action": "reject", "from_status": "hypothesis", "to_status": "rejected",
+        "reviewer": "dedup",
+        "rationale": f"quasi uguale a {twin['dream_id']}, già rifiutato "
+                     f"(sovrapposizione {score:.2f}): {twin.get('rationale', '')}"[:2000],
+        "created_at": _iso_timestamp(now),
+    }]
 
 
 def source_memories(entries, node_id):
@@ -104,6 +136,9 @@ class DreamJournal:
         base = Path(directory)
         self.path = base / "dreams.jsonl"
         self.insights_path = base / "dream_insights.jsonl"
+        # Registro append-only dei rifiuti: `dreams.jsonl` tiene solo le ultime 100
+        # righe, qui invece un rifiuto resta per sempre e blocca le ipotesi gemelle.
+        self.rejected_path = base / "dream_rejected.jsonl"
         self._lock = threading.RLock()
 
     @staticmethod
@@ -153,6 +188,29 @@ class DreamJournal:
             rows.append(report)
             self._write(self.path, rows[-100:])
 
+    def _append_rejected(self, event):
+        self.rejected_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.rejected_path.open("a", encoding="utf-8") as handle:
+            handle.write(_canonical(event) + "\n")
+
+    def rejected(self):
+        """Dreams whose latest ledger event is a human rejection."""
+        with self._lock:
+            latest = {}
+            for event in self._read(self.rejected_path):
+                if event.get("dream_id"):
+                    latest[event["dream_id"]] = event
+        return [event for event in latest.values() if event.get("action") == "reject"]
+
+    def similar_rejected(self, summary, threshold=NOVELTY_OVERLAP_THRESHOLD):
+        """Return the closest rejected dream at or above ``threshold``, if any."""
+        best = None
+        for event in self.rejected():
+            score = token_overlap(summary, event.get("summary", ""))
+            if score >= threshold and (best is None or score > best[1]):
+                best = (event, score)
+        return best
+
     def list(self, status="", limit=100):
         with self._lock:
             rows = [self._normalize_dream(row) for row in self._read(self.path)]
@@ -167,10 +225,35 @@ class DreamJournal:
             rows = [row for row in rows if row.get("status") == "active"]
         return list(reversed(rows))
 
-    def review(self, dream_id, action, reviewer, rationale, timestamp=None):
+    def add_critique(self, dream_id, critique_by, content, timestamp=None):
+        """Allega una critica del Red Team (secondo nodo) a un'ipotesi del diario."""
+        from shared.mesh_critic import attach_critique
+        critique = {
+            "kind": "critique",
+            "by": str(critique_by or "mesh_peer").strip()[:150],
+            "content": str(content or "").strip()[:2500],
+            "at": _iso_timestamp(time.time() if timestamp is None else timestamp),
+        }
+        with self._lock:
+            rows = [self._normalize_dream(row) for row in self._read(self.path)]
+            index = next((i for i, row in enumerate(rows) if row.get("id") == dream_id), None)
+            if index is None:
+                raise KeyError(dream_id)
+            dream = rows[index]
+            attach_critique(dream, critique)
+            rows[index] = dream
+            self._write(self.path, rows)
+            return dream
+
+    def review(self, dream_id, action, reviewer, rationale, timestamp=None, sources=None):
         action = str(action or "").strip().lower()
         reviewer = str(reviewer or "operator").strip()[:120] or "operator"
         rationale = str(rationale or "").strip()[:2000]
+        # Fonti che il revisore cita a sostegno della nota (ID memoria o URL).
+        # Le memorie da cui il sogno è nato non bastano: la sintesi è del modello.
+        if not isinstance(sources, (list, tuple)):
+            sources = []
+        sources = [str(item).strip()[:500] for item in sources if str(item).strip()][:20]
         if action not in ACTIONS:
             raise ValueError("Unknown review action")
         if not rationale:
@@ -193,16 +276,30 @@ class DreamJournal:
                 "rationale": rationale,
                 "created_at": _iso_timestamp(now),
             }
+            if sources:
+                review["sources"] = sources
             dream["status"] = ACTIONS[action]
             dream["updated_at"] = review["created_at"]
             dream.setdefault("reviews", []).append(review)
             rows[index] = dream
             self._write(self.path, rows)
+            if action == "reject" or (action == "reopen" and old_status == "rejected"):
+                self._append_rejected({
+                    "dream_id": dream_id, "action": action,
+                    "summary": dream.get("summary", ""), "reviewer": reviewer,
+                    "rationale": rationale, "at": review["created_at"],
+                })
 
             insights = self._read(self.insights_path)
             insight_id = f"insight-{dream_id}"
             insight = next((row for row in insights if row.get("id") == insight_id), None)
             if action == "promote":
+                promoted_evidence = _insight_evidence(reviewer, sources)
+                existing_critiques = [
+                    b for b in dream.get("evidence", {}).get("basis", [])
+                    if isinstance(b, dict) and b.get("kind") == "critique"
+                ]
+                promoted_evidence.setdefault("basis", []).extend(existing_critiques)
                 promoted = {
                     "schema_version": SCHEMA_VERSION,
                     "id": insight_id,
@@ -215,6 +312,7 @@ class DreamJournal:
                     "source_refs": dream.get("source_refs", []),
                     "confidence": dream.get("confidence"),
                     "review": review,
+                    "evidence": promoted_evidence,
                     "created_at": review["created_at"],
                 }
                 if insight:
@@ -318,8 +416,10 @@ class DreamWorker:
                 "source_refs": refs,
                 "response": reflection,
                 "reviews": [],
+                "evidence": {"tier": PLAUSIBLE, "basis": []},
                 **structured,
             }
+            _mark_if_already_rejected(report, self.journal, now)
             self.journal.append(report)
             self.state.update(fingerprint=fingerprint, last_dream=now)
             self.save()
