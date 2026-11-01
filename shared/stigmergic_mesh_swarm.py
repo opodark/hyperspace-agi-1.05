@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""
-shared/stigmergic_mesh_swarm.py
-Modulo promosso in produzione da HyperSpace R&D Sovereign Lab.
-Prototipi sorgente: proto_swarm_emergence_1792877797.py & proto_swarm_emergence_1792879319.py
-Topic: Swarm AI, Coscienza Collettiva & Mesh P2P Stigmergica (Aleksander Collective Stigmergy)
-
-Implementa:
-- `VectorClock`: orologi vettoriali logici per ordinamento causale distribuito
-- `StigmergicMeshSwarm`: coordinamento stigmergico ispirato a feromoni digitali,
-  rilevamento gradienti, decadimento temporale e convergenza di consenso mesh.
-"""
+# shared/stigmergic_mesh_swarm.py
+# Modulo promosso in produzione da HyperSpace R&D Sovereign Lab
+# Prototipo sorgente: proto_swarm_emergence_1792877797.py
+# Data promozione: 2026-11-01T13:32:59.940211+00:00
+# Autore: antigravity_sovereign
 
 from __future__ import annotations
 
@@ -105,37 +99,42 @@ class StigmergicMeshSwarm:
         self.pheromone_traces[signal_type][node_id].append((now, payload))
 
         # Applica decadimento fisiologico
-        self.decay_pheromones(decay_rate=decay_rate)
+        self.decay_pheromones(decay_rate=decay_rate * 0.1)
         return record
 
-    def sense_gradient(self, signal_type: str) -> List[Dict[str, Any]]:
+    def sense_gradient(
+        self,
+        signal_type: str,
+        threshold: float = 0.1,
+    ) -> List[Dict[str, Any]]:
         """
-        Rileva e ordina i segnali attivi per intensità decrescente.
+        Legge il gradiente di intensità feromonica nello spazio stigmergico.
+        Restituisce i nodi attivi ordinati per intensità decrescente.
         """
-        results: List[Dict[str, Any]] = []
-        for (sig, node_id), data in self.hermes.items():
-            if sig == signal_type:
-                effective_strength = data["intensity"] * (1.0 - data.get("decay", 0.0))
-                if effective_strength > 0:
-                    results.append({
-                        "node_id": node_id,
-                        "signal_type": sig,
-                        "strength": round(effective_strength, 4),
-                        "payload": data.get("payload", {}),
-                        "timestamp": data.get("timestamp"),
-                    })
+        candidates = []
+        for (st, nid), record in self.hermes.items():
+            if st != signal_type:
+                continue
 
-        results.sort(key=lambda x: x["strength"], reverse=True)
-        return results
+            current_decay = record.get("decay", 0.0)
+            net_strength = max(0.0, record["intensity"] * (1.0 - current_decay))
+            if net_strength >= threshold:
+                candidates.append({
+                    "node_id": nid,
+                    "strength": round(net_strength, 4),
+                    "payload": record["payload"],
+                    "clock": record["clock"],
+                    "timestamp": record["timestamp"],
+                })
+
+        candidates.sort(key=lambda x: x["strength"], reverse=True)
+        return candidates
 
     def compute_gradient_field(self, signal_type: str) -> Dict[str, Any]:
         """
-        Calcola l'analisi del campo gradiente stigmergico (ispirata dal prototipo LFM 24B):
-        - intensità media pesata per freschezza
-        - varianza e dispersione del segnale nel cluster
-        - nodo focale di convergenza (hotspot)
+        Calcola metriche descrittive del campo feromonico (media, varianza, hotspot).
         """
-        signals = self.sense_gradient(signal_type)
+        signals = self.sense_gradient(signal_type, threshold=0.0)
         if not signals:
             return {
                 "signal_type": signal_type,

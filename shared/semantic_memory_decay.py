@@ -3,7 +3,7 @@
 # shared/semantic_memory_decay.py
 # Modulo promosso in produzione da HyperSpace R&D Sovereign Lab
 # Prototipo sorgente: proto_semanticmemorydecaycontroller_1793010783.py
-# Data promozione: 2026-10-31T13:41:21.315868+00:00
+# Data promozione: 2026-11-01T13:32:10.807322+00:00
 # Autore: antigravity_sovereign
 
 import math

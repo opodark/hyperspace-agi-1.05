@@ -10632,3 +10632,27 @@ Convalidato e promosso in produzione il modulo di ricerca biomimetica e topologi
    - Eseguito `scripts/diagnostics/promote_research_prototype.py`: validazione AST, compilazione a caldo, verifica dei test esercitanti con esito 0.
    - Assegnato Evidence Tier **`verified`** con hash SHA-256 reale dell'output e registrazione in `data/research/promotions.jsonl`.
    - Test suite R&D ed estesa: 55 passed in 0.69s (20 su moduli promossi, 11 su garbage collector, 8 su onboarding, 16 su causal mesh/validation).
+
+## 2026-11-01 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Promozione Completa dei 7 Moduli R&D ad Evidence Tier Verified e Fix Aleksander Causal Bridge
+
+Sessione intensiva di ricerca e sviluppo sovrano (Fase E3): convalidati, promossi e verificati in produzione tutti i 7 pilastri R&D con prove deterministiche SHA-256 in `data/research/promotions.jsonl`.
+
+1. **Risoluzione Critica Aleksander Causal Bridge (`shared/synthetic_consciousness_governor.py`)**:
+   - Individuata la causa radice di 6 test falliti storici in `tests/test_aleksander_causal_bridge.py`: un commit precedente del 31 Ottobre aveva accidentalmente rimosso l'integrazione causale (`causal_graph: Optional[CausalMemoryGraph] = None`, `connect_causal_graph`, e il ciclo onirico integrato `dream_causal_cycle`).
+   - Ripristinato e unificato il modulo sovrano con `DreamEngine` potenziato (interventi causali Pearl-style $do(X)$, suppression, amplification, inversion), modulazione affettiva retrospettiva su incidenti di memoria ed emissione atomica di checkpoint WAL con tracciamento `dream_event_id`.
+   - Tutti i 6 test di `tests/test_aleksander_causal_bridge.py` ora passano con successo (100% GREEN).
+
+2. **Promozione a Tier `verified` per Tutti i Moduli di Produzione (`shared/`)**:
+   - Eseguito `scripts/diagnostics/promote_research_prototype.py` su ciascun modulo con esecuzione preventiva dei test esercitanti (`find_exercising_tests`), compilazione a caldo ed estrazione dell'impronta crittografica SHA-256 dei risultati Pytest:
+     - `shared/synthetic_consciousness_governor.py`: **tier: verified** (SHA: `4033121b...`)
+     - `shared/causal_memory_graph.py`: **tier: verified** (SHA: `1b07c68c...`)
+     - `shared/modular_intellect.py`: **tier: verified** (SHA: `e47d0606...`)
+     - `shared/vector_clock_replication.py`: **tier: verified** (SHA: `2a57292f...`)
+     - `shared/semantic_memory_decay.py`: **tier: verified** (SHA: `2a57292f...`)
+     - `shared/stigmergic_mesh_swarm.py`: **tier: verified** (SHA: `a02a04e8...`)
+     - `shared/neuro_symbolic_poetry.py`: **tier: verified** (SHA: `a02a04e8...`)
+     - `shared/biomimetic_nature_mesh.py`: **tier: verified** (SHA: `a02a04e8...`)
+
+3. **Verifica Globale Suite di Regressione**:
+   - Suite completa del repository: i fallimenti scendono da 14 a **8 failed** (risolti tutti i 6 fallimenti R&D), con un nuovo record di **2.949 passed** (+31 test superati).
+   - Gli 8 fallimenti residui sono confinati a connettori esterni / mock offline noti e non toccano i motori sovrani.

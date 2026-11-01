@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""
-shared/neuro_symbolic_poetry.py
-Modulo promosso in produzione da HyperSpace R&D Sovereign Lab.
-Prototipo sorgente: proto_algorithmic_poetry_aesthetics_1792874380.py
-Topic: Algorithmic Aesthetics & Intelligent Poetry Generation (Teknokultura 2023, ScienceDirect 2025)
-
-Combina la sintesi tematica di memorie episodiche (Anna / Aurora) con
-motore neuro-simbolico per la generazione poetica metrica e l'estrazione
-di prompt visivi ottimizzati per ComfyUI.
-"""
+# shared/neuro_symbolic_poetry.py
+# Modulo promosso in produzione da HyperSpace R&D Sovereign Lab
+# Prototipo sorgente: proto_algorithmic_poetry_aesthetics_1792874380.py
+# Data promozione: 2026-11-01T13:33:31.160025+00:00
+# Autore: antigravity_sovereign
 
 from __future__ import annotations
 
