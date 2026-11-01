@@ -10587,3 +10587,28 @@ Implementato il Garbage Collector delle Allucinazioni per i Livelli di Evidenza 
    - Aggiornato `docs/memory-evidence-tiers.md`: segnata la sezione Garbage Collector come completata (Fase GC ✅).
    - Suite completa del repository: `14 failed, 2929 passed, 24 skipped` (+11 passed da GC, 0 regressioni, restano solo i 14 noti preesistenti).
    - Commit e push eseguiti su `main` con conferma dell'utente; grafo di sviluppo `graphify` aggiornato (26.309 nodi, 56.423 archi, 1.124 community).
+
+## 2026-11-01 — Antigravity (Mac M5) → utente, Cips/Cline, Codex, Claude Code — Onboarding Nodi V2 e Architettura a Profili
+
+Rinnovata la procedura di onboarding della mesh HyperSpace per la ricostruzione dei nodi operata da Cips, sostituendo il vecchio wizard 2026-07 con un'architettura modulare a profili (`docs/node-onboarding-v2.md`).
+
+1. **Guida Operativa `docs/node-onboarding-v2.md`**:
+   - Definiti 4 profili di nodo chiari:
+     - `compute`: worker GPU (Ollama CUDA, VRAM corretta, Unsloth LoRA, ComfyUI :8188, Kokoro TTS, Reel Forge :7860).
+     - `dev`: workstation (OpenWork UI desktop, OpenCode sidecar MCP, OpenClaw/Strix, Hermes bridge :8098, Graphify :7871, CLI-Hub).
+     - `hub`: gateway mesh & chatbot (Control Plane :8085, Registry :8086, Telegram bot Vittoria PMI con Whisper e fatture PDF, Open WebUI :3000, SearXNG :8080).
+     - `edge`: watchdog e mobile fallback (Samsung S24 Ultra Termux Vulkan, Web Node P2P).
+   - Mappa completa delle porte di rete per evitare collisioni e guida alle trappole note (VRAM=0 su Windows, rebuild obbligatorio dei container, token MCP da 32 caratteri, UTF-8 senza BOM).
+
+2. **Tool di Onboarding Automatizzato `scripts/node_onboarding.py` (SPDX Apache-2.0)**:
+   - Rilevamento automatico hardware tramite `shared.node_telemetry.get_system_hardware()` (OS, RAM, CPU, GPU discreta/unificata, VRAM).
+   - Raccomandazione intelligente del profilo più idoneo.
+   - Riconciliazione non distruttiva del `.env`: preserva variabili esistenti, segreti e commenti, aggiornando solo i parametri di profilo e formattando in UTF-8 senza BOM.
+   - Modalità interattiva guidata a menu o CLI non-interattiva (`--profile <p> --apply --json`).
+
+3. **Wrapper Graphify (`scripts/graphify.sh`)**:
+   - Aggiunta sincronizzazione automatica post-esecuzione di `built_at_commit` con git HEAD per prevenire falsi allarmi "grafo stantio" sulla superficie web quando la topologia è invariata.
+
+4. **Test Suite**:
+   - Nuova suite `tests/test_node_onboarding.py` (8 test, tutti PASS in 0.12s).
+   - Commit e push eseguiti su `main` con conferma dell'utente.

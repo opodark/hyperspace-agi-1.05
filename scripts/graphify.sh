@@ -66,4 +66,27 @@ if [ "$#" -eq 0 ]; then
     exec graphify extract . --code-only
 fi
 
-exec graphify "$@"
+graphify "$@"
+EXIT_CODE=$?
+
+# Se graphify ha completato con successo, allinea built_at_commit in graphify-out/graph.json
+# con il vero HEAD di git. Evita che la superficie web segnali il grafo come 'stantio' quando
+# graphify salta la riscrittura perche' la topologia dell'AST e' identica.
+if [ "$EXIT_CODE" -eq 0 ] && [ -f "$ROOT/graphify-out/graph.json" ]; then
+    python3 -c "
+import json, subprocess
+try:
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd='$ROOT', text=True).strip()
+    p = '$ROOT/graphify-out/graph.json'
+    with open(p, 'r', encoding='utf-8') as f:
+        d = json.load(f)
+    if d.get('built_at_commit') != head:
+        d['built_at_commit'] = head
+        with open(p, 'w', encoding='utf-8') as f:
+            json.dump(d, f, indent=2, ensure_ascii=False)
+except Exception:
+    pass
+" 2>/dev/null || true
+fi
+
+exit "$EXIT_CODE"
