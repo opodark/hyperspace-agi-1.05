@@ -239,8 +239,19 @@ url = os.environ["OLLAMA_URL"].rstrip("/") + "/api/generate"
 body = json.dumps({"model": os.environ["BENCH_MODEL"], "prompt": os.environ["BENCH_PROMPT"],
                    "stream": False, "think": False}).encode()
 req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-with urllib.request.urlopen(req, timeout=900) as r:
-    d = json.load(r)
+try:
+    with urllib.request.urlopen(req, timeout=900) as r:
+        d = json.load(r)
+except urllib.error.HTTPError as e:
+    # 404 = modello non scaricato in Ollama: si elencano quelli che ci sono
+    print(f"  Ollama risponde {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
+    try:
+        with urllib.request.urlopen(os.environ["OLLAMA_URL"].rstrip("/") + "/api/tags", timeout=5) as t:
+            names = [m["name"] for m in json.load(t).get("models", [])]
+    except Exception:
+        names = []
+    print("  modelli presenti: " + (", ".join(names) if names else "nessuno (ollama pull <modello>)"))
+    raise SystemExit(1)
 ns = 1e9
 load = d.get("load_duration", 0) / ns
 pe, pd = d.get("prompt_eval_count", 0), d.get("prompt_eval_duration", 0) / ns
