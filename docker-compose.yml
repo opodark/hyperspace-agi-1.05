@@ -669,6 +669,10 @@ services:
       VRAM_GB: ${VRAM_GB:-0.0}
       SIGN_REQUESTS: ${SIGN_REQUESTS:-true}
       PYTHONUNBUFFERED: "1"
+      # Laya gira nativo sull'host (loopback 127.0.0.1:8097), non nel container: senza
+      # questa variabile shared/node_telemetry.py guarderebbe il 127.0.0.1 isolato del
+      # container e segnalerebbe sempre "offline" al /doctor anche con Laya attivo.
+      LAYA_URL: "http://host.docker.internal:${LAYA_PORT:-8097}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

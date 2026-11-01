@@ -353,6 +353,11 @@ services:
       VRAM_GB: ${VRAM_GB:-0.0}
       SIGN_REQUESTS: ${SIGN_REQUESTS:-true}
       PYTHONUNBUFFERED: "1"
+      # Laya gira nativo su Windows (start-laya.ps1, loopback 127.0.0.1:8097), non nel
+      # container: senza questa variabile shared/node_telemetry.py guarderebbe il
+      # 127.0.0.1 del container stesso (isolato) e segnalerebbe sempre "offline" al
+      # /doctor della mesh anche con Laya realmente attivo sull'host.
+      LAYA_URL: "http://host.docker.internal:${LAYA_PORT:-8097}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
