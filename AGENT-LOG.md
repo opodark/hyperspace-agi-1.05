@@ -10612,3 +10612,23 @@ Rinnovata la procedura di onboarding della mesh HyperSpace per la ricostruzione 
 4. **Test Suite**:
    - Nuova suite `tests/test_node_onboarding.py` (8 test, tutti PASS in 0.12s).
    - Commit e push eseguiti su `main` con conferma dell'utente.
+
+## 2026-11-01 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Promozione R&D Biomimetic Nature Mesh V2 e Convalida
+
+Convalidato e promosso in produzione il modulo di ricerca biomimetica e topologia di rete secondo il protocollo delle evidenze sovrane (Fase E3).
+
+1. **Ispezione e Refactoring Prototipo R&D (`data/research/prototypes/proto_biomimetic_nature_mesh_1793534226.py`)**:
+   - Analizzato il prototipo generato dall'inferenza autonoma notturna/diurna: intercettato e corretto bug critico di scope `self.orchestrator` nella classe `MeshEntropyMonitor`.
+   - Consolidata la struttura per garantire retrocompatibilità al 100% con le classi preesistenti (`MyceliumNetwork`, `BacterialQuorum`, `EpidemicGossip`, `SymbioticCleptoparasitism`, `HyperSpaceMeshMonitor`) integrandovi implementazioni concrete e non più stub.
+
+2. **Modulo di Produzione `shared/biomimetic_nature_mesh.py`**:
+   - `Node` e `Connection`: differenziazione nodi (`heavy` compute vs `edge` leggeri), con latenze, banda e fattori di rinforzo/potatura.
+   - `MeshOrchestrator`: gestione integrata di rinforzo miceliare, quorum sensing per carichi pesanti (MoE / WAL), gossip epidemico con filtro antigenico e cleptoparassitismo simbiotico tra host ed edge.
+   - `MeshEntropyMonitor`: calcolo reale dell'entropia di Shannon sulla distribuzione del grado di connettività dei nodi ($H = -\sum p_i \log_2 p_i$).
+   - `FlowEffectivenessMonitor`: calcolo throughput ponderato su latenza media ed efficienza del flusso di rete.
+
+3. **Promozione Formale & Test Suite**:
+   - Aggiunta classe `TestBiomimeticNatureMesh` in `tests/test_promoted_rd_modules.py` (+6 test completi: micelio, quorum, gossip, cleptoparassitismo, orchestrazione e monitor legacy).
+   - Eseguito `scripts/diagnostics/promote_research_prototype.py`: validazione AST, compilazione a caldo, verifica dei test esercitanti con esito 0.
+   - Assegnato Evidence Tier **`verified`** con hash SHA-256 reale dell'output e registrazione in `data/research/promotions.jsonl`.
+   - Test suite R&D ed estesa: 55 passed in 0.69s (20 su moduli promossi, 11 su garbage collector, 8 su onboarding, 16 su causal mesh/validation).
