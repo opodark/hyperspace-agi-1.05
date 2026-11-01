@@ -217,6 +217,8 @@
             <option value="sovereign_mesh_runtime">⚡ Runtime Sovrano & GPU</option>
             <option value="symbolic_causal_mesh">🔗 Causal AI & Memoria Stigmergica</option>
             <option value="modular_intellect">🧩 ModularIntellect (Memoria Tri-Modale)</option>
+            <option value="biomimetic_nature_mesh">🍄 Biomimicry & Entropia Mesh</option>
+            <option value="composite_macro_workflows">🧬 Macro-Workflow Concatenati</option>
           </select>
 
           <!-- Status Filter -->
@@ -310,6 +312,30 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1.5: MAPPA PIPELINE COMPOSITE & EVIDENCE TIER REALE -->
+    <section id="pipelineMapSection" class="glass-card rounded-3xl p-6 border border-slate-800 relative">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span>🧬</span> Mappa Pipeline Composite & Evidence Tier Reale
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Composizione reale dei macro-workflow a stadi (AST sugli import + <code class="text-slate-300">promotions.jsonl</code>): il tier di ogni modulo è quello verificato dalla promozione, non quello auto-dichiarato nel codice.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span id="pipelineMapUpdated" class="text-slate-500 font-mono"></span>
+          <button onclick="refreshPipelineMap()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-mono flex items-center gap-1.5 transition">
+            <span>🔄</span> Ricarica
+          </button>
+        </div>
+      </div>
+
+      <div id="pipelineMapContainer" class="flex flex-col gap-4">
+        <div class="text-center py-10 text-slate-500 font-mono text-xs">Caricamento mappa pipeline...</div>
       </div>
     </section>
 
@@ -623,10 +649,94 @@
       await Promise.all([
         refreshTreeData(),
         loadPrototypesList(),
-        fetchNodeStream()
+        fetchNodeStream(),
+        refreshPipelineMap()
       ]);
       // Auto-refresh rapido ogni 5 secondi per seguire il loop live del cluster
       setInterval(refreshAll, 5000);
+    }
+
+    // --- MAPPA PIPELINE COMPOSITE (AST import + promotions.jsonl, non il tier auto-dichiarato) ---
+    async function refreshPipelineMap() {
+      const container = document.getElementById('pipelineMapContainer');
+      try {
+        const res = await fetch('/api/composite-pipeline/latest');
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+        renderPipelineMap(data);
+      } catch (err) {
+        container.innerHTML = `<div class="text-center py-10 text-rose-400 font-mono text-xs">Errore caricamento mappa pipeline: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function tierBadge(tier) {
+      const conf = {
+        verified: { label: 'Verified', cls: 'bg-emerald-950 text-emerald-400 border-emerald-800' },
+        sourced: { label: 'Sourced', cls: 'bg-cyan-950 text-cyan-400 border-cyan-800' },
+        plausible: { label: 'Plausible', cls: 'bg-amber-950 text-amber-400 border-amber-800' },
+        unpromoted: { label: 'Non promosso', cls: 'bg-rose-950 text-rose-400 border-rose-800' },
+      }[tier] || { label: tier || '—', cls: 'bg-slate-800 text-slate-400 border-slate-700' };
+      return `<span class="text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${conf.cls}">${conf.label}</span>`;
+    }
+
+    function renderPipelineMap(data) {
+      const container = document.getElementById('pipelineMapContainer');
+      const updatedEl = document.getElementById('pipelineMapUpdated');
+      if (updatedEl && data.generated_at) {
+        updatedEl.textContent = 'aggiornato ' + new Date(data.generated_at * 1000).toLocaleTimeString();
+      }
+
+      const stages = data.stages || [];
+      let html = '';
+
+      html += `
+        <div class="flex flex-wrap items-center gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+          <span class="text-xs font-mono text-slate-400">${escapeHtml(data.pipeline_name || '')} · <span class="text-slate-500">${escapeHtml(data.source_file || '')}</span></span>
+          ${tierBadge(data.evidence_tier)}
+        </div>
+      `;
+
+      if (data.note) {
+        html += `
+          <div class="p-3 rounded-2xl bg-rose-950/20 border border-rose-900/40 text-xs text-rose-300/90 leading-relaxed">
+            ⚠️ ${escapeHtml(data.note)}
+          </div>
+        `;
+      }
+
+      html += `<div class="flex flex-wrap items-stretch gap-2">`;
+      stages.forEach((stage, idx) => {
+        html += `
+          <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 flex flex-col gap-2 min-w-[220px] max-w-[260px]">
+            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-500">
+              <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold">${stage.index}</span>
+              STADIO
+            </div>
+            <div class="text-xs font-semibold text-white leading-snug">${escapeHtml(stage.title)}</div>
+            <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-800/60">
+              ${(stage.modules || []).map(m => `
+                <span class="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300" title="${escapeHtml(m.file)}">
+                  ${escapeHtml(m.file.split('/').pop())} ${tierBadge(m.tier)}
+                </span>
+              `).join('') || '<span class="text-[10px] text-slate-600 italic">nessun modulo associato</span>'}
+            </div>
+          </div>
+        `;
+        if (idx < stages.length - 1) {
+          html += `<div class="flex items-center text-slate-600 font-bold select-none text-sm px-1">➔</div>`;
+        }
+      });
+      html += `</div>`;
+
+      if ((data.unlisted_modules || []).length) {
+        html += `
+          <div class="text-[11px] text-slate-500 font-mono">
+            Importati ma non associati a uno stadio esplicito nel docstring: ${data.unlisted_modules.map(escapeHtml).join(', ')}
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
     }
 
     async function refreshAll() {

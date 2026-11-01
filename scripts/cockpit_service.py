@@ -275,6 +275,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_devstudio_git_status()
         elif self.path.startswith("/api/agi-research"):
             self.handle_api_agi_research()
+        elif self.path.startswith("/api/composite-pipeline/latest"):
+            self.handle_api_composite_pipeline_latest()
         elif self.path.startswith("/api/commercial/status"):
             self.handle_api_commercial_status()
         elif self.path.startswith("/api/commercial/pillars"):
@@ -1751,6 +1753,125 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             })
         except Exception as exc:
             self.send_json({"error": f"Errore recupero ricerche AGI: {exc}"}, status=500)
+
+    def handle_api_composite_pipeline_latest(self):
+        try:
+            self.send_json(self._build_composite_pipeline_map())
+        except Exception as exc:
+            self.send_json({"error": f"Errore recupero macro-pipeline: {exc}"}, status=500)
+
+    def _build_composite_pipeline_map(self):
+        """Composizione reale della macro-pipeline, letta dal codice e dalle promozioni.
+
+        Non riusa il tier che il modulo si auto-assegna: ricostruisce quali
+        moduli `shared/*` ogni stadio del docstring richiama (AST sugli import)
+        e assegna a ciascuno l'ultimo tier registrato in
+        `data/research/promotions.jsonl`. Un modulo mai promosso resta
+        'unpromoted' anche se il codice dichiara 'verified'.
+        """
+        import ast
+
+        pipeline_rel = "shared/composite_macro_pipeline.py"
+        pipeline_path = REPO_ROOT / pipeline_rel
+        source = pipeline_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(pipeline_path))
+
+        import_map: dict = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                if node.module == "shared":
+                    for alias in node.names:
+                        import_map[alias.name] = f"shared/{alias.name}.py"
+                elif node.module.startswith("shared."):
+                    mod_file = node.module.replace(".", "/") + ".py"
+                    for alias in node.names:
+                        import_map[alias.name] = mod_file
+
+        module_doc = ast.get_docstring(tree) or ""
+        stage_lines = re.findall(r"^(\d+)\.\s+(.+)$", module_doc, flags=re.MULTILINE)
+
+        tiers: dict = {}
+        promo_path = REPO_ROOT / "data" / "research" / "promotions.jsonl"
+        if promo_path.exists():
+            for line in promo_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                target = entry.get("target_module")
+                ts = entry.get("timestamp") or ""
+                if not target:
+                    continue
+                if target not in tiers or ts > tiers[target]["timestamp"]:
+                    tiers[target] = {
+                        "tier": (entry.get("evidence") or {}).get("tier", "plausible"),
+                        "timestamp": ts,
+                        "test_command": entry.get("test_command"),
+                    }
+
+        def tokens_of(name: str):
+            # Soglia 7: sotto quella lunghezza i pezzi di CamelCase (mesh, node,
+            # flow, engine, causal...) sono troppo generici e ricompaiono in
+            # più stadi, causando falsi incroci; il nome letterale completo
+            # resta comunque il primo confronto, sopra.
+            parts = re.findall(r"[A-Z][a-z0-9]*|[a-z0-9]+", name)
+            return [p.lower() for p in parts if len(p) >= 7]
+
+        def tier_for(module_file: str) -> dict:
+            info = tiers.get(module_file)
+            if info:
+                return {"file": module_file, "tier": info["tier"], "promoted_at": info["timestamp"]}
+            return {"file": module_file, "tier": "unpromoted", "promoted_at": None}
+
+        stages = []
+        matched_globally = set()
+        for num, text in stage_lines:
+            text = text.strip()
+            seen_here = set()
+            for name, module_file in import_map.items():
+                if module_file in seen_here:
+                    continue
+                haystack = text.lower()
+                if name.lower() in haystack or any(tok in haystack for tok in tokens_of(name)):
+                    seen_here.add(module_file)
+            modules = [tier_for(mf) for mf in sorted(seen_here)]
+            matched_globally.update(seen_here)
+            stages.append({"index": int(num), "title": text, "modules": modules})
+
+        unlisted = sorted(set(import_map.values()) - matched_globally)
+
+        orchestrator = tier_for(pipeline_rel)
+        # Il tier complessivo è quello dell'orchestratore stesso: dipendenze di
+        # infrastruttura come voicebox_client.py non passano (e non devono
+        # passare) da promote_research_prototype.py, quindi non devono
+        # abbassare il tier di una pipeline che è davvero stata promossa.
+        overall_tier = orchestrator["tier"]
+
+        note = None
+        if orchestrator["tier"] != "verified":
+            note = (
+                "Il modulo si autodichiara evidence_tier='verified' nel codice "
+                "(MultimodalArtifactDescriptor), ma l'orchestratore stesso non risulta "
+                "in data/research/promotions.jsonl: non è passato da "
+                "scripts/diagnostics/promote_research_prototype.py."
+            )
+
+        return {
+            "status": "ok",
+            "pipeline_name": "CompositeMacroPipeline",
+            "source_file": pipeline_rel,
+            "generated_at": time.time(),
+            "evidence_tier": overall_tier,
+            "orchestrator": orchestrator,
+            "stages": stages,
+            "unlisted_modules": unlisted,
+            "note": note,
+            "voice_profile": "Albi ita",
+            "tts_engine": "qwen",
+        }
 
     def handle_api_research_tree(self):
         try:
