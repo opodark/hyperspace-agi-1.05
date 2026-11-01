@@ -10562,4 +10562,28 @@ Completata l'ultima fase del design `docs/memory-evidence-tiers.md`: il ruolo 'C
    - Aggiornato `docs/memory-evidence-tiers.md`: l'intero ciclo E0–E4 è ora implementato e marcato con spunta verde (E0 ✅, E1 ✅, E2 ✅, E3 ✅, E4 ✅).
    - Nuova suite `tests/test_memory_evidence_e4.py` (9 test, tutti PASS in 0.24s).
    - Suite completa del repository: `14 failed, 2918 passed, 24 skipped` (+9 passed da E4, 0 regressioni, restano solo i 14 noti preesistenti).
-   - Nessun commit e nessun push (in attesa di conferma esplicita dell'utente).
+   - Commit e push eseguiti su `main` con conferma dell'utente: commit `1a0a9dd` (`feat(memory): livelli di evidenza E0-E4 e meta-skill cli-anything`), push completato con successo su `origin/main`.
+
+## 2026-11-01 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Garbage Collector delle Allucinazioni (shared/memory_gc.py)
+
+Implementato il Garbage Collector delle Allucinazioni per i Livelli di Evidenza della Memoria secondo le specifiche di `docs/memory-evidence-tiers.md`.
+
+1. **Modulo sovrano `shared/memory_gc.py` (SPDX Apache-2.0)**:
+   - `find_expired_plausible_entries`: individua record attivi `plausible` con retention `project` (o operative scadute) mai consultati (`access_count == 0`), privi di prove e inattivi da ≥ N giorni (default 14d), candidandoli alla quarantena (MAI cancellati).
+   - `find_refuted_collisions`: confronta nuove ipotesi e record plausibili con i claim smentiti di Hermes (`refuted`) e il registro `data/dream_rejected.jsonl` calcolando la sovrapposizione di token Jaccard (`token_overlap >= 0.8`). Le collisioni recidive vengono messe in quarantena con motivazione esplicita per spezzare i loop allucinatori.
+   - `audit_single_verified_check` & `audit_verified_entries`: ricontrollo a campione delle memorie `verified` rieseguendo i comandi di check deterministico allegati. Se il test fallisce (`exit_code != 0`), la memoria viene declassata a `plausible` (Regola 3: 'Un esito diverso li fa scendere') registrando la transizione in `evidence.history`.
+   - `MemoryGarbageCollector`: classe orchestratrice con modalità simulazione sicura (`dry_run=True`), esecuzione attiva, verifica ferrea delle invarianti e reportistica dettagliata.
+   - **Invarianti ferree di sicurezza**: MAI cancellare `refuted`; MAI alzare livelli di evidenza; MAI toccare `MEMORY.md` o il profilo utente `USER.md`; MAI toccare memorie persistenti (`dream_insight`, `vault_note`).
+
+2. **Bridge Hermes & Control Plane (`scripts/hermes_memory_bridge.py`, `control-plane/cp/memoria.py`)**:
+   - `HermesMemory.lifecycle`: aggiunta azione `downgrade` (rimuove il check deterministico fallito e annota il declassamento in history preservando la memoria attiva).
+   - Control Plane: esposto nuovo endpoint `POST /memory/gc` con parametri `dry_run`, `days`, `threshold`, `audit_verified` e log in `push_log`.
+
+3. **Diagnostica e CLI (`scripts/diagnostics/memory_garbage_collector.py`)**:
+   - Strumento CLI con opzioni `--apply`, `--dry-run`, `--days`, `--threshold`, `--no-audit`, `--sample`, `--json`, `--verbose` e gestione errori trasparente.
+
+4. **Test Suite & Documentazione**:
+   - Nuova suite mirata `tests/test_memory_garbage_collector.py` (11 test, tutti PASS in 0.12s).
+   - Aggiornato `docs/memory-evidence-tiers.md`: segnata la sezione Garbage Collector come completata (Fase GC ✅).
+   - Suite completa del repository: `14 failed, 2929 passed, 24 skipped` (+11 passed da GC, 0 regressioni, restano solo i 14 noti preesistenti).
+   - Commit e push eseguiti su `main` con conferma dell'utente; grafo di sviluppo `graphify` aggiornato (26.309 nodi, 56.423 archi, 1.124 community).

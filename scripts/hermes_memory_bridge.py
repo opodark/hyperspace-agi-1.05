@@ -359,6 +359,26 @@ def _critique_evidence(previous: Any, by: str, content: str) -> Dict[str, Any]:
     return {"tier": tier, "basis": basis, "assigned_by": previous.get("assigned_by") or "mesh_critic", "history": history}
 
 
+def _downgraded_evidence(previous: Any, reason: str) -> Dict[str, Any]:
+    """Evidence block when downgrading a verified record to plausible after check failure.
+
+    Mirrors ``shared/memory_schema``: removes deterministic checks that failed and logs the
+    downgrade in history. Regola 3: 'Un esito diverso li fa scendere' (docs/memory-evidence-tiers.md).
+    """
+    previous = previous if isinstance(previous, dict) else {}
+    basis = [item for item in previous.get("basis") or [] if isinstance(item, dict) and item.get("kind") != "check"]
+    history = [item for item in previous.get("history") or [] if isinstance(item, dict)]
+    at = _iso()
+    history.append({
+        "from": str(previous.get("tier") or "verified"),
+        "to": "plausible",
+        "at": at,
+        "by": "garbage_collector",
+        "reason": reason or "deterministic check audit failed",
+    })
+    return {"tier": "plausible", "basis": basis, "assigned_by": "garbage_collector", "history": history}
+
+
 class HermesMemory:
     def __init__(self, db: Optional[SessionDB] = None):
         self.db = db or SessionDB()
@@ -505,8 +525,8 @@ class HermesMemory:
         return candidates[max(0, offset):max(0, offset) + limit]
 
     def lifecycle(self, ids: List[str], action: str, reason: str = "", by: str = "", content: str = "") -> Dict[str, Any]:
-        if action not in {"quarantine", "restore", "revoke", "refute", "critique"}:
-            raise ValueError("action must be quarantine, restore, revoke, refute or critique")
+        if action not in {"quarantine", "restore", "revoke", "refute", "critique", "downgrade"}:
+            raise ValueError("action must be quarantine, restore, revoke, refute, critique or downgrade")
         wanted = {str(value) for value in ids if value}
         if not wanted or len(wanted) > 500:
             raise ValueError("ids must contain between 1 and 500 values")
@@ -530,6 +550,9 @@ class HermesMemory:
             elif action == "critique":
                 # Critica del Red Team: allegata senza alzare il livello (docs/memory-evidence-tiers.md).
                 revision["evidence"] = _critique_evidence(original.get("evidence"), by, content or reason)
+            elif action == "downgrade":
+                # Declassamento da verified a plausible per ricontrollo fallito (docs/memory-evidence-tiers.md).
+                revision["evidence"] = _downgraded_evidence(original.get("evidence"), reason)
             else:
                 revision["status"] = {"quarantine": "quarantined", "restore": "active", "revoke": "revoked"}[action]
             revision["lifecycle"] = {"action": action, "reason": reason or content, "at": _iso()}

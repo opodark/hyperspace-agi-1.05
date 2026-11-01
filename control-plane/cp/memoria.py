@@ -349,6 +349,38 @@ def memory_lifecycle():
     except (HermesMemoryError, ValueError) as exc:
         return jsonify({"ok": False, "error": str(exc), "backend": "hermes"}), 503
 
+
+@_bp.route('/memory/gc', methods=['POST'])
+def trigger_memory_gc():
+    if MEMORY_BACKEND != "hermes":
+        return jsonify({"ok": False, "error": "Garbage collector disponibile con backend hermes"}), 409
+    data = request.get_json(force=True, silent=True) or {}
+    dry_run = bool(data.get("dry_run", False))
+    days = int(data.get("days", 14))
+    threshold = float(data.get("threshold", 0.8))
+    audit_verified = bool(data.get("audit_verified", True))
+    sample_size = data.get("sample")
+    if sample_size is not None:
+        sample_size = int(sample_size)
+
+    from shared.memory_gc import MemoryGarbageCollector
+    gc = MemoryGarbageCollector(client=_hermes_memory)
+    report = gc.run_gc(
+        days_unaccessed=days,
+        refute_threshold=threshold,
+        audit_verified=audit_verified,
+        sample_size=sample_size,
+        dry_run=dry_run,
+    )
+    push_log(
+        'memory_sync',
+        f"Memory GC: candidate_quarantine={report.get('total_quarantine_candidates', 0)}, "
+        f"downgrades={report.get('verified_downgrade_count', 0)}",
+        detail=f"dry_run={dry_run}, days={days}",
+        status='success' if report.get("ok") else 'warning',
+    )
+    return jsonify(report), (200 if report.get("ok") else 500)
+
 # ── resilienza e vault decentralizzato ────────────────────────────────────────
 
 @_bp.route('/memory/resilience/status')

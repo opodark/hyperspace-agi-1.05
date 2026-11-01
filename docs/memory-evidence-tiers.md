@@ -119,21 +119,21 @@ Il contraddittore su un altro nodo risponde anche a una decisione aperta di
 `docs/dreams.md` ("se e quando usare più nodi per criticare una stessa ipotesi"),
 con lo stesso vincolo: riceve l'ipotesi, non le memorie sorgenti.
 
-## Garbage collector delle allucinazioni
+## Garbage collector delle allucinazioni (Implementato ✅)
 
-Il termine non c'era ancora nel repository; con questi livelli diventa un job
-preciso e prudente:
+Il termine non c'era ancora nel repository; con questi livelli è implementato come modulo dedicato (`shared/memory_gc.py`) e diagnostica CLI (`scripts/diagnostics/memory_garbage_collector.py`):
 
-- **Scadenza:** i record `plausible` di retention `project`, mai consultati e
-  senza prove dopo N giorni, vanno in `quarantined` (non cancellati).
+- **Scadenza:** i record `plausible` di retention `project`, mai consultati (`access_count == 0`) e
+  senza prove dopo N giorni (default: 14 giorni), vanno in `quarantined` (non cancellati).
 - **Controllo contro il registro `refuted`:** una nuova ipotesi molto simile a
   una già smentita (stessa sovrapposizione di token che usa
-  `shared/dream_evaluation.py` per la novità) viene marcata e non arriva in
+  `shared/dream_evaluation.py` per la novità: `token_overlap >= 0.8` contro `refuted` di Hermes e `dream_rejected.jsonl`) viene marcata e messa in quarantena, non arrivando in
   inbox come nuova. Questo chiude i cicli ripetitivi dei sogni.
 - **Ricontrollo:** i record `verified` vengono rieseguiti a campione; un esito
-  diverso li fa scendere (regola 3).
-- **Mai:** cancellare `refuted`, alzare livelli, toccare `MEMORY.md` o il
-  profilo utente.
+  diverso (exit_code != 0) li fa scendere a `plausible` (regola 3: 'Un esito diverso li fa scendere') tramite l'azione `downgrade` del bridge.
+- **Invarianti ferree:** MAI cancellare `refuted`, MAI alzare livelli, MAI toccare `MEMORY.md` o il
+  profilo utente (`USER.md`), MAI toccare memorie persistenti (`dream_insight`, `vault_note`).
+- **Control Plane & CLI:** esposto endpoint `POST /memory/gc` in `control-plane/cp/memoria.py` e comando CLI `scripts/diagnostics/memory_garbage_collector.py` con opzioni `--apply`, `--dry-run`, `--days`, `--threshold` e `--json`.
 
 ## Ordine di implementazione proposto
 
@@ -144,6 +144,7 @@ preciso e prudente:
 | E2 ✅ | **Memoria**: azione `refute` in `POST /memory/lifecycle` (bridge: nuova revisione con `refutation`, motivo obbligatorio, record ancora attivo e leggibile; pulsante "Smentisci" in `infra-ui`); `omega_query` esclude i `refuted` e li restituisce solo con `evidence="refuted"`. **Sogni**: registro append-only `dream_rejected.jsonl` (un rifiuto umano resta anche quando `dreams.jsonl` ruota a 100 righe; `reopen` toglie il blocco aggiungendo un evento); un nuovo sogno con sovrapposizione ≥ 0,8 a uno rifiutato viene salvato già `rejected` da `dedup`, con la gemella citata e `reopen` ancora possibile | un'ipotesi quasi uguale a una rifiutata non torna in inbox come nuova; un `refuted` senza motivo non vale come smentita |
 | E3 ✅ | Motore di ricerca: dossier con `findings_summary` vuoto esclusi dalla sintesi; `promotions.jsonl` registra comando, esito e hash dei test che toccano il modulo | una promozione senza test che importano il modulo resta `plausible` |
 | E4 ✅ | Contraddittore su un secondo nodo | le critiche sono allegate e attribuite; nessun livello cambia per effetto di un modello |
+| GC ✅ | Garbage collector delle allucinazioni (`shared/memory_gc.py`, `scripts/diagnostics/memory_garbage_collector.py`, azione `downgrade` nel bridge, endpoint `POST /memory/gc`) | scadenza plausible inattivi > 14d, blocco collisioni con refuted, ricontrollo check verified con declassamento se falliscono, invarianti di sicurezza garantite |
 
 Ogni fase è piccola, reversibile e non tocca dati esistenti: un record vecchio
 resta valido in tutte.
