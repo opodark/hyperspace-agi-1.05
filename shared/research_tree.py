@@ -90,6 +90,22 @@ RESEARCH_PILLARS = [
         "domain": "Chunks PART_OF/CONTINUES_TO, Note Ricorsive & Graph Traversal",
         "target_model": "flint:latest",
     },
+    {
+        "id": "biomimetic_nature_mesh",
+        "name": "Biomimicry & Entropia Mesh",
+        "color": "#14b8a6",  # Teal
+        "icon": "🍄",
+        "domain": "Micelio Physarum, Quorum Sensing, Gossip Epidemico & Cleptoparassitismo",
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+    },
+    {
+        "id": "composite_macro_workflows",
+        "name": "Macro-Workflow Compositi Concatenati",
+        "color": "#a855f7",  # Purple
+        "icon": "🧬",
+        "domain": "Chained Multi-Pillar Pipelines (Grafo -> REM Dream -> Stigmergic Swarm -> Multimodale Voicebox/ComfyUI)",
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+    },
 ]
 
 
@@ -436,6 +452,24 @@ class ResearchTreeManager:
 
         # Sync con tutti gli studi e prototipi da deep dives
         self._sync_deep_dives_to_tree(nodes)
+
+        # Sincronizza i piloni attivi per includere nuovi filoni sovrani (biomimetic & composite)
+        existing_pillar_ids = {p.get("id") for p in data.get("pillars", [])}
+        pillars = list(data.get("pillars", []))
+        pillars_updated = False
+        for p in RESEARCH_PILLARS:
+            if p["id"] not in existing_pillar_ids:
+                pillars.append(p)
+                existing_pillar_ids.add(p["id"])
+                pillars_updated = True
+        data["pillars"] = pillars
+
+        if pillars_updated:
+            try:
+                data["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                self.tree_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            except Exception:
+                pass
 
         # Filtri di visualizzazione
         filtered_nodes = list(nodes)

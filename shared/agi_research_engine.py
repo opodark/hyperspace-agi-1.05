@@ -144,7 +144,33 @@ RESEARCH_PILLARS = [
         "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
         "fallback_model": "granite3.3:8b",
     },
+    {
+        "id": "composite_macro_workflows",
+        "domain": "Composite Macro-Workflows: Chained Multi-Pillar Pipelines",
+        "reference": "HyperSpace End-to-End Orchestration (Graph Context -> Aleksander Dream -> Stigmergic Swarm -> Multimodal Voicebox/ComfyUI)",
+        "prompt": (
+            "Sei l'architetto di sistema di HyperSpace AGI. Analizza e implementa la pipeline composita end-to-end "
+            "che concatena i pilastri sovrani:\n"
+            "1. Memoria a Grafo Tri-Modale (ModularIntellect) per il recupero di contesto ad alta densità informativa.\n"
+            "2. Ciclo Onirico e Causal AI (SyntheticConsciousnessGovernor + CausalMemoryGraph) per la simulazione controfattuale.\n"
+            "3. Rete Stigmergica & Biomimetica (StigmergicMeshSwarm + MeshEntropyMonitor) per il consenso e la salute topologica.\n"
+            "4. Sintesi Estetica e Multimodale (NeuroSymbolicPoetryEngine + Voicebox Qwen TTS) per la generazione di testo, visual prompt e audio vocale.\n\n"
+            "Compito: Scrivi la classe orchestratrice `class CompositeMacroPipeline:` che esegue la catena completa con reportistica e test unitari."
+        ),
+        "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+        "fallback_model": "granite3.3:8b",
+    },
 ]
+
+
+# Requisiti che rendono un prototipo promuovibile in automatico
+# (scripts/diagnostics/auto_promote_prototypes.py): test inclusi, solo stdlib, blocco chiuso.
+PROTOTYPE_CONTRACT = (
+    "\n\nREQUISITI DI OUTPUT (obbligatori): rispondi con UN SOLO blocco ```python completo e chiuso, "
+    "massimo 150 righe, solo libreria standard Python, nessun codice eseguito a livello di modulo "
+    "(solo import, costanti, classi, funzioni). Includi una classe `Test<Nome>(unittest.TestCase)` "
+    "con almeno 3 test deterministici che esercitano la tua classe principale."
+)
 
 
 class AGIResearchEngine:
@@ -228,14 +254,14 @@ class AGIResearchEngine:
         raw_response = ""
         elapsed_s = 0.0
         if omen_executor_fn:
-            res = omen_executor_fn(pillar["prompt"], model=model, timeout=240)
+            res = omen_executor_fn(pillar["prompt"] + PROTOTYPE_CONTRACT, model=model, timeout=240)
             if res.get("status") == "ok" and not res.get("response", "").startswith("[OLLAMA ERROR]"):
                 raw_response = res.get("response", "")
                 elapsed_s = res.get("elapsed_s", 0.0)
             else:
                 # Fallback al modello secondario (es. LFM2.5 24B o Granite 8B)
                 fallback = pillar.get("fallback_model", "granite3.3:8b")
-                res = omen_executor_fn(pillar["prompt"], model=fallback, timeout=120)
+                res = omen_executor_fn(pillar["prompt"] + PROTOTYPE_CONTRACT, model=fallback, timeout=120)
                 raw_response = res.get("response", "")
                 elapsed_s = res.get("elapsed_s", 0.0)
                 if res.get("status") == "ok":
@@ -259,7 +285,9 @@ class AGIResearchEngine:
         code_body = valid_code[0] if valid_code else ""
         if code_body:
             try:
-                ast.parse(code_body)
+                parsed_tree = ast.parse(code_body)
+                if not any(isinstance(n, ast.ClassDef) for n in parsed_tree.body):
+                    raise SyntaxError("nessuna classe nel blocco")
                 ast_valid = True
                 proto_name = f"proto_{topic_id}_{int(time.time())}.py"
                 proto_path = self.prototypes_dir / proto_name

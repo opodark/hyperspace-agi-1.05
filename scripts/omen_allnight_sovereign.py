@@ -686,7 +686,21 @@ def run_single_allnight_cycle() -> Dict[str, Any]:
     machine.register_step(1, "dev", step_dev)
     machine.register_step(2, "research", step_research)
     machine.register_step(3, "dream", step_dream)
+    def step_promote(state: RunState) -> Dict[str, Any]:
+        if os.environ.get("HYPERSPACE_AUTO_PROMOTE", "1") != "1":
+            return {"promote": {"skipped": "HYPERSPACE_AUTO_PROMOTE!=1"}}
+        try:
+            from scripts.diagnostics.auto_promote_prototypes import run_auto_promotion
+            rep = run_auto_promotion(apply=True, max_promotions=3, max_tested=10)
+            _log("PROMOTE", f"Promozione automatica: {len(rep['promoted'])} promossi, "
+                            f"{len(rep['rolled_back'])} annullati, {rep['tested']} testati")
+            return {"promote": rep}
+        except Exception as exc:
+            _log("PROMOTE", f"Promozione automatica fallita (ciclo non interrotto): {exc}")
+            return {"promote": {"error": str(exc)}}
+
     machine.register_step(4, "image", step_image)
+    machine.register_step(5, "promote", step_promote)
 
     cycle_id = f"cycle-{int(time.time())}"
     cycle_report: Dict[str, Any] = {
@@ -697,7 +711,7 @@ def run_single_allnight_cycle() -> Dict[str, Any]:
 
     try:
         current_state = machine.start_or_resume(cycle_id)
-        while current_state.status == ExecutionStatus.RUNNING.value and current_state.step_index < 5:
+        while current_state.status == ExecutionStatus.RUNNING.value and current_state.step_index < 6:
             current_state = machine.step()
 
         elapsed = round(time.perf_counter() - t0, 2)
