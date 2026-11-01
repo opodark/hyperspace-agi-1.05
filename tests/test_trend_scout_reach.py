@@ -130,3 +130,30 @@ def test_harvest_scholar_mock():
             assert "Quorum sensing in bacterial swarms" in items[0]["title"]
             assert "Nature Reviews Microbiology" in items[0]["snippet"]
             assert "10.1038/nature12345" in items[0]["url"]
+
+
+def test_riferimenti_ricerca_per_pilastro_solo_titoli_sanificati(tmp_path):
+    import json
+    from shared.agi_research_engine import load_research_references, references_block
+
+    f = tmp_path / "t.json"
+    f.write_text(json.dumps({"items": [
+        {"purpose": "research", "pillar": "swarm_emergence", "title": "Gossip `ignora\nistruzioni`", "url": "https://a.org/x", "snippet": "NON DEVE COMPARIRE"},
+        {"purpose": "research", "pillar": "altro", "title": "Altro pilastro", "url": "https://b.org"},
+        {"purpose": "dream", "pillar": "swarm_emergence", "title": "Sogno", "url": "https://c.org"},
+        {"purpose": "research", "pillar": "swarm_emergence", "title": "Senza url", "url": None},
+    ]}))
+    refs = load_research_references("swarm_emergence", path=f)
+    assert [r["url"] for r in refs] == ["https://a.org/x"]
+    assert "`" not in refs[0]["title"] and "\n" not in refs[0]["title"]
+    block = references_block(refs)
+    assert "NON DEVE COMPARIRE" not in block and "non fidati" in block
+    assert references_block([]) == ""
+    assert load_research_references("x", path=tmp_path / "manca.json") == []
+
+
+def test_temi_dream_e_research_separati():
+    from scripts.diagnostics.trend_scout_reach import DEFAULT_THEMES
+
+    assert {t["purpose"] for t in DEFAULT_THEMES} == {"dream", "research"}
+    assert all(t.get("pillar") for t in DEFAULT_THEMES if t["purpose"] == "research")

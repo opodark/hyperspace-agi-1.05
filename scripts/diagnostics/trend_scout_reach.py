@@ -25,14 +25,22 @@ AGENT_REACH_BIN = os.getenv("AGENT_REACH_BIN") or shutil.which("agent-reach") or
 
 # Default thematic queries for dream, creative inspiration & biomimetic mesh research
 DEFAULT_THEMES = [
-    {"topic": "artificial intelligence philosophy", "channel": "reddit", "query": "synthetic consciousness philosophy"},
-    {"topic": "generative art & poetry", "channel": "web", "query": "generative art algorithmic poetry aesthetics"},
-    {"topic": "cosmic space exploration", "channel": "youtube", "query": "space exploration cosmos discovery 2026"},
-    {"topic": "open agent architectures", "channel": "github", "query": "autonomous agent architectures open source"},
-    {"topic": "mycelium & fungal network routing", "channel": "arxiv", "query": "mycelium fungal network routing p2p slime mold"},
-    {"topic": "bacterial quorum sensing swarm", "channel": "arxiv", "query": "bacterial quorum sensing decentralized consensus swarm"},
-    {"topic": "viral gossip & epidemic dissemination", "channel": "scholar", "query": "viral epidemic gossip protocol distributed networks"},
-    {"topic": "parasitic work-stealing & kleptoparasitism", "channel": "scholar", "query": "kleptoparasitism distributed work stealing agent load balancing"},
+    # purpose "dream": materiale creativo per il ciclo dei sogni (shared/social_dreams.py)
+    {"topic": "artificial intelligence philosophy", "channel": "reddit", "query": "synthetic consciousness philosophy", "purpose": "dream"},
+    {"topic": "generative art & poetry", "channel": "web", "query": "generative art algorithmic poetry aesthetics", "purpose": "dream"},
+    {"topic": "cosmic space exploration", "channel": "youtube", "query": "space exploration cosmos discovery 2026", "purpose": "dream"},
+    {"topic": "open agent architectures", "channel": "github", "query": "autonomous agent architectures open source", "purpose": "dream"},
+    # purpose "research": riferimenti per i pilastri del motore R&D (shared/agi_research_engine.py)
+    {"topic": "mycelium & fungal network routing", "channel": "arxiv", "query": "mycelium fungal network routing p2p slime mold", "purpose": "research", "pillar": "biomimetic_nature_mesh"},
+    {"topic": "bacterial quorum sensing swarm", "channel": "arxiv", "query": "bacterial quorum sensing decentralized consensus swarm", "purpose": "research", "pillar": "swarm_emergence"},
+    {"topic": "viral gossip & epidemic dissemination", "channel": "scholar", "query": "viral epidemic gossip protocol distributed networks", "purpose": "research", "pillar": "biomimetic_nature_mesh"},
+    {"topic": "parasitic work-stealing & kleptoparasitism", "channel": "scholar", "query": "kleptoparasitism distributed work stealing agent load balancing", "purpose": "research", "pillar": "biomimetic_nature_mesh"},
+    {"topic": "aleksander axioms simulation", "channel": "reddit", "query": "Igor Aleksander five axioms synthetic consciousness simulation", "purpose": "research", "pillar": "aleksander_axioms"},
+    {"topic": "poetry generation evaluation", "channel": "arxiv", "query": "automatic poetry generation evaluation meter rhyme metrics", "purpose": "research", "pillar": "algorithmic_poetry_aesthetics"},
+    {"topic": "agent long-term memory graphs", "channel": "arxiv", "query": "LLM agent long-term memory knowledge graph retrieval", "purpose": "research", "pillar": "modular_intellect"},
+    {"topic": "causal reasoning for agents", "channel": "arxiv", "query": "causal graph counterfactual reasoning LLM agents memory", "purpose": "research", "pillar": "symbolic_causal_mesh"},
+    {"topic": "MCP multi-agent orchestration", "channel": "github", "query": "MCP server multi-agent orchestration pipeline", "purpose": "research", "pillar": "composite_macro_workflows"},
+    {"topic": "self-improving code agents with tests", "channel": "arxiv", "query": "LLM code generation unit test generation self-improving agents", "purpose": "research", "pillar": "composite_macro_workflows"},
 ]
 
 _CLEAN_SPACES = re.compile(r"\s+")
@@ -258,12 +266,17 @@ def harvest_all_themes(themes: list[dict] | None = None, limit_per_theme: int = 
         if harvested:
             for item in harvested:
                 item["topic"] = topic
+                item["purpose"] = th.get("purpose", "dream")
+                if th.get("pillar"):
+                    item["pillar"] = th["pillar"]
             results.extend(harvested)
         else:
             errors.append(f"Failed or empty on {ch}:{q}")
 
     inspirations = []
     for r in results:
+        if r.get("purpose", "dream") != "dream":
+            continue
         text = r.get("summary") or r.get("snippet") or r.get("title")
         if text and len(text) > 15:
             inspirations.append(text)

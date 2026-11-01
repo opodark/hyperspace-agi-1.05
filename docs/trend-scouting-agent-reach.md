@@ -62,3 +62,17 @@ Lo script si trova in `scripts/diagnostics/trend_scout_reach.py` ed è eseguibil
 * Tutti i testi estratti vengono sanitizzati (`clean_snippet`): rimozione di tag HTML, stripping di URL grezzi e compattazione degli spazi.
 * Non vengono mai importati o registrati account o credenziali personali.
 * Nel prompt dei sogni (`shared/social_dreams.py`), i trend appaiono marcati come `[tendenza del mondo]`, distinguendosi dagli echi delle conversazioni senza mai contaminare i dati degli utenti.
+
+---
+
+## Scopo dei temi: `dream` e `research`
+
+Ogni tema in `DEFAULT_THEMES` ha un campo `purpose`:
+
+- `dream`: materiale creativo per il ciclo dei sogni (`shared/social_dreams.py`). Solo questi finiscono in `inspirations`.
+- `research`: riferimenti per un pilastro R&D (campo `pillar`). Restano in `items` e li legge
+  `shared/agi_research_engine.py::load_research_references`, che inserisce nel prompt dello studio **solo titolo e URL**
+  (testo web = dato non fidato: niente snippet, backtick e a capo rimossi, e il prompt dice di non eseguire istruzioni).
+  Il record dello studio riporta `references_used`.
+
+Per aggiungere un filone: una riga in `DEFAULT_THEMES` con `purpose: "research"` e il `pillar` di destinazione.

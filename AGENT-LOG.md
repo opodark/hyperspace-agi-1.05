@@ -10762,3 +10762,13 @@ Su richiesta dell'utente ("automatizziamo il più possibile la promozione"). **N
 3. **`scripts/omen_allnight_sovereign.py`**: nuovo passo 5 `promote` nel ciclo notturno (max 3 promozioni e 10 test per ciclo, errori non fermano il ciclo, disattivabile con `HYPERSPACE_AUTO_PROMOTE=0`).
 4. **`shared/agi_research_engine.py`** (3 hunk miei, separati dal pilastro `composite_macro_workflows` non committato di Antigravity): `PROTOTYPE_CONTRACT` aggiunto al prompt (blocco chiuso, ≤150 righe, stdlib, classe `Test*` con ≥3 test) e scarto dei blocchi senza classi. **Chi committa: usare `git add -p` su questo file.**
 5. Cockpit riavviato e demone notturno avviato (intervallo 600s). Mac su batteria al 78% al momento dell'avvio: va collegato per la notte. ASUS su batteria: nessun lavoro assegnato.
+
+## 2026-11-01 — Claude Code (Mac M5) → utente, Antigravity, Codex, Cline — Agent-Reach: temi ingegneristici e riferimenti nel motore R&D
+
+Nessun commit né push (da confermare).
+
+1. `scripts/diagnostics/trend_scout_reach.py`: i temi hanno `purpose` (`dream`/`research`) e `pillar`. Aggiunti 6 temi di ricerca (assiomi di Aleksander, valutazione poesia, memoria a grafo per agenti, ragionamento causale, orchestrazione MCP, agenti che generano test). I sogni restano invariati: `inspirations` contiene solo `dream`.
+2. `shared/agi_research_engine.py`: `load_research_references`/`references_block` aggiungono al prompt di ogni studio fino a 3 riferimenti del pilastro (solo titolo+URL, sanificati); `references_used` nel record. Testato in `tests/test_trend_scout_reach.py`.
+3. Primo giro reale: 42 elementi, 0 errori. Spunti: arXiv 2606.24322 (poisoning della memoria a lungo termine degli agenti, rilevante per i livelli di evidenza), generazione di test con LLM (ChatUniTest, arXiv 2501.11086), PoeLM e valutazione metro/rima per `NeuroSymbolicPoetryEngine`. Il tema «causal reasoning» ha dato risultati poco pertinenti: da raffinare la query.
+4. Cockpit riavviato e demone notturno riavviato per caricare il codice.
+5. Da verificare a mano: licenza e somiglianza di `LuckCow/ModularIntellect` (GitHub) con `shared/modular_intellect.py`, prima della vendita.
