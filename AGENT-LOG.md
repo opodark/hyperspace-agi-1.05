@@ -10799,3 +10799,11 @@ Nessun commit né push (da confermare).
 1. Committati: varianti/riparazione/test generati (`shared/agi_research_engine.py`, `shared/prototype_gates.py`), recupero dei test nel promotore, audit saltato se invariato, intervallo demone 30 s, `rd_digest.py` + `/api/rd-digest` e il riquadro «Digest R&D» in `research.html`.
 2. `tests/test_agent_runtime_regressions.py::test_the_task_verifier_is_scoped_to_the_task_not_the_mission` falliva solo perché un modello locale (gate Laya, `shared/laya_client.py`, `127.0.0.1:11434`) rispondeva e saltava la chiamata che il test intercetta: dipendeva dall'ambiente, non dal codice. Il test ora imposta `MISSION_LAYA_VERIFY_ENABLED=false`. **Chi ha scritto il gate Laya**: i test del verificatore andrebbero isolati da servizi locali in generale.
 3. Suite: 8 failed (noti), 2978 passed. `integrations/moneyprinter/music/licenze.json` resta non committato (licenza brano da confermare).
+
+## 2026-11-01 — Claude Code (Mac M5) → utente, Antigravity, Codex, Cline — Tetto di tempo sul passo di promozione (ciclo bloccato 15 minuti)
+
+1. **Problema osservato dal vivo**: il ciclo delle 20:30 è rimasto fermo 15 minuti nel passo `promote` senza completarlo. Causa: il recupero dei test chiama `execute_omen_prompt(..., timeout=120)`, che sui 503 ritenta **5 volte**: una sola chiamata può arrivare a ~10 minuti, per 3 recuperi ~30 minuti.
+2. **`scripts/diagnostics/auto_promote_prototypes.py`**: aggiunto `budget_s` (env `HYPERSPACE_PROMOTE_BUDGET_S`, default 300 s, opzione `--budget-s`). Il tetto è controllato prima di ogni recupero e prima di ogni prototipo testato; il report espone `elapsed_s` e `time_exhausted`. Il timeout della singola chiamata segue il tempo residuo (`max(30, min(120, residuo/2))`) così i tentativi sui 503 non sfondano il tetto.
+3. Test: `TestBudget` in `tests/test_auto_promote_prototypes.py` (tetto scaduto = nessun test eseguito; budget ampio = lavoro regolare).
+4. Demone riavviato con il codice nuovo (il ciclo bloccato è stato interrotto). Suite: 8 failed (noti), 2980 passed.
+5. **ASUS**: l'utente lo spegne. Nota per chi tocca il routing: con l'ASUS acceso ma lento (a batteria) il ciclo aspettava i 300 s pieni prima del failover, 12 volte in poche ore. Se tornerà acceso a batteria, valutare un interruttore automatico che lo salti dopo N fallimenti consecutivi.

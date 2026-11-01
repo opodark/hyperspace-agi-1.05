@@ -117,5 +117,39 @@ class TestBackfillTest(unittest.TestCase):
         self.assertNotIn("Test", text)
 
 
+class TestBudget(unittest.TestCase):
+    CODE = textwrap.dedent('''
+        import unittest
+        class ZzBudgetThing:
+            def a(self): return 1
+        class TestZzBudgetThing(unittest.TestCase):
+            def test_a(self): self.assertEqual(ZzBudgetThing().a(), 1)
+    ''')
+
+    def test_tetto_di_tempo_ferma_il_lavoro_costoso(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            for i in range(4):
+                (d / f"proto_x_{i}.py").write_text(self.CODE)
+            with patch.object(ap, "PROTOTYPES_DIR", d), patch.object(ap, "STATE_FILE", d / "state.json"), \
+                 patch.object(ap, "PROMOTIONS_FILE", d / "none.jsonl"), \
+                 patch.object(ap, "run_embedded_tests") as tests:
+                rep = ap.run_auto_promotion(apply=False, min_nodes=10, budget_s=-1)
+            tests.assert_not_called()
+            self.assertTrue(rep["time_exhausted"])
+            self.assertEqual(rep["tested"], 0)
+
+    def test_budget_ampio_lascia_lavorare(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / "proto_x_0.py").write_text(self.CODE)
+            with patch.object(ap, "PROTOTYPES_DIR", d), patch.object(ap, "STATE_FILE", d / "state.json"), \
+                 patch.object(ap, "PROMOTIONS_FILE", d / "none.jsonl"):
+                rep = ap.run_auto_promotion(apply=False, min_nodes=10, budget_s=120)
+            self.assertFalse(rep["time_exhausted"])
+            self.assertEqual(rep["tested"], 1)
+            self.assertIsInstance(rep["elapsed_s"], float)
+
+
 if __name__ == "__main__":
     unittest.main()

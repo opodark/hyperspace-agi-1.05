@@ -729,9 +729,12 @@ def run_single_allnight_cycle() -> Dict[str, Any]:
             return {"promote": {"skipped": "HYPERSPACE_AUTO_PROMOTE!=1"}}
         try:
             from scripts.diagnostics.auto_promote_prototypes import run_auto_promotion
-            rep = run_auto_promotion(apply=True, max_promotions=3, max_tested=10, executor=execute_omen_prompt, backfill=3)
+            rep = run_auto_promotion(apply=True, max_promotions=3, max_tested=10,
+                                     executor=execute_omen_prompt, backfill=3)
             _log("PROMOTE", f"Promozione automatica: {len(rep['promoted'])} promossi, "
-                            f"{len(rep['rolled_back'])} annullati, {rep['tested']} testati, {rep['backfilled']} test recuperati")
+                            f"{len(rep['rolled_back'])} annullati, {rep['tested']} testati, "
+                            f"{rep['backfilled']} test recuperati in {rep['elapsed_s']}s"
+                            f"{' (tetto di tempo raggiunto)' if rep['time_exhausted'] else ''}")
             return {"promote": rep}
         except Exception as exc:
             _log("PROMOTE", f"Promozione automatica fallita (ciclo non interrotto): {exc}")

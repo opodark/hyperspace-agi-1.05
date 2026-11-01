@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import subprocess
 import sys
@@ -89,8 +90,19 @@ def run_auto_promotion(
     min_nodes: int = 250,
     executor: Optional[Any] = None,
     backfill: int = 3,
+    budget_s: Optional[float] = None,
 ) -> Dict[str, Any]:
     executor = executor if apply else None  # il recupero dei test modifica i prototipi: solo con --apply
+    # Tetto di tempo: il passo non deve allungare il ciclo notturno oltre il necessario.
+    budget_s = budget_s if budget_s is not None else float(os.environ.get("HYPERSPACE_PROMOTE_BUDGET_S", "300"))
+    started = time.monotonic()
+
+    def remaining() -> float:
+        return budget_s - (time.monotonic() - started)
+
+    def out_of_time() -> bool:
+        return remaining() <= 0
+
     state = _load_state()
     state.setdefault("backfill_attempts", {})
     promoted_already = _already_promoted()
@@ -98,6 +110,7 @@ def run_auto_promotion(
     report: Dict[str, Any] = {
         "apply": apply, "scanned": 0, "static_rejected": 0, "tested": 0,
         "eligible": [], "promoted": [], "rolled_back": [], "skipped_known": 0, "backfilled": 0,
+        "budget_s": budget_s, "time_exhausted": False,
     }
     needs_tests: List[Any] = []
 
@@ -134,11 +147,16 @@ def run_auto_promotion(
     for nodes, path, pub in needs_tests:
         if report["backfilled"] >= backfill:
             break
+        if out_of_time():
+            report["time_exhausted"] = True
+            break
         if any(c in known_now for c in pub):
             state["rejected"][path.name] = f"classe già in shared/: {next(c for c in pub if c in known_now)}"
             continue
         code = path.read_text(encoding="utf-8")
-        res = executor(tests_prompt(code), model=TEST_MODEL, timeout=120)
+        # Il timeout segue il tempo residuo: execute_omen_prompt ritenta sui 503 e un
+        # timeout lungo moltiplicato per i tentativi sfonderebbe il tetto del passo.
+        res = executor(tests_prompt(code), model=TEST_MODEL, timeout=int(max(30, min(120, remaining() / 2))))
         block = extract_code(res.get("response", "")) if res.get("status") == "ok" else None
         state["backfill_attempts"][path.name] = state["backfill_attempts"].get(path.name, 0) + 1
         if not block:
@@ -165,6 +183,9 @@ def run_auto_promotion(
     candidates.sort(key=lambda c: -c[0])
     for _, path, pub, tests in candidates:
         if report["tested"] >= max_tested or len(report["promoted"]) >= max_promotions:
+            break
+        if out_of_time():
+            report["time_exhausted"] = True
             break
         clash = [c for c in pub if c in known_classes]
         if clash:
@@ -207,6 +228,7 @@ def run_auto_promotion(
             state["rejected"][path.name] = f"annullata dopo promozione: {why}"[:160]
             report["rolled_back"].append({"prototype": path.name, "reason": why[:160]})
 
+    report["elapsed_s"] = round(time.monotonic() - started, 1)
     if apply:
         _save_state(state)
     return report
@@ -218,15 +240,17 @@ def main() -> int:
     ap.add_argument("--max-promotions", type=int, default=3)
     ap.add_argument("--max-tested", type=int, default=10)
     ap.add_argument("--min-nodes", type=int, default=250)
+    ap.add_argument("--budget-s", type=float, default=None, help="Tetto di tempo in secondi (default: HYPERSPACE_PROMOTE_BUDGET_S o 300)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
-    rep = run_auto_promotion(a.apply, a.max_promotions, a.max_tested, a.min_nodes)
+    rep = run_auto_promotion(a.apply, a.max_promotions, a.max_tested, a.min_nodes, budget_s=a.budget_s)
     if a.json:
         print(json.dumps(rep, indent=2, ensure_ascii=False))
     else:
         mode = "APPLY" if a.apply else "DRY-RUN"
         print(f"[{mode}] scansionati {rep['scanned']} | già noti {rep['skipped_known']} | test recuperati {rep['backfilled']} | "
-              f"scartati statici {rep['static_rejected']} | testati {rep['tested']}")
+              f"scartati statici {rep['static_rejected']} | testati {rep['tested']} | "
+              f"{rep['elapsed_s']}s{' (tempo esaurito)' if rep['time_exhausted'] else ''}")
         for e in rep["eligible"]:
             print(f"  idoneo: {e['prototype']} -> {e['target']} ({e['tests']} test) classi={e['classes']}")
         for e in rep["promoted"]:
