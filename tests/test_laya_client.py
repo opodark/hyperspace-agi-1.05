@@ -128,12 +128,15 @@ class LayaClientUnitTests(unittest.TestCase):
 
     @patch("urllib.request.urlopen")
     def test_abstention_flag_propagated(self, mock_urlopen):
+        # Il servizio Laya reale (convaiinnovations/laya) restituisce "abstention"
+        # come stringa di stato ("passed" | "abstained"), non come booleano:
+        # bool("passed") sarebbe True, quindi va confrontata per valore.
         payload = {
             "answers": {
                 "decision": {
                     "choice": "uncertain",
                     "confidence": 0.35,
-                    "abstention": True,
+                    "abstention": "abstained",
                 }
             },
             "routing": {"model": "multilingual"},
@@ -147,6 +150,28 @@ class LayaClientUnitTests(unittest.TestCase):
         res = laya.decide_choice("test", {"a": "c1", "b": "c2"}, "instructions")
         self.assertIsNotNone(res)
         self.assertTrue(res["abstention"])
+
+    @patch("urllib.request.urlopen")
+    def test_abstention_passed_is_not_abstention(self, mock_urlopen):
+        payload = {
+            "answers": {
+                "decision": {
+                    "choice": "pass",
+                    "confidence": 0.9,
+                    "abstention": "passed",
+                }
+            },
+            "routing": {"model": "english"},
+        }
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = json.dumps(payload).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        res = laya.decide_choice("test", {"a": "c1", "b": "c2"}, "instructions")
+        self.assertIsNotNone(res)
+        self.assertFalse(res["abstention"])
 
     @patch("urllib.request.urlopen")
     def test_predict_batch(self, mock_urlopen):

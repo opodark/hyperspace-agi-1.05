@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger("hyperspace.laya")
 
-LAYA_DEFAULT_URL = "http://127.0.0.1:11434"
+LAYA_DEFAULT_URL = "http://127.0.0.1:8097"
 LAYA_FALLBACK_URL = "http://127.0.0.1:8097"
 LAYA_URL = os.getenv("LAYA_URL", LAYA_DEFAULT_URL).rstrip("/")
 LAYA_MODEL = os.getenv("LAYA_MODEL", "tev1")
@@ -192,7 +192,7 @@ def decide_choice(
         "choice": ans.get("choice"),
         "confidence": float(ans.get("confidence") or ans.get("x_jev_confidence") or 0.0),
         "probabilities": ans.get("probabilities", {}),
-        "abstention": bool(ans.get("abstention", False)),
+        "abstention": ans.get("abstention") == "abstained",
         "model_used": res.get("model") or res.get("routing", {}).get("model", ""),
         "raw": ans,
     }
@@ -232,7 +232,7 @@ def decide_noul(
         "noul": p_true,
         "is_yes": p_true >= 0.5,
         "confidence": conf,
-        "abstention": bool(ans.get("abstention", False)),
+        "abstention": ans.get("abstention") == "abstained",
         "model_used": res.get("model") or res.get("routing", {}).get("model", ""),
         "raw": ans,
     }

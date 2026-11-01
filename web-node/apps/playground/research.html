@@ -302,6 +302,15 @@
                 <span>🟡</span> Rationale del Pivot & Cambio Direzione
               </div>
               <p id="nodePivotRationale" class="text-xs text-amber-300/90 leading-relaxed bg-amber-950/20 p-2.5 rounded-xl border border-amber-900/40">--</p>
+              <div id="nodePivotDiff" class="mt-2 grid grid-cols-1 gap-1.5 text-[11px] font-mono"></div>
+            </div>
+
+            <!-- Spiegazione stadio AST Prototipo / Produzione (se applicabile) -->
+            <div id="nodeStageExplainerBox" class="hidden">
+              <div id="nodeStageExplainerHeader" class="text-xs font-semibold flex items-center gap-1.5 mb-1">
+                <span id="nodeStageExplainerIcon">🟣</span> <span id="nodeStageExplainerTitle">Cos'è questo stadio</span>
+              </div>
+              <p id="nodeStageExplainerText" class="text-xs leading-relaxed p-2.5 rounded-xl border">--</p>
             </div>
 
             <!-- Azione Rapida Prototipo -->
@@ -1035,6 +1044,10 @@
       for (const [bId, bData] of Object.entries(branchMap)) {
         if (bData.nodes.length === 0) continue;
 
+        const maturity = (typeof bData.meta.maturity === 'number') ? bData.meta.maturity : computeBranchMaturity(bData.nodes);
+        const maturityLabel = bData.meta.maturity_label || '';
+        const maturityColor = maturity >= 100 ? '#57e6d9' : maturity >= 70 ? '#8b5cf6' : maturity >= 45 ? '#10b981' : maturity >= 25 ? '#f59e0b' : '#f43f5e';
+
         html += `
           <div class="flex flex-col gap-3 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80">
             <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
@@ -1042,6 +1055,12 @@
                 <span class="text-base">${bData.meta.icon}</span>
                 <span class="font-bold text-sm text-white tracking-tight">${bData.meta.name}</span>
                 <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">${bData.nodes.length} iterazioni</span>
+                <div class="flex items-center gap-1.5" title="${escapeHtml(maturityLabel)}">
+                  <div class="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full rounded-full transition-all" style="width:${maturity}%;background:${maturityColor}"></div>
+                  </div>
+                  <span class="text-[10px] font-mono font-bold" style="color:${maturityColor}">${maturity}%</span>
+                </div>
               </div>
               <span class="text-[11px] font-mono text-slate-500">${bData.meta.domain || ''}</span>
             </div>
@@ -1097,6 +1116,21 @@
         const found = nodes.find(n => n.id === gSelectedNodeId);
         if (found) renderNodeDetail(found);
       }
+    }
+
+    // Stesso schema di pesi del backend (shared/research_tree.py::_compute_branch_maturity):
+    // la maturità del ramo è lo stadio più avanzato raggiunto, non una media delle iterazioni.
+    const MATURITY_STAGE_WEIGHT = { production: 100, prototype: 70, passed: 45, pivot: 25, failed: 10 };
+    function computeBranchMaturity(nodes) {
+      let best = 0;
+      (nodes || []).forEach(n => {
+        let status = n.status;
+        if (n.promoted) status = 'production';
+        else if (!(status in MATURITY_STAGE_WEIGHT) && n.prototype_file) status = 'prototype';
+        const score = MATURITY_STAGE_WEIGHT[status] ?? 5;
+        if (score > best) best = score;
+      });
+      return best;
     }
 
     function getStatusConfig(status) {
@@ -1158,9 +1192,13 @@
       if (node.status === 'pivot' || node.pivot_rationale) {
         pBox.classList.remove('hidden');
         document.getElementById('nodePivotRationale').textContent = node.pivot_rationale || 'Nessuna motivazione registrata.';
+        renderPivotDiff(node);
       } else {
         pBox.classList.add('hidden');
       }
+
+      // Spiegazione stadio (Prototipo AST / Produzione)
+      renderStageExplainer(node);
 
       // Azione Prototipo
       const actBox = document.getElementById('nodeActionBox');
@@ -1174,6 +1212,72 @@
         };
       } else {
         actBox.classList.add('hidden');
+      }
+    }
+
+    // Confronto con il nodo precedente nello stesso ramo (parent_id), per capire COSA
+    // è cambiato nel pivot: ramo, modello, tempo trascorso, esito prima/dopo.
+    function renderPivotDiff(node) {
+      const box = document.getElementById('nodePivotDiff');
+      const parent = (gTreeData?.nodes || []).find(n => n.id === node.parent_id);
+
+      if (!parent) {
+        box.innerHTML = `<div class="text-slate-500 italic px-1">Nessuna iterazione precedente nel ramo da confrontare (nodo d'origine).</div>`;
+        return;
+      }
+
+      const rows = [];
+      if ((parent.branch_id || '') !== (node.branch_id || '')) {
+        rows.push(['Ramo', parent.branch_id || '—', node.branch_id || '—']);
+      }
+      if ((parent.model || '') !== (node.model || '')) {
+        rows.push(['Modello', parent.model || '—', node.model || '—']);
+      }
+      if (parent.timestamp && node.timestamp) {
+        const deltaMs = new Date(node.timestamp) - new Date(parent.timestamp);
+        const hours = deltaMs / 3.6e6;
+        const deltaStr = hours < 1 ? `${Math.round(deltaMs / 60000)} min` : hours < 48 ? `${hours.toFixed(1)} h` : `${(hours / 24).toFixed(1)} giorni`;
+        rows.push(['Tempo dal nodo precedente', '', deltaStr]);
+      }
+      rows.push(['Esito precedente', '', parent.outcome || parent.title || '—']);
+
+      box.innerHTML = rows.map(([label, before, after]) => `
+        <div class="flex items-start gap-2 px-1">
+          <span class="text-slate-500 min-w-[150px]">${escapeHtml(label)}:</span>
+          <span class="text-slate-300 flex-1">${before ? `<span class="text-slate-500 line-through">${escapeHtml(before)}</span> → ` : ''}<span class="text-amber-300">${escapeHtml(after)}</span></span>
+        </div>
+      `).join('');
+    }
+
+    // Breve spiegazione didattica dello stadio in cui si trova il nodo (Prototipo AST
+    // generato vs Promosso in Produzione), così chi guarda la scheda capisce subito
+    // cosa significa concretamente senza dover andare a leggere il codice.
+    function renderStageExplainer(node) {
+      const box = document.getElementById('nodeStageExplainerBox');
+      const icon = document.getElementById('nodeStageExplainerIcon');
+      const title = document.getElementById('nodeStageExplainerTitle');
+      const text = document.getElementById('nodeStageExplainerText');
+      const header = document.getElementById('nodeStageExplainerHeader');
+
+      const isProduction = node.status === 'production' || node.promoted;
+      const isPrototype = !isProduction && (node.status === 'prototype' || node.prototype_file);
+
+      if (isProduction) {
+        box.classList.remove('hidden');
+        icon.textContent = '🚀';
+        title.textContent = 'In Produzione: cosa significa';
+        header.className = 'text-xs font-semibold flex items-center gap-1.5 mb-1 text-brand-cyan';
+        text.className = 'text-xs leading-relaxed p-2.5 rounded-xl border bg-cyan-950/20 border-cyan-900/40 text-cyan-300/90';
+        text.textContent = 'Il prototipo ha superato il gate AST ed è stato promosso manualmente in shared/: il codice è stato copiato nel runtime reale (con backup .bak della versione precedente e registrazione dell\'evento nell\'albero R&D). Da questo momento non è più un esperimento isolato: viene eseguito dal sistema in produzione ad ogni richiesta che lo usa.';
+      } else if (isPrototype) {
+        box.classList.remove('hidden');
+        icon.textContent = '🟣';
+        title.textContent = 'Prototipo AST: cosa significa';
+        header.className = 'text-xs font-semibold flex items-center gap-1.5 mb-1 text-purple-400';
+        text.className = 'text-xs leading-relaxed p-2.5 rounded-xl border bg-purple-950/20 border-purple-900/40 text-purple-300/90';
+        text.textContent = 'Il modello notturno ha generato codice Python che ha superato il parsing AST (sintassi valida, classi/funzioni riconosciute) ed è salvato in data/research/prototypes/. Non è ancora attivo nel sistema reale: resta in attesa di revisione e promozione manuale da questa pagina ("Promuovi in Produzione").';
+      } else {
+        box.classList.add('hidden');
       }
     }
 

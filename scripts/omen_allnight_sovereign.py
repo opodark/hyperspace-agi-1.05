@@ -468,21 +468,44 @@ def run_autonomous_dev_distillation(cycles: int = 1) -> Dict[str, Any]:
                     ast_ok = False
 
             if ast_ok and parsed.reasoning_cot:
-                entry = {
-                    "id": f"cot-{int(time.time() * 1000)}",
-                    "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                    "topic": task_info["topic"],
-                    "model": model,
-                    "elapsed_s": res["elapsed_s"],
-                    "reasoning_cot": parsed.reasoning_cot,
-                    "code": first_code,
-                    "ast_valid": True,
-                }
-                with open(COT_DATASET, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(entry) + "\n")
-                distilled += 1
-                results.append({"topic": task_info["topic"], "model": model, "valid": True})
-                _log("DEV", f"✓ Task '{task_info['topic']}' distillato e verificato AST con successo.")
+                # Triage System 1 (Laya): l'AST valido dice solo che il codice si PARSA,
+                # non che affronti davvero il task (uno stub vuoto o un rifiuto passano
+                # comunque il check AST). Laya giudica in ~30-50ms senza toccare lo slot
+                # Ollama; se è offline o incerto non blocca mai la distillazione (fail-open).
+                laya_accept, laya_note = True, ""
+                try:
+                    from shared.laya_client import decide_noul
+                    judgment = decide_noul(
+                        f"Task: {task_info['topic']}\n\nRagionamento: {parsed.reasoning_cot[:800]}\n\nCodice:\n{first_code[:1500]}",
+                        "Il codice e il ragionamento affrontano concretamente il task richiesto, "
+                        "con una logica non banale (non uno stub vuoto, un placeholder o un rifiuto)?",
+                        min_confidence=0.6,
+                    )
+                    if judgment and not judgment.get("abstention") and judgment.get("confidence", 0) >= 0.6:
+                        laya_accept = judgment["is_yes"]
+                        laya_note = f" [laya noul={judgment['noul']:.2f} conf={judgment['confidence']:.2f}]"
+                except Exception:
+                    pass
+
+                if laya_accept:
+                    entry = {
+                        "id": f"cot-{int(time.time() * 1000)}",
+                        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        "topic": task_info["topic"],
+                        "model": model,
+                        "elapsed_s": res["elapsed_s"],
+                        "reasoning_cot": parsed.reasoning_cot,
+                        "code": first_code,
+                        "ast_valid": True,
+                    }
+                    with open(COT_DATASET, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(entry) + "\n")
+                    distilled += 1
+                    results.append({"topic": task_info["topic"], "model": model, "valid": True})
+                    _log("DEV", f"✓ Task '{task_info['topic']}' distillato e verificato AST con successo.{laya_note}")
+                else:
+                    results.append({"topic": task_info["topic"], "model": model, "valid": False, "reason": f"Scartato dal triage Laya{laya_note}"})
+                    _log("DEV", f"✗ Task '{task_info['topic']}' scartato dal triage Laya (qualità insufficiente).{laya_note}")
             else:
                 results.append({"topic": task_info["topic"], "model": model, "valid": False, "reason": "No CoT or AST invalid"})
         else:

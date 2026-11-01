@@ -79,7 +79,7 @@ res_noul = decide_noul(
 ### A. Esecuzione Locale nativa su Mac (MPS)
 Il runner dedicato in `scripts/laya_service.py` avvia il server FastAPI esponendo le API compatibili Laya:
 ```bash
-python scripts/laya_service.py --port 8098 --device mps
+python scripts/laya_service.py --port 8097 --device mps
 ```
 
 ### B. Profilo Docker Compose (`decision`)
@@ -92,7 +92,7 @@ docker compose --profile decision up -d laya
 Conforme alla Regola 6 di `AGENTS.md`, HyperSpace include lo script read-only di monitoraggio e health check:
 ```bash
 python scripts/diagnostics/laya_health.py
-# Opzioni: --url http://127.0.0.1:8098 --timeout 2.0
+# Opzioni: --url http://127.0.0.1:8097 --timeout 2.0
 ```
 Lo script testa la raggiungibilità del servizio, misura la latenza reale in millisecondi ed esegue due probe tipizzati (`choice` e `noul` multilingua).
 
@@ -102,7 +102,7 @@ Lo script testa la raggiungibilità del servizio, misura la latenza reale in mil
 
 | Variabile | Default | Descrizione |
 |---|---|---|
-| `LAYA_URL` | `http://127.0.0.1:8098` | Endpoint base del microservizio Laya |
+| `LAYA_URL` | `http://127.0.0.1:8097` | Endpoint base del microservizio Laya |
 | `LAYA_ENABLED` | `true` | Flag globale per abilitare/disabilitare chiamate a Laya |
 | `LAYA_TIMEOUT_S` | `2.0` | Timeout massimo delle chiamate HTTP (le inferenze richiedono ~35–120ms) |
 | `MISSION_LAYA_VERIFY_ENABLED` | `true` | Abilita il Fast-Gate Laya in Mission Control |

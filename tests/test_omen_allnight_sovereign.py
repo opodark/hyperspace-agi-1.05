@@ -93,16 +93,51 @@ class TestOmenAllnightSovereign(unittest.TestCase):
         self.assertEqual(st2.payload.get("a"), 1)
         self.assertEqual(st2.payload.get("b"), 2)
 
+    @patch("shared.laya_client.decide_noul")
     @patch("scripts.omen_allnight_sovereign.execute_omen_prompt")
-    def test_autonomous_dev_distillation_success(self, mock_exec):
+    def test_autonomous_dev_distillation_success(self, mock_exec, mock_laya):
         mock_exec.return_value = {
             "status": "ok",
             "model": "granite3.3:8b",
             "elapsed_s": 1.2,
             "response": "<think>Analisi dei requisiti Chase-Lev</think>\n```python\ndef calculate_pouw(difficulty: int) -> bool:\n    return True\n```"
         }
+        mock_laya.return_value = {"noul": 0.9, "is_yes": True, "confidence": 0.8, "abstention": False}
         res = run_autonomous_dev_distillation(cycles=1)
         self.assertIn("distilled_count", res)
+        self.assertGreaterEqual(res["distilled_count"], 1)
+        self.assertTrue(res["tasks"][0]["valid"])
+
+    @patch("shared.laya_client.decide_noul")
+    @patch("scripts.omen_allnight_sovereign.execute_omen_prompt")
+    def test_autonomous_dev_distillation_rejected_by_laya_triage(self, mock_exec, mock_laya):
+        # Codice sintatticamente valido ma giudicato non pertinente dal triage Laya
+        # (System 1): non deve finire nel dataset di distillazione.
+        mock_exec.return_value = {
+            "status": "ok",
+            "model": "granite3.3:8b",
+            "elapsed_s": 1.2,
+            "response": "<think>stub</think>\n```python\ndef calculate_pouw(difficulty: int) -> bool:\n    return True\n```"
+        }
+        mock_laya.return_value = {"noul": 0.1, "is_yes": False, "confidence": 0.9, "abstention": False}
+        res = run_autonomous_dev_distillation(cycles=1)
+        self.assertEqual(res["distilled_count"], 0)
+        self.assertFalse(res["tasks"][0]["valid"])
+        self.assertIn("Laya", res["tasks"][0]["reason"])
+
+    @patch("shared.laya_client.decide_noul")
+    @patch("scripts.omen_allnight_sovereign.execute_omen_prompt")
+    def test_autonomous_dev_distillation_fails_open_if_laya_unavailable(self, mock_exec, mock_laya):
+        # Se Laya è offline o solleva un'eccezione, la distillazione non deve
+        # bloccarsi: si comporta come prima dell'integrazione (fail-open).
+        mock_exec.return_value = {
+            "status": "ok",
+            "model": "granite3.3:8b",
+            "elapsed_s": 1.2,
+            "response": "<think>Analisi dei requisiti Chase-Lev</think>\n```python\ndef calculate_pouw(difficulty: int) -> bool:\n    return True\n```"
+        }
+        mock_laya.side_effect = Exception("Laya non disponibile")
+        res = run_autonomous_dev_distillation(cycles=1)
         self.assertGreaterEqual(res["distilled_count"], 1)
         self.assertTrue(res["tasks"][0]["valid"])
 

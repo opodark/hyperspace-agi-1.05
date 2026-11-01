@@ -414,6 +414,47 @@ def find_exercising_tests(
     return exercising
 
 
+# Peso di maturità per stadio: riflette quanto lontano è arrivato il ramo, non una media
+# delle iterazioni (un solo nodo in produzione vale più di dieci prototipi falliti).
+_MATURITY_STAGE_WEIGHT = {
+    "production": 100,
+    "prototype": 70,
+    "passed": 45,
+    "pivot": 25,
+    "failed": 10,
+}
+
+
+def _compute_branch_maturity(branch_nodes: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Calcola la % di maturità di un ramo come stadio più avanzato raggiunto dai suoi nodi."""
+    if not branch_nodes:
+        return {"maturity": 0, "maturity_label": "Nessuna iterazione"}
+
+    best_score = 0
+    for n in branch_nodes:
+        status = n.get("status")
+        if n.get("promoted"):
+            status = "production"
+        elif status not in _MATURITY_STAGE_WEIGHT and n.get("prototype_file"):
+            status = "prototype"
+        score = _MATURITY_STAGE_WEIGHT.get(status, 5)
+        if score > best_score:
+            best_score = score
+
+    if best_score >= 100:
+        label = "In produzione"
+    elif best_score >= 70:
+        label = "Prototipo AST pronto"
+    elif best_score >= 45:
+        label = "Validato, non prototipato"
+    elif best_score >= 25:
+        label = "In pivot / riorientamento"
+    else:
+        label = "Solo tentativi falliti"
+
+    return {"maturity": best_score, "maturity_label": label}
+
+
 class ResearchTreeManager:
     """Gestore dell'albero di ricerca, prototipi AST e pipeline di produzione."""
 
@@ -471,6 +512,16 @@ class ResearchTreeManager:
             except Exception:
                 pass
 
+        # Maturità per ramo: calcolata sull'elenco completo (non filtrato) e solo in
+        # memoria, mai persistita su disco, così resta sempre coerente con i nodi attuali.
+        nodes_by_branch: Dict[str, List[Dict[str, Any]]] = {}
+        for n in nodes:
+            nodes_by_branch.setdefault(n.get("branch_id") or "aleksander_axioms", []).append(n)
+        pillars_with_maturity = [
+            {**p, **_compute_branch_maturity(nodes_by_branch.get(p.get("id"), []))}
+            for p in pillars
+        ]
+
         # Filtri di visualizzazione
         filtered_nodes = list(nodes)
         if branch_id and branch_id != "all":
@@ -490,7 +541,7 @@ class ResearchTreeManager:
 
         return {
             "version": data.get("version", "1.0"),
-            "pillars": data.get("pillars", RESEARCH_PILLARS),
+            "pillars": pillars_with_maturity,
             "nodes": filtered_nodes,
             "stats": stats,
             "updated_at": data.get("updated_at", datetime.datetime.now(datetime.timezone.utc).isoformat()),
