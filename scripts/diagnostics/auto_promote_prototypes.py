@@ -43,125 +43,19 @@ TESTS_DIR = ROOT / "tests"
 PROMOTIONS_FILE = ROOT / "data" / "research" / "promotions.jsonl"
 STATE_FILE = ROOT / "data" / "research" / "auto_promotion_state.json"
 
-DENY_MODULES = {
-    "subprocess", "socket", "ssl", "http", "urllib", "ftplib", "smtplib", "telnetlib",
-    "shutil", "ctypes", "multiprocessing", "pickle", "marshal", "importlib", "pty",
-    "webbrowser", "xmlrpc",
-}
-DENY_CALLS = {"eval", "exec", "compile", "__import__", "input", "breakpoint"}
-DENY_OS_ATTRS = {
-    "system", "popen", "remove", "unlink", "rmdir", "removedirs", "rename", "kill",
-    "fork", "execv", "execve", "execl", "execvp", "spawnl", "spawnv", "chmod", "chown",
-}
-ALLOWED_TOP_LEVEL = (
-    ast.Import, ast.ImportFrom, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef,
-    ast.Assign, ast.AnnAssign,
+from shared.prototype_gates import (  # noqa: E402
+    embedded_test_classes,
+    public_classes,
+    run_embedded_tests,
+    shared_class_names as _shared_class_names,
+    snake as _snake,
+    static_gate,
+    extract_code,
+    tests_prompt,
+    with_tests,
+    TEST_MODEL,
 )
-
-
-def _stdlib() -> Set[str]:
-    return set(getattr(sys, "stdlib_module_names", ()))
-
-
-def _snake(name: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
-
-
-def _shared_class_names() -> Set[str]:
-    names: Set[str] = set()
-    for f in SHARED_DIR.glob("*.py"):
-        try:
-            tree = ast.parse(f.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        for n in ast.walk(tree):
-            if isinstance(n, ast.ClassDef):
-                names.add(n.name)
-    return names
-
-
-def static_gate(tree: ast.Module, min_nodes: int) -> Optional[str]:
-    """Restituisce il motivo del rifiuto, o None se il codice passa i cancelli statici."""
-    node_count = sum(1 for _ in ast.walk(tree))
-    if node_count < min_nodes:
-        return f"troppo piccolo ({node_count} nodi < {min_nodes})"
-    stdlib = _stdlib()
-    for node in tree.body:
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
-            continue
-        if isinstance(node, ast.If) and "__main__" in ast.dump(node.test):
-            continue
-        if not isinstance(node, ALLOWED_TOP_LEVEL):
-            return f"statement top-level non ammesso ({type(node).__name__})"
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.decorator_list:
-            return "funzione top-level decorata (possibile fixture/hook)"
-    for node in ast.walk(tree):
-        mods: List[str] = []
-        if isinstance(node, ast.Import):
-            mods = [a.name for a in node.names]
-        elif isinstance(node, ast.ImportFrom):
-            if node.level:
-                return "import relativo non ammesso"
-            mods = [node.module or ""]
-        for m in mods:
-            root = m.split(".")[0]
-            if m in DENY_MODULES or root in DENY_MODULES:
-                return f"import vietato: {m}"
-            if root == "shared":
-                parts = m.split(".")
-                if len(parts) > 1 and not (SHARED_DIR / f"{parts[1]}.py").exists():
-                    return f"modulo shared inesistente: {m}"
-                continue
-            if root not in stdlib:
-                return f"dipendenza non stdlib: {m}"
-        if isinstance(node, ast.Call):
-            f = node.func
-            if isinstance(f, ast.Name) and f.id in DENY_CALLS:
-                return f"chiamata vietata: {f.id}()"
-            if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name):
-                if f.value.id == "os" and f.attr in DENY_OS_ATTRS:
-                    return f"chiamata vietata: os.{f.attr}()"
-            if isinstance(f, ast.Name) and f.id == "open":
-                mode = None
-                if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
-                    mode = node.args[1].value
-                for kw in node.keywords:
-                    if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
-                        mode = kw.value.value
-                if mode is not None and any(c in str(mode) for c in "wax+"):
-                    return "open() in scrittura"
-                if len(node.args) > 1 and not isinstance(node.args[1], ast.Constant):
-                    return "open() con modo non costante"
-    return None
-
-
-def public_classes(tree: ast.Module) -> List[str]:
-    return [
-        n.name for n in tree.body
-        if isinstance(n, ast.ClassDef) and not n.name.startswith(("Test", "_"))
-    ]
-
-
-def embedded_test_classes(tree: ast.Module) -> List[str]:
-    return [n.name for n in tree.body if isinstance(n, ast.ClassDef) and n.name.startswith("Test")]
-
-
-def run_embedded_tests(path: Path, timeout: int = 60) -> Dict[str, Any]:
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "pytest", str(path), "-q", "-p", "no:cacheprovider"],
-            cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=timeout,
-        )
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "reason": f"timeout {timeout}s"}
-    m = re.search(r"(\d+) passed", proc.stdout)
-    passed = int(m.group(1)) if m else 0
-    if proc.returncode != 0:
-        return {"ok": False, "reason": "test falliti", "tail": proc.stdout.strip()[-300:]}
-    if passed < 1:
-        return {"ok": False, "reason": "nessun test eseguito"}
-    return {"ok": True, "passed": passed}
-
+NO_TESTS = "nessun test incluso (serve generazione test)"
 
 def _load_state() -> Dict[str, Any]:
     try:
@@ -193,19 +87,25 @@ def run_auto_promotion(
     max_promotions: int = 3,
     max_tested: int = 10,
     min_nodes: int = 250,
+    executor: Optional[Any] = None,
+    backfill: int = 3,
 ) -> Dict[str, Any]:
+    executor = executor if apply else None  # il recupero dei test modifica i prototipi: solo con --apply
     state = _load_state()
+    state.setdefault("backfill_attempts", {})
     promoted_already = _already_promoted()
     known_classes = _shared_class_names()
     report: Dict[str, Any] = {
         "apply": apply, "scanned": 0, "static_rejected": 0, "tested": 0,
-        "eligible": [], "promoted": [], "rolled_back": [], "skipped_known": 0,
+        "eligible": [], "promoted": [], "rolled_back": [], "skipped_known": 0, "backfilled": 0,
     }
+    needs_tests: List[Any] = []
 
     candidates = []
     for p in sorted(PROTOTYPES_DIR.glob("proto_*.py")):
         report["scanned"] += 1
-        if p.name in promoted_already or p.name in state["rejected"] or p.name in state["promoted"]:
+        retry_tests = bool(executor) and str(state["rejected"].get(p.name, "")).startswith("nessun test incluso")
+        if p.name in promoted_already or p.name in state["promoted"] or (p.name in state["rejected"] and not retry_tests):
             report["skipped_known"] += 1
             continue
         try:
@@ -218,12 +118,49 @@ def run_auto_promotion(
         if not reason and not pub:
             reason = "nessuna classe pubblica"
         if not reason and not tests:
-            reason = "nessun test incluso (serve generazione test)"
+            reason = NO_TESTS
+        if reason == NO_TESTS and executor and state["backfill_attempts"].get(p.name, 0) < 2:
+            needs_tests.append((sum(1 for _ in ast.walk(tree)), p, pub))
+            continue
         if reason:
             state["rejected"][p.name] = reason
             report["static_rejected"] += 1
             continue
         candidates.append((sum(1 for _ in ast.walk(tree)), p, pub, tests))
+
+    # Recupero all'indietro: test scritti dal modello piccolo per prototipi sostanziosi senza test
+    needs_tests.sort(key=lambda c: -c[0])
+    known_now = _shared_class_names()
+    for nodes, path, pub in needs_tests:
+        if report["backfilled"] >= backfill:
+            break
+        if any(c in known_now for c in pub):
+            state["rejected"][path.name] = f"classe già in shared/: {next(c for c in pub if c in known_now)}"
+            continue
+        code = path.read_text(encoding="utf-8")
+        res = executor(tests_prompt(code), model=TEST_MODEL, timeout=120)
+        block = extract_code(res.get("response", "")) if res.get("status") == "ok" else None
+        state["backfill_attempts"][path.name] = state["backfill_attempts"].get(path.name, 0) + 1
+        if not block:
+            continue
+        combined = with_tests(code, block)
+        try:
+            ctree = ast.parse(combined)
+        except SyntaxError:
+            continue
+        if static_gate(ctree, min_nodes) or not embedded_test_classes(ctree):
+            continue
+        tmp = path.with_name(f"btmp_{path.stem}.py")
+        tmp.write_text(combined, encoding="utf-8")
+        try:
+            ok = run_embedded_tests(tmp)["ok"]
+        finally:
+            tmp.unlink(missing_ok=True)
+        if ok:
+            path.write_text(combined, encoding="utf-8")
+            report["backfilled"] += 1
+            candidates.append((nodes, path, pub, embedded_test_classes(ctree)))
+            state["rejected"].pop(path.name, None)
 
     candidates.sort(key=lambda c: -c[0])
     for _, path, pub, tests in candidates:
@@ -288,7 +225,7 @@ def main() -> int:
         print(json.dumps(rep, indent=2, ensure_ascii=False))
     else:
         mode = "APPLY" if a.apply else "DRY-RUN"
-        print(f"[{mode}] scansionati {rep['scanned']} | già noti {rep['skipped_known']} | "
+        print(f"[{mode}] scansionati {rep['scanned']} | già noti {rep['skipped_known']} | test recuperati {rep['backfilled']} | "
               f"scartati statici {rep['static_rejected']} | testati {rep['tested']}")
         for e in rep["eligible"]:
             print(f"  idoneo: {e['prototype']} -> {e['target']} ({e['tests']} test) classi={e['classes']}")

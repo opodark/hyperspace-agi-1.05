@@ -77,5 +77,45 @@ class TestDryRun(unittest.TestCase):
             self.assertFalse((d / "state.json").exists())
 
 
+class TestBackfillTest(unittest.TestCase):
+    CODE = textwrap.dedent('''
+        class ZzBackfillThing:
+            def a(self): return 1
+            def b(self): return 2
+            def c(self): return 3
+    ''')
+    TESTS = "import unittest\nclass TestZzBackfillThing(unittest.TestCase):\n    def test_a(self):\n        self.assertEqual(ZzBackfillThing().a(), 1)\n"
+
+    def _run(self, apply, executor):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / "proto_x_1.py").write_text(self.CODE)
+            with patch.object(ap, "PROTOTYPES_DIR", d), patch.object(ap, "STATE_FILE", d / "state.json"), \
+                 patch.object(ap, "PROMOTIONS_FILE", d / "none.jsonl"):
+                rep = ap.run_auto_promotion(apply=apply, max_promotions=0, min_nodes=10, executor=executor)
+            return rep, (d / "proto_x_1.py").read_text()
+
+    def test_test_generati_e_scritti_solo_con_apply(self):
+        calls = []
+
+        def ex(prompt, model, timeout):
+            calls.append(model)
+            return {"status": "ok", "response": f"```python\n{self.TESTS}\n```"}
+
+        rep, text = self._run(True, ex)
+        self.assertEqual(rep["backfilled"], 1)
+        self.assertIn("TestZzBackfillThing", text)
+        self.assertEqual(calls, [ap.TEST_MODEL])
+        rep, text = self._run(False, ex)
+        self.assertEqual(rep["backfilled"], 0)
+        self.assertNotIn("TestZzBackfillThing", text)
+
+    def test_test_inventati_che_falliscono_non_vengono_scritti(self):
+        bad = self.TESTS.replace("a(), 1", "a(), 99")
+        rep, text = self._run(True, lambda p, model, timeout: {"status": "ok", "response": f"```python\n{bad}\n```"})
+        self.assertEqual(rep["backfilled"], 0)
+        self.assertNotIn("Test", text)
+
+
 if __name__ == "__main__":
     unittest.main()

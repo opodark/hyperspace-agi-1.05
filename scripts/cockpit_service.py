@@ -275,6 +275,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_devstudio_git_status()
         elif self.path.startswith("/api/agi-research"):
             self.handle_api_agi_research()
+        elif self.path.startswith("/api/rd-digest"):
+            self.handle_api_rd_digest()
         elif self.path.startswith("/api/composite-pipeline/latest"):
             self.handle_api_composite_pipeline_latest()
         elif self.path.startswith("/api/commercial/status"):
@@ -1754,6 +1756,17 @@ class CockpitHandler(SimpleHTTPRequestHandler):
         except Exception as exc:
             self.send_json({"error": f"Errore recupero ricerche AGI: {exc}"}, status=500)
 
+    def handle_api_rd_digest(self):
+        try:
+            from scripts.diagnostics.rd_digest import build_digest, render
+            params = parse_qs(urlparse(self.path).query)
+            hours = float(params.get("hours", ["24"])[0])
+            digest = build_digest(hours)
+            digest["testo"] = render(digest)
+            self.send_json(digest)
+        except Exception as exc:
+            self.send_json({"error": f"Errore digest R&D: {exc}"}, status=500)
+
     def handle_api_composite_pipeline_latest(self):
         try:
             self.send_json(self._build_composite_pipeline_map())
@@ -2003,7 +2016,7 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             body = {}
 
         action = body.get("action", "start").lower()
-        interval = max(60, int(body.get("interval", 300)))
+        interval = max(30, int(body.get("interval", 300)))
 
         if action == "stop":
             if _NIGHTLY_DAEMON_STOP:

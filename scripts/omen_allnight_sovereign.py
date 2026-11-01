@@ -344,6 +344,38 @@ def execute_omen_prompt(
 # =============================================================================
 # FASE 1: TEST & AUDIT SUITE
 # =============================================================================
+def _code_fingerprint() -> str:
+    """Impronta del codice rilevante (HEAD + mtime di shared/, tests/, scripts/): se invariata si salta pytest."""
+    import hashlib
+    h = hashlib.sha256()
+    try:
+        h.update(subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), capture_output=True, text=True, timeout=5).stdout.encode())
+    except Exception:
+        pass
+    for sub in ("shared", "tests", "scripts"):
+        for f in sorted((ROOT / sub).glob("*.py")):
+            h.update(f"{f.name}:{f.stat().st_mtime_ns}".encode())
+    return h.hexdigest()
+
+
+AUDIT_FINGERPRINT_FILE = NIGHTLY_DIR / "audit_fingerprint.json"
+
+
+def _read_audit_fingerprint() -> Dict[str, Any]:
+    try:
+        return json.loads(AUDIT_FINGERPRINT_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _write_audit_fingerprint(fingerprint: str, passed: bool) -> None:
+    try:
+        AUDIT_FINGERPRINT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        AUDIT_FINGERPRINT_FILE.write_text(json.dumps({"fingerprint": fingerprint, "passed": passed}), encoding="utf-8")
+    except Exception:
+        pass
+
+
 def run_test_and_audit() -> Dict[str, Any]:
     """Esegue controlli di regressione, licensing e watchdog del nodo OMEN."""
     _log("AUDIT", "Avvio audit di integrità e test di sistema...")
@@ -360,6 +392,11 @@ def run_test_and_audit() -> Dict[str, Any]:
     ]
     existing_tests = [f for f in test_files if (ROOT / f).exists()]
     pytest_res = {"passed": False, "count": 0, "output": ""}
+    fingerprint = _code_fingerprint()
+    last = _read_audit_fingerprint()
+    if existing_tests and last and last.get("fingerprint") == fingerprint and last.get("passed"):
+        pytest_res = {"passed": True, "count": 0, "output": "invariato dall'ultimo audit: pytest saltato", "skipped": True}
+        existing_tests = []
     if existing_tests:
         cmd = [sys.executable, "-m", "pytest"] + existing_tests + ["-q"]
         try:
@@ -368,6 +405,7 @@ def run_test_and_audit() -> Dict[str, Any]:
             pytest_res["output"] = p.stdout.strip()[-200:] if p.stdout else p.stderr.strip()[-200:]
         except Exception as e:
             pytest_res["output"] = f"Pytest error: {e}"
+        _write_audit_fingerprint(fingerprint, pytest_res["passed"])
 
     # 1.2 OMEN Hardware Watchdog
     node_audit = {"online": False, "ac_line": False, "battery_pct": 0, "vram_gb": 0.0, "latency_ms": 0.0}
@@ -691,9 +729,9 @@ def run_single_allnight_cycle() -> Dict[str, Any]:
             return {"promote": {"skipped": "HYPERSPACE_AUTO_PROMOTE!=1"}}
         try:
             from scripts.diagnostics.auto_promote_prototypes import run_auto_promotion
-            rep = run_auto_promotion(apply=True, max_promotions=3, max_tested=10)
+            rep = run_auto_promotion(apply=True, max_promotions=3, max_tested=10, executor=execute_omen_prompt, backfill=3)
             _log("PROMOTE", f"Promozione automatica: {len(rep['promoted'])} promossi, "
-                            f"{len(rep['rolled_back'])} annullati, {rep['tested']} testati")
+                            f"{len(rep['rolled_back'])} annullati, {rep['tested']} testati, {rep['backfilled']} test recuperati")
             return {"promote": rep}
         except Exception as exc:
             _log("PROMOTE", f"Promozione automatica fallita (ciclo non interrotto): {exc}")

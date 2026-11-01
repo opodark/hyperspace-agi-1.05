@@ -3,12 +3,14 @@
 
 import ast
 import json
+import os
 import re
 import runpy
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from shared import mission_policy
 from shared.mission import MissionStore, task_review_status
@@ -569,6 +571,7 @@ class MissionContractTests(unittest.TestCase):
         self.assertIn("Artifact gate", prompts[-1])
         self.assertIn("PASS", prompts[-1])
 
+    @mock.patch.dict(os.environ, {"MISSION_LAYA_VERIFY_ENABLED": "false"})
     def test_the_task_verifier_is_scoped_to_the_task_not_the_mission(self):
         """Un task intermedio non va bocciato perché manca il deliverable finale.
 

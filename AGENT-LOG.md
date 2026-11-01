@@ -10772,3 +10772,30 @@ Nessun commit né push (da confermare).
 3. Primo giro reale: 42 elementi, 0 errori. Spunti: arXiv 2606.24322 (poisoning della memoria a lungo termine degli agenti, rilevante per i livelli di evidenza), generazione di test con LLM (ChatUniTest, arXiv 2501.11086), PoeLM e valutazione metro/rima per `NeuroSymbolicPoetryEngine`. Il tema «causal reasoning» ha dato risultati poco pertinenti: da raffinare la query.
 4. Cockpit riavviato e demone notturno riavviato per caricare il codice.
 5. Da verificare a mano: licenza e somiglianza di `LuckCow/ModularIntellect` (GitHub) con `shared/modular_intellect.py`, prima della vendita.
+
+## 2026-11-01 — Claude Code (Mac M5) → utente, Antigravity, Codex, Cline — Evoluzione più veloce: varianti, riparazione, test generati, pilastri pesati
+
+Su approvazione dell'utente dei sette punti. **Nessun commit né push (da confermare).**
+
+1. **Intervallo demone 30 s** (prima 600 s): minimo dell'API portato da 60 a 30 in `cockpit_service.py::handle_api_nightly_shift_daemon`. Demone riavviato con 30 s.
+2. **`shared/prototype_gates.py`** (nuovo): cancelli estratti da `auto_promote_prototypes.py` e riusati dal generatore, così il codice del modello non viene mai eseguito senza passare dai cancelli statici. `run_embedded_tests` ora usa `PYTHONDONTWRITEBYTECODE=1` e nomi unici: **bug trovato dai test**, due versioni dello stesso file con stessa dimensione nello stesso secondo riusavano il `.pyc` vecchio.
+3. **`shared/agi_research_engine.py`**: studio con fino a 3 varianti (`HYPERSPACE_STUDY_VARIANTS`) e uscita anticipata alla prima che passa i test; budget `HYPERSPACE_STUDY_BUDGET_S` (900 s). Se mancano i test li scrive il modello piccolo (`HYPERSPACE_TEST_MODEL`, default granite3.3:8b); se falliscono, una riparazione col log dell'errore. Il record riporta `generation` (varianti, riparazioni, test generati/passati). Pilastro scelto con `pick_pillar`: peso = 1/(1+moduli verificati) × tasso di test passati.
+4. **Promotore**: recupero all'indietro dei test (fino a 3 per ciclo, solo con `--apply`) per i prototipi sostanziosi senza test: scritti dal modello piccolo, validati, appesi al prototipo; 2 tentativi poi scarto. Il ciclo passa `execute_omen_prompt` come esecutore.
+5. **Audit**: `run_test_and_audit` salta pytest se l'impronta del codice (HEAD + mtime di shared/tests/scripts) è invariata e l'ultimo audit era verde.
+6. **ASUS**: nessuna modifica. `execute_omen_prompt` già instrada i modelli pesanti all'ASUS per primi se online. Dal flusso di routing: molti 503 «nodo occupato» sull'OMEN, timeout dell'ASUS e 2 errori 401 dall'OMEN (da indagare): per questo le varianti sono in sequenza e non in parallelo sullo stesso nodo.
+7. Test: `tests/test_study_generation.py` (nuovo) e ampliato `tests/test_auto_promote_prototypes.py`.
+
+## 2026-11-01 — Claude Code (Mac M5) → utente, Antigravity, Codex, Cline — Demone unico + digest R&D compatto
+
+Nessun commit né push (da confermare).
+
+1. **Due runner notturni in parallelo**: `omen_allnight_sovereign.py --daemon --interval 300` (PID 59025, dal 30 ottobre, codice vecchio: senza varianti, test generati, passo `promote`) più il demone nel cockpit. Stesso WAL (`data/nightly/wal`) e stessi nodi: spiega parte dei 503 (149 in 24 h). Con conferma dell'utente: terminato 59025, fermato il demone del cockpit, rilanciato il runner standalone con il codice nuovo: `scripts/omen_allnight_sovereign.py --daemon --interval 30` (log in `data/omen_allnight_daemon.log`). Per ricaricare il codice dopo modifiche va riavviato **questo** processo (il riavvio del cockpit non lo tocca).
+2. **`scripts/diagnostics/rd_digest.py`** (sola lettura, ~1,4 KB di testo): studi e qualità della generazione (varianti, test passati/falliti, test scritti dal modello piccolo, riparazioni), promossi, scarti principali, errori di rete (503/timeout/401/ASUS) e lista `ATTENZIONE` con le sole anomalie. Esposto anche in `GET /api/rd-digest?hours=N` (campo `testo` incluso). Test: `tests/test_rd_digest.py`.
+3. Prima lettura reale (24 h): 128 studi, 82 prototipi nuovi, 9 promossi (tutti di Antigravity), scarto dominante «nessun test incluso» (202), 6 errori 401 dall'OMEN da indagare (identità/firma del nodo).
+4. Uso consigliato per gli agenti: leggere il digest invece dei log e intervenire solo sulle voci in `ATTENZIONE`.
+
+## 2026-11-01 — Claude Code (Mac M5) → utente, Antigravity, Codex, Cline — Commit evoluzione R&D + riquadro digest + test reso deterministico
+
+1. Committati: varianti/riparazione/test generati (`shared/agi_research_engine.py`, `shared/prototype_gates.py`), recupero dei test nel promotore, audit saltato se invariato, intervallo demone 30 s, `rd_digest.py` + `/api/rd-digest` e il riquadro «Digest R&D» in `research.html`.
+2. `tests/test_agent_runtime_regressions.py::test_the_task_verifier_is_scoped_to_the_task_not_the_mission` falliva solo perché un modello locale (gate Laya, `shared/laya_client.py`, `127.0.0.1:11434`) rispondeva e saltava la chiamata che il test intercetta: dipendeva dall'ambiente, non dal codice. Il test ora imposta `MISSION_LAYA_VERIFY_ENABLED=false`. **Chi ha scritto il gate Laya**: i test del verificatore andrebbero isolati da servizi locali in generale.
+3. Suite: 8 failed (noti), 2978 passed. `integrations/moneyprinter/music/licenze.json` resta non committato (licenza brano da confermare).

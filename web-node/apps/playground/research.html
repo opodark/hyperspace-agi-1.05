@@ -339,6 +339,19 @@
       </div>
     </section>
 
+    <!-- SECTION 1.6: DIGEST R&D (cosa richiede attenzione) -->
+    <section id="rdDigestSection" class="glass-card rounded-3xl p-6 border border-slate-800 relative">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2"><span>📋</span> Digest R&D</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Ultime 24 ore in poche righe: generazione, promozioni, scarti, rete. In evidenza solo ciò che richiede un intervento.</p>
+        </div>
+        <button onclick="refreshRdDigest()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-mono text-xs flex items-center gap-1.5 transition"><span>🔄</span> Ricarica</button>
+      </div>
+      <div id="rdDigestAlerts" class="flex flex-col gap-2 mb-3"></div>
+      <pre id="rdDigestText" class="text-[11px] leading-relaxed text-slate-300 font-mono bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 whitespace-pre-wrap">Caricamento...</pre>
+    </section>
+
     <!-- SECTION 2: ISPETTORE AST PROTOTIPI & DEPLOY IN PRODUZIONE -->
     <section id="astInspectorSection" class="glass-card rounded-3xl p-6 border border-slate-800 relative">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -650,10 +663,29 @@
         refreshTreeData(),
         loadPrototypesList(),
         fetchNodeStream(),
-        refreshPipelineMap()
+        refreshPipelineMap(),
+        refreshRdDigest()
       ]);
+      setInterval(refreshRdDigest, 60000);
       // Auto-refresh rapido ogni 5 secondi per seguire il loop live del cluster
       setInterval(refreshAll, 5000);
+    }
+
+    async function refreshRdDigest() {
+      const text = document.getElementById('rdDigestText');
+      const alerts = document.getElementById('rdDigestAlerts');
+      try {
+        const res = await fetch('/api/rd-digest?hours=24');
+        const d = await res.json();
+        if (!res.ok || d.error) throw new Error(d.error || ('HTTP ' + res.status));
+        text.textContent = d.testo || '';
+        alerts.innerHTML = (d.attenzione || []).length
+          ? d.attenzione.map(a => `<div class="p-2.5 rounded-xl bg-amber-950/30 border border-amber-900/50 text-xs text-amber-300">⚠️ ${escapeHtml(a)}</div>`).join('')
+          : '<div class="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-900/50 text-xs text-emerald-300">Nessuna anomalia.</div>';
+      } catch (err) {
+        text.textContent = 'Errore caricamento digest: ' + err.message;
+        alerts.innerHTML = '';
+      }
     }
 
     // --- MAPPA PIPELINE COMPOSITE (AST import + promotions.jsonl, non il tier auto-dichiarato) ---

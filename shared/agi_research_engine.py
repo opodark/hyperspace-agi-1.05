@@ -35,6 +35,7 @@ if str(ROOT) not in sys.path:
 
 from shared.universal_model_parser import CavemanEngine, UniversalModelParser
 from shared.causal_memory_graph import CausalMemoryGraph
+from shared.prototype_gates import TEST_MODEL, evaluate_code, extract_code, repair_prompt, tests_prompt, with_tests
 
 RESEARCH_DIR = ROOT / "data" / "research"
 PROTOTYPES_DIR = RESEARCH_DIR / "prototypes"
@@ -262,13 +263,110 @@ class AGIResearchEngine:
         valid = self.get_valid_dossiers()
         return valid[-1] if valid else None
 
+    def pick_pillar(self) -> Dict[str, Any]:
+        """Sceglie il pilastro: meno moduli verificati e più studi con test passati = più probabile."""
+        verified: Dict[str, int] = {}
+        promo = self.data_dir / "promotions.jsonl"
+        if promo.exists():
+            for line in promo.read_text(encoding="utf-8").splitlines():
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                if (rec.get("evidence") or {}).get("tier") != "verified":
+                    continue
+                for p in RESEARCH_PILLARS:
+                    if p["id"] in str(rec.get("prototype_file", "")):
+                        verified[p["id"]] = verified.get(p["id"], 0) + 1
+        studies: Dict[str, List[int]] = {}
+        if self.deep_dives_log.exists():
+            for line in self.deep_dives_log.read_text(encoding="utf-8").splitlines():
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                passed = (rec.get("generation") or {}).get("tests_passed")
+                if passed is None:
+                    continue
+                n_p = studies.setdefault(rec.get("pillar_id", ""), [0, 0])
+                n_p[0] += 1
+                n_p[1] += 1 if passed else 0
+        weights = []
+        for p in RESEARCH_PILLARS:
+            n, ok = studies.get(p["id"], [0, 0])
+            weights.append((1.0 / (1 + verified.get(p["id"], 0))) * ((ok + 1) / (n + 2) + 0.25))
+        return random.choices(RESEARCH_PILLARS, weights=weights, k=1)[0]
+
+    @staticmethod
+    def _call_models(executor: Any, prompt: str, model: str, fallback: str):
+        res = executor(prompt, model=model, timeout=240)
+        if res.get("status") == "ok" and not res.get("response", "").startswith("[OLLAMA ERROR]"):
+            return res.get("response", ""), res.get("elapsed_s", 0.0), model
+        res = executor(prompt, model=fallback, timeout=120)
+        used = fallback if res.get("status") == "ok" else model
+        return res.get("response", ""), res.get("elapsed_s", 0.0), used
+
+    def _generate_best_variant(self, pillar: Dict[str, Any], full_prompt: str, executor: Any):
+        """Più varianti con uscita anticipata: test (anche generati dal modello piccolo) e una riparazione."""
+        budget = float(os.environ.get("HYPERSPACE_STUDY_BUDGET_S", "900"))
+        max_variants = max(1, int(os.environ.get("HYPERSPACE_STUDY_VARIANTS", "3")))
+        fallback = pillar.get("fallback_model", "granite3.3:8b")
+        workdir = self.data_dir / "tmp_candidates"
+        stats: Dict[str, Any] = {"variants": 0, "repairs": 0, "tests_generated": False, "tests_passed": None}
+        start = time.perf_counter()
+        best: Optional[Dict[str, Any]] = None
+        first_raw: Optional[Dict[str, Any]] = None
+
+        def rank(c: Dict[str, Any]) -> int:
+            return 2 if c["ok"] else (1 if c["has_tests"] else 0)
+
+        for v in range(max_variants):
+            if v > 0 and time.perf_counter() - start > budget:
+                break
+            stats["variants"] += 1
+            raw, elapsed, used = self._call_models(executor, full_prompt, pillar["target_model"], fallback)
+            if first_raw is None:
+                first_raw = {"code": "", "raw": raw, "elapsed": elapsed, "model": used, "ok": False, "has_tests": False}
+            code = extract_code(raw)
+            if not code:
+                continue
+            ev = evaluate_code(code, workdir, f"cand_{v}.py")
+            if ev.get("reason") == "no_tests":
+                res = executor(tests_prompt(code), model=TEST_MODEL, timeout=120)
+                block = extract_code(res.get("response", "")) if res.get("status") == "ok" else None
+                if block:
+                    combined = with_tests(code, block)
+                    ev2 = evaluate_code(combined, workdir, f"cand_{v}.py")
+                    if ev2.get("has_tests"):
+                        code, ev = combined, ev2
+                        stats["tests_generated"] = True
+            if (not ev.get("ok") and ev.get("reason") == "test falliti"
+                    and time.perf_counter() - start < budget):
+                res = executor(repair_prompt(code, ev.get("tail", "")), model=used, timeout=240)
+                fixed = extract_code(res.get("response", "")) if res.get("status") == "ok" else None
+                if fixed:
+                    ev_fix = evaluate_code(fixed, workdir, f"cand_{v}.py")
+                    stats["repairs"] += 1
+                    if ev_fix.get("ok") or ev_fix.get("has_tests"):
+                        code, ev = fixed, ev_fix
+            cand = {"code": code, "raw": raw, "elapsed": elapsed, "model": used,
+                    "ok": bool(ev.get("ok")), "has_tests": bool(ev.get("has_tests"))}
+            if best is None or rank(cand) > rank(best):
+                best = cand
+            if cand["ok"]:
+                break
+        chosen = best or first_raw
+        if chosen is not None and chosen["code"]:
+            stats["tests_passed"] = chosen["ok"] if chosen["has_tests"] else None
+        return chosen, stats
+
     def execute_study_cycle(
         self,
         pillar_id: Optional[str] = None,
         omen_executor_fn: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """Esegue uno studio approfondito su uno dei filoni di ricerca teorica."""
-        # Seleziona il pilastro
+        # Seleziona il pilastro (pesato sulla resa se non indicato)
         pillar = None
         if pillar_id:
             for p in RESEARCH_PILLARS:
@@ -276,7 +374,7 @@ class AGIResearchEngine:
                     pillar = p
                     break
         if not pillar:
-            pillar = random.choice(RESEARCH_PILLARS)
+            pillar = self.pick_pillar()
 
         t0 = time.perf_counter()
         topic_id = pillar["id"]
@@ -285,22 +383,14 @@ class AGIResearchEngine:
         references = load_research_references(topic_id)
         full_prompt = pillar["prompt"] + references_block(references) + PROTOTYPE_CONTRACT
 
-        # Se non è iniettata la funzione di esecuzione OMEN, usa esecuzione diretta o fallback mock
         raw_response = ""
         elapsed_s = 0.0
+        code_body = ""
+        gen_stats: Dict[str, Any] = {"variants": 0, "repairs": 0, "tests_generated": False, "tests_passed": None}
         if omen_executor_fn:
-            res = omen_executor_fn(full_prompt, model=model, timeout=240)
-            if res.get("status") == "ok" and not res.get("response", "").startswith("[OLLAMA ERROR]"):
-                raw_response = res.get("response", "")
-                elapsed_s = res.get("elapsed_s", 0.0)
-            else:
-                # Fallback al modello secondario (es. LFM2.5 24B o Granite 8B)
-                fallback = pillar.get("fallback_model", "granite3.3:8b")
-                res = omen_executor_fn(full_prompt, model=fallback, timeout=120)
-                raw_response = res.get("response", "")
-                elapsed_s = res.get("elapsed_s", 0.0)
-                if res.get("status") == "ok":
-                    model = fallback
+            best, gen_stats = self._generate_best_variant(pillar, full_prompt, omen_executor_fn)
+            if best:
+                raw_response, elapsed_s, model, code_body = best["raw"], best["elapsed"], best["model"], best["code"]
         else:
             raw_response = (
                 "<think>Analisi preliminare dei 5 assiomi di Aleksander</think>\n"
@@ -311,13 +401,14 @@ class AGIResearchEngine:
                 "```"
             )
 
-        # Parsing con UniversalModelParser
+        # Parsing con UniversalModelParser (ragionamento e riassunto dalla risposta scelta)
         parsed = UniversalModelParser.parse(raw_response)
-        valid_code = [b.code for b in parsed.code_blocks if b.is_valid_ast]
+        if not code_body:
+            valid_code = [b.code for b in parsed.code_blocks if b.is_valid_ast]
+            code_body = valid_code[0] if valid_code else ""
 
         ast_valid = False
         saved_prototype = None
-        code_body = valid_code[0] if valid_code else ""
         if code_body:
             try:
                 parsed_tree = ast.parse(code_body)
@@ -381,6 +472,7 @@ class AGIResearchEngine:
             "ast_valid": ast_valid,
             "prototype_file": saved_prototype,
             "references_used": references,
+            "generation": gen_stats,
             "findings_summary": self._extract_summary(parsed.clean_text or parsed.raw_text or raw_response),
             "evidence": {
                 "tier": "plausible",
