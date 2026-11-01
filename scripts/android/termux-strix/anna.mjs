@@ -48,7 +48,16 @@ function panel(title, lines, accent = T) {
   const w = W(), inner = w - 4;
   const fit = (s) => {
     const v = strip(s);
-    return v.length > inner ? s.slice(0, inner - 1) + "…" : s + " ".repeat(inner - v.length);
+    if (v.length <= inner) return s + " ".repeat(inner - v.length);
+    // taglio sui caratteri visibili: tagliare la stringa grezza spezzava i codici colore
+    let out = "", seen = 0;
+    for (const part of s.split(/(\x1b\[[0-9;]*m)/)) {
+      if (/^\x1b\[/.test(part)) { out += part; continue; }
+      const take = Math.min(part.length, inner - 1 - seen);
+      out += part.slice(0, Math.max(0, take));
+      seen += Math.max(0, take);
+    }
+    return out + R + "…";
   };
   const out = [`${accent}╭─ ${B}${title}${R}${accent} ${"─".repeat(Math.max(0, inner - title.length - 1))}╮${R}`];
   for (const l of lines) out.push(`${accent}│${R} ${fit(l)} ${accent}│${R}`);

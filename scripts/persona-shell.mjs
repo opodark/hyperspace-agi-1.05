@@ -107,16 +107,18 @@ const RESET = c("\x1b[0m"), DIM = c("\x1b[2m"), BOLD = c("\x1b[1m");
 const CYAN = c("\x1b[36m"), MAGENTA = c("\x1b[35m"), AMBER = c("\x1b[33m");
 const GREEN = c("\x1b[32m"), RED = c("\x1b[31m"), GREY = c("\x1b[90m");
 
-const width = () => Math.max(44, Math.min(stdout.columns || 100, 100));
+const width = () => Math.max(30, Math.min(stdout.columns || 100, 100));
 
 function wrap(text, inner) {
   const out = [];
   for (const raw of String(text).split("\n")) {
     if (raw.length <= inner) { out.push(raw); continue; }
     let line = "";
-    for (const word of raw.split(/(\s+)/)) {
+    for (let word of raw.split(/(\s+)/)) {
       if ((line + word).length > inner && line) { out.push(line); line = word.trimStart(); }
       else line += word;
+      // parola più larga del pannello (URL, percorsi): spezzata, non fa sforare il bordo
+      while (line.length > inner) { out.push(line.slice(0, inner)); line = line.slice(inner); }
     }
     out.push(line);
   }
@@ -128,10 +130,10 @@ function panel(title, body, accent = CYAN, foot = "") {
   const inner = w - 4;
   const head = `${accent}╭─ ${BOLD}${title}${RESET}${accent} ` + "─".repeat(Math.max(0, inner - title.length - 1)) + `╮${RESET}`;
   const rows = wrap(body, inner).map(
-    (seg) => `${accent}│${RESET} ${seg}${" ".repeat(inner - seg.length)} ${accent}│${RESET}`,
+    (seg) => `${accent}│${RESET} ${seg}${" ".repeat(Math.max(0, inner - seg.length))} ${accent}│${RESET}`,
   );
   const lines = [head, ...rows];
-  if (foot) lines.push(`${accent}│ ${DIM}${foot}${RESET}${" ".repeat(inner - foot.length)} ${accent}│${RESET}`);
+  if (foot) lines.push(`${accent}│ ${DIM}${foot}${RESET}${" ".repeat(Math.max(0, inner - foot.length))} ${accent}│${RESET}`);
   lines.push(`${accent}╰${"─".repeat(w - 2)}╯${RESET}`);
   console.log(lines.join("\n"));
 }
