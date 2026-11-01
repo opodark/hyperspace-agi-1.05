@@ -69,6 +69,18 @@ class TestMotionReels(unittest.TestCase):
                 esito = subprocess.run(["node", "--check", str(f)], capture_output=True, text=True)
                 self.assertEqual(esito.returncode, 0, esito.stderr)
 
+    def test_gli_stili_esistono(self):
+        for rid in build.reel_ids():
+            meta = build.read_meta((MOTION / "reels" / f"{rid}.js").read_text(encoding="utf-8"), rid)
+            for stile in meta["styles"]:
+                with self.subTest(reel=rid, stile=stile):
+                    self.assertTrue((build.STYLES / f"{stile}.js").is_file(), f"manca styles/{stile}.js")
+
+    def test_stile_sconosciuto_rifiutato(self):
+        js = '// @meta {"id": "x", "title": "x", "aria": "x", "styles": ["non-esiste"]}\nconst REEL = {};'
+        with self.assertRaises(SystemExit):
+            build.read_meta(js, "x")
+
     def test_le_parti_esistono_e_non_si_annidano(self):
         for rid in build.reel_ids():
             meta = build.read_meta((MOTION / "reels" / f"{rid}.js").read_text(encoding="utf-8"), rid)

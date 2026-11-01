@@ -10,6 +10,7 @@ e il video ha gli stessi font su Mac, OMEN e in un container.
 La riga `// @meta` può aggiungere, oltre a id, title e aria:
   "dur": 60                      durata in secondi (default 30)
   "formats": ["9:16", "16:9"]    formati disponibili; il primo è quello predefinito
+  "styles": ["arcade", "netdive"] librerie di stile in styles/<nome>.js, concatenate fra runtime.js e il reel
   "parts": ["rd-2026-10-27"]     reel di cui riusare le scene: nel codice sono `PARTS['<id>']`
   "assets": {"nome": "percorso"} immagini (percorso dalla radice del repo) incorporate come data URI: `IMGS['nome']`
 
@@ -36,6 +37,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 REELS = HERE / "reels"
+STYLES = HERE / "styles"
 FONTS = [  # (famiglia CSS, peso, file in fonts/)
     ("MeshDisplay", 900, "MeshDisplay-900.woff"),
     ("MeshDisplay", 600, "MeshDisplay-600.woff"),
@@ -63,10 +65,13 @@ def read_meta(js: str, reel_id: str) -> dict:
         raise SystemExit(f"reels/{reel_id}.js: @meta id `{meta['id']}` diverso dal nome del file")
     meta.setdefault("dur", 30)
     meta.setdefault("formats", ["9:16"])
+    meta.setdefault("styles", [])
     meta.setdefault("parts", [])
     meta.setdefault("assets", {})
     if unknown := [f for f in meta["formats"] if f not in SIZES]:
         raise SystemExit(f"reels/{reel_id}.js: formato sconosciuto {unknown} (validi: {', '.join(SIZES)})")
+    if missing := [s for s in meta["styles"] if not (STYLES / f"{s}.js").is_file()]:
+        raise SystemExit(f"reels/{reel_id}.js: stile sconosciuto {missing} (in styles/: {', '.join(p.stem for p in STYLES.glob('*.js'))})")
     return meta
 
 
@@ -122,8 +127,9 @@ def build_page(reel_id: str, fmt: str | None = None) -> tuple[str, dict]:
         raise SystemExit(f"{reel_id}: formato {fmt} non previsto (disponibili: {', '.join(meta['formats'])})")
     w, h = SIZES[fmt]
     cfg = f"const CFG = {json.dumps({'dur': meta['dur'], 'land': w > h})};\nconst ASSETS = {json.dumps(asset_uris(meta, reel_id))};"
+    styles = [(STYLES / f"{s}.js").read_text(encoding="utf-8") for s in meta["styles"]]
     lib = ["const PARTS = {};"] + [_part(p) for p in meta["parts"]] if meta["parts"] else []
-    parts = [cfg, (HERE / "runtime.js").read_text(encoding="utf-8"), *lib, reel_js, (HERE / "player.js").read_text(encoding="utf-8")]
+    parts = [cfg, (HERE / "runtime.js").read_text(encoding="utf-8"), *styles, *lib, reel_js, (HERE / "player.js").read_text(encoding="utf-8")]
     script = "\n".join(_strip_header(p) for p in parts)
     shell = (HERE / "shell.html").read_text(encoding="utf-8")
     shell = shell.split("\n", 1)[1]  # via il commento di licenza: la pagina pubblicata non ha <html> proprio

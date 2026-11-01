@@ -13,6 +13,7 @@ Il codice sta in `integrations/tiktok_editor/motion/`:
 | File | Ruolo |
 |---|---|
 | `runtime.js` | motore condiviso: easing, testo, sfondo a griglia, HUD, tagli di scena, mesh dei tre nodi, intro e chiusura |
+| `styles/<nome>.js` | libreria di stile riusabile (es. `arcade`, `netdive`): un reel la importa con `@meta "styles"` invece di ridefinire gli helper |
 | `reels/<id>.js` | un reel: le sue scene e la costante `REEL` (data, slogan, finestre delle scene, tagli) |
 | `player.js` | riproduzione nel browser, scrubber, `window.__renderAt(t)` per il render |
 | `shell.html` | pagina del player con i segnaposto che `build.py` sostituisce |
@@ -29,9 +30,11 @@ Reel presenti:
 - `atomic-2026-10-29`: lo sprint del commit `5bb44d0`, con i tre pattern da Atomic Agent (grammatiche GBNF, traccia NDJSON replayabile con i 10 eventi veri di `data/traces/atomic_dual_sprint_20261029_091406.ndjson`, Mutation Guard con le tre proposte `prop_*`), i tre moduli promossi e 15/15 test.
 - `panoramica-2026-10-29`: 60 s in 9:16 e 16:9, dieci scene prese dai cinque reel precedenti più il diario finale.
 - `voglio-te-2026-10-29`: primo reel commerciale, in stile manifesto d'epoca (carta, rosso, blu notte). Un personaggio col cilindro punta il dito: «Piccola azienda! Voglio te, per i tuoi social». Seguono il problema, il turno di notte sui computer dell'ufficio, l'approvazione al mattino col tasto annulla e l'invito finale. Sostituisce sfondo, intro, HUD, chiusura e tagli con `REEL.layers`.
-- `secops-2026-10-31`: 67 s sulla parte sicurezza, in stile arcade cyberpunk (nero e neon, font pixel 5×7 e alieni originali disegnati nel file, scanline CRT, scossa e glitch sui kick). Tempi agganciati ai beat reali del brano «Interressante Wand» (172 BPM, array `BT` da librosa): intro, otto stage sui due drop (Strix e Pocket Hub marcati *in sviluppo*), le regole di `shell_policy` nella pausa, game over e `os.zerozerocomputer.it`. L'audio si unisce dopo il render con `ffmpeg` (`-map 0:v -map 1:a`, dissolvenza finale): esce `secops-2026-10-31-musica.mp4`.
-- `contrattacco-2026-10-31`: 76 s, stile anime cyberpunk «netdive» (pioggia di codice, tunnel 3D, titoli inclinati con sdoppiamento cromatico, linee di velocità, bande cinema). Sul brano «die Stimmen gewinnen langsam» (172 BPM, beat in `BT`): ogni notte ci provano → contrattacco → «ti attacchiamo noi, prima di loro» (red team autorizzato sui sistemi del cliente, nessun attacco verso terzi) → Strix (*in sviluppo*), Security Lab, sandbox, journal, Spore, cancello MCP, mesh con Pocket Hub (*in sviluppo*) → rullo finale «documentato, reversibile, locale, nostro. Con noi non si scherza». Audio unito dopo il render: `contrattacco-2026-10-31-musica.mp4`.
+- `secops-2026-10-31`: 67 s sulla parte sicurezza, in stile arcade cyberpunk (nero e neon, font pixel 5×7 e alieni originali, scanline CRT, scossa e glitch sui kick). Gli helper dello stile stanno in `styles/arcade.js`, importati con `@meta "styles": ["arcade"]`: il reel tiene solo i beat (`BT`), il ritmo e le scene. Tempi agganciati ai beat reali del brano «Interressante Wand» (172 BPM, array `BT` da librosa): intro, otto stage sui due drop (Strix e Pocket Hub marcati *in sviluppo*), le regole di `shell_policy` nella pausa, game over e `os.zerozerocomputer.it`. L'audio si unisce dopo il render con `ffmpeg` (`-map 0:v -map 1:a`, dissolvenza finale): esce `secops-2026-10-31-musica.mp4`.
+- `contrattacco-2026-10-31`: 76 s, stile anime cyberpunk «netdive» (pioggia di codice, tunnel 3D, titoli inclinati con sdoppiamento cromatico, linee di velocità, bande cinema). Gli helper dello stile stanno in `styles/netdive.js`, importati con `@meta "styles": ["netdive"]`. Sul brano «die Stimmen gewinnen langsam» (172 BPM, beat in `BT`): ogni notte ci provano → contrattacco → «ti attacchiamo noi, prima di loro» (red team autorizzato sui sistemi del cliente, nessun attacco verso terzi) → Strix (*in sviluppo*), Security Lab, sandbox, journal, Spore, cancello MCP, mesh con Pocket Hub (*in sviluppo*) → rullo finale «documentato, reversibile, locale, nostro. Con noi non si scherza». Audio unito dopo il render: `contrattacco-2026-10-31-musica.mp4`.
 - `piccola-azienda-2026-10-29`, `studio-commercialista-2026-10-30`, `artigiani-2026-10-30`, `ristoranti-2026-10-30`: infografiche commerciali sulla narrazione registrata (voce clonata, testi in `integrations/moneyprinter/testi/`), con `REEL.layers` per togliere intro, chiusura R&D e HUD. Tempi delle scene dalle pause del parlato (`ffmpeg -af silencedetect`); nomi, scadenze e prezzi sono di fantasia. Il reel dei ristoranti è un'anteprima di un servizio non ancora realizzato. L'audio si unisce all'MP4 con `ffmpeg` (`-map 0:v -map 1:a`)
+- `youtube-our-world-2026-11-01`: *(script locale, non versionato: su git restano solo gli stili riusabili)* ~5 min, 16:9 nativo, stile videogioco + anime cyberpunk sul brano phonk «ROONIN — OUR WXRLD». Importa **sia** `arcade` **sia** `netdive` (`@meta "styles": ["netdive", "arcade"]`). Il brano si suona due volte: giro 1 «come funziona» (ferro e mesh, memoria con evidenza, dal codice al prodotto, sicurezza), giro 2 «perché siamo rari» (la nicchia, quattro punti di forza, il moat, i numeri veri, su misura). Beat ed energia (`BT`, `ENV`) da librosa sul file reale; tempo locale `lt(t) = t % 150,464`. Numeri a schermo reali (2 949 test, 558 commit in 139 giorni, commit per settimana); Strix marcato «in sviluppo». L'audio si unisce dopo il render con `ffmpeg -stream_loop 1 -map 0:v -map 1:a`.
+- `youtube-our-world-short-2026-11-01`: *(script locale, non versionato: su git restano solo gli stili riusabili)* variante **social verticale 9:16** del precedente, ~102 s (sotto i 2 minuti) per TikTok/Reels/Shorts. Un solo giro del brano, tagliato a partire dalla salita (offset `AOFF=16 s`) così apre con energia e il primo drop cade sulla mesh. Sei capitoli condensati (gancio, mesh, dal codice al prodotto, perché siamo rari, i numeri, chiusura), scene ricomposte in verticale, stessi moduli di stile. Audio: brano trimmato `[16 s .. 118 s]`.
 
 ## Generare un reel dal Reel Editor
 
@@ -91,6 +94,24 @@ Le scene illustrano, non misurano: grafici e simulazioni (curve PID, livello
 VRAM, code del rate limiter) sono animazioni dimostrative. I numeri scritti a
 schermo, come i conteggi dei test, vanno presi dai risultati reali.
 
+## Librerie di stile importabili
+
+Uno stile forte (il font pixel arcade, il tunnel netdive) vive in `styles/<nome>.js`
+e si importa con `@meta "styles": ["arcade", "netdive"]`: `build.py` lo concatena fra
+`runtime.js` e il reel, così più reel riusano gli stessi disegni invece di copiarli.
+
+| Stile | File | Contiene |
+|---|---|---|
+| `arcade` | `styles/arcade.js` | font pixel 5×7 (`ptext`, `gtext`, `fitCell`), sprite (`sprite`, `alien`, `ship`, `boom`, `tag`), testata `stage()`, HUD `arcadeHud`, pavimento in prospettiva `spaceBg`, glitch `glitchCuts` |
+| `netdive` | `styles/netdive.js` | titoli inclinati (`skewText`, `slam`), linee di velocità, `brackets`, `chip`, intestazione `op()`, nodi `nodeBox`, tunnel e pioggia di codice `netBg`, bande cinema `cineHud`, glitch e flash `netCuts` |
+
+I disegni sono parametrici su `W`/`H`, quindi funzionano sia in verticale (1080×1920)
+sia in 16:9 nativo. Le funzioni che dipendono dal ritmo lo leggono da un oggetto che il
+reel riempie: `ARCADE.beatIdx/kick/since/drops/hud` per arcade, `NETDIVE.power/thump/bIdx/slams/hud`
+per netdive. La palette è `ARCADE.C` (alias `AC` nel modulo) e `NETDIVE.C` (alias `NC`): un reel
+può farne un alias col nome che preferisce (es. `const N = ARCADE.C`). Dopo aver spostato uno stile
+in un modulo, verifica che i reel che lo usavano rendano identici: `--stills` prima e dopo, stessi PNG.
+
 ## Durata, formati e reel di raccolta
 
 La riga `// @meta` accetta tre chiavi facoltative:
@@ -99,6 +120,7 @@ La riga `// @meta` accetta tre chiavi facoltative:
 |---|---|---|
 | `"dur": 60` | `30` | durata in secondi: player, scrubber, HUD, chiusura e render si adeguano |
 | `"formats": ["9:16", "16:9"]` | `["9:16"]` | formati disponibili, il primo è il predefinito |
+| `"styles": ["arcade", "netdive"]` | nessuno | librerie di stile da `styles/<nome>.js`, concatenate fra `runtime.js` e il reel |
 | `"parts": ["rd-2026-10-27", …]` | nessuna | reel di cui riusare le scene, letti da `PARTS['<id>']` |
 
 Le scene si scrivono sempre in coordinate verticali 1080×1920. In 16:9 il
@@ -141,6 +163,20 @@ python3 integrations/tiktok_editor/motion/mix_youtube.py youtube-presentazione-2
 **Musica:** senza `--music-license` lo script si rifiuta di mixare un brano; `--draft` permette una bozza locale che esce con
 `-BOZZA-NON-PUBBLICARE` nel nome. Per i video da pubblicare vale la regola di `integrations/moneyprinter/music/licenze.json`:
 solo brani con licenza chiara. Le schermate vanno riviste prima dell'uso (IP, ID dei nodi, errori, nomi di persona).
+
+Per un video **a sola musica** (niente voce), come `youtube-our-world-2026-11-01`, l'audio non passa da
+`mix_youtube.py` ma si unisce con `ffmpeg` diretto. Se il brano è più corto del video, `-stream_loop` lo
+ripete; `-shortest` taglia alla durata del video:
+
+```bash
+python3 integrations/tiktok_editor/motion/build.py youtube-our-world-2026-11-01 --format 16:9 --render
+ffmpeg -y -i data/reel-projects/motion/youtube-our-world-2026-11-01/youtube-our-world-2026-11-01.mp4 \
+  -stream_loop 1 -i "<brano>.mp3" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k \
+  -af "afade=t=out:st=<dur-4>:d=4" -shortest -movflags +faststart <uscita>-con-audio.mp4
+```
+
+Vale sempre la regola della musica: licenza chiara, registrata in `integrations/moneyprinter/music/licenze.json`,
+e credito del brano nella descrizione di YouTube.
 
 ## Font
 
