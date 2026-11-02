@@ -10880,3 +10880,44 @@ Aperto: OMEN/ASUS (serve push per avere gli installer là), test in-weight vero.
 Aggiunta, stessa sessione: **Orca** (`stablyai/orca`, MIT, 1.4.245 già installato sul Mac) è il secondo modulo extra (`--with orca`, nessuna variabile in `.env`). Nota per tutti: Orca ha già hook in `~/.claude/settings.json` e un `antigravity-hook.sh` in `~/.orca/agent-hooks` dal 25/10; restano inerti fuori dai pannelli Orca (escono se mancano `ORCA_AGENT_HOOK_PORT/TOKEN`). Se si lavora in worktree Orca, i demoni restano sul checkout principale (i worktree non hanno `.env`, `.venv`, `data/`, `modules/`).
 
 Aggiunta, stessa sessione (ok dell'utente): onboarding a **pacchetti** (`--package agenti|documenti|verifica` o menu "cosa farai con questo nodo?"), 7 moduli con stato onesto (verificato / sperimentale / non provato) e requisiti: orca, openwork, onlyoffice, anydoc, unlimited_ocr, rea, qwenputer. Laya volutamente **non** è un extra (va su ogni nodo). Guida in `docs/node-onboarding-v2.md` §5. **Per tutti gli agenti**: `.gitattributes` ora ha `AGENT-LOG.md merge=union`, così i blocchi aggiunti in coda su branch diversi non vanno più in conflitto al merge. Test: 19 passed (onboarding + bridge).
+
+
+## 2026-11-02 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Saldatura REA × Qwenputer (Ispezione/Disasm ELF32 RV32IM Soft-Float & Verifica Clean-Room con `trace_hash`)
+
+Su richiesta dell'utente ("io me lo vedrei bene con REA reverse engineering everything... procedi"), ho esteso [`shared/qwenputer_bridge.py`](shared/qwenputer_bridge.py), [`scripts/diagnostics/qwenputer_mesh_probe.py`](scripts/diagnostics/qwenputer_mesh_probe.py), [`tests/test_qwenputer_bridge.py`](tests/test_qwenputer_bridge.py) e [`docs/qwenputer-in-weight-cpu.md`](docs/qwenputer-in-weight-cpu.md) per unire la superficie statica **REA** (`scripts/rea_surface.py` + `rea` 6.7.0 + Ghidra 12.1.4) con l'esecutore deterministico RV32IM di **Qwenputer**, allineandomi alle modifiche di Claude Code (`QWENPUTER_DIR` su `modules/qwenputer`, `cuda_triton_ready = None` e rimozione del clone duplicato in `scratch/qwenputer`).
+
+1. **Colmata lacuna di REA 6.7.0 / Ghidra su ELF32 RV32IM Soft-Float**:
+   - Verificato con `/Users/opo/.npm-global/bin/rea inspect modules/qwenputer/experimental/riscv/tests/data/rv/c-crc32.elf --json` che la corsia RISC-V di Ghidra rifiuta i binari RV32IM privi di FPU doppia con `architecture_unsupported` (*"requires the EF_RISCV_FLOAT_ABI_DOUBLE declaration (unspecified (soft-float convention) observed)"*).
+   - Aggiunti in `QwenputerBridge`:
+     - `inspect_rv32_elf(elf_path)`: analisi statica pura di header ELF32 (`e_machine = 243`, flag ABI soft/double/RVC, compatibilità con la mappa ROM/RAM Qwenputer), segmenti `PT_LOAD`, tabella simboli `.symtab`/`.strtab` e audit completo delle istruzioni (incluse le 4 istruzioni custom Bignum `BMAC`/`BMSB`/`BLD`/`BPRD` su opcode `0x0b`, 1.080 occorrenze in `calc-bridge.elf`).
+     - `disassemble_rv32_function(elf_path, symbol_or_addr)`: disassemblaggio puntuale di funzioni per nome simbolo o indirizzo esadecimale usando il decoder `chipformer.rv.asm.disasm`.
+     - `execute_rv32_elf(elf_path)`: esecuzione clean-room nella macchina di riferimento RV32IM con `trace_hash` SHA-256 (es. `c-crc32.elf` → `exit_code = 1095738169`).
+2. **Verifica Clean-Room REA × Qwenputer (`verify_cleanroom_equivalence` & `prepare_rea_cleanroom_bundle`)**:
+   - `execute_riscv_asm` ora supporta `initial_mem` (iniezione di byte/buffer in RAM prima dell'esecuzione) e calcola un `trace_hash` SHA-256 deterministico sui record di stato della macchina.
+   - `verify_cleanroom_equivalence(asm_source, test_vectors)` esegue una routine RV32IM ricostruita in camera bianca su una batteria di vettori di test, verifica registri ed `exit_code`, calcola `composite_trace_hash` e genera un blocco `evidence` conforme a `shared/memory_schema.py::validate_evidence` (`tier: verified` con `basis[0].kind = "check"` e `output_sha256`, oppure `tier: refuted` con `basis[0].kind = "refutation"`).
+   - `prepare_rea_cleanroom_bundle(rea_job_or_id, asm_source, test_vectors)` legge un job reale di REA (`data/rea/jobs/<id>/job.json`, `report.json`, `stdout.json`), estrae `target_sha256`, `rea_evidence_id` e il C decompilato da Ghidra, e lo salda alla certificazione dinamica clean-room RV32IM **senza mai eseguire il binario originale sull'host**.
+   - Testato dal vivo sul job reale Ghidra `data/rea/jobs/4c8555419121` (`decompile 0x100000460` su `prova_nativa`, funzione `_parse_input`): 3/3 vettori (`"" → 0`, `"A" → 71`, `"ciao" → 436`) certificati `VERIFIED` con `composite_trace_hash = 048f792b3209327bb83d2f55deed0cd7e978ad160d881b98ceadaadd4bf9772d`.
+3. **CLI Diagnostica e Test**:
+   - `scripts/diagnostics/qwenputer_mesh_probe.py` esteso con `--inspect-elf`, `--disassemble <elf>:<simbolo>` e `--rea-cleanroom-demo` (oltre a `--all-nodes`, `--benchmark`, `--calc`). Tutti e 3 i nodi (`Mac M5 Hub`, `HP OMEN 16`, `ASUS V16`) risultano raggiungibili.
+   - Suite `tests/test_qwenputer_bridge.py` estesa a **10 test unitari** (`23 passed` insieme a `tests/test_node_onboarding.py` in 1,31s). Rimossa la copia ridondante `scratch/qwenputer` in favore di `modules/qwenputer`.
+
+Nessun commit né push senza autorizzazione esplicita dell'utente (Regola 3 `AGENTS.md`).
+
+
+## 2026-11-02 — Antigravity (Mac M5) → utente, Claude Code, Codex, Cline — Integrazione Substrato d'Inferenza Rust `ekzhang/resin` per il Passaggio a HyperSpace 1.06
+
+Su richiesta dell'utente ("ok integriamo https://github.com/ekzhang/resin sarà il nostro passaggio alla 1.06"), ho integrato **`ekzhang/resin`** (Eric Zhang, Apache-2.0, commit fissato `3f68b0a5024859e0f7cef8b7a348adb8c3293c5d`) come modulo del substrato d'inferenza di HyperSpace 1.06:
+
+1. **Installazione e Compilazione Nativa Rust (`modules/resin`)**:
+   - Creati [`scripts/install_resin.sh`](scripts/install_resin.sh) (macOS/Linux) e [`scripts/install-resin.ps1`](scripts/install-resin.ps1) (Windows): clonano `ekzhang/resin` in `modules/resin` al commit `3f68b0a502`, eseguono la suite di test Rust (`cargo test -p resin-core -p resin-recipe -p resin-http`, 100% verde su Mac M5 con `rustc 1.95.0`) e compilano in release il binding PyO3 ABI3 `resin._resin` (`modules/resin/resin/_resin.so`).
+   - Registrato il modulo extra `"resin"` (`RESIN_SUBSTRATE_ENABLED=true`) e il pacchetto `"substrato"` (`["resin", "qwenputer"]`) in [`scripts/node_onboarding.py`](scripts/node_onboarding.py).
+2. **Bridge Sovrano `shared/resin_bridge.py` (`ResinBridge`)**:
+   - `get_substrate_info()`: espone versione (`0.1.0`), commit fissato, i 4 crate Rust (`resin-core`, `resin-http`, `resin-py`, `resin-recipe`), i 3 pacchetti runner (`cuda`, `mlx`, `torch`) e le 2 skill upstream (`add-resin-model`, `optimize-resin-performance`).
+   - `simulate_hybrid_slab_schedule()`: esegue un ciclo transazionale reale su `resin.Engine` con layout di cache ibrido (`CacheGroupFamily.HISTORY` per la KV cache d'attenzione + `CacheGroupFamily.STATE` per gli stati ricorrenti Gated DeltaNet / Qwenputer RAM), `prefix_cache=True` e `enable_metrics=True`. Verifica il commit degli snapshot `STATE` (`with_state_checkpoints`) e il riuso del prefisso (`cached_tokens == 4`, `2 hits`, `3 restored`) per sciami multi-agente che condividono il prompt di sistema, emettendo un blocco `evidence` (`tier: verified`) validato da `shared.memory_schema.validate_evidence`.
+   - `check_mesh_nodes_readiness()`: ispeziona la prontezza 1.06 sui 3 nodi della mesh (`Mac M5 Hub` per `resin_models_mlx`, `HP OMEN 16` per `resin_models_cuda`, `ASUS V16` per il pool DDR5 da 48 GB).
+3. **Diagnostica, Test e Documentazione**:
+   - Creato [`scripts/diagnostics/resin_mesh_probe.py`](scripts/diagnostics/resin_mesh_probe.py) (`--all-nodes`, `--simulate-hybrid`, `--json`).
+   - Creato [`tests/test_resin_bridge.py`](tests/test_resin_bridge.py): eseguendo insieme `test_resin_bridge.py`, `test_qwenputer_bridge.py` e `test_node_onboarding.py` passano tutti i **26 test in 1,86s**.
+   - Scritto [`docs/resin-inference-substrate-1.06.md`](docs/resin-inference-substrate-1.06.md).
+
+Nessun commit né push senza autorizzazione esplicita dell'utente (Regola 3 `AGENTS.md`).

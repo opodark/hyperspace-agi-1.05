@@ -198,6 +198,17 @@ EXTRA_MODULES: Dict[str, Dict[str, Any]] = {
         },
         "note": "Test in-weight (--in-weight / -InWeight) solo con >= 24 GB di RAM: OMEN o ASUS, non il Mac.",
     },
+    "resin": {
+        "label": "Resin 1.06 — Substrato d'inferenza Rust con slab pool KV + DeltaNet STATE (ekzhang/resin, Apache-2.0)",
+        "status": "verificato (resin-core/recipe/http + binding Python _resin verificati su Mac M5)",
+        "requires": "Rust toolchain (cargo >= 1.85), Python 3.11+ con numpy",
+        "env": {"RESIN_SUBSTRATE_ENABLED": "true"},
+        "install": {
+            "posix": "bash scripts/install_resin.sh",
+            "windows": "powershell -ExecutionPolicy Bypass -File scripts\\install-resin.ps1",
+        },
+        "note": "Fondamenta di HyperSpace 1.06: scheduler Rust headless + cache ibrida HISTORY/STATE con prefix reuse LRU.",
+    },
 }
 
 # Pacchetti: cosa farai con il nodo -> quali moduli. È la mini-guida alla scelta.
@@ -216,6 +227,11 @@ EXTRA_PACKAGES: Dict[str, Dict[str, Any]] = {
         "label": "Verifica e reverse engineering",
         "when": "Analisi di binari/artefatti senza eseguirli e calcolo deterministico verificabile.",
         "modules": ["rea", "qwenputer"],
+    },
+    "substrato": {
+        "label": "Substrato Inferenza 1.06 (Resin + Qwenputer)",
+        "when": "Nodo che esegue lo scheduler Rust Resin 1.06 con cache ibrida KV/DeltaNet e co-processore RV32IM.",
+        "modules": ["resin", "qwenputer"],
     },
 }
 
