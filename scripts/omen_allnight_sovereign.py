@@ -453,6 +453,7 @@ def run_autonomous_dev_distillation(cycles: int = 1) -> Dict[str, Any]:
         _log("DEV", f"Esecuzione task '{task_info['topic']}' su modello {model}...")
 
         res = execute_omen_prompt(task_info["prompt"], model=model, timeout=DEV_TIMEOUT)
+        node = res.get("routed_via", "unknown")
         if res.get("status") == "ok":
             parsed = UniversalModelParser.parse(res["response"])
             valid_blocks = [b.code for b in parsed.code_blocks if b.is_valid_ast]
@@ -475,15 +476,17 @@ def run_autonomous_dev_distillation(cycles: int = 1) -> Dict[str, Any]:
                 laya_accept, laya_note = True, ""
                 try:
                     from shared.laya_client import decide_noul
+                    t_laya = time.perf_counter()
                     judgment = decide_noul(
                         f"Task: {task_info['topic']}\n\nRagionamento: {parsed.reasoning_cot[:800]}\n\nCodice:\n{first_code[:1500]}",
                         "Il codice e il ragionamento affrontano concretamente il task richiesto, "
                         "con una logica non banale (non uno stub vuoto, un placeholder o un rifiuto)?",
                         min_confidence=0.6,
                     )
+                    laya_ms = round((time.perf_counter() - t_laya) * 1000, 1)
                     if judgment and not judgment.get("abstention") and judgment.get("confidence", 0) >= 0.6:
                         laya_accept = judgment["is_yes"]
-                        laya_note = f" [laya noul={judgment['noul']:.2f} conf={judgment['confidence']:.2f}]"
+                        laya_note = f" [laya noul={judgment['noul']:.2f} conf={judgment['confidence']:.2f} {laya_ms}ms]"
                 except Exception:
                     pass
 
@@ -501,15 +504,17 @@ def run_autonomous_dev_distillation(cycles: int = 1) -> Dict[str, Any]:
                     with open(COT_DATASET, "a", encoding="utf-8") as f:
                         f.write(json.dumps(entry) + "\n")
                     distilled += 1
-                    results.append({"topic": task_info["topic"], "model": model, "valid": True})
-                    _log("DEV", f"✓ Task '{task_info['topic']}' distillato e verificato AST con successo.{laya_note}")
+                    results.append({"topic": task_info["topic"], "model": model, "node": node, "valid": True})
+                    _log("DEV", f"✓ Task '{task_info['topic']}' distillato e verificato AST con successo.{laya_note}", node=node)
                 else:
-                    results.append({"topic": task_info["topic"], "model": model, "valid": False, "reason": f"Scartato dal triage Laya{laya_note}"})
-                    _log("DEV", f"✗ Task '{task_info['topic']}' scartato dal triage Laya (qualità insufficiente).{laya_note}")
+                    results.append({"topic": task_info["topic"], "model": model, "node": node, "valid": False, "reason": f"Scartato dal triage Laya{laya_note}"})
+                    _log("DEV", f"✗ Task '{task_info['topic']}' scartato dal triage Laya (qualità insufficiente).{laya_note}", node=node)
             else:
-                results.append({"topic": task_info["topic"], "model": model, "valid": False, "reason": "No CoT or AST invalid"})
+                results.append({"topic": task_info["topic"], "model": model, "node": node, "valid": False, "reason": "No CoT or AST invalid"})
+                _log("DEV", f"○ Task '{task_info['topic']}' senza CoT o AST non valido (modello {model}).", node=node)
         else:
-            results.append({"topic": task_info["topic"], "model": model, "valid": False, "error": res.get("error")})
+            results.append({"topic": task_info["topic"], "model": model, "node": node, "valid": False, "error": res.get("error")})
+            _log("DEV", f"✗ Task '{task_info['topic']}' errore di rete su modello {model}: {res.get('error')}", node=node)
 
         time.sleep(2)
 

@@ -17,9 +17,12 @@ import argparse
 import collections
 import datetime
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+LAYA_NOTE_RE = re.compile(r"\[laya noul=([\d.]+) conf=([\d.]+) ([\d.]+)ms\]")
 
 ROOT = Path(__file__).resolve().parents[2]
 RESEARCH = ROOT / "data" / "research"
@@ -82,6 +85,13 @@ def build_digest(hours: float = 24.0) -> Dict[str, Any]:
     reasons = collections.Counter(str(v).split(":")[0].split("(")[0].strip() for v in state.get("rejected", {}).values())
 
     net: collections.Counter = collections.Counter()
+    # Capacità per nodo fisico (OMEN vs ASUS), misurata con Laya come sensore: ogni riga DEV
+    # porta già il nodo che ha risposto (routed_via) e, quando Laya ha giudicato, la sua
+    # confidenza e latenza — non serve un benchmark separato, basta aggregare il log.
+    per_node: Dict[str, Dict[str, Any]] = collections.defaultdict(
+        lambda: {"accettati": 0, "scartati_laya": 0, "senza_cot_o_ast": 0, "errori": 0,
+                 "laya_confidenze": [], "laya_latenze_ms": []}
+    )
     for r in _jsonl(NIGHTLY / "node_stream.jsonl"):
         if _ts(r.get("timestamp")) < since:
             continue
@@ -89,6 +99,31 @@ def build_digest(hours: float = 24.0) -> Dict[str, Any]:
         for name, needle in NET_PATTERNS.items():
             if needle in msg:
                 net[name] += 1
+        if r.get("tag") != "DEV":
+            continue
+        node = r.get("node", "OMEN-16")
+        slot = per_node[node]
+        if msg.startswith("✓"):
+            slot["accettati"] += 1
+        elif msg.startswith("✗") and "triage Laya" in msg:
+            slot["scartati_laya"] += 1
+        elif msg.startswith("✗"):
+            slot["errori"] += 1
+        elif msg.startswith("○"):
+            slot["senza_cot_o_ast"] += 1
+        m = LAYA_NOTE_RE.search(msg)
+        if m:
+            slot["laya_confidenze"].append(float(m.group(2)))
+            slot["laya_latenze_ms"].append(float(m.group(3)))
+
+    capacita_nodi = {}
+    for node, slot in per_node.items():
+        confs, lats = slot.pop("laya_confidenze"), slot.pop("laya_latenze_ms")
+        slot["laya_conf_media"] = round(sum(confs) / len(confs), 2) if confs else None
+        slot["laya_latenza_media_ms"] = round(sum(lats) / len(lats), 1) if lats else None
+        tot = slot["accettati"] + slot["scartati_laya"]
+        slot["tasso_accettazione_laya"] = round(slot["accettati"] / tot, 2) if tot else None
+        capacita_nodi[node] = slot
 
     try:
         cyc = json.loads((NIGHTLY / "omen_allnight_state.json").read_text(encoding="utf-8"))
@@ -125,6 +160,7 @@ def build_digest(hours: float = 24.0) -> Dict[str, Any]:
         "prototipi": {"totali": len(protos), "nuovi": nuovi},
         "scarti_principali": reasons.most_common(5),
         "rete": dict(net),
+        "capacita_nodi": capacita_nodi,
         "ultimo_ciclo": ciclo,
         "attenzione": attenzione,
     }
@@ -142,6 +178,15 @@ def render(d: Dict[str, Any]) -> str:
         "- scarti: " + (", ".join(f"{k} ({v})" for k, v in d["scarti_principali"]) or "nessuno"),
         "- rete: " + (", ".join(f"{k}={v}" for k, v in d["rete"].items()) or "nessun errore"),
     ]
+    if d.get("capacita_nodi"):
+        lines.append("- capacità per nodo (Laya come sensore):")
+        for node, c in d["capacita_nodi"].items():
+            lines.append(
+                f"    {node}: accettati {c['accettati']}, scartati-Laya {c['scartati_laya']}, "
+                f"senza CoT/AST {c['senza_cot_o_ast']}, errori {c['errori']}, "
+                f"tasso accettazione {c['tasso_accettazione_laya']}, "
+                f"Laya conf. media {c['laya_conf_media']}, latenza media {c['laya_latenza_media_ms']} ms"
+            )
     c = d["ultimo_ciclo"]
     if c:
         lines.append(f"- ultimo ciclo {c.get('id')} {c.get('stato')} in {c.get('durata_s')} s, fasi: {', '.join(c.get('fasi', []))}")

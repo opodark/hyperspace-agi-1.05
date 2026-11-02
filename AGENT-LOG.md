@@ -10921,3 +10921,16 @@ Su richiesta dell'utente ("ok integriamo https://github.com/ekzhang/resin sarà 
    - Scritto [`docs/resin-inference-substrate-1.06.md`](docs/resin-inference-substrate-1.06.md).
 
 Nessun commit né push senza autorizzazione esplicita dell'utente (Regola 3 `AGENTS.md`).
+
+## 2026-11-02 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Scheduler giorno/notte per il substrato (Resin+Qwenputer) vs ciclo R&D
+
+Richiesta dell'utente: Resin/Qwenputer (build Rust pesanti, benchmark sui nodi) hanno priorità di giorno; il ciclo R&D (`omen_allnight_sovereign.py --daemon`, che di fatto gira 24/7 nonostante il nome) non deve più contendere CPU con quelle build durante il giorno.
+
+Nuovo **`scripts/substrate_day_scheduler.py`** (demone leggero, nessuna dipendenza esterna):
+- Finestra notte configurabile (`SUBSTRATE_NIGHT_START_HOUR`/`_END_HOUR`, default 21:00-07:00): di notte garantisce il ciclo R&D attivo (lo avvia se serve); di giorno lo ferma (`SIGTERM`, nessuna perdita — riprende dal WAL come un riavvio manuale) e lancia la batteria `resin_mesh_probe.py` + `qwenputer_mesh_probe.py --all-nodes --json`, loggata in `data/nightly/day_battery_log.jsonl` (ripetuta ogni `SUBSTRATE_BATTERY_INTERVAL_S`, default 1h, mentre resta giorno).
+- `--status` (sola lettura), `--once` (un controllo), `--daemon --interval N` (loop).
+- Test: `tests/test_substrate_day_scheduler.py`, 11 passed (finestra che attraversa la mezzanotte, transizioni solo al cambio modo, batteria subito alla transizione + periodica, non doppio avvio/arresto).
+
+**Azione presa ora** (richiesta esplicita, ore 11:01 CET = giorno): fermato il ciclo R&D (PID 92519) e avviato lo scheduler come demone (`nohup ... --daemon --interval 300`, log in `data/nightly/substrate_scheduler.log`). Primo giro della batteria completato: OMEN e ASUS **entrambi raggiungibili** in rete per Resin e Qwenputer (`cluster_ready: true` su entrambi i probe), ma **non ancora installati** là — resta da fare `install_resin.sh`/`install-resin.ps1` e `install_qwenputer.sh`/`.ps1` su quei nodi (manuale, nessun accesso remoto da qui).
+
+Non commitato né pushato: in attesa di conferma esplicita per il nuovo script/scheduler, come da protocollo.
