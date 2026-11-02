@@ -56,6 +56,9 @@ wg0.conf
 # Node
 node_modules/
 
+# Moduli extra di terze parti installati dall'onboarding (es. scripts/install_qwenputer.sh)
+modules/
+
 # Report generati — artefatti, non sorgenti (scripts/generate_test_report.py)
 reports/
 output/

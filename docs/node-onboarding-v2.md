@@ -181,6 +181,26 @@ python scripts/node_onboarding.py --profile dev --apply
 python scripts/node_onboarding.py --profile hub --apply
 ```
 
+### Moduli extra (facoltativi, su qualunque profilo)
+
+Il profilo dice cosa *è* il nodo; i moduli extra aggiungono cosa ci *fai*. Si scelgono per
+pacchetto, nel menu interattivo o con `--package` / `--with`:
+
+```bash
+python scripts/node_onboarding.py --profile dev --package agenti --package verifica
+python scripts/node_onboarding.py --profile compute --with qwenputer
+```
+
+| Pacchetto | Scegli se… | Moduli |
+|---|---|---|
+| `agenti` | più agenti lavorano in parallelo sullo stesso repo | `orca`, `openwork` |
+| `documenti` | il nodo lavora su Word/Excel/PDF per clienti o PMI | `onlyoffice`, `anydoc`, `unlimited_ocr` |
+| `verifica` | analizzi binari senza eseguirli o ti serve calcolo deterministico | `rea`, `qwenputer` |
+
+Per ogni modulo il piano stampa **stato** (verificato / sperimentale / non provato), requisiti
+e comando d'installazione per il sistema operativo. Il registro è `EXTRA_MODULES` in
+`scripts/node_onboarding.py`. Laya non è un extra: va su ogni nodo.
+
 ---
 
 ## 6. Le 4 Trappole Note da Evitare

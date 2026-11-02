@@ -115,6 +115,119 @@ SERVICES_BY_PROFILE: Dict[str, Dict[str, List[str]]] = {
 }
 
 
+# Moduli facoltativi, indipendenti dal profilo. "status" dice cosa è stato provato davvero:
+# verificato = provato end-to-end su un nostro nodo; sperimentale = provato in parte; non provato.
+# Laya non è qui: va su ogni nodo (start-laya.ps1 / scripts/laya_service.py), non è un extra.
+EXTRA_MODULES: Dict[str, Dict[str, Any]] = {
+    "orca": {
+        "label": "Orca — workspace multi-agente, un git worktree per agente (stablyai/orca, MIT)",
+        "status": "verificato (installato sul Mac, 1.4.245)",
+        "requires": "app desktop macOS/Windows/Linux",
+        "env": {},
+        "install": {
+            "posix": "brew install --cask stablyai/orca/orca   (Linux: AUR stably-orca-bin o GitHub Releases)",
+            "windows": "installer da https://github.com/stablyai/orca/releases",
+        },
+        "note": "Servizi e demoni (notturno, cockpit, Laya) restano sul checkout principale: "
+                "i worktree non hanno .env, .venv, data/ né modules/.",
+    },
+    "openwork": {
+        "label": "OpenWork + OpenCode — coworker desktop collegato al Control Plane via MCP",
+        "status": "non provato (solo analisi, docs/openwork-hyperspace.md)",
+        "requires": "app desktop; token MCP >= 32 caratteri",
+        "env": {
+            "MCP_CLIENTS": "openwork=hyperspace_openwork_local_client_token_32chars",
+            "MCP_CLIENT_TOOLS": "openwork=code_sandbox,omega_query,web_search",
+        },
+        "install": {
+            "posix": "vedi docs/node-onboarding-v2.md §4.A (opencode.jsonc -> scripts/mcp_stdio_bridge.py)",
+            "windows": "vedi docs/node-onboarding-v2.md §4.A (opencode.jsonc -> scripts/mcp_stdio_bridge.py)",
+        },
+        "note": "Sostituisci il token MCP d'esempio con uno tuo prima di esporre il Control Plane.",
+    },
+    "onlyoffice": {
+        "label": "ONLYOFFICE Desktop + bridge /office/* (riassunti, riscritture, compiti da verbali)",
+        "status": "sperimentale (bridge Fase C implementato e testato, editor da collegare)",
+        "requires": "ONLYOFFICE Desktop Editors (gratuito), Control Plane attivo",
+        "env": {"OFFICE_BRIDGE_ENABLED": "true"},
+        "install": {
+            "posix": "ONLYOFFICE Desktop dal sito ufficiale, poi docs/onlyoffice-bridge.md (Fase A)",
+            "windows": "ONLYOFFICE Desktop dal sito ufficiale, poi docs/onlyoffice-bridge.md (Fase A)",
+        },
+        "note": "Genera OFFICE_BRIDGE_TOKEN (>= 32 caratteri) con "
+                "python -c \"import secrets; print(secrets.token_hex(32))\": senza token il bridge risponde 503.",
+    },
+    "anydoc": {
+        "label": "AnyDoc — skill di conversione documenti d'ufficio in Markdown (firecrawl, vendorizzate)",
+        "status": "vendorizzato (vendor/anydoc, commit fissato)",
+        "requires": "nessuno",
+        "env": {},
+        "install": {"posix": "già nel repo: vendor/anydoc", "windows": "già nel repo: vendor/anydoc"},
+        "note": "",
+    },
+    "unlimited_ocr": {
+        "label": "Unlimited-OCR — lettura di scansioni PDF/immagini (tool leggi_documento_ocr)",
+        "status": "sperimentale (client integrato, server vLLM mai avviato da noi)",
+        "requires": "nodo NVIDIA con vLLM per il server; il client gira ovunque",
+        "env": {"UNLIMITED_OCR_MODEL": "baidu/Unlimited-OCR"},
+        "install": {
+            "posix": "server: ricetta vLLM in docs/unlimited-ocr.md; poi UNLIMITED_OCR_BASE_URL nel .env",
+            "windows": "server: ricetta vLLM in docs/unlimited-ocr.md; poi UNLIMITED_OCR_BASE_URL nel .env",
+        },
+        "note": "Le pagine vanno all'endpoint configurato: usane solo uno autorizzato a riceverle.",
+    },
+    "rea": {
+        "label": "REA — analisi statica di binari e artefatti, opzionale Ghidra (rea-agents, MIT)",
+        "status": "verificato (Mac, rea 6.1.0 + Ghidra 12.1.4, 9/10)",
+        "requires": "Node 22.19+; Ghidra + JDK 21 per decompile/xrefs (~600 MB)",
+        "env": {},
+        "install": {
+            "posix": "npm install --global rea-agents && .venv/bin/python scripts/rea_surface.py --check",
+            "windows": "npm install --global rea-agents && .venv\\Scripts\\python scripts\\rea_surface.py --check",
+        },
+        "note": "Su Apple Silicon il decompiler di Ghidra va compilato: docs/rea-surface.md.",
+    },
+    "qwenputer": {
+        "label": "Qwenputer — CPU RISC-V compilata nei pesi di Qwen3.5-4B (divagr18/qwenputer, MIT)",
+        "status": "sperimentale (macchina di riferimento verificata sul Mac; in-weight non ancora)",
+        "requires": "~800 MB; +9 GB e >= 24 GB di RAM per il test in-weight",
+        "env": {"QWENPUTER_ENABLED": "true"},
+        "install": {
+            "posix": "bash scripts/install_qwenputer.sh",
+            "windows": "powershell -ExecutionPolicy Bypass -File scripts\\install-qwenputer.ps1",
+        },
+        "note": "Test in-weight (--in-weight / -InWeight) solo con >= 24 GB di RAM: OMEN o ASUS, non il Mac.",
+    },
+}
+
+# Pacchetti: cosa farai con il nodo -> quali moduli. È la mini-guida alla scelta.
+EXTRA_PACKAGES: Dict[str, Dict[str, Any]] = {
+    "agenti": {
+        "label": "Lavoro multi-agente",
+        "when": "Postazione dove più agenti (Claude Code, Codex, Hermes...) lavorano in parallelo sullo stesso repo.",
+        "modules": ["orca", "openwork"],
+    },
+    "documenti": {
+        "label": "Documenti e ufficio",
+        "when": "Nodo che lavora su Word/Excel/PDF per clienti o PMI: editor con AI locale, conversione, OCR.",
+        "modules": ["onlyoffice", "anydoc", "unlimited_ocr"],
+    },
+    "verifica": {
+        "label": "Verifica e reverse engineering",
+        "when": "Analisi di binari/artefatti senza eseguirli e calcolo deterministico verificabile.",
+        "modules": ["rea", "qwenputer"],
+    },
+}
+
+
+def expand_packages(packages: List[str]) -> List[str]:
+    """I moduli dei pacchetti scelti, in ordine e senza doppioni."""
+    unknown = [p for p in packages if p not in EXTRA_PACKAGES]
+    if unknown:
+        raise ValueError(f"Pacchetti sconosciuti: {unknown}. Disponibili: {sorted(EXTRA_PACKAGES)}")
+    return list(dict.fromkeys(m for p in packages for m in EXTRA_PACKAGES[p]["modules"]))
+
+
 def recommend_profile(hw: Dict[str, Any]) -> str:
     """Consiglia il profilo architetturale basandosi sui sensori hardware."""
     sys_name = hw.get("os", "").lower()
@@ -204,10 +317,15 @@ class NodeOnboarder:
         self,
         profile: str,
         custom_overrides: Optional[Dict[str, str]] = None,
+        extras: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Elabora il piano di configurazione senza applicare modifiche."""
         if profile not in PROFILES:
             raise ValueError(f"Profilo non valido: {profile}. Scegli tra: {PROFILES}")
+        extras = list(dict.fromkeys(extras or []))
+        unknown = [e for e in extras if e not in EXTRA_MODULES]
+        if unknown:
+            raise ValueError(f"Moduli extra sconosciuti: {unknown}. Disponibili: {sorted(EXTRA_MODULES)}")
 
         recommended = recommend_profile(self.hw)
         base_template = dict(PROFILE_TEMPLATES.get(profile, {}))
@@ -215,6 +333,9 @@ class NodeOnboarder:
         # Integrazione VRAM rilevata per profili con GPU
         if profile == "compute" and self.hw.get("vram_total_gb", 0) > 0:
             base_template["VRAM_GB"] = str(int(self.hw["vram_total_gb"]))
+
+        for name in extras:
+            base_template.update(EXTRA_MODULES[name].get("env", {}))
 
         if custom_overrides:
             base_template.update(custom_overrides)
@@ -234,8 +355,21 @@ class NodeOnboarder:
                 diffs[k] = {"current": existing.get(k, "(assente)"), "target": v}
 
         services = SERVICES_BY_PROFILE.get(profile, {"docker": [], "host": []})
+        osk = "windows" if str(self.hw.get("os", "")).lower().startswith("win") else "posix"
+        extra_modules = [
+            {
+                "name": name,
+                "label": EXTRA_MODULES[name]["label"],
+                "status": EXTRA_MODULES[name]["status"],
+                "requires": EXTRA_MODULES[name]["requires"],
+                "install": EXTRA_MODULES[name]["install"][osk],
+                "note": EXTRA_MODULES[name].get("note", ""),
+            }
+            for name in extras
+        ]
 
         return {
+            "extra_modules": extra_modules,
             "profile": profile,
             "recommended_profile": recommended,
             "hardware": self.hw,
@@ -259,7 +393,20 @@ class NodeOnboarder:
             return False
 
 
-def run_interactive(onboarder: NodeOnboarder, apply: bool = False) -> int:
+def print_extra_modules(plan: Dict[str, Any]) -> None:
+    if not plan.get("extra_modules"):
+        return
+    print("\n  Moduli extra (installazione separata, fuori da git in modules/):")
+    for m in plan["extra_modules"]:
+        print(f"    🧩 {m['label']}")
+        print(f"       stato:    {m['status']}")
+        print(f"       richiede: {m['requires']}")
+        print(f"       installa: {m['install']}")
+        if m["note"]:
+            print(f"       nota:     {m['note']}")
+
+
+def run_interactive(onboarder: NodeOnboarder, apply: bool = False, extras: Optional[List[str]] = None) -> int:
     """Interfaccia interattiva a menu da terminale per Cips."""
     hw = onboarder.hw
     rec = recommend_profile(hw)
@@ -299,7 +446,23 @@ def run_interactive(onboarder: NodeOnboarder, apply: bool = False) -> int:
         if tg:
             custom_overrides["TELEGRAM_BOT_ENABLED"] = "true"
 
-    plan = onboarder.generate_plan(selected, custom_overrides=custom_overrides)
+    extras = list(extras or [])
+    print("\nModuli extra — cosa farai con questo nodo? (invio = nessuno)")
+    names = list(EXTRA_PACKAGES)
+    for i, name in enumerate(names, 1):
+        pkg = EXTRA_PACKAGES[name]
+        print(f"  {i}. {pkg['label']}: {pkg['when']}")
+        for m in pkg["modules"]:
+            print(f"       - {m}: {EXTRA_MODULES[m]['status']}")
+    picked = input("Pacchetti (numeri separati da virgola): ").replace(" ", "").split(",")
+    chosen = [names[int(p) - 1] for p in picked if p.isdigit() and 1 <= int(p) <= len(names)]
+    extras += [m for m in expand_packages(chosen) if m not in extras]
+    if extras:
+        drop = input(f"Moduli scelti: {', '.join(extras)}. Togliere qualcuno? (nomi, invio = no): ")
+        removed = {d.strip() for d in drop.split(",") if d.strip()}
+        extras = [m for m in extras if m not in removed]
+
+    plan = onboarder.generate_plan(selected, custom_overrides=custom_overrides, extras=extras)
 
     print("\n" + "=" * 74)
     print(f"  PIANO DI CONFIGURAZIONE PROFILO: [{selected.upper()}]")
@@ -319,6 +482,7 @@ def run_interactive(onboarder: NodeOnboarder, apply: bool = False) -> int:
     for s in plan["services_to_run"]["host"]:
         print(f"    🐍 {s}")
 
+    print_extra_modules(plan)
     print("=" * 74)
 
     if not apply:
@@ -340,6 +504,8 @@ def run_interactive(onboarder: NodeOnboarder, apply: bool = False) -> int:
         elif selected == "hub":
             print("  1. Avvia stack:     docker compose up -d --build control-plane registry open-webui")
             print("  2. Avvia Telegram:  .venv/bin/python scripts/telegram_business_bot.py &")
+        for m in plan["extra_modules"]:
+            print(f"  +  Modulo {m['name']}: {m['install']}")
     return 0 if success else 1
 
 
@@ -373,25 +539,43 @@ def main() -> int:
         action="store_true",
         help="Stampa il piano di onboarding in formato JSON strutturato",
     )
+    parser.add_argument(
+        "--with",
+        dest="extras",
+        action="append",
+        choices=sorted(EXTRA_MODULES),
+        default=[],
+        help="Aggiunge un modulo extra al profilo (ripetibile), es. --with qwenputer",
+    )
+    parser.add_argument(
+        "--package",
+        dest="packages",
+        action="append",
+        choices=sorted(EXTRA_PACKAGES),
+        default=[],
+        help="Aggiunge i moduli di un pacchetto (ripetibile): agenti, documenti, verifica",
+    )
 
     args = parser.parse_args()
+    args.extras = list(dict.fromkeys(expand_packages(args.packages) + args.extras))
     env_path = Path(args.env_file) if args.env_file else (ROOT / ".env")
     onboarder = NodeOnboarder(repo_root=ROOT, env_path=env_path)
 
     if args.json:
         prof = args.profile or recommend_profile(onboarder.hw)
-        plan = onboarder.generate_plan(prof)
+        plan = onboarder.generate_plan(prof, extras=args.extras)
         plan.pop("new_env_content", None)
         print(json.dumps(plan, indent=2, ensure_ascii=False))
         return 0
 
     if args.non_interactive or args.profile:
         prof = args.profile or recommend_profile(onboarder.hw)
-        plan = onboarder.generate_plan(prof)
+        plan = onboarder.generate_plan(prof, extras=args.extras)
         print(f"HyperSpace Onboarding V2 — Profilo: {prof} (apply={args.apply})")
         print(f"Modifiche rilevate a .env: {plan['changes_detected']}")
         for k, v in plan["diffs"].items():
             print(f"  {k}: {v['current']} -> {v['target']}")
+        print_extra_modules(plan)
         if args.apply:
             ok = onboarder.apply_plan(plan)
             print(f"Applicazione: {'OK' if ok else 'FALLITA'}")
@@ -399,7 +583,7 @@ def main() -> int:
         print("Dry-run completato. Usa --apply per salvare.")
         return 0
 
-    return run_interactive(onboarder, apply=args.apply)
+    return run_interactive(onboarder, apply=args.apply, extras=args.extras)
 
 
 if __name__ == "__main__":

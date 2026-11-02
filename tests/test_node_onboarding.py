@@ -18,7 +18,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.node_onboarding import (
+    EXTRA_MODULES,
+    EXTRA_PACKAGES,
     NodeOnboarder,
+    expand_packages,
     read_env_file,
     reconcile_env_content,
     recommend_profile,
@@ -160,6 +163,63 @@ class TestNodeOnboarding(unittest.TestCase):
             # Non deve iniziare con il BOM UTF-8 (\xef\xbb\xbf)
             self.assertFalse(raw_bytes.startswith(b"\xef\xbb\xbf"))
             self.assertIn(b"NODE_ROLE=mesh_authority", raw_bytes)
+
+    def test_extra_module_qwenputer_on_any_profile(self):
+        """Un modulo extra si aggiunge a qualunque profilo: variabile in .env e comando per l'OS."""
+        mock_hw = {"os": "Windows", "gpu_name": "NVIDIA GeForce RTX 3070", "vram_total_gb": 8.0}
+        with patch("scripts.node_onboarding.get_system_hardware", return_value=mock_hw):
+            onboarder = NodeOnboarder(repo_root=self.tmp_path, env_path=self.env_path)
+            plan = onboarder.generate_plan("compute", extras=["qwenputer", "qwenputer"])
+
+        self.assertEqual(plan["target_variables"]["QWENPUTER_ENABLED"], "true")
+        self.assertIn("QWENPUTER_ENABLED=true", plan["new_env_content"])
+        self.assertEqual(len(plan["extra_modules"]), 1)
+        self.assertIn("install-qwenputer.ps1", plan["extra_modules"][0]["install"])
+
+    def test_without_extras_no_module_variables(self):
+        """Senza moduli extra il piano resta quello del profilo."""
+        mock_hw = {"os": "Darwin", "gpu_name": "Apple Silicon", "vram_total_gb": 16.0}
+        with patch("scripts.node_onboarding.get_system_hardware", return_value=mock_hw):
+            onboarder = NodeOnboarder(repo_root=self.tmp_path, env_path=self.env_path)
+            plan = onboarder.generate_plan("dev")
+            plan_q = onboarder.generate_plan("dev", extras=["qwenputer"])
+
+        self.assertNotIn("QWENPUTER_ENABLED", plan["target_variables"])
+        self.assertEqual(plan["extra_modules"], [])
+        self.assertIn("install_qwenputer.sh", plan_q["extra_modules"][0]["install"])
+
+    def test_extra_module_orca_adds_no_env_variables(self):
+        """Orca è un'app desktop: nessuna variabile in .env, solo il comando d'installazione."""
+        mock_hw = {"os": "Darwin", "gpu_name": "Apple Silicon", "vram_total_gb": 16.0}
+        with patch("scripts.node_onboarding.get_system_hardware", return_value=mock_hw):
+            onboarder = NodeOnboarder(repo_root=self.tmp_path, env_path=self.env_path)
+            base = onboarder.generate_plan("dev")
+            plan = onboarder.generate_plan("dev", extras=["orca", "qwenputer"])
+
+        self.assertEqual(plan["changes_detected"], base["changes_detected"] + 1)  # solo QWENPUTER_ENABLED
+        self.assertEqual([m["name"] for m in plan["extra_modules"]], ["orca", "qwenputer"])
+        self.assertIn("brew install --cask stablyai/orca/orca", plan["extra_modules"][0]["install"])
+
+    def test_packages_expand_to_known_modules(self):
+        """Ogni pacchetto punta a moduli esistenti e ogni modulo dichiara stato, requisiti e install."""
+        for pkg in EXTRA_PACKAGES.values():
+            for m in pkg["modules"]:
+                self.assertIn(m, EXTRA_MODULES)
+        for mod in EXTRA_MODULES.values():
+            for key in ("label", "status", "requires", "env"):
+                self.assertIn(key, mod)
+            self.assertEqual(set(mod["install"]), {"posix", "windows"})
+        self.assertEqual(expand_packages(["verifica", "verifica"]), ["rea", "qwenputer"])
+        self.assertNotIn("laya", EXTRA_MODULES)  # Laya va su ogni nodo, non è un extra
+        with self.assertRaises(ValueError):
+            expand_packages(["inesistente"])
+
+    def test_unknown_extra_module_rejected(self):
+        mock_hw = {"os": "Linux", "gpu_name": "unknown", "vram_total_gb": 0.0}
+        with patch("scripts.node_onboarding.get_system_hardware", return_value=mock_hw):
+            onboarder = NodeOnboarder(repo_root=self.tmp_path, env_path=self.env_path)
+            with self.assertRaises(ValueError):
+                onboarder.generate_plan("hub", extras=["inesistente"])
 
 
 if __name__ == "__main__":

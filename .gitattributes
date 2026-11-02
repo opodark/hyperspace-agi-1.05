@@ -9,6 +9,10 @@
 # questa riga non cambia nulla e rende esplicito lo stato di fatto.
 * text=auto eol=lf
 
+# Il log fra agenti cresce solo in coda: con worktree/branch per agente (Orca) ogni merge
+# terrebbe in conflitto i blocchi aggiunti da entrambi i lati. "union" li tiene tutti.
+AGENT-LOG.md merge=union
+
 # Binari: git non deve nemmeno provare a convertirli.
 *.png binary
 *.jpg binary
