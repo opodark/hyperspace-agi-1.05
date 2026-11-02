@@ -136,13 +136,14 @@ def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65
     }
 
 
-def query_asus_flint(prompt: str, num_ctx: int = 32768, timeout: float = 240.0) -> Dict[str, Any]:
+def query_asus_flint(prompt: str, num_ctx: int = 32768, timeout: float = 240.0,
+                     num_predict: int = 1000) -> Dict[str, Any]:
     """Invia richiesta al modello Flint 40B su ASUS V16."""
     payload = json.dumps({
         "model": MODEL_FLINT40B,
         "prompt": prompt,
         "stream": False,
-        "options": {"num_ctx": num_ctx, "num_predict": 1000, "temperature": 0.2}
+        "options": {"num_ctx": num_ctx, "num_predict": num_predict, "temperature": 0.2}
     }).encode("utf-8")
 
     t0 = time.time()
@@ -307,7 +308,8 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                     f"{omen_res['text']}\n\n"
                     "Ragiona in <think> (max 40 parole) e scrivi codice Python completo in blocco ```python ... ```."
                 )
-                flint_res = query_asus_flint(flint_prompt, num_ctx=32768)
+                # Flint ragiona prima del codice: a 1000 token si ferma nel ragionamento, senza blocco di codice
+                flint_res = query_asus_flint(flint_prompt, num_ctx=32768, num_predict=3000)
                 cycle_tokens += flint_res["eval_count"]
                 throughput_samples.append(flint_res["tok_s"])
                 print(f"    ✓ Flint ha risposto in {flint_res['elapsed_s']}s ({flint_res['tok_s']} tok/s)")
