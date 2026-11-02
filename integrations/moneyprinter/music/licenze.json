@@ -1,4 +1,25 @@
 {
-  "_come": "Un brano per voce: nome del file in questa cartella, licenza, fonte e obbligo di attribuzione. mpt_bridge.py usa solo i brani elencati qui.",
-  "brani": []
+  "_come": "Un brano per voce: nome del file in questa cartella, licenza, fonte e obbligo di attribuzione. mpt_bridge.py usa solo i brani elencati qui (e presenti in questa cartella).",
+  "brani": [
+    {
+      "file": "ROONIN - OUR WXRLD (Royalty Free Music).mp3",
+      "artista": "ROONIN",
+      "titolo": "OUR WXRLD",
+      "licenza": "Royalty-free, uso libero con attribuzione — DA CONFERMARE i termini esatti dalla fonte originale prima di pubblicare",
+      "fonte": "DA INSERIRE: l'URL preciso da cui è stato scaricato il brano (canale/pagina ufficiale ROONIN)",
+      "attribuzione": "Music: ROONIN — OUR WXRLD (Royalty Free Music)",
+      "uso": "video YouTube reels/youtube-our-world-2026-11-01 (sottofondo, due giri). Il file sta in ~/Downloads, non è copiato nel repo: mpt_bridge non lo seleziona (non è in questa cartella).",
+      "da_confermare": true
+    },
+    {
+      "file": "Mind In Chaos.mp3",
+      "artista": "DA INSERIRE: autore del brano",
+      "titolo": "Mind In Chaos",
+      "licenza": "Indicato dall'utente come libero da copyright (royalty-free) — DA CONFERMARE i termini esatti dalla fonte originale prima di pubblicare",
+      "fonte": "DA INSERIRE: l'URL preciso da cui è stato scaricato il brano",
+      "attribuzione": "DA CONFERMARE: testo di credito richiesto dalla fonte, da mettere nella descrizione YouTube",
+      "uso": "video YouTube reels/youtube-106-2026-11-02 (sottofondo, dal secondo 12,0 al 123,5 del brano). Il file sta in ~/Downloads, non è copiato nel repo: mpt_bridge non lo seleziona (non è in questa cartella).",
+      "da_confermare": true
+    }
+  ]
 }

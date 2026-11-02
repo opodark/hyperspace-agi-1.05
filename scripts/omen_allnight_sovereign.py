@@ -99,6 +99,8 @@ ASUS_PRIMARY = ASUS_MODE not in ("false", "fallback")
 if os.getenv("ALLNIGHT_CODE_MODELS", "").strip():
     CODE_MODELS = [m.strip() for m in os.getenv("ALLNIGHT_CODE_MODELS", "").split(",") if m.strip()]
 DEV_TIMEOUT = int(os.getenv("ALLNIGHT_DEV_TIMEOUT", "90"))
+# Pilastro di ricerca prioritario per il turno notturno (default su Decision Models non-autoregressivi)
+ALLNIGHT_RESEARCH_PILLAR = os.getenv("ALLNIGHT_RESEARCH_PILLAR", "fast_decision_models").strip()
 
 IMAGE_SCENARIOS = [
     {
@@ -139,6 +141,18 @@ AUTONOMOUS_DEV_TASKS = [
     {
         "topic": "Adaptive Inference Latency PID Controller",
         "prompt": "Implementa un controller PID discreto `InferenceConcurrencyGovernor` in Python che adatta dinamicamente il limite di richieste concorrenti per mantenere la latenza GPU sotto i 250ms. Mostra prima il ragionamento in <think> poi il codice.",
+    },
+    {
+        "topic": "Fast Decision Router & Categorical Dispatch (Laya/Jev style)",
+        "prompt": "Implementa in Python una classe `FastDecisionRouter` non-autoregressiva che valuta opzioni d'instradamento per task eterogenei del cluster (GPU, RAM, VRAM, latenza) in un singolo passaggio senza generazione testo. Calcola probabilità softmax calibrate con vincoli di capacità e genera test unitari deterministici con unittest.TestCase. Mostra prima il tuo ragionamento dettagliato in <think>, poi restituisci il codice completo.",
+    },
+    {
+        "topic": "JEPA Latent Energy Action Evaluator",
+        "prompt": "Implementa in Python un valutatore energetico latente `JEPALatentWorldJudge` basato sul paradigma JEPA di LeCun. Dati lo stato corrente, l'azione proposta e l'obiettivo, calcola l'energia di compatibilità nello spazio di embedding sparso/denso, verificando che le transizioni ammissibili minimizzino l'energia verso lo scopo. Includi test unitari con unittest.TestCase. Mostra prima il ragionamento in <think> poi il codice.",
+    },
+    {
+        "topic": "Deterministic Action Safety Guardrail & Invariant Engine",
+        "prompt": "Crea un motore di sicurezza deterministico System-1 `ActionSafetyGuardrail` che valida payload di comando, path filesystem e chiamate API contro una serie di invarianti rigidi prima dell'esecuzione nello swarm. Blocca tentativi di path traversal, leakage credenziali e comandi distruttivi in <1ms con scoring continuo. Includi test unitari completi con unittest.TestCase. Mostra prima il ragionamento in <think> poi il codice.",
     },
 ]
 
@@ -731,11 +745,11 @@ def run_single_allnight_cycle() -> Dict[str, Any]:
         return {"dev": run_autonomous_dev_distillation(cycles=1)}
 
     def step_research(state: RunState) -> Dict[str, Any]:
-        _log("RESEARCH", "Approfondimento autonomo AGI, Coscienza Sintetica & Swarm AI...")
+        _log("RESEARCH", f"Approfondimento autonomo AGI, Coscienza Sintetica & Decision Models (filone: {ALLNIGHT_RESEARCH_PILLAR})...")
         from shared.agi_research_engine import AGIResearchEngine
         engine = AGIResearchEngine()
-        record = engine.execute_study_cycle(omen_executor_fn=execute_omen_prompt)
-        _log("RESEARCH", f"✓ Studio completato: {record.get('domain')} (AST valid: {record.get('ast_valid')})")
+        record = engine.execute_study_cycle(pillar_id=ALLNIGHT_RESEARCH_PILLAR, omen_executor_fn=execute_omen_prompt)
+        _log("RESEARCH", f"✓ Studio completato: {record.get('domain')} (AST valid: {record.get('ast_valid')}, tests: {record.get('tests_passed')})")
         return {"research": record}
 
     def step_dream(state: RunState) -> Dict[str, Any]:

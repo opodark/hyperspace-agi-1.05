@@ -161,6 +161,28 @@ RESEARCH_PILLARS = [
         "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
         "fallback_model": "granite3.3:8b",
     },
+    {
+        "id": "fast_decision_models",
+        "domain": "Decision Models Non-Autoregressivi (Laya, Jev & Latent World Judges)",
+        "reference": "TypeSafe AI Jev (Fast Decision Engine), Convai Laya (Apache-2.0 ModernBERT Decision Architecture), LeCun JEPA Latent World Judges",
+        "prompt": (
+            "Sei l'ingegnere dei Decision Models e del runtime System-1 di HyperSpace AGI.\n"
+            "Analizza e implementa un motore di decisione e instradamento non-autoregressivo ispirato a Convai Laya, "
+            "TypeSafe AI Jev e ai giudici d'azione latenti in stile JEPA:\n"
+            "1. Decisioni Tipizzate Single-Pass: valutazione e ranking di alternative d'azione prefissate in un singolo forward pass (<50ms), "
+            "eliminando i loop di generazione autoregressiva lenti e soggetti a timeout (come visto sui modelli 24B dell'OMEN).\n"
+            "2. Dispatching & Routing della Mesh Sovrana: instradamento istantaneo di task tra nodi (Mac M5 Hub, HP OMEN 16, ASUS V16, Web Browser Node) "
+            "in base a capacità, latenza stimata e occupazione VRAM.\n"
+            "3. Safety Gate & Guardrail Deterministico: filtraggio immediato di azioni vietate (path traversal, comandi distruttivi, violazioni contratti) "
+            "senza attendere decodifica token né rischiare output JSON malformati.\n"
+            "4. Giudizio Latente JEPA: calcolo dell'energia/compatibilità tra stato attuale, azione proposta e obiettivo target.\n\n"
+            "Compito: Implementa una classe Python `class FastDecisionEngine:` con metodi `evaluate_decision(context, options, criteria)`, "
+            "`route_mesh_task(task_payload, cluster_nodes)`, `verify_action_safety(action, safety_invariants)` e "
+            "`evaluate_jepa_latent_state(current_state, proposed_action, target_goal)` pronta per l'uso nello swarm."
+        ),
+        "target_model": "granite3.3:8b",
+        "fallback_model": "granite3.3:8b",
+    },
 ]
 
 
@@ -291,6 +313,12 @@ class AGIResearchEngine:
                 n_p = studies.setdefault(rec.get("pillar_id", ""), [0, 0])
                 n_p[0] += 1
                 n_p[1] += 1 if passed else 0
+        forced = os.environ.get("HYPERSPACE_RESEARCH_PILLAR", "").strip()
+        if forced:
+            for p in RESEARCH_PILLARS:
+                if p["id"] == forced:
+                    return p
+
         weights = []
         for p in RESEARCH_PILLARS:
             n, ok = studies.get(p["id"], [0, 0])

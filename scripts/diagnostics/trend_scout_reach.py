@@ -41,6 +41,10 @@ DEFAULT_THEMES = [
     {"topic": "causal reasoning for agents", "channel": "arxiv", "query": "causal graph counterfactual reasoning LLM agents memory", "purpose": "research", "pillar": "symbolic_causal_mesh"},
     {"topic": "MCP multi-agent orchestration", "channel": "github", "query": "MCP server multi-agent orchestration pipeline", "purpose": "research", "pillar": "composite_macro_workflows"},
     {"topic": "self-improving code agents with tests", "channel": "arxiv", "query": "LLM code generation unit test generation self-improving agents", "purpose": "research", "pillar": "composite_macro_workflows"},
+    {"topic": "non-autoregressive decision models Laya Jev", "channel": "arxiv", "query": "non-autoregressive decision models classification single pass ModernBERT", "purpose": "research", "pillar": "fast_decision_models"},
+    {"topic": "JEPA latent world models energy LeCun", "channel": "scholar", "query": "JEPA joint embedding predictive architecture latent world models energy", "purpose": "research", "pillar": "fast_decision_models"},
+    {"topic": "fast typed decision engine & guardrails", "channel": "github", "query": "fast decision engine guardrails typed routing Jev Laya", "purpose": "research", "pillar": "fast_decision_models"},
+    {"topic": "system-1 single-pass routing vs timeouts", "channel": "web", "query": "fast single-pass LLM routing decision model vs autoregressive timeout", "purpose": "research", "pillar": "fast_decision_models"},
 ]
 
 _CLEAN_SPACES = re.compile(r"\s+")

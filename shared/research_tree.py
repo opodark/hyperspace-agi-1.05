@@ -106,6 +106,14 @@ RESEARCH_PILLARS = [
         "domain": "Chained Multi-Pillar Pipelines (Grafo -> REM Dream -> Stigmergic Swarm -> Multimodale Voicebox/ComfyUI)",
         "target_model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
     },
+    {
+        "id": "fast_decision_models",
+        "name": "Decision Models (Laya, Jev & Latent Judges)",
+        "color": "#0ea5e9",  # Sky Blue / Turchese decisionale
+        "icon": "🎯",
+        "domain": "Non-Autoregressive System-1, Latent Routing, Single-Pass Scoring & JEPA World Judges",
+        "target_model": "ModernBERT / granite3.3:8b / Jev-Laya",
+    },
 ]
 
 
@@ -268,6 +276,39 @@ def _build_initial_nodes() -> List[Dict[str, Any]]:
             "ast_summary": {"classes": ["ResumableStateMachine", "CheckpointStore"], "functions": ["save_checkpoint", "resume"], "node_count": 210},
             "promoted": True,
             "production_target": "shared/resumable_state_machine.py",
+        },
+        # --- Ramo 9: Decision Models Non-Autoregressivi (Laya, Jev & JEPA) ---
+        {
+            "id": "node-decision-01",
+            "parent_id": None,
+            "branch_id": "fast_decision_models",
+            "title": "Routing Autoregressivo Pesante (LFM 24B Timeout)",
+            "timestamp": "2026-11-02T19:00:00Z",
+            "status": "failed",
+            "model": "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",
+            "hypothesis": "Usare un modello generativo 24B per fare routing, gating e selezione opzioni strutturate tramite generazione token.",
+            "outcome": "Timeout frequenti (OMEN dev timeout), latenza >12s e rischio di output JSON non parsabile per compiti di instradamento immediato.",
+            "failure_reason": "I modelli autoregressivi generativi introducono latenza quadratica e overhead eccessivo per decisioni categoriche.",
+            "pivot_rationale": "Pivot su Decision Models Non-Autoregressivi (TypeSafe Jev, Convai Laya, JEPA): valutazione single-pass (<50ms) con opzioni tipizzate e guardrail deterministici.",
+            "prototype_file": None,
+            "ast_summary": None,
+            "promoted": False,
+        },
+        {
+            "id": "node-decision-02",
+            "parent_id": "node-decision-01",
+            "branch_id": "fast_decision_models",
+            "title": "Fast Decision Engine: Routing & Safety Latente Single-Pass",
+            "timestamp": "2026-11-02T19:30:00Z",
+            "status": "passed",
+            "model": "granite3.3:8b",
+            "hypothesis": "Motore di decisione rapido System-1 a singolo passo con scoring latente, classificazione opzioni e routing della mesh sovrana.",
+            "outcome": "Decisioni e routing in <10ms con validazione safety rigorosa e tracciamento causale.",
+            "failure_reason": None,
+            "pivot_rationale": None,
+            "prototype_file": "proto_fast_decision_models_1793648000.py",
+            "ast_summary": {"classes": ["FastDecisionEngine", "DecisionOption", "DecisionEvaluation"], "functions": ["evaluate_decision", "route_mesh_task", "verify_action_safety"], "node_count": 45},
+            "promoted": True,
         },
     ]
 
