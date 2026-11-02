@@ -23,11 +23,17 @@ ALTRE_LICENZE = ("SPDX-License-Identifier: MIT",
 
 
 def sorgenti():
-    """I sorgenti tracciati da git (non i file su disco: .venv resta fuori)."""
+    """I sorgenti tracciati da git (non i file su disco: .venv resta fuori).
+
+    `vendor/` resta fuori: sono skill/librerie di terze parti vendorizzate con la
+    propria licenza originale intatta (vedi THIRD-PARTY-NOTICES.md), non sorgenti
+    nostri da etichettare Apache-2.0.
+    """
     esito = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True)
     if esito.returncode != 0:
         raise unittest.SkipTest("git non disponibile: verifica saltata")
-    return [p for p in esito.stdout.splitlines() if p.endswith(ESTENSIONI)]
+    return [p for p in esito.stdout.splitlines()
+            if p.endswith(ESTENSIONI) and not p.startswith("vendor/")]
 
 
 class TestLicenzaDelProgetto(unittest.TestCase):

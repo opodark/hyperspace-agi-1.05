@@ -135,6 +135,10 @@ def raccogli() -> dict:
         "web_image_file": _get("/web/image/file"),
         "web_tokenomics_leaderboard": _get("/web/tokenomics/leaderboard"),
         "web_budget_status": _get("/web/budget/status"),
+        "web_export_pdf_corpo_vuoto": _post("/web/export/pdf", {}),
+        "web_audio_speech_corpo_vuoto": _post("/web/audio/speech", {}),
+        "web_video_generate_corpo_vuoto": _post("/web/video/generate", {}),
+        "web_music_generate_corpo_vuoto": _post("/web/music/generate", {}),
 
         # l'annuncio: e' la via che un nodo si presenta
         "announce_corpo_vuoto": _post("/mesh/announce", {}),
