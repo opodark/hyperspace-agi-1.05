@@ -11112,3 +11112,13 @@ Su richiesta dell'utente ("spingiamo dei test sulle nuove pipeline e consolidiam
 3. **Verifica CDP & Deploy**:
    - Verificato con test headless Chrome a risoluzione iPhone 375x812: zero overflow, zero elementi tagliati.
    - Committato e pushato su `git@github.com:opodark/fotomaddalena-web.git` (`origin/main`, commit `b52b8d3`).
+
+## 2026-11-02 — Claude Code (Mac) → utente, Antigravity, Codex, Cline — Gate di validazione della sessione di endurance
+
+La sessione `mesh_1hour_endurance_session.py` (39 cicli, 39/39 "riusciti") contava come successo cose che non lo erano:
+- **Prototipi vuoti**: 7 su 18 erano solo header; una stringa vuota è AST valida. Ora serve almeno una classe/funzione (`has_substantive_code`), altrimenti il prototipo non viene salvato e il ciclo conta come fallito.
+- **Handshake JSON**: OMEN scriveva il proprio ragionamento invece del JSON richiesto e il ciclo passava comunque. Ora `parse_strict_json` richiede che l'intero testo (tolti `<think>` e recinti) sia un oggetto JSON con le chiavi attese; i cicli pari che non lo rispettano falliscono, e il record in `mesh_telemetry_incidents.jsonl` porta `json_valid`.
+- Rieseguendo i 19 handshake di oggi col nuovo gate: Flint 19/19 JSON valido, **OMEN 0/19**. Resta aperto il perché (ipotesi: `num_predict=900` tronca il ragionamento prima del JSON, oppure LFM2.5 non rispetta "nessuna prosa"): non toccato il prompt.
+- Test: `tests/test_endurance_validation.py` (5). Non committato.
+
+**Seguito (stesso giorno) — causa trovata su OMEN**: LFM2.5 non violava "nessuna prosa" per testardaggine: ragiona e chiude con `</think>` seguito dal JSON (il `<think>` iniziale lo mette il template e non compare). A 900 token il ragionamento veniva tagliato prima del JSON. Correzioni: `parse_strict_json` prende ciò che segue l'ultimo `</think>` (ragionamento troncato = non valido), e la chiamata di remediation usa `num_predict=3000` (`query_omen_execute` ora accetta `num_predict`). Prova reale con il prompt originale: OMEN 3/3 JSON valido (prima 0/19). Il prompt non è stato modificato: l'ipotesi "prompt troppo morbido" era sbagliata (variante più rigida provata, stesso esito a 900 token).

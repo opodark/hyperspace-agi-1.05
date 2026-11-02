@@ -24,6 +24,7 @@ import json
 import os
 from pathlib import Path
 import random
+import re
 import socket
 import sys
 import time
@@ -63,6 +64,29 @@ REPORTS_DIR = DATA_DIR / "reports"
 LIVE_REPORT_FILE = REPORTS_DIR / "endurance_session_live.json"
 
 
+def has_substantive_code(tree: ast.AST) -> bool:
+    """True se il modulo definisce almeno una classe o funzione (una stringa vuota è AST valida)."""
+    return any(isinstance(n, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) for n in ast.walk(tree))
+
+
+def parse_strict_json(text: str, required_keys: Tuple[str, ...] = ()) -> Optional[Dict[str, Any]]:
+    """Interpreta l'intero testo come un oggetto JSON ("STRICT JSON, nessuna prosa").
+
+    Toglie il ragionamento (tutto fino all'ultimo </think>: il <think> iniziale lo mette il
+    template del modello e non compare nella risposta) e i recinti ```; un JSON citato dentro
+    prosa non conta, e un ragionamento troncato prima di </think> resta non valido.
+    """
+    cleaned = (text or "").rsplit("</think>", 1)[-1].strip()
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", cleaned).strip()
+    try:
+        obj = json.loads(cleaned)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(obj, dict) or any(k not in obj for k in required_keys):
+        return None
+    return obj
+
+
 def tcp_ping(host: str, port: int, timeout: float = 2.0) -> Tuple[bool, float]:
     """Misura la latenza TCP in millisecondi."""
     t0 = time.time()
@@ -76,14 +100,15 @@ def tcp_ping(host: str, port: int, timeout: float = 2.0) -> Tuple[bool, float]:
         return False, -1.0
 
 
-def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65536, timeout: float = 240.0) -> Dict[str, Any]:
+def query_omen_execute(prompt: str, model: str = MODEL_LFM24B, num_ctx: int = 65536, timeout: float = 240.0,
+                       num_predict: int = 900) -> Dict[str, Any]:
     """Invia richiesta firmata con ECDSA al Node Worker OMEN (:8081/execute)."""
     ident = generate_or_load_identity()
     body_data = {
         "task_id": f"endurance-omen-{int(time.time() * 1000)}",
         "model": model,
         "prompt": prompt,
-        "options": {"num_ctx": num_ctx, "num_predict": 900, "temperature": 0.2}
+        "options": {"num_ctx": num_ctx, "num_predict": num_predict, "temperature": 0.2}
     }
     payload = json.dumps(body_data).encode("utf-8")
     headers = {"Content-Type": "application/json"}
@@ -290,9 +315,12 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                 # Validazione AST e persistenza prototipo R&D
                 parsed = UniversalModelParser.parse(flint_res["text"])
                 code_to_check = parsed.code_blocks[0].code if parsed.code_blocks else flint_res["text"]
+                qa_ok = True
                 try:
-                    ast.parse(code_to_check)
-                    print(f"    ✓ AST Python Validazione: PASS al 100%")
+                    tree = ast.parse(code_to_check)
+                    if not has_substantive_code(tree):
+                        raise ValueError("nessuna classe o funzione nel codice generato")
+                    print(f"    ✓ AST Python Validazione: PASS (classe/funzione presente)")
 
                     proto_ts = int(time.time())
                     proto_name = f"proto_{topic_name.lower()}_{proto_ts}.py"
@@ -330,11 +358,13 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                     except Exception as cg_err:
                         print(f"    ⚠ Causal graph record error: {cg_err}")
 
-                except SyntaxError as syn_err:
-                    print(f"    ⚠ AST Syntax Warning: {syn_err}")
+                except (SyntaxError, ValueError) as syn_err:
+                    qa_ok = False
+                    cycle_success = False
+                    print(f"    ✗ Prototipo scartato (non salvato): {syn_err}")
 
                 cot_snippet = parsed.reasoning_cot or omen_res["text"][:300]
-                update_devloop_hud(cycle, True, time.time() - cycle_t0, f"arch_impl_{topic_name}", cot_snippet)
+                update_devloop_hud(cycle, qa_ok, time.time() - cycle_t0, f"arch_impl_{topic_name}", cot_snippet)
 
             else:
                 # Ciclo Pari: Flint emette telemetria incidente JSON -> OMEN emette remediation in JSON puro
@@ -353,12 +383,21 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                     f"Consuma questo evento di telemetria ed emetti STRICT JSON di remediation (nessuna prosa):\n{flint_res['text']}\n"
                     f'Schema richiesto: {{"action_id":"act-endurance-{cycle}","target_node":"asus-v16","directive":"remediate_{scen_type}","status":"dispatched"}}'
                 )
-                omen_res = query_omen_execute(omen_json_prompt, model=MODEL_LFM24B, num_ctx=65536)
+                # LFM2.5 ragiona prima di rispondere: a 900 token il ragionamento viene tagliato prima del JSON
+                omen_res = query_omen_execute(omen_json_prompt, model=MODEL_LFM24B, num_ctx=65536, num_predict=3000)
                 cycle_tokens += omen_res["eval_count"]
                 throughput_samples.append(omen_res["tok_s"])
 
-                print(f"    ✓ Handshake JSON completato: Flint {flint_res['tok_s']} tok/s | OMEN {omen_res['tok_s']} tok/s")
-                update_devloop_hud(cycle, True, time.time() - cycle_t0, f"json_handshake_{scen_type}", flint_res["text"][:300])
+                flint_json = parse_strict_json(flint_res["text"], ("event_type", "urgency"))
+                omen_json = parse_strict_json(omen_res["text"], ("action_id", "target_node", "directive", "status"))
+                json_ok = flint_json is not None and omen_json is not None
+                if json_ok:
+                    print(f"    ✓ Handshake JSON valido: Flint {flint_res['tok_s']} tok/s | OMEN {omen_res['tok_s']} tok/s")
+                else:
+                    cycle_success = False
+                    invalidi = [n for n, j in (("Flint/incidente", flint_json), ("OMEN/remediation", omen_json)) if j is None]
+                    print(f"    ✗ Handshake JSON non valido da: {', '.join(invalidi)}")
+                update_devloop_hud(cycle, json_ok, time.time() - cycle_t0, f"json_handshake_{scen_type}", flint_res["text"][:300])
 
                 # Archivia incidente & remediation
                 try:
@@ -367,6 +406,7 @@ def run_endurance_session(duration_minutes: float = 60.0, cycle_interval_s: floa
                         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                         "incident": flint_res["text"],
                         "remediation": omen_res["text"],
+                        "json_valid": json_ok,
                         "flint_tok_s": flint_res["tok_s"],
                         "omen_tok_s": omen_res["tok_s"]
                     }
