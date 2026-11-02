@@ -21,7 +21,7 @@ logger = logging.getLogger("hyperspace.laya")
 LAYA_DEFAULT_URL = "http://127.0.0.1:8097"
 LAYA_FALLBACK_URL = "http://127.0.0.1:8097"
 LAYA_URL = os.getenv("LAYA_URL", LAYA_DEFAULT_URL).rstrip("/")
-LAYA_MODEL = os.getenv("LAYA_MODEL", "tev1")
+LAYA_MODEL = os.getenv("LAYA_MODEL", "")
 LAYA_ENABLED = os.getenv("LAYA_ENABLED", "true").lower() in ("true", "1", "yes", "on")
 LAYA_TIMEOUT_S = float(os.getenv("LAYA_TIMEOUT_S", "2.0"))
 
