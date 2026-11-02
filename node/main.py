@@ -863,7 +863,7 @@ async def startup_event():
 # causando "RuntimeError: Unexpected message received: http.request".
 # Dato che /v1/chat/completions e' l'ultimo handler (nessuno a valle deve
 # rileggere il body), verificare inline evita il problema alla radice.
-SIGNED_PATHS = {"/announce", "/execute", "/peer/add", "/verify"}
+SIGNED_PATHS = {"/announce", "/execute", "/peer/add", "/verify", "/shell/exec"}
 
 @app.middleware("http")
 async def inter_node_auth(request: Request, call_next):
@@ -1220,6 +1220,56 @@ async def execute_task(task: dict):
         await _push_memory_to_cp(entry)
 
     return {"node_id": NODE_ID, "task_id": task_id, "status": "done", "model": model, "response": response_text}
+
+# ── /shell/exec (Remote Command Execution E2EE / Mesh CLI) ──────────
+@app.post("/shell/exec")
+async def execute_shell_command(payload: dict):
+    """Esegue un comando di sistema operativo protetto da firma crittografica inter-nodo.
+
+    Utilizzato da `scripts/mesh_exec.py` per amministrazione e diagnostica remota sicura.
+    Restituisce stdout, stderr, returncode e tempo di esecuzione in millisecondi.
+    """
+    cmd = payload.get("command") or payload.get("cmd")
+    if not cmd:
+        raise HTTPException(status_code=400, detail="Campo 'command' mancante")
+
+    timeout_s = float(payload.get("timeout", 60.0))
+    cwd = payload.get("cwd") or os.getenv("REPO_DIR", ".")
+    shell = payload.get("shell", True)
+
+    t0 = time.perf_counter()
+    try:
+        proc = await asyncio.create_subprocess_shell(
+            cmd if shell else cmd[0],
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=cwd if os.path.exists(cwd) else None,
+        )
+        try:
+            stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
+            stdout = stdout_b.decode("utf-8", errors="replace")
+            stderr = stderr_b.decode("utf-8", errors="replace")
+            exit_code = proc.returncode
+            timed_out = False
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            stdout, stderr, exit_code, timed_out = "", "Command timed out", -1, True
+    except Exception as exc:
+        stdout, stderr, exit_code, timed_out = "", str(exc), -1, False
+
+    elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+    return {
+        "node_id": NODE_ID,
+        "command": cmd,
+        "exit_code": exit_code,
+        "stdout": stdout,
+        "stderr": stderr,
+        "timed_out": timed_out,
+        "elapsed_ms": elapsed_ms,
+    }
 
 # ── /v1/chat/completions ────────────────────────────────────
 # Proxy trasparente verso il backend Ollama/LM Studio LOCALE di questo nodo.
