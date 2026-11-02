@@ -28,17 +28,34 @@ if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
 
 if (-not (Test-Path (Join-Path $Dest ".git"))) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Dest) | Out-Null
-    Invoke-Native git @("clone", $Repo, $Dest)
+    # Disabilita autocrlf per evitare che git converta LF in CRLF nei template/fixtures dei test
+    Invoke-Native git @("-c", "core.autocrlf=false", "clone", $Repo, $Dest)
 }
 Invoke-Native git @("-C", $Dest, "fetch", "--quiet", "origin")
 Invoke-Native git @("-C", $Dest, "checkout", "--quiet", "--detach", $Commit)
+# Assicura checkout con terminatori LF nativi per la suite di test
+Invoke-Native git @("-C", $Dest, "config", "core.autocrlf", "false")
+Invoke-Native git @("-C", $Dest, "checkout", "--quiet", "--", "crates/resin-recipe/src/deepseek/tools.txt")
 Write-Host "[resin] $Dest @ $(git -C $Dest rev-parse --short HEAD)"
 
 Push-Location $Dest
 try {
+    # Normalizza eventuali terminatori CRLF clonati in precedenza nei template inclusi con include_str!
+    $toolsFile = Join-Path $Dest "crates\resin-recipe\src\deepseek\tools.txt"
+    if (Test-Path $toolsFile) {
+        $content = [System.IO.File]::ReadAllText($toolsFile)
+        if ($content.Contains("`r`n")) {
+            [System.IO.File]::WriteAllText($toolsFile, $content.Replace("`r`n", "`n"))
+        }
+    }
     Invoke-Native cargo @("test", "--quiet", "-p", "resin-core", "-p", "resin-recipe", "-p", "resin-http")
     Invoke-Native cargo @("build", "--release", "-p", "resin-py")
     $dllPath = Join-Path $Dest "target\release\_resin.dll"
+    if (-not (Test-Path $dllPath)) {
+        # Cargo su Windows può generare lib_resin.dll o _resin.dll
+        $altDll = Join-Path $Dest "target\release\lib_resin.dll"
+        if (Test-Path $altDll) { $dllPath = $altDll }
+    }
     if (Test-Path $dllPath) {
         Copy-Item -Force $dllPath (Join-Path $Dest "resin\_resin.pyd")
     }
