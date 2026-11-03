@@ -62,6 +62,14 @@ $bgTasks = @(
         Out   = Join-Path $Root "data\omen_dev_loop.out.log"
     },
     @{
+        # Ciclo R&D pesante (Flint 40B / LFM 24B, ricerca, sogni, WAL, promozione): gira qui, sull'OMEN
+        # sempre acceso, cosi' il turno notturno non dipende dal Mac (coperchio chiuso = sleep).
+        # La pausa del turno speciale si imposta con ALLNIGHT_PAUSE_WINDOW (es. "10-14") nell'ambiente.
+        Name  = "HyperSpace Nightly Sovereign"; Label = "Nightly Sovereign"; Match = "omen_allnight_sovereign\.py"
+        Args  = "`"$(Join-Path $Root 'scripts\omen_allnight_sovereign.py')`" --daemon --interval 30"
+        Out   = Join-Path $Root "data\omen_allnight.out.log"
+    },
+    @{
         Name  = "HyperSpace Mesh Patch Watcher"; Label = "Mesh Patch Watcher"; Match = "mesh_patch_watcher\.py"
         Args  = "`"$(Join-Path $Root 'scripts\mesh_patch_watcher.py')`" --patches data/node-1/mesh-patches --repo . --role $nodeRole --run-tests"
         Out   = Join-Path $Root "data\mesh_patch_watcher.out.log"

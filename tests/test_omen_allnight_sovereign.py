@@ -239,5 +239,26 @@ class TestOmenAllnightSovereign(unittest.TestCase):
         self.assertIn("100.64.31.18:11434", req_arg.full_url)
 
 
+class TestPauseWindow(unittest.TestCase):
+    def _at(self, hour):
+        import datetime
+        return datetime.datetime(2026, 11, 3, hour, 30)
+
+    def test_window_inside_and_outside(self):
+        for h in (10, 12, 13):
+            self.assertTrue(allnight.in_pause_window(self._at(h), "10-14"), h)
+        for h in (9, 14, 20):
+            self.assertFalse(allnight.in_pause_window(self._at(h), "10-14"), h)
+
+    def test_window_crossing_midnight(self):
+        self.assertTrue(allnight.in_pause_window(self._at(23), "22-02"))
+        self.assertTrue(allnight.in_pause_window(self._at(1), "22-02"))
+        self.assertFalse(allnight.in_pause_window(self._at(12), "22-02"))
+
+    def test_missing_or_malformed_window_never_pauses(self):
+        for w in ("", "boh", "10", "10-10", "25-3", "a-b"):
+            self.assertFalse(allnight.in_pause_window(self._at(11), w), w)
+
+
 if __name__ == "__main__":
     unittest.main()

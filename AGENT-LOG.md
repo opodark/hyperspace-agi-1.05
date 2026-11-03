@@ -11275,3 +11275,35 @@ Su richiesta dell'utente ("modifichiamo la ricerca reach-agent per i decison mod
    - Nessun commit né push senza conferma esplicita dell'utente.
 
 
+
+## 2026-11-03 — Claude Code → Antigravity / Codex / chi lavora sull'OMEN
+
+**Il buco notturno 21:30→06:23 non era dell'OMEN.** Il Mac è andato in sleep a coperchio chiuso e a batteria
+(`pmset`: `Clamshell Sleep` 21:30:28, risveglio 06:23:29; non c'è stato riavvio). Amphetamine era in esecuzione ma
+senza nessuna assertion. L'OMEN ha continuato: `omen_dev_loop_247.py` (attività pianificata "HyperSpace Dev Loop 247")
+ha fatto 12 cicli/ora per tutta la notte, 142 in 12 h, nessuna pausa oltre 15 minuti.
+
+**Cosa dipendeva dal Mac:** il ciclo pesante `omen_allnight_sovereign.py --daemon` (Flint 40B / LFM 24B, ricerca,
+sogni, WAL, promozione), lanciato da `substrate_day_scheduler.py` sul Mac. Sull'OMEN l'ultima esecuzione è del 28/10 e
+`setup-omen-247.ps1` non lo registrava. Il cockpit poi legge solo file del Mac (`nightly_omen_session.log` è di una
+sessione una tantum del 29/10), quindi il lavoro dell'OMEN non compariva.
+
+**Modifiche (non committate, in attesa di ok):**
+- `scripts/setup-omen-247.ps1`: nuova attività pianificata "HyperSpace Nightly Sovereign" (all'accensione, anche senza
+  login, riavvio automatico) che lancia il ciclo sovrano sull'OMEN; log in `data/omen_allnight.out.log`.
+- `scripts/omen_allnight_sovereign.py`: `ALLNIGHT_PAUSE_WINDOW="10-14"` (ora locale, anche a cavallo della mezzanotte)
+  sospende i cicli, per il turno speciale; vuoto = mai in pausa.
+- `scripts/substrate_day_scheduler.py`: `SUBSTRATE_RD_HOST=omen` (default `local`, comportamento invariato). Con `omen`
+  il Mac non avvia più il demone R&D e ferma una copia locale; restano la batteria Resin/Qwenputer di giorno.
+- `shared/overnight_hosts.py` + `GET /api/nightly-shift/hosts` + riga di stato nel terminale di
+  `web-node/apps/playground/analytics.html`: buchi di sleep del Mac e cicli Dev Loop per ora sull'OMEN (letti con
+  `mesh_exec` firmato, cache 60 s).
+- Test: `tests/test_overnight_hosts.py` (nuovo), casi aggiunti a `test_substrate_day_scheduler.py` e
+  `test_omen_allnight_sovereign.py`; 90 passed con licensing/spider/harness.
+
+**Cosa chiedo a chi ha mano sull'OMEN Windows** (il mio shell è nel container del nodo, `/repo` è in sola lettura e
+non ho Windows): dopo il commit/push, sull'OMEN `git pull` (il repo è 5 commit indietro) e
+`.\scripts\setup-omen-247.ps1` da PowerShell amministratore, poi `-Check`. Solo dopo, sul Mac, riavviare lo scheduler
+con `SUBSTRATE_RD_HOST=omen` e fermare il demone R&D locale, per non avere due cicli sugli stessi modelli. Per la
+finestra speciale impostare `ALLNIGHT_PAUSE_WINDOW=10-14` nell'ambiente dell'attività (o via `setx`).
+Il cockpit in esecuzione sul Mac (porta 8090) va riavviato per caricare la nuova rotta.

@@ -228,6 +228,7 @@
         </div>
 
         <!-- Contenitore Scrollabile dei Log -->
+        <div id="term-hosts" class="flex flex-wrap gap-x-4 gap-y-1 px-3 py-1.5 border-b border-slate-800 font-mono text-[10px] text-slate-400"></div>
         <div id="terminal-body" class="flex-1 p-3 overflow-y-auto custom-scrollbar font-mono text-[11px] leading-relaxed selection:bg-cyan-500 selection:text-black">
           <div class="text-slate-500 italic">Caricamento flusso nodi...</div>
         </div>
@@ -446,7 +447,28 @@
         }
       }
 
+      // Chi ha lavorato davvero nelle ultime 12 ore: il Mac dorme a coperchio chiuso, l'OMEN no.
+      function fetchHosts() {
+        const el = document.getElementById('term-hosts');
+        fetch('/api/nightly-shift/hosts?hours=12')
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(d => {
+            const hh = iso => iso.slice(11, 16);
+            const gaps = (d.mac && d.mac.sleep_gaps) || [];
+            const mac = gaps.length
+              ? gaps.map(g => `<span class="text-amber-400">Mac fermo ${hh(g.from)}→${hh(g.to)} (${g.hours} h)</span>`).join('')
+              : '<span class="text-emerald-400">Mac attivo, nessun buco</span>';
+            const o = d.omen || {};
+            const omen = o.ok
+              ? `<span class="text-emerald-400">OMEN attivo · ${o.dev_loop_cycles} cicli Dev Loop in ${d.hours} h</span>`
+              : `<span class="text-red-400">OMEN non risponde${o.error ? ' · ' + esc(o.error) : ''}</span>`;
+            el.innerHTML = mac + omen;
+          })
+          .catch(() => { el.textContent = 'stato host non disponibile'; });
+      }
+
       function fetchTerminalLog(limit = '200') {
+        fetchHosts();
         fetch(`/api/analytics/terminal?limit=${limit}`)
           .then(r => r.ok ? r.json() : Promise.reject(r.status))
           .then(data => {

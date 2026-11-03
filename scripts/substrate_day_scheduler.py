@@ -47,6 +47,10 @@ NIGHT_START_HOUR = int(os.getenv("SUBSTRATE_NIGHT_START_HOUR", "21"))
 NIGHT_END_HOUR = int(os.getenv("SUBSTRATE_NIGHT_END_HOUR", "7"))
 BATTERY_INTERVAL_S = int(os.getenv("SUBSTRATE_BATTERY_INTERVAL_S", "3600"))
 NIGHTLY_INTERVAL_S = int(os.getenv("SUBSTRATE_NIGHTLY_INTERVAL_S", "30"))
+# Dove gira il ciclo R&D: "local" (default, questo Mac) oppure "omen" (attività pianificata
+# sull'OMEN, sempre acceso). Con "omen" lo scheduler non lo avvia mai e ferma un'eventuale copia
+# locale: due demoni sugli stessi modelli si rallentano a vicenda. Resta solo la batteria diurna.
+RD_HOST = os.getenv("SUBSTRATE_RD_HOST", "local").strip().lower()
 
 
 def is_night_hour(hour: int, start: int = NIGHT_START_HOUR, end: int = NIGHT_END_HOUR) -> bool:
@@ -131,7 +135,7 @@ def tick(last_mode: Optional[str], last_battery_ts: float) -> tuple[str, float]:
     mode = current_mode()
     transitioned = mode != last_mode
     if transitioned:
-        if mode == "notte":
+        if mode == "notte" and RD_HOST == "local":
             start_nightly_daemon()
         else:
             stop_nightly_daemon()
@@ -156,6 +160,7 @@ def main() -> int:
         print(json.dumps({
             "modo": current_mode(),
             "finestra_notte": f"{NIGHT_START_HOUR:02d}:00-{NIGHT_END_HOUR:02d}:00",
+            "rd_host": RD_HOST,
             "demone_rd_attivo": pid is not None,
             "demone_rd_pid": pid,
         }, indent=2, ensure_ascii=False))

@@ -246,6 +246,8 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.handle_api_mesh_scouting()
         elif self.path.startswith("/api/persona-dreams"):
             self.handle_api_persona_dreams()
+        elif self.path.startswith("/api/nightly-shift/hosts"):
+            self.handle_api_nightly_shift_hosts()
         elif self.path.startswith("/api/nightly-shift"):
             self.handle_api_nightly_shift()
         elif self.path.startswith("/api/research/tree"):
@@ -1733,6 +1735,16 @@ class CockpitHandler(SimpleHTTPRequestHandler):
             self.send_json(st)
         except Exception as exc:
             self.send_json({"error": f"Errore lettura stato notturno: {exc}", "daemon_running": False}, status=500)
+
+    def handle_api_nightly_shift_hosts(self):
+        """Mac (buchi di sleep dello scheduler) e OMEN (cicli Dev Loop per ora), fianco a fianco."""
+        try:
+            from shared.overnight_hosts import hosts_overview
+            params = parse_qs(urlparse(self.path).query)
+            hours = max(1, min(72, int(params.get("hours", ["12"])[0])))
+            self.send_json({"status": "ok", **hosts_overview(hours)})
+        except Exception as exc:
+            self.send_json({"error": f"Errore stato host notturni: {exc}"}, status=500)
 
     def handle_api_agi_research(self):
         try:

@@ -101,6 +101,23 @@ if os.getenv("ALLNIGHT_CODE_MODELS", "").strip():
 DEV_TIMEOUT = int(os.getenv("ALLNIGHT_DEV_TIMEOUT", "90"))
 # Pilastro di ricerca prioritario per il turno notturno (default su Decision Models non-autoregressivi)
 ALLNIGHT_RESEARCH_PILLAR = os.getenv("ALLNIGHT_RESEARCH_PILLAR", "fast_decision_models").strip()
+# Finestra di pausa "HH-HH" (ora locale, anche a cavallo della mezzanotte) in cui il demone non
+# avvia cicli: serve al turno speciale (test duri sui nodi), che non deve contendere Flint/LFM.
+ALLNIGHT_PAUSE_WINDOW = os.getenv("ALLNIGHT_PAUSE_WINDOW", "").strip()
+
+
+def in_pause_window(now: Optional[datetime.datetime] = None, window: Optional[str] = None) -> bool:
+    """True se `now` cade nella finestra di pausa; finestra assente o malformata = mai in pausa."""
+    window = ALLNIGHT_PAUSE_WINDOW if window is None else window.strip()
+    try:
+        start_s, end_s = window.split("-")
+        start, end = int(start_s), int(end_s)
+    except ValueError:
+        return False
+    if not (0 <= start <= 23 and 0 <= end <= 23) or start == end:
+        return False
+    hour = (now or datetime.datetime.now()).hour
+    return start <= hour < end if start < end else hour >= start or hour < end
 
 IMAGE_SCENARIOS = [
     {
@@ -869,6 +886,10 @@ def main():
         _log("DAEMON", f"Avvio turno notturno sovrano continuo (intervallo: {args.interval}s).")
         while True:
             try:
+                if in_pause_window():
+                    _log("DAEMON", f"Finestra di pausa {ALLNIGHT_PAUSE_WINDOW}: nessun ciclo, ricontrollo fra 300s.")
+                    time.sleep(300)
+                    continue
                 run_single_allnight_cycle()
                 _log("DAEMON", f"Pausa di {args.interval}s prima del prossimo ciclo...")
                 time.sleep(args.interval)

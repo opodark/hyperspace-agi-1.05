@@ -108,5 +108,26 @@ class TestDaemonLookup(unittest.TestCase):
             self.assertFalse(sched.start_nightly_daemon())
 
 
+class TestRdHostOmen(unittest.TestCase):
+    """Con SUBSTRATE_RD_HOST=omen il ciclo R&D vive sull'OMEN: il Mac non lo avvia mai."""
+
+    def test_entering_night_does_not_start_local_daemon(self):
+        with patch.object(sched, "RD_HOST", "omen"), \
+             patch.object(sched, "current_mode", return_value="notte"), \
+             patch.object(sched, "start_nightly_daemon") as mock_start, \
+             patch.object(sched, "stop_nightly_daemon") as mock_stop:
+            sched.tick(last_mode="giorno", last_battery_ts=0.0)
+            mock_start.assert_not_called()
+            mock_stop.assert_called_once()  # una copia locale rimasta viene fermata
+
+    def test_day_battery_still_runs(self):
+        with patch.object(sched, "RD_HOST", "omen"), \
+             patch.object(sched, "current_mode", return_value="giorno"), \
+             patch.object(sched, "stop_nightly_daemon"), \
+             patch.object(sched, "run_day_battery") as mock_battery:
+            sched.tick(last_mode="notte", last_battery_ts=0.0)
+            mock_battery.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
