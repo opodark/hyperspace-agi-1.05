@@ -215,5 +215,140 @@ class RichiestaTests(unittest.TestCase):
         self.assertIs(catturati[0]["stream"], True)
 
 
+class NuoviGiudiciTests(unittest.TestCase):
+    """Testa le nuove sonde introdotte per l'audit empirico di HyperSpace."""
+
+    def test_giudice_no_e(self):
+        # Frase valida senza 'e' o 'E'
+        ok, nota = mb.giudice_no_e("Oggi fa tanto caldo a Roma.")
+        self.assertTrue(ok)
+        self.assertIn("nessuna lettera", nota)
+
+        # Contiene 'e'
+        ok, nota = mb.giudice_no_e("Oggi il tempo e' sereno.")
+        self.assertFalse(ok)
+        self.assertIn("contiene la lettera 'e'", nota)
+
+        # Frase troppo corta
+        ok, nota = mb.giudice_no_e("No.")
+        self.assertFalse(ok)
+        self.assertIn("troppo corta", nota)
+
+    def test_giudice_json_puro(self):
+        # JSON puro senza markdown o testo extra
+        ok, _nota = mb.giudice_json_puro('{"temperatura": 22, "stato": "sole"}')
+        self.assertTrue(ok)
+
+        # Fallisce se incapsulato in triple backtick markdown
+        ok, nota = mb.giudice_json_puro('```json\n{"temperatura": 22, "stato": "sole"}\n```')
+        self.assertFalse(ok)
+        self.assertIn("markdown", nota)
+
+        # Fallisce se accompagnato da chatter/preamboli
+        ok, nota = mb.giudice_json_puro('Certamente! Ecco il JSON: {"temperatura": 22, "stato": "sole"}')
+        self.assertFalse(ok)
+        self.assertIn("chatter", nota)
+
+        # Fallisce se mancano chiavi
+        ok, nota = mb.giudice_json_puro('{"temperatura": 22}')
+        self.assertFalse(ok)
+        self.assertIn("mancano", nota)
+
+    def test_giudice_tool_call(self):
+        # Tool call corretta
+        valida = '{"name": "leggi_file", "arguments": {"percorso": "docs/manuale.md"}}'
+        ok, _nota = mb.giudice_tool_call(valida)
+        self.assertTrue(ok)
+
+        # Nome errato
+        err_nome = '{"name": "apri_file", "arguments": {"percorso": "docs/manuale.md"}}'
+        ok, nota = mb.giudice_tool_call(err_nome)
+        self.assertFalse(ok)
+        self.assertIn("nome", nota)
+
+        # Parametri errati
+        err_args = '{"name": "leggi_file", "arguments": {"percorso": "sbagliato.txt"}}'
+        ok, nota = mb.giudice_tool_call(err_args)
+        self.assertFalse(ok)
+        self.assertIn("argomenti", nota)
+
+        # Con preambolo discorsivo
+        con_chatter = f"Chiamo il tool: {valida}"
+        ok, _nota = mb.giudice_tool_call(con_chatter)
+        self.assertFalse(ok)
+
+    def test_giudice_bulloni(self):
+        # 5 minuti corretto
+        self.assertTrue(mb.giudice_bulloni("Impiegano sempre 5 minuti.")[0])
+        self.assertTrue(mb.giudice_bulloni("5")[0])
+
+        # Errore tipico di euristica fallace (100)
+        self.assertFalse(mb.giudice_bulloni("Impiegano 100 minuti.")[0])
+        self.assertFalse(mb.giudice_bulloni("100")[0])
+
+
+class StreamResultETelemetriaTests(unittest.TestCase):
+    def test_stream_result_retrocompatibile_e_telemetria(self):
+        res = mb.consume_stream([_riga("uno "), _riga("due "), "data: [DONE]\n\n"], 50)
+        # Scompattamento tupla a 2 elementi
+        testo, limite = res
+        self.assertEqual(testo, "uno due")
+        self.assertEqual(limite, "ok")
+        self.assertEqual(len(res), 2)
+
+        # Proprietà telemetria
+        self.assertIsInstance(res, mb.StreamResult)
+        self.assertGreaterEqual(res.ttft, 0.0)
+        self.assertGreaterEqual(res.tok_s, 0.0)
+        self.assertEqual(res.n_tokeni, 2)
+        self.assertIn("elapsed", res.stats)
+
+
+class ProfilazioneERuoliTests(unittest.TestCase):
+    def test_sonde_attive_filtra_per_categoria(self):
+        tutte = mb.sonde_attive()
+        self.assertEqual(len(tutte), len(mb.PROBE))
+
+        solo_coding = mb.sonde_attive(["coding"])
+        nomi_coding = {s[0] for s in solo_coding}
+        self.assertEqual(nomi_coding, set(mb.CATEGORIE_SONDE["coding"]))
+
+    def test_profila_modello_raccomanda_ruoli(self):
+        # Simuliamo risultati di un coder perfetto
+        righe_coder = {}
+        for nome, _, _, _, _ in mb.PROBE:
+            is_coding = nome in mb.CATEGORIE_SONDE["coding"]
+            is_format = nome in mb.CATEGORIE_SONDE["strict_format"]
+            ok = is_coding or is_format
+            righe_coder[nome] = {
+                "ok": ok,
+                "limite": "ok",
+                "stats": {"tok_s": 45.0, "ttft": 0.2}
+            }
+
+        profilo = mb.profila_modello(righe_coder)
+        self.assertIn("coder", profilo["recommended_roles"])
+        self.assertIn("tool_calling", profilo["recommended_roles"])
+        self.assertIn("fast_router", profilo["recommended_roles"])
+        self.assertEqual(profilo["avg_tok_s"], 45.0)
+
+    def test_profila_modello_fallback_chat_only(self):
+        # Modello che fallisce tutto
+        righe_flop = {
+            nome: {"ok": False, "limite": "ok", "stats": {"tok_s": 5.0, "ttft": 1.5}}
+            for nome, _, _, _, _ in mb.PROBE
+        }
+        profilo = mb.profila_modello(righe_flop)
+        self.assertEqual(profilo["recommended_roles"], ["chat_only"])
+
+
+class ParserTests(unittest.TestCase):
+    def test_parser_argomenti_nuovi(self):
+        p = mb.build_parser()
+        args = p.parse_args(["--category", "coding", "--export-profile", "/tmp/cap.json"])
+        self.assertEqual(args.category, "coding")
+        self.assertEqual(args.export_profile, "/tmp/cap.json")
+
+
 if __name__ == "__main__":
     unittest.main()

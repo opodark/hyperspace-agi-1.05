@@ -1,0 +1,14 @@
+# Modelfile.lfm24b-calibrated — Configurazione chirurgica per Liquid AI LFM 2.5 24B MoE su GPU 8GB (HP OMEN)
+# Ottimizza context window e parametri di campionamento per prevenire timeout di CoT su compiti complessi.
+FROM hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M
+
+# Limite num_ctx compatibile con VRAM 8 GB
+PARAMETER num_ctx 4096
+
+# Temperatura e penalità di ripetizione per mantenere CoT conciso
+PARAMETER temperature 0.2
+PARAMETER top_p 0.90
+PARAMETER repeat_penalty 1.10
+
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|endoftext|>"

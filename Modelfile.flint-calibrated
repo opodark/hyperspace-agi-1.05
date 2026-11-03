@@ -1,0 +1,15 @@
+# Modelfile.flint-calibrated — Configurazione chirurgica per Flint 40B MoE su GPU 8GB (HP OMEN)
+# Ottimizza context window e parametri di campionamento per vincoli rigidi e contratti.
+FROM flint:latest
+
+# Limite di sicurezza num_ctx per evitare memory spilling PCIe e drop CUDA su 8 GB VRAM
+PARAMETER num_ctx 4096
+
+# Temperatura deterministica per rispetto rigoroso di contratti, coding e vincoli negativi
+PARAMETER temperature 0.15
+PARAMETER top_p 0.90
+PARAMETER repeat_penalty 1.12
+
+# Token di stop canonici
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|endoftext|>"
