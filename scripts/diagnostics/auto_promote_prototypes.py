@@ -57,6 +57,33 @@ from shared.prototype_gates import (  # noqa: E402
     TEST_MODEL,
 )
 NO_TESTS = "nessun test incluso (serve generazione test)"
+# Modello che fa da secondo paio d'occhi prima della promozione: di proposito lo stesso
+# default di TEST_MODEL (granite3.3:8b), scelto perche' e' sempre diverso dai generatori
+# pesanti del ciclo notturno (Flint 40B / LFM 24B) — mai lo stesso modello che ha scritto
+# il codice, altrimenti la revisione eredita lo stesso punto cieco del generatore.
+REVIEW_MODEL = os.getenv("HYPERSPACE_REVIEW_MODEL", "granite3.3:8b")
+
+
+def _review_prompt(code: str) -> str:
+    return (
+        "Sei un revisore indipendente: NON hai scritto questo codice. Prima che venga "
+        "promosso in produzione, controlla se ha bug evidenti, logica sbagliata, o non fa "
+        "davvero quello che la docstring/i nomi dicono. Non limitarti a controllare se pytest "
+        "passa: quello e' gia' stato verificato. Rispondi SOLO con una prima riga che e' "
+        "esattamente APPROVA oppure RIGETTA, seguita da una riga con il motivo.\n\n"
+        f"```python\n{code}\n```"
+    )
+
+
+def _parse_review_verdict(text: str) -> Optional[bool]:
+    """True/False/None (verdetto non interpretabile, es. errore di rete: non blocca)."""
+    for line in (text or "").splitlines():
+        token = line.strip().upper()
+        if token.startswith("APPROVA"):
+            return True
+        if token.startswith("RIGETTA"):
+            return False
+    return None
 
 def _load_state() -> Dict[str, Any]:
     try:
@@ -204,6 +231,22 @@ def run_auto_promotion(
         report["eligible"].append(entry)
         if not apply:
             continue
+
+        # Revisione indipendente prima di promuovere: un modello diverso da chi ha generato
+        # il codice (mai lo stesso, altrimenti si ripete il punto cieco dell'autovalutazione
+        # visto nell'audit Claude vs Flint del 2026-11-03) legge il prototipo e puo' bloccare
+        # la promozione. Sempre attiva qui (non filtrata da LAYA): la promozione e' rara e
+        # asincrona, il costo di una chiamata in piu' e' irrilevante rispetto al rischio di
+        # mandare in produzione codice con un difetto che il solo pytest non cattura.
+        if executor:
+            review_res = executor(_review_prompt(path.read_text(encoding="utf-8")),
+                                   model=REVIEW_MODEL, timeout=int(max(30, min(120, remaining() / 2))))
+            verdict = (_parse_review_verdict(review_res.get("response", ""))
+                       if review_res.get("status") == "ok" else None)
+            if verdict is False:
+                state["rejected"][path.name] = f"revisione indipendente ({REVIEW_MODEL}) ha rigettato il codice"
+                report["eligible"].remove(entry)
+                continue
 
         test_file = TESTS_DIR / f"test_auto_{stem}.py"
         test_file.write_text(

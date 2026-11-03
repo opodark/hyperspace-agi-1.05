@@ -14,6 +14,7 @@ from shared.fast_decision_model import (
     DecisionOption,
     FastDecisionEngine,
     SafetyAuditResult,
+    needs_second_opinion,
 )
 
 
@@ -181,6 +182,53 @@ class TestFastDecisionEngineSuite(unittest.TestCase):
         self.assertIn("vision_render", results[0]["intent"])
         self.assertIn("test_execution", results[1]["intent"])
         self.assertIn("mesh_gossip", results[2]["intent"])
+
+
+class TestNeedsSecondOpinion(unittest.TestCase):
+    """Il gate che decide se una risposta merita una seconda revisione indipendente.
+
+    Nato dall'audit Claude vs Flint 40B: Flint ha violato un vincolo di formato rigido
+    (Test 6, "nessuna lettera e") e nella propria auto-revisione non se ne e' accorto.
+    Qui si verifica che il gate (<50ms, nessuna chiamata a modello) scateni la revisione
+    sui casi in cui l'autovalutazione del singolo modello non basta, e resti silenzioso
+    sulla conversazione comune — altrimenti si raddoppia la latenza di ogni messaggio."""
+
+    def setUp(self):
+        self.engine = FastDecisionEngine()
+
+    def test_conversazione_comune_non_scatena_revisione(self):
+        for testo in ("Che tempo fa oggi a Milano?", "Ciao, come va?",
+                      "Spiegami cosa fa questa funzione Python."):
+            with self.subTest(testo=testo):
+                trig, ev = needs_second_opinion(self.engine, testo)
+                self.assertFalse(trig)
+                self.assertLess(ev.latency_ms, 50.0)
+
+    def test_vincolo_di_formato_rigido_scatena_revisione(self):
+        trig, ev = needs_second_opinion(
+            self.engine,
+            "Scrivi esattamente 5 bullet point, ciascuno di 8 parole, senza usare la lettera e.")
+        self.assertTrue(trig)
+        self.assertEqual(ev.selected_option_id, "review")
+
+    def test_azione_rischiosa_in_produzione_scatena_revisione(self):
+        trig, _ = needs_second_opinion(
+            self.engine, "Promuovi questo prototipo in produzione e fai il merge sul branch main.")
+        self.assertTrue(trig)
+
+    def test_pareggio_esatto_non_viene_letto_come_segnale(self):
+        """Quando nessun concetto matcha, le due opzioni pareggiano a 0.5/0.5: e' rumore di
+        fondo, non un vero 50/50 'serve revisione' — la soglia di default (0.6) lo scarta."""
+        trig, ev = needs_second_opinion(self.engine, "xyz abc qwerty nonsense")
+        self.assertFalse(trig)
+        self.assertAlmostEqual(ev.confidence, 0.5, delta=0.01)
+
+    def test_soglia_di_confidenza_e_configurabile(self):
+        testo = "Il testo deve contenere esattamente 300 parole, non una di piu o una di meno."
+        trig_default, ev = needs_second_opinion(self.engine, testo)
+        self.assertTrue(trig_default)
+        trig_stretta, _ = needs_second_opinion(self.engine, testo, confidence_floor=ev.confidence + 0.1)
+        self.assertFalse(trig_stretta)
 
 
 if __name__ == "__main__":

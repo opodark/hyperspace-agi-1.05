@@ -105,6 +105,8 @@ class TestBackfillTest(unittest.TestCase):
         rep, text = self._run(True, ex)
         self.assertEqual(rep["backfilled"], 1)
         self.assertIn("TestZzBackfillThing", text)
+        # max_promotions=0: si ferma prima del passo di revisione (TestReviewGate sotto),
+        # quindi qui l'unica chiamata e' quella di backfill dei test.
         self.assertEqual(calls, [ap.TEST_MODEL])
         rep, text = self._run(False, ex)
         self.assertEqual(rep["backfilled"], 0)
@@ -115,6 +117,86 @@ class TestBackfillTest(unittest.TestCase):
         rep, text = self._run(True, lambda p, model, timeout: {"status": "ok", "response": f"```python\n{bad}\n```"})
         self.assertEqual(rep["backfilled"], 0)
         self.assertNotIn("Test", text)
+
+
+class TestReviewGate(unittest.TestCase):
+    """La revisione indipendente prima della promozione: un modello diverso dal generatore
+    legge il prototipo e puo' bloccarlo. Codice gia' con test incorporati, cosi' il backfill
+    non interferisce e si isola solo il passo di revisione. `PrototypePromoter.promote_single`
+    e' mockato: usa percorsi propri (non quelli patchati qui) e farebbe verifica pytest reale,
+    quindi non e' lui l'oggetto del test — qui si verifica solo se VIENE chiamato o no."""
+
+    CODE = textwrap.dedent('''
+        import unittest
+        class ZzReviewGateThing:
+            def a(self): return 1
+        class TestZzReviewGateThing(unittest.TestCase):
+            def test_a(self): self.assertEqual(ZzReviewGateThing().a(), 1)
+    ''')
+
+    def _run(self, executor, promote_single=None):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / "proto_x_1.py").write_text(self.CODE)
+            # SHARED_DIR/TESTS_DIR vanno sandboxati anche loro: il passo di scrittura del
+            # file di test e il controllo "modulo gia' esistente" scrivono/leggono li', non
+            # solo nella cartella dei prototipi — altrimenti si scrive per davvero nel repo.
+            with patch.object(ap, "PROTOTYPES_DIR", d), patch.object(ap, "STATE_FILE", d / "state.json"), \
+                 patch.object(ap, "PROMOTIONS_FILE", d / "none.jsonl"), \
+                 patch.object(ap, "SHARED_DIR", d), patch.object(ap, "TESTS_DIR", d), \
+                 patch("scripts.diagnostics.promote_research_prototype.PrototypePromoter.promote_single",
+                       promote_single or (lambda self, *a, **k: {"success": True, "evidence": {"tier": "verified"}})):
+                rep = ap.run_auto_promotion(apply=True, max_promotions=1, min_nodes=10, executor=executor)
+            return rep
+
+    def test_rigetta_blocca_la_promozione_prima_del_promoter(self):
+        chiamato = []
+        rep = self._run(
+            lambda prompt, model, timeout: {"status": "ok", "response": "RIGETTA\nla classe non fa quello che dice"},
+            promote_single=lambda self, *a, **k: chiamato.append(1) or {"success": True, "evidence": {"tier": "verified"}},
+        )
+        self.assertEqual(rep["eligible"], [])
+        self.assertEqual(rep["promoted"], [])
+        self.assertEqual(chiamato, [], "il promoter non deve essere chiamato se la revisione rigetta")
+
+    def test_approva_lascia_proseguire_fino_al_promoter(self):
+        rep = self._run(lambda prompt, model, timeout: {"status": "ok", "response": "APPROVA\ntutto a posto"})
+        self.assertEqual([e["prototype"] for e in rep["eligible"]], ["proto_x_1.py"])
+        self.assertEqual([e["target"] for e in rep["promoted"]], ["shared/zz_review_gate_thing.py"])
+
+    def test_verdetto_non_interpretabile_non_blocca(self):
+        rep = self._run(lambda prompt, model, timeout: {"status": "ok", "response": "non ho capito la domanda"})
+        self.assertEqual([e["target"] for e in rep["promoted"]], ["shared/zz_review_gate_thing.py"])
+
+    def test_errore_di_rete_non_blocca(self):
+        rep = self._run(lambda prompt, model, timeout: {"status": "error"})
+        self.assertEqual([e["target"] for e in rep["promoted"]], ["shared/zz_review_gate_thing.py"])
+
+    def test_dry_run_non_chiama_il_revisore(self):
+        calls = []
+
+        def ex(prompt, model, timeout):
+            calls.append(model)
+            return {"status": "ok", "response": "APPROVA"}
+
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / "proto_x_1.py").write_text(self.CODE)
+            with patch.object(ap, "PROTOTYPES_DIR", d), patch.object(ap, "STATE_FILE", d / "state.json"), \
+                 patch.object(ap, "PROMOTIONS_FILE", d / "none.jsonl"):
+                ap.run_auto_promotion(apply=False, min_nodes=10, executor=ex)
+        self.assertEqual(calls, [])
+
+
+class TestParseReviewVerdict(unittest.TestCase):
+    def test_approva_e_rigetta_case_insensitive(self):
+        self.assertTrue(ap._parse_review_verdict("approva\nok"))
+        self.assertFalse(ap._parse_review_verdict("Rigetta: bug evidente"))
+
+    def test_testo_senza_verdetto_e_none(self):
+        self.assertIsNone(ap._parse_review_verdict("non saprei dire"))
+        self.assertIsNone(ap._parse_review_verdict(""))
+        self.assertIsNone(ap._parse_review_verdict(None))
 
 
 class TestBudget(unittest.TestCase):

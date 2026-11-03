@@ -18,6 +18,7 @@ si controlla che il test corrispondente fallisca.
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 # `cp/` sta dentro control-plane/, quindi va in sys.path prima dell'import. Gli
 # altri test che importano un modulo `cp.*` fanno lo stesso: senza questa riga il
@@ -354,6 +355,68 @@ class ResolveCtxCapTests(unittest.TestCase):
         for bad in (0, -1, None):
             with self.subTest(bad=bad):
                 self.assertEqual(cp_chat._resolve_ctx_cap(bad, "asus-1", self.NODI), 32768)
+
+
+def _risultato(content):
+    return {"choices": [{"index": 0, "message": {"role": "assistant", "content": content},
+                          "finish_reason": "stop"}]}
+
+
+class MaybeReviewResponseTests(unittest.TestCase):
+    """`_maybe_review_response`: seconda opinione LAYA-gated prima di consegnare la
+    risposta. Nata dall'audit Claude vs Flint (Flint non si e' accorto di un proprio
+    vincolo violato): qui il reviewer e' mockato, non e' lui l'oggetto del test — si
+    verifica solo CHI viene chiamato, QUANDO, e che un fallimento non rompa la risposta."""
+
+    PROMPT_VINCOLO = "Scrivi esattamente 5 bullet point di 8 parole, senza la lettera e."
+    PROMPT_GENERICO = "Che tempo fa oggi a Milano?"
+
+    def test_conversazione_comune_non_chiama_il_reviewer(self):
+        with patch.object(cp_chat, "_local_model_post") as mock_post:
+            out = cp_chat._maybe_review_response(self.PROMPT_GENERICO, "flint:latest",
+                                                   _risultato("Non ho accesso al meteo in tempo reale."))
+        mock_post.assert_not_called()
+        self.assertEqual(out["choices"][0]["message"]["content"], "Non ho accesso al meteo in tempo reale.")
+
+    def test_vincolo_rigido_chiama_il_reviewer_e_sostituisce_il_contenuto(self):
+        class FakeResp:
+            def raise_for_status(self): pass
+            def json(self): return {"message": {"content": "versione corretta"}}
+
+        with patch.object(cp_chat, "_local_model_post", return_value=FakeResp()) as mock_post:
+            out = cp_chat._maybe_review_response(self.PROMPT_VINCOLO, "flint:latest",
+                                                  _risultato("versione con un errore"))
+        mock_post.assert_called_once()
+        self.assertEqual(out["choices"][0]["message"]["content"], "versione corretta")
+        # Il reviewer e' sempre diverso dal generatore.
+        self.assertNotEqual(mock_post.call_args.kwargs["json"]["model"], "flint:latest")
+
+    def test_stesso_modello_generatore_e_reviewer_salta_la_revisione(self):
+        with patch.object(cp_chat, "_local_model_post") as mock_post, \
+             patch.object(cp_chat, "CHAT_REVIEW_MODEL", "flint:latest"):
+            out = cp_chat._maybe_review_response(self.PROMPT_VINCOLO, "flint:latest",
+                                                  _risultato("versione originale"))
+        mock_post.assert_not_called()
+        self.assertEqual(out["choices"][0]["message"]["content"], "versione originale")
+
+    def test_errore_di_rete_fallisce_aperto_risposta_invariata(self):
+        with patch.object(cp_chat, "_local_model_post", side_effect=RuntimeError("timeout")):
+            out = cp_chat._maybe_review_response(self.PROMPT_VINCOLO, "flint:latest",
+                                                  _risultato("versione originale"))
+        self.assertEqual(out["choices"][0]["message"]["content"], "versione originale")
+
+    def test_risposta_con_errore_non_viene_toccata(self):
+        errore = {"error": {"message": "boom", "type": "server_error"}}
+        with patch.object(cp_chat, "_local_model_post") as mock_post:
+            out = cp_chat._maybe_review_response(self.PROMPT_VINCOLO, "flint:latest", errore)
+        mock_post.assert_not_called()
+        self.assertEqual(out, errore)
+
+    def test_contenuto_vuoto_non_chiama_il_reviewer(self):
+        with patch.object(cp_chat, "_local_model_post") as mock_post:
+            out = cp_chat._maybe_review_response(self.PROMPT_VINCOLO, "flint:latest", _risultato(""))
+        mock_post.assert_not_called()
+        self.assertEqual(out["choices"][0]["message"]["content"], "")
 
 
 if __name__ == "__main__":

@@ -112,6 +112,18 @@ CONCEPT_CLUSTERS: Dict[str, Set[str]] = {
         "memory", "hermes", "wal", "storage", "sqlite", "episodic", "graph", "causal",
         "lineage", "checkpoint", "persistenza"
     },
+    "hard_constraints": {
+        "esattamente", "exactly", "vincolo", "vincoli", "constraint", "constraints",
+        "massimo", "minimo", "conteggio", "lettera", "lettere", "letter", "carattere",
+        "caratteri", "character", "characters", "parole", "words", "format", "formato",
+        "rigido", "rigidi", "count", "forbidden", "vietato", "vietata", "regola", "regole",
+        "esatto", "esatta", "precis", "exact"
+    },
+    "risky_action": {
+        "produzione", "production", "promuovere", "promozione", "promote", "deploy",
+        "delete", "elimina", "cancella", "drop", "merge", "push", "commit", "release",
+        "irreversibile", "irreversible", "rollback", "migrate", "migrazione"
+    },
 }
 
 TERM_TO_CONCEPT: Dict[str, str] = {}
@@ -506,6 +518,52 @@ class FastDecisionEngine:
                 "latency_ms": ev.latency_ms,
             })
         return results
+
+
+# --- Gate di seconda opinione (LAYA) ---
+#
+# Un modello che si autovaluta non si accorge dei propri errori sui vincoli rigidi (visto
+# nell'audit Claude vs Flint 40B del 2026-11-03: Flint ha violato due volte il vincolo
+# "nessuna lettera e" e nella propria auto-revisione non se ne e' accorto). Rivedere SEMPRE
+# ogni risposta con un secondo modello raddoppia la latenza anche quando non serve; questo
+# gate usa LAYA (classificazione single-pass, <50ms, nessuna chiamata a modello) per decidere
+# SOLO quando il costo di una seconda opinione vale la pena: vincoli di formato verificabili,
+# codice con test, azioni rischiose/irreversibili. Il reviewer dev'essere sempre un modello
+# DIVERSO dal generatore, altrimenti si ripete lo stesso punto cieco.
+REVIEW_GATE_OPTIONS = (
+    DecisionOption(
+        id="accept",
+        label="accetta la risposta",
+        description="conversazione quotidiana, domanda generica, spiegazione libera, chiacchiera informale",
+    ),
+    DecisionOption(
+        id="review",
+        label="richiedi una seconda revisione indipendente",
+        description=(
+            "vincoli di formato esatti conteggio parole lettere caratteri vietati, codice con test, "
+            "system design, azione in produzione irreversibile promozione deploy delete merge push"
+        ),
+    ),
+)
+
+
+def needs_second_opinion(
+    engine: "FastDecisionEngine",
+    context: str,
+    confidence_floor: float = 0.6,
+) -> Tuple[bool, DecisionEvaluation]:
+    """True se LAYA segnala che questa risposta/azione merita una seconda revisione.
+
+    `context` e' il testo su cui decidere (es. prompt utente + risposta, o descrizione del
+    task + codice generato). Ritorna anche la DecisionEvaluation completa per log/audit.
+
+    Soglia 0.6 calibrata a mano (non 0.5): quando il contesto non attiva nessun concetto, le
+    due opzioni pareggiano esattamente a 0.5/0.5 (nessun segnale, non un "serve revisione" 50/50
+    vero) e vanno scartate, non accettate come trigger.
+    """
+    evaluation = engine.evaluate_decision(context=context, options=REVIEW_GATE_OPTIONS)
+    triggered = evaluation.selected_option_id == "review" and evaluation.confidence >= confidence_floor
+    return triggered, evaluation
 
 
 # --- Test Unitari Integrati (Eseguibili da Standalone o Pytest) ---

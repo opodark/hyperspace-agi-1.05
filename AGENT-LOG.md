@@ -11396,3 +11396,43 @@ Richiesta per chi continua: misurare sul campo (OMEN 8GB VRAM vs ASUS) fino a ch
 `num_ctx` si può alzare il tetto per nodo senza OOM, e aggiornare i numeri in `_resolve_ctx_cap()`
 di conseguenza.
 
+## 2026-11-03 — Claude Sonnet 5 → Utente / Team (seguito: limiti num_ctx misurati su OMEN; gate LAYA per seconda opinione)
+
+1. **Limiti `num_ctx` misurati sull'OMEN** (granite3.3:8b, 8GB VRAM, via Ollama nativo su
+   `host.docker.internal:11434`): testati 8192/16384/32768/65536/98304/131072 (il massimo
+   supportato dal modello). Nessun OOM a nessun livello — solo un costo di ricarica crescente
+   (istantaneo con ctx già caricato, poi 15s/49s/62s/104s/128s via via che cresce). L'ASUS è
+   risultato spento/irraggiungibile a metà sessione (sleep dopo essere stato acceso in
+   precedenza): i numeri lì restano da misurare quando è acceso. Nessuna modifica di codice da
+   questa misura — resta da decidere se spostare il tetto per-nodo oltre 32768 per OMEN quando
+   si confermano anche i numeri ASUS.
+
+2. **Gate LAYA per seconda opinione** (`needs_second_opinion` in `shared/fast_decision_model.py`):
+   nato dall'audit Claude vs Flint 40B di oggi (Flint ha violato un vincolo di formato rigido
+   nel proprio test e non se ne è accorto nella propria auto-revisione). Classificazione
+   single-pass <50ms, nessuna chiamata a modello, calibrata a mano (soglia 0.6, non 0.5: a
+   pareggio esatto le due opzioni sono rumore di fondo, non un vero segnale).
+   - **Agganciato al ciclo notturno** (`scripts/diagnostics/auto_promote_prototypes.py`):
+     revisione indipendente SEMPRE attiva prima di ogni promozione reale (non filtrata da LAYA:
+     qui il costo di latenza è irrilevante, è background), eseguita da un modello diverso dal
+     generatore (`HYPERSPACE_REVIEW_MODEL`, default `granite3.3:8b`). Può bloccare la
+     promozione (`RIGETTA` nel verdetto) o lasciarla proseguire; fallisce aperto su errore di
+     rete o verdetto non interpretabile.
+   - **Agganciato alla chat interattiva** (`control-plane/cp/chat.py::_maybe_review_response`):
+     qui SÌ filtrato da LAYA, per non raddoppiare la latenza di ogni messaggio — scatta solo su
+     vincoli di formato verificabili, codice con test, azioni rischiose/irreversibili. Reviewer
+     sempre diverso dal modello generatore (`HYPERSPACE_CHAT_REVIEW_MODEL`, default
+     `granite3.3:8b`); fail-open completo su qualunque problema (rete, timeout, nessun
+     contenuto, stesso modello) — non blocca mai la risposta all'utente.
+   - 38 test nuovi, tutti verdi. Corretto anche `tests/test_runtime_recovery.py`, che estrae il
+     corpo letterale di `v1_chat_completions` con uno scope minimale: serviva un passthrough
+     per il nuovo hook.
+   - Verificato con la suite intera (3073 passati): i 3 fallimenti rimasti (telegram_gate,
+     memory_sync, connectors/instagram) sono preesistenti e dipendenti dall'ordine della suite
+     completa (stato globale condiviso, confermato passano se isolati), non causati da questo
+     lavoro — segnalato ma non corretto, fuori perimetro di questo intervento.
+
+Richiesta per chi continua: quando l'ASUS è di nuovo acceso, ripetere la stessa misura di
+`num_ctx` fatta sull'OMEN (stesso schema: valori crescenti via Ollama nativo, osservare se/dove
+compare OOM) e aggiornare `_resolve_ctx_cap()` di conseguenza.
+

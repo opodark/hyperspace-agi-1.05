@@ -85,6 +85,7 @@ from cp.model_caps import (_model_supports_tools, _model_thinking_only,
                            _tools_requested_off, _use_native_chat_fallback,
                            _warn_tools_stripped)
 from cp.persona import _persona_enabled
+from shared.fast_decision_model import FastDecisionEngine, needs_second_opinion
 from shared.forge_skills import attach_skills
 from shared.identity import make_request_headers
 from shared.persona import should_disclose
@@ -1085,6 +1086,64 @@ def _resolve_ctx_cap(requested_ctx, pinned_node_id, node_list) -> int:
     return current_ctx if 0 < current_ctx <= ctx_cap else ctx_cap
 
 
+# ── seconda opinione (LAYA) prima di consegnare la risposta ───────────────────
+#
+# Nato dall'audit Claude vs Flint 40B del 2026-11-03: un modello che si autovaluta non si
+# accorge dei propri errori sui vincoli rigidi (Flint ha violato due volte "nessuna lettera
+# e" e nella propria auto-revisione non se ne e' accorto). Rivedere SEMPRE ogni risposta con
+# un secondo modello raddoppierebbe la latenza di ogni messaggio in chat; qui si usa LAYA
+# (classificazione single-pass, <50ms, nessuna chiamata a modello) per far scattare una
+# seconda opinione SOLO sui casi dove vale il costo: vincoli di formato verificabili, codice
+# con test, azioni rischiose/irreversibili. Il reviewer e' sempre un modello diverso dal
+# generatore — altrimenti si ripete lo stesso punto cieco — e l'intero passo fallisce in
+# modo aperto: qualunque problema (rete, timeout, nessun contenuto) ritorna la risposta
+# originale invariata, non blocca mai la risposta all'utente.
+_REVIEW_GATE_ENGINE = FastDecisionEngine()
+CHAT_REVIEW_MODEL = os.getenv("HYPERSPACE_CHAT_REVIEW_MODEL", "granite3.3:8b")
+
+
+def _review_prompt_for_chat(prompt: str, answer: str) -> str:
+    return (
+        "Rivedi questa risposta data a un utente, PRIMA che gli venga consegnata. Se e' "
+        "corretta e rispetta tutti i vincoli della domanda, ripetila identica. Se ha un "
+        "errore — anche solo un vincolo di formato non rispettato, es. un conteggio sbagliato "
+        "o un carattere vietato usato per errore — correggila e rispondi SOLO con la versione "
+        "corretta finale, senza spiegazioni.\n\n"
+        f"Domanda originale:\n{prompt}\n\nRisposta da rivedere:\n{answer}"
+    )
+
+
+def _maybe_review_response(prompt: str, model: str, result_json: dict) -> dict:
+    """Seconda opinione LAYA-gated. Fallisce in modo aperto su qualunque problema."""
+    try:
+        if _is_error_payload(result_json):
+            return result_json
+        message = (result_json.get("choices") or [{}])[0].get("message") or {}
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            return result_json
+        base_model = str(model or "").split("::", 1)[0]
+        if CHAT_REVIEW_MODEL == base_model:
+            return result_json  # mai lo stesso modello che revisiona se stesso
+        triggered, _ = needs_second_opinion(_REVIEW_GATE_ENGINE, f"{prompt}\n\n{content}")
+        if not triggered:
+            return result_json
+        review_payload = {
+            "model": CHAT_REVIEW_MODEL, "stream": False, "think": False,
+            "messages": [{"role": "user", "content": _review_prompt_for_chat(prompt, content)}],
+        }
+        resp = _local_model_post(f"{_inference_urls()[0]}/api/chat", json=review_payload, timeout=60)
+        resp.raise_for_status()
+        reviewed = ((resp.json() or {}).get("message") or {}).get("content", "").strip()
+        if reviewed:
+            message["content"] = reviewed
+        return result_json
+    except Exception as exc:
+        push_log('system', 'review gate: errore, risposta originale invariata',
+                 detail=str(exc)[:160], status='warn')
+        return result_json
+
+
 # ── la rotta ──────────────────────────────────────────────────────────────────
 # ── /v1/chat/completions ──────────────────────────────────────────────────────
 @_bp.route('/v1/chat/completions', methods=['POST', 'OPTIONS'])
@@ -1479,6 +1538,7 @@ def v1_chat_completions():
         if omni_result:
             _finalize_task(task, task_id, "omniroute", model, prompt, omni_result)
             push_log('inter_node_message', f'task {task_id} -> omniroute (selezione esplicita)', status='success')
+            omni_result = _maybe_review_response(prompt, model, omni_result)
             return _respond_result(omni_result)
         task["status"] = "failed"
         task["error"]  = "OmniRoute non raggiungibile o nessun provider disponibile"
@@ -1511,6 +1571,7 @@ def v1_chat_completions():
                      str(result_json.get("error"))[:160], status='warn')
             continue
         _finalize_task(task, task_id, node_id, model, prompt, result_json)
+        result_json = _maybe_review_response(prompt, model, result_json)
         return _respond_result(result_json)
 
     # Local-first even while workers are still registering after startup.
@@ -1525,6 +1586,7 @@ def v1_chat_completions():
         direct_result = {"error": {"message": str(e), "type": "server_error"}}
     if not _is_error_payload(direct_result):
         _finalize_task(task, task_id, "ollama-direct", model, prompt, direct_result)
+        direct_result = _maybe_review_response(prompt, model, direct_result)
         return _respond_result(direct_result)
     _direct_err = direct_result.get("error") if isinstance(direct_result, dict) else None
     if isinstance(_direct_err, dict) and (
@@ -1546,6 +1608,7 @@ def v1_chat_completions():
         _finalize_task(task, task_id, node_label, model, prompt, inner_result)
         push_log('inter_node_message', f'task {task_id} federato -> {fed_peer.get("label") or node_label}',
                  status='success')
+        inner_result = _maybe_review_response(prompt, model, inner_result)
         return _respond_result(inner_result)
 
     # Mesh, direct inference and federation failed: try the external provider.
@@ -1555,6 +1618,7 @@ def v1_chat_completions():
     if omni_result:
         _finalize_task(task, task_id, "omniroute", model, prompt, omni_result)
         push_log('inter_node_message', f'task {task_id} -> omniroute (fallback esterno)', status='success')
+        omni_result = _maybe_review_response(prompt, model, omni_result)
         return _respond_result(omni_result)
 
     _finalize_task(task, task_id, "ollama-direct", model, prompt, direct_result)

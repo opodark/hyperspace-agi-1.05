@@ -143,6 +143,9 @@ class LocalFirstTests(unittest.TestCase):
             "_is_error_payload": lambda value: bool(value.get("error")),
             "_finalize_task": Mock(), "_respond_result": lambda value: value,
             "_try_federated_execution": fed, "_try_omniroute_fallback": Mock(), "push_log": Mock(),
+            # Passthrough identico all'originale: la seconda opinione LAYA-gated non e'
+            # l'oggetto di questo test, che verifica solo la catena di fallback.
+            "_maybe_review_response": lambda prompt, model, value: value,
         }
         exec(compile(ast.Module(body=[route], type_ignores=[]), "cp", "exec"), scope)
         return scope["fallback"](), scope
