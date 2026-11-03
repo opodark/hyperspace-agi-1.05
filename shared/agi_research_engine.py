@@ -37,6 +37,21 @@ from shared.universal_model_parser import CavemanEngine, UniversalModelParser
 from shared.causal_memory_graph import CausalMemoryGraph
 from shared.prototype_gates import TEST_MODEL, evaluate_code, extract_code, repair_prompt, tests_prompt, with_tests
 
+def _log(tag: str, msg: str) -> None:
+    """Riga di avanzamento sul flusso stdout del processo chiamante (es. il demone notturno).
+
+    Senza questo, una `execute_study_cycle` resta silenziosa per i 600-800s in cui concatena
+    la chiamata principale, l'eventuale generazione test e l'eventuale riparazione: da fuori
+    sembra ferma mentre lavora. Usa lo stesso stile (e la stessa cautela su Windows/cp1252
+    dei caratteri non ASCII) di `_log` in scripts/omen_allnight_sovereign.py.
+    """
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        print(f"[{ts}] [{tag}] {msg}", flush=True)
+    except UnicodeEncodeError:
+        print(f"[{ts}] [{tag}] {msg.encode('ascii', errors='replace').decode('ascii')}", flush=True)
+
+
 RESEARCH_DIR = ROOT / "data" / "research"
 PROTOTYPES_DIR = RESEARCH_DIR / "prototypes"
 DEEP_DIVES_LOG = RESEARCH_DIR / "agi_deep_dives.jsonl"
@@ -327,11 +342,15 @@ class AGIResearchEngine:
 
     @staticmethod
     def _call_models(executor: Any, prompt: str, model: str, fallback: str):
+        _log("RESEARCH-CALL", f"invio prompt principale a {model} (timeout 240s)...")
         res = executor(prompt, model=model, timeout=240)
         if res.get("status") == "ok" and not res.get("response", "").startswith("[OLLAMA ERROR]"):
+            _log("RESEARCH-CALL", f"risposta da {model} in {res.get('elapsed_s', 0.0)}s")
             return res.get("response", ""), res.get("elapsed_s", 0.0), model
+        _log("RESEARCH-CALL", f"{model} non ok ({res.get('status')}): fallback su {fallback} (timeout 120s)...")
         res = executor(prompt, model=fallback, timeout=120)
         used = fallback if res.get("status") == "ok" else model
+        _log("RESEARCH-CALL", f"risposta da {used} in {res.get('elapsed_s', 0.0)}s (status={res.get('status')})")
         return res.get("response", ""), res.get("elapsed_s", 0.0), used
 
     def _generate_best_variant(self, pillar: Dict[str, Any], full_prompt: str, executor: Any):
@@ -360,6 +379,7 @@ class AGIResearchEngine:
                 continue
             ev = evaluate_code(code, workdir, f"cand_{v}.py")
             if ev.get("reason") == "no_tests":
+                _log("RESEARCH-CALL", f"variante {v}: nessun test nel codice, genero test con {TEST_MODEL} (timeout 120s)...")
                 res = executor(tests_prompt(code), model=TEST_MODEL, timeout=120)
                 block = extract_code(res.get("response", "")) if res.get("status") == "ok" else None
                 if block:
@@ -370,6 +390,7 @@ class AGIResearchEngine:
                         stats["tests_generated"] = True
             if (not ev.get("ok") and ev.get("reason") == "test falliti"
                     and time.perf_counter() - start < budget):
+                _log("RESEARCH-CALL", f"variante {v}: test falliti, chiedo riparazione a {used} (timeout 240s)...")
                 res = executor(repair_prompt(code, ev.get("tail", "")), model=used, timeout=240)
                 fixed = extract_code(res.get("response", "")) if res.get("status") == "ok" else None
                 if fixed:

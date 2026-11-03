@@ -11307,3 +11307,40 @@ non ho Windows): dopo il commit/push, sull'OMEN `git pull` (il repo è 5 commit 
 con `SUBSTRATE_RD_HOST=omen` e fermare il demone R&D locale, per non avere due cicli sugli stessi modelli. Per la
 finestra speciale impostare `ALLNIGHT_PAUSE_WINDOW=10-14` nell'ambiente dell'attività (o via `setx`).
 Il cockpit in esecuzione sul Mac (porta 8090) va riavviato per caricare la nuova rotta.
+
+## 2026-11-03 (seguito) — Claude Code → chi lavora sull'OMEN / utente
+
+**Esito verificato dell'autonomia notturna OMEN.** Dopo `git pull` + `setup-omen-247.ps1` sull'OMEN e lo
+spostamento del Mac su `SUBSTRATE_RD_HOST=omen`:
+- Mac: scheduler locale non avvia più `omen_allnight_sovereign.py` (`--status` → `rd_host: omen`,
+  `demone_rd_attivo: false`); di giorno (10:00-14:00) gira solo la batteria Resin+Qwenputer.
+- OMEN: `omen_allnight_sovereign.py --daemon` attivo e indipendente dal Mac, confermato per file
+  (`omen_audit.jsonl`, `omen_dev_loop.jsonl`, `omen_allnight.out.log` tutti aggiornati entro i 5 minuti
+  precedenti alla verifica, node_id rigenerato dopo il cleanup delle istanze duplicate).
+
+**Nota per chi guarda `.\scripts\setup-omen-247.ps1 -Check` su questa macchina**: dopo il cleanup delle
+istanze duplicate ha mostrato "FERMO" per tutte le 3 attività (Dev Loop, Nightly Sovereign, Mesh Patch
+Watcher) nonostante i log e i dataset progredissero in tempo reale: è un falso negativo del check
+(`Get-CimInstance Win32_Process -Filter "Name like '%python%'"`), non un demone davvero fermo — verificare
+sempre anche i timestamp dei file in `data/` e `data/nightly/`, non solo il check dei processi.
+
+Resta un singolo evento isolato `[QUEUE] Nodo occupato (503)`: atteso con 3 cicli autonomi che condividono
+lo stesso endpoint `:8081`; da tenere d'occhio solo se diventa persistente.
+
+## 2026-11-03 (seguito 2) — Claude Code → chi lavora sull'OMEN / utente
+
+**Ciclo di ricerca silenzioso scambiato per fermo.** Il ciclo `[RESEARCH]` partito alle 07:32:28 non ha
+scritto nulla per 20+ minuti (oltre il budget software di 900s): non un crash (nessun traceback in
+`omen_allnight.err.log`, `_log()` già usa `flush=True`), ma `shared/agi_research_engine.py` concatena senza
+log intermedi la chiamata principale (240s) + eventuale generazione test (120s) + eventuale riparazione
+(240s), aggravato dalla contesa con Dev Loop sullo stesso endpoint `:8081` (503 "Nodo occupato").
+
+**Fix**: aggiunta `_log()` e una riga `[RESEARCH-CALL]` prima/dopo ciascuna delle tre chiamate in
+`_call_models` e `_generate_best_variant`. Stesso stdout del demone notturno, quindi finisce in
+`omen_allnight.out.log` senza altre modifiche. Test: `tests/test_study_generation.py`
+(`TestProgressLogging`, 3 casi) + 5 preesistenti nello stesso file, 8/8 passati.
+
+**Resta da fare** (su Windows, non posso farlo io dal container): fermare e riavviare "HyperSpace Nightly
+Sovereign" dopo `git pull`, perché il processo attuale è ancora bloccato sul ciclo partito alle 07:32:28 e
+non ha questo fix. Da quel riavvio in poi, un ciclo "lento" si distinguerà da uno davvero fermo guardando se
+compaiono righe `[RESEARCH-CALL]`.

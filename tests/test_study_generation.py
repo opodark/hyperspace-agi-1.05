@@ -110,3 +110,35 @@ class TestPickPillar(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestProgressLogging(unittest.TestCase):
+    """Senza queste righe un ciclo di ricerca resta muto per 600-800s (chiamata principale +
+    eventuale generazione test + eventuale riparazione), e da fuori sembra fermo mentre lavora."""
+
+    def test_call_models_logs_before_and_after(self):
+        executor = lambda *a, **k: {"status": "ok", "response": BASE, "elapsed_s": 1.0}
+        with patch("shared.agi_research_engine._log") as mock_log:
+            AGIResearchEngine._call_models(executor, "prompt", "model-a", "fallback-b")
+        tags = [c.args[0] for c in mock_log.call_args_list]
+        self.assertEqual(tags, ["RESEARCH-CALL", "RESEARCH-CALL"])
+
+    def test_call_models_logs_fallback_path(self):
+        calls = {"n": 0}
+
+        def executor(*a, **k):
+            calls["n"] += 1
+            return {"status": "error" if calls["n"] == 1 else "ok", "response": BASE, "elapsed_s": 1.0}
+
+        with patch("shared.agi_research_engine._log") as mock_log:
+            AGIResearchEngine._call_models(executor, "prompt", "model-a", "fallback-b")
+        msgs = " ".join(c.args[1] for c in mock_log.call_args_list)
+        self.assertIn("fallback-b", msgs)
+
+    def test_log_writes_a_flushed_line(self):
+        from shared.agi_research_engine import _log
+        with patch("builtins.print") as mock_print:
+            _log("TAG", "messaggio")
+        mock_print.assert_called_once()
+        self.assertTrue(mock_print.call_args.kwargs.get("flush"))
+        self.assertIn("[TAG] messaggio", mock_print.call_args.args[0])
