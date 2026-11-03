@@ -329,5 +329,32 @@ class ModelValidationTests(unittest.TestCase):
             cp_chat._mesh_modulo._contesto = old_ctx
 
 
+class ResolveCtxCapTests(unittest.TestCase):
+    """`_resolve_ctx_cap` decide quanto contesto concedere: 8192 di default,
+    piu' solo se la richiesta pinna un nodo che risulta avere piu' VRAM. Un
+    errore qui o fa saturare la VRAM dell'OMEN o tappa inutilmente l'ASUS."""
+
+    NODI = [{"node_id": "omen-1", "vram_gb": 8.0}, {"node_id": "asus-1", "vram_gb": 48.0}]
+
+    def test_senza_nodo_pinnato_resta_al_tetto_basso(self):
+        self.assertEqual(cp_chat._resolve_ctx_cap(None, None, self.NODI), 8192)
+        self.assertEqual(cp_chat._resolve_ctx_cap(65536, None, self.NODI), 8192)
+
+    def test_nodo_pinnato_a_poca_vram_resta_al_tetto_basso(self):
+        self.assertEqual(cp_chat._resolve_ctx_cap(65536, "omen-1", self.NODI), 8192)
+
+    def test_nodo_pinnato_con_piu_vram_alza_il_tetto(self):
+        self.assertEqual(cp_chat._resolve_ctx_cap(65536, "asus-1", self.NODI), 32768)
+        self.assertEqual(cp_chat._resolve_ctx_cap(16384, "asus-1", self.NODI), 16384)
+
+    def test_nodo_pinnato_sconosciuto_resta_al_tetto_basso(self):
+        self.assertEqual(cp_chat._resolve_ctx_cap(65536, "nodo-fantasma", self.NODI), 8192)
+
+    def test_valore_richiesto_non_valido_usa_il_tetto(self):
+        for bad in (0, -1, None):
+            with self.subTest(bad=bad):
+                self.assertEqual(cp_chat._resolve_ctx_cap(bad, "asus-1", self.NODI), 32768)
+
+
 if __name__ == "__main__":
     unittest.main()

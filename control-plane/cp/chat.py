@@ -1064,6 +1064,27 @@ def _resolve_and_validate_model(raw_model: str, base_model: str, omniroute_direc
     return True, base_str
 
 
+def _resolve_ctx_cap(requested_ctx, pinned_node_id, node_list) -> int:
+    """Tetto su num_ctx per l'inferenza locale, per-nodo invece che globale.
+
+    8192 resta il default di sicurezza quando il nodo e' sconosciuto o ha poca
+    VRAM (es. OMEN, 8GB: una KV cache piu' grande rischia OOM). Solo se la
+    richiesta pinna esplicitamente un nodo (es. "flint:latest::asus") E quel
+    nodo risulta avere piu' VRAM/RAM, si alza il tetto. Valori di partenza
+    prudenti (8192 / 32768): da affinare con test reali, non ancora misurati
+    sul campo.
+    """
+    node_vram_gb = 0.0
+    if pinned_node_id:
+        for n in node_list:
+            if n.get("node_id") == pinned_node_id:
+                node_vram_gb = float(n.get("vram_gb") or 0)
+                break
+    ctx_cap = 32768 if node_vram_gb > 8.5 else 8192
+    current_ctx = int(requested_ctx or 0)
+    return current_ctx if 0 < current_ctx <= ctx_cap else ctx_cap
+
+
 # ── la rotta ──────────────────────────────────────────────────────────────────
 # ── /v1/chat/completions ──────────────────────────────────────────────────────
 @_bp.route('/v1/chat/completions', methods=['POST', 'OPTIONS'])
@@ -1204,15 +1225,16 @@ def v1_chat_completions():
                 messages[last_user_idx] = {**messages[last_user_idx], "content": compressed}
                 data = {**data, "messages": messages}
 
-    # Limite prudenziale su num_ctx per inferenza locale:
-    # Se il client non lo dichiara o se supera 8192, limitiamo a 8192 per evitare
-    # che Ollama allochi contesti da 64K (17+ GB di VRAM/RAM per KV cache e prompt cache).
+    # Limite prudenziale su num_ctx per inferenza locale, ora per-nodo invece che
+    # globale: 8192 resta il tetto di sicurezza quando il nodo e' sconosciuto o ha
+    # poca VRAM (es. OMEN, 8GB: una KV cache piu' grande rischia OOM). Se la richiesta
+    # pinna esplicitamente un nodo con piu' margine (es. "flint:latest::asus"), e quel
+    # nodo risulta avere piu' VRAM/RAM, si alza il tetto. Valori di partenza prudenti
+    # (8192 / 32768): da affinare con test reali, non ancora misurati sul campo.
     if not omniroute_direct:
         opts = dict(data.get("options") or {})
-        current_ctx = int(opts.get("num_ctx") or 0)
-        if current_ctx <= 0 or current_ctx > 8192:
-            opts["num_ctx"] = 8192
-            data = {**data, "options": opts}
+        opts["num_ctx"] = _resolve_ctx_cap(opts.get("num_ctx"), pinned_node_id, _node_list())
+        data = {**data, "options": opts}
 
     task = {
         "id": task_id, "status": "created", "node": None,

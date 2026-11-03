@@ -11344,3 +11344,55 @@ log intermedi la chiamata principale (240s) + eventuale generazione test (120s) 
 Sovereign" dopo `git pull`, perché il processo attuale è ancora bloccato sul ciclo partito alle 07:32:28 e
 non ha questo fix. Da quel riavvio in poi, un ciclo "lento" si distinguerà da uno davvero fermo guardando se
 compaiono righe `[RESEARCH-CALL]`.
+
+## 2026-11-03 — Antigravity → Utente / Team (Pulizia Modelli Ollama Mac & Benchmark Spark-X2.5-4B)
+
+1. **Pulizia spazio disco Ollama (MacBook Air)**:
+   - Disco critico: rilevati 9.5 GiB liberi (98% occupato).
+   - Rimossi modelli inutilizzati / sperimentali e tag ridondanti: `huihui_ai/gemma-4-abliterated:12b`, `hf.co/DuoNeural/LFM2.5-8B-A1B-Abliterated-GGUF:Q4_K_M`, `granite3.3:8b`, `qwen3-8b-abliterated:latest`, e `hf.co/eaddario/Spark-X2.5-4B-GGUF:Q8_0` a fine test.
+   - Spazio disco disponibile recuperato: da **9.5 GiB a 27 GiB liberi** (~17.5 GB liberati).
+   - Modelli conservati per i workflow attivi:
+     - `qwen3-8b-abliterated-g8k:latest` (5.2 GB): Chatbot primario, istruzioni, worker.
+     - `hyperspace-openwork:32k` (5.2 GB): Chatbot a contesto esteso (32k ctx) per OpenWork.
+     - `qwen3-vl:4b-instruct` (3.3 GB): Vision model multimodale per Reel Editor e Anna.
+     - `granite3.3-g8k:latest` (4.9 GB): Planner strutturato per Mission Control.
+     - `tev1:latest` (4.4 GB): Router decisionale rapido.
+
+2. **Esito Benchmark su `Spark-X2.5-4B-GGUF:Q8_0`**:
+   - Velocità su GPU Metal: ~11 t/s in Q8_0.
+   - Reasoning / CoT: il modello genera centinaia di token di monologo interno in inglese prima di arrivare all'output finale (non incapsulato in tag `<think>`).
+   - Tool calling / Formato JSON: non rispetta i vincoli negativi, antepone testo discorsivo al JSON rompendo i parser automatici degli agenti.
+   - Verdetto: **sconsigliata l'adozione nella flotta**. Per chatbot veloci o edge node 4B, la famiglia Qwen 4B (`qwen3.5:4b` / `qwen3:4b`) rimane nettamente superiore (40-70 t/s, zero verbosità non richiesta, piena aderenza JSON).
+   - Nessun commit o push eseguito.
+
+## 2026-11-03 — Claude Sonnet 5 → Utente / Team (eval qualità HyperSpace vs Claude; num_ctx per-nodo nel CP)
+
+1. **Eval di confronto Claude vs Flint 40B** su un protocollo di audit a 10 test (ragionamento,
+   matematica, codice, hallucination resistance, ambiguità, instruction following rigido,
+   memoria, auto-correzione, system design, agent reliability). Risultato: a parità di compiti
+   verificabili (matematica/codice/fatti) i due sono alla pari; su un vincolo rigido (Test 6,
+   "nessuna lettera 'e'") Flint ha violato il vincolo due volte ma nella propria auto-revisione
+   non se ne è accorto, autovalutandosi comunque 9/10 su quella categoria — un segnale di
+   overclaiming nell'autovalutazione, non di capacità di base. Nessun dato persistito, solo
+   conversazione con l'utente.
+
+2. **Scoperto e corretto un collo di bottiglia reale**: `control-plane/cp/chat.py` forzava
+   `num_ctx` a un tetto fisso di 8192 per QUALSIASI richiesta su `/v1/chat/completions`
+   (percorso di produzione: cockpit, Instagram module, `_office_infer`), anche quando altri
+   script diagnostici usano già 32k-131k per Flint bypassando il CP. Estratta la logica in
+   `_resolve_ctx_cap()` (testabile, 5 test nuovi in `tests/test_chat_contratto.py`): il tetto
+   resta 8192 di default, sale a 32768 solo se la richiesta pinna esplicitamente un nodo
+   (`modello::alias`) che risulta avere più VRAM (es. ASUS). Valori di partenza prudenti, non
+   ancora misurati sul campo — richiesta del team: trovare i limiti esatti testando.
+
+3. **Verificato (nessun bug)**: il blocco osservato in un test manuale (Flint ha esaurito tutto
+   il budget di token in "reasoning" senza mai rispondere) era auto-inflitto da un `max_tokens`
+   basso impostato nel test stesso. In produzione non c'è nessun tetto di default su
+   `max_tokens`/`num_predict`, e il CP riconosce già correttamente Flint come modello
+   "thinking-only" (`_model_thinking_only` in `cp/model_caps.py`) forzando `think=True` a
+   prescindere dalla richiesta — comportamento intenzionale, non un difetto da correggere.
+
+Richiesta per chi continua: misurare sul campo (OMEN 8GB VRAM vs ASUS) fino a che valore di
+`num_ctx` si può alzare il tetto per nodo senza OOM, e aggiornare i numeri in `_resolve_ctx_cap()`
+di conseguenza.
+
