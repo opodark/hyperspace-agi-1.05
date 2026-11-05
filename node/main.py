@@ -465,15 +465,32 @@ def _signed_headers(body: bytes = b"") -> dict:
         return {}
     return make_request_headers(NODE_ID, NODE_PUBKEY, _private_key, body)
 
-async def ollama_generate(prompt: str, model: str = DEFAULT_MODEL) -> str:
+EXECUTE_ALLOWED_OPTIONS = ("num_ctx", "num_predict")
+
+
+def _execute_options(raw) -> dict:
+    if not isinstance(raw, dict):
+        return {}
+    return {k: raw[k] for k in EXECUTE_ALLOWED_OPTIONS if isinstance(raw.get(k), int) and raw[k] > 0}
+
+
+async def ollama_generate_full(prompt: str, model: str = DEFAULT_MODEL, options: "dict | None" = None) -> dict:
     payload = {"model": model, "prompt": prompt, "stream": False}
+    if options:
+        payload["options"] = options
     try:
         async with httpx.AsyncClient(timeout=NODE_INFERENCE_TIMEOUT_S) as client:
             r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
             r.raise_for_status()
-            return r.json().get("response", "").strip()
+            data = r.json()
+            data["response"] = data.get("response", "").strip()
+            return data
     except Exception as e:
-        return f"[OLLAMA ERROR] {e}"
+        return {"response": f"[OLLAMA ERROR] {e}"}
+
+
+async def ollama_generate(prompt: str, model: str = DEFAULT_MODEL) -> str:
+    return (await ollama_generate_full(prompt, model))["response"]
 
 async def ollama_health() -> dict:
     try:
@@ -1199,9 +1216,10 @@ async def execute_task(task: dict):
     if not await _try_acquire_slot(model):
         return _busy_response()
     try:
-        response_text = await ollama_generate(prompt, model)
+        generated = await ollama_generate_full(prompt, model, _execute_options(task.get("options")))
     finally:
         await _release_slot(model)
+    response_text = generated["response"]
 
     # Salva in Hermes tramite il CP, solo se non sono dei task per i
     # titoli (task_id con prefisso "title-"), altrimenti si genera un loop
@@ -1219,7 +1237,10 @@ async def execute_task(task: dict):
         }
         await _push_memory_to_cp(entry)
 
-    return {"node_id": NODE_ID, "task_id": task_id, "status": "done", "model": model, "response": response_text}
+    return {
+        "node_id": NODE_ID, "task_id": task_id, "status": "done", "model": model, "response": response_text,
+        "prompt_eval_count": generated.get("prompt_eval_count"), "eval_count": generated.get("eval_count"),
+    }
 
 # ── /shell/exec (Remote Command Execution E2EE / Mesh CLI) ──────────
 @app.post("/shell/exec")

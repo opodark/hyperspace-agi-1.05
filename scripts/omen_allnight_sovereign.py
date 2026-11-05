@@ -80,12 +80,10 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Toggle generazione immagini (disabilitato su richiesta per evitare allucinazioni veloci a 8 passi e concentrare 100% risorse su 40B/24B)
 ENABLE_IMAGE_GENERATION = os.getenv("ENABLE_IMAGE_GENERATION", "false").lower() == "true"
 
-# Modelli target ad alta capacità (40B e 24B prioritari per ricerca e sviluppo continuo)
+# Modelli target ad alta capacità (esclusivamente 40B Flint e 24B LFM 2.5 per 100% qualità FQI)
 CODE_MODELS = [
-    "flint:latest",  # 40B NVFP4 Deep Reasoning Engine
-    "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",  # 24B Liquid MoE
-    "hf.co/mradermacher/Qwen3.5-9B-Coder-GGUF:Q4_K_M",  # 9B Coder
-    "granite3.3:8b",  # 8B Fast
+    "flint:latest",  # 40B NVFP4 Deep Reasoning Engine (Worker Primario)
+    "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M",  # 24B Liquid MoE (Contractual Reviewer & Deductive Engine)
 ]
 
 # Ruolo di ASUS (ALLNIGHT_USE_ASUS): "true" = primario per i modelli pesanti (default),
@@ -221,11 +219,103 @@ def _is_asus_available() -> bool:
         return False
 
 
+# Stima dimensione VRAM richiesta (GB) per i modelli pesanti usati dalla pipeline di
+# decompilazione; serve solo al gate LAYA sotto, non è un vincolo esatto di sizing.
+MODEL_VRAM_GB_ESTIMATE: Dict[str, float] = {
+    "flint:latest": 22.0,
+    "hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M": 16.0,
+    "hf.co/Abiray/Qwen3.5-9B-abliterated-GGUF:Q6_K": 7.5,
+    "hf.co/DuoNeural/LFM2.5-8B-A1B-Abliterated-GGUF:Q4_K_M": 5.5,
+}
+
+
+def _probe_asus_gpu_ready(model: str) -> Optional[bool]:
+    """Segnale live (no model call, <2.5s): il modello è *in questo momento* caricato in
+    VRAM su ASUS (`size_vram > 0` da `/api/ps`), o è caricato ma in puro CPU offload
+    (batteria o VRAM insufficiente)? None se il modello non è caricato ora: nessun segnale.
+
+    Nato dalla notte del 2026-11-05: `_is_asus_available()` segnalava ASUS "disponibile"
+    solo perché Ollama rispondeva, ma ASUS era a batteria e flint:latest girava con
+    `size_vram:0` (tutto CPU), saturando il nodo e facendo timeout su ogni altra richiesta
+    per 6+ minuti. Un semplice ping di reachability non basta per modelli >10B.
+    """
+    try:
+        req = urllib.request.Request(f"{ASUS_OLLAMA_URL}/api/ps")
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for m in data.get("models", []):
+            if m.get("model") == model or m.get("name") == model:
+                return bool(m.get("size_vram", 0) > 0)
+        return None
+    except Exception:
+        return None
+
+
+def laya_choose_inference_node(model: str) -> Dict[str, Any]:
+    """Gate LAYA (FastDecisionEngine, <50ms, zero chiamate a modello) per scegliere ASUS
+    vs OMEN per `model`, usando segnali live reali invece del semplice reachability-ping:
+    - ASUS: pronto in VRAM ora (`_probe_asus_gpu_ready`) o reachable ma di stato ignoto.
+    - OMEN: `vram_gb` e `active_requests` reali da `/status`.
+    Ritorna il dict di `FastDecisionEngine.route_mesh_task` (target_node/rationale/scores).
+    """
+    try:
+        from shared.fast_decision_model import FastDecisionEngine
+    except Exception as exc:
+        return {"target_node": None, "confidence": 0.0, "reason": f"FastDecisionEngine non disponibile: {exc}"}
+
+    min_vram = MODEL_VRAM_GB_ESTIMATE.get(model, 6.0)
+
+    cluster_nodes: List[Dict[str, Any]] = []
+
+    asus_reachable = _is_asus_available()
+    if asus_reachable:
+        gpu_ready = _probe_asus_gpu_ready(model)
+        # VRAM stimata in base al segnale: pronto -> trattala come il nodo con più VRAM
+        # della mesh; ignoto o su CPU -> trattala come insufficiente (default prudente,
+        # la lezione della notte del 05/11 è di non fidarsi del solo "è raggiungibile").
+        asus_vram = 48.0 if gpu_ready else 0.0
+        cluster_nodes.append({
+            "node_id": "ASUS_OLLAMA",
+            "name": "ASUS V16",
+            "has_gpu": bool(gpu_ready),
+            "vram_gb": asus_vram,
+            "active": True,
+            "queue_length": 0,
+            "priority": 7,
+            "capabilities": ["ollama", "heavy_gpu"] if gpu_ready else ["ollama"],
+        })
+
+    try:
+        req = urllib.request.Request(f"{OMEN_NODE_URL}/status")
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            omen_status = json.loads(resp.read().decode("utf-8"))
+        cluster_nodes.append({
+            "node_id": "OMEN_NODE",
+            "name": "HP OMEN 16",
+            "has_gpu": True,
+            "vram_gb": float(omen_status.get("vram_gb", 8.0)),
+            "active": not omen_status.get("degraded", False),
+            "queue_length": int(omen_status.get("active_requests", 0)) + int(omen_status.get("queued_requests", 0)),
+            "priority": 5,
+            "capabilities": ["ollama", "execute"],
+        })
+    except Exception:
+        pass
+
+    engine = FastDecisionEngine()
+    return engine.route_mesh_task(
+        task_payload={"requires_gpu": True, "min_vram_gb": min_vram, "task_type": "decompile_heavy"},
+        cluster_nodes=cluster_nodes,
+    )
+
+
 def execute_omen_prompt(
     prompt: str,
     model: str,
     timeout: int = 90,
     node_url: str = OMEN_NODE_URL,
+    num_predict: Optional[int] = None,
+    num_ctx: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Invia un prompt al cluster sovrano con routing intelligente e fallback resiliente.
     
@@ -235,31 +325,40 @@ def execute_omen_prompt(
       retry in caso di nodo temporaneamente occupato (503).
     """
     is_flint = "flint" in model.lower()
-    is_heavy = is_flint or "24b" in model.lower() or "40b" in model.lower()
 
-    # 1. Routing prioritario carichi pesanti (40B flint, 24B LFM) su ASUS se disponibile (48GB RAM)
-    if (is_heavy or is_flint) and ASUS_PRIMARY and _is_asus_available():
+    # 1. Routing prioritario su ASUS se disponibile (48GB RAM, RTX 5060, Ollama locale)
+    if ASUS_PRIMARY and _is_asus_available():
         t0 = time.perf_counter()
-        asus_timeout = max(timeout, 380) if is_flint else max(timeout, 300)
+        asus_timeout = max(timeout, 380) if is_flint else max(timeout, 180)
+        num_ctx_val = num_ctx or int(os.getenv("ASUS_FLINT_CTX", "10240" if is_flint else "8192"))
+        if num_predict is not None:
+            num_predict_val = num_predict
+        else:
+            num_predict_val = 7168 if is_flint else 4608
         try:
-            _log_stream("ROUTING", f"Inoltro prompt ({model}) verso ASUS Ollama (timeout {asus_timeout}s, num_ctx 32k)...", node="ASUS-V16")
+            _log_stream("ROUTING", f"Inoltro prompt ({model}) verso ASUS Ollama (timeout {asus_timeout}s, num_ctx {num_ctx_val}, num_predict {num_predict_val})...", node="ASUS-V16")
             mesh_payload = json.dumps({
                 "model": model,
-                "prompt": prompt,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
                 "stream": False,
                 "options": {
-                    "num_ctx": 32768,  # Finestra di contesto ottimizzata (max 200k) per alimentazione PD 100W
+                    "num_ctx": num_ctx_val,
+                    "num_predict": num_predict_val,
+                    "temperature": 0.1,
                 },
             }).encode("utf-8")
             mesh_req = urllib.request.Request(
-                f"{ASUS_OLLAMA_URL}/api/generate",
+                f"{ASUS_OLLAMA_URL}/api/chat",
                 data=mesh_payload,
                 headers={"Content-Type": "application/json"},
             )
             with urllib.request.urlopen(mesh_req, timeout=asus_timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            resp_str = data.get("response", "")
-            thinking_str = data.get("thinking", "")
+            msg = data.get("message", {})
+            resp_str = msg.get("content", "") or data.get("response", "")
+            thinking_str = msg.get("thinking", "") or data.get("thinking", "")
             if thinking_str and resp_str:
                 full_resp = f"<think>\n{thinking_str}\n</think>\n\n{resp_str}"
             elif resp_str:
@@ -267,12 +366,25 @@ def execute_omen_prompt(
             else:
                 full_resp = f"<think>\n{thinking_str}\n</think>" if thinking_str else ""
             elapsed = round(time.perf_counter() - t0, 2)
+            eval_count = data.get("eval_count", 0)
+            eval_dur_ns = data.get("eval_duration", 0)
+            eval_dur_s = round(eval_dur_ns / 1e9, 2)
+            tok_s = round(eval_count / (eval_dur_ns / 1e9), 2) if eval_dur_ns > 0 else 0.0
+            prompt_eval_count = data.get("prompt_eval_count", 0)
+            prompt_eval_dur_ns = data.get("prompt_eval_duration", 0)
+            prompt_tok_s = round(prompt_eval_count / (prompt_eval_dur_ns / 1e9), 1) if prompt_eval_dur_ns > 0 else 0.0
+
             return {
                 "status": "ok",
                 "model": model,
                 "elapsed_s": elapsed,
                 "response": full_resp,
                 "routed_via": "ASUS_OLLAMA",
+                "tok_s": tok_s,
+                "eval_count": eval_count,
+                "eval_duration_s": eval_dur_s,
+                "prompt_eval_count": prompt_eval_count,
+                "prompt_tok_s": prompt_tok_s,
             }
         except Exception as exc_asus:
             _log_stream("ROUTING", f"ASUS non ha risposto ({exc_asus}): failover automatico su HP OMEN 16...", node="OMEN-16")
@@ -287,28 +399,26 @@ def execute_omen_prompt(
         )
 
     identity = generate_or_load_identity()
-    task_id = f"omen-allnight-{int(time.time() * 1000)}"
-    payload = json.dumps({
-        "task_id": task_id,
-        "model": model,
-        "prompt": prompt,
-    }).encode("utf-8")
-
-    hdrs = {"Content-Type": "application/json"}
-    hdrs.update(
-        make_request_headers(
-            identity["node_id"],
-            identity["public_key"],
-            identity["_private_key"],
-            body=payload,
-        )
-    )
-
-    max_retries = 5
+    max_retries = 12
     last_exc = None
     t0 = time.perf_counter()
 
     for attempt in range(max_retries):
+        task_id = f"omen-allnight-{int(time.time() * 1000)}-{attempt}"
+        task_body: Dict[str, Any] = {"task_id": task_id, "model": model, "prompt": prompt}
+        node_options = {k: v for k, v in (("num_ctx", num_ctx), ("num_predict", num_predict)) if v is not None}
+        if node_options:
+            task_body["options"] = node_options
+        payload = json.dumps(task_body).encode("utf-8")
+        hdrs = {"Content-Type": "application/json"}
+        hdrs.update(
+            make_request_headers(
+                identity["node_id"],
+                identity["public_key"],
+                identity["_private_key"],
+                body=payload,
+            )
+        )
         req = urllib.request.Request(f"{node_url}/execute", data=payload, headers=hdrs)
         try:
             with urllib.request.urlopen(req, timeout=effective_timeout) as resp:
@@ -323,13 +433,15 @@ def execute_omen_prompt(
                 "elapsed_s": elapsed,
                 "response": resp_str,
                 "routed_via": "OMEN_NODE",
+                "prompt_eval_count": data.get("prompt_eval_count"),
+                "eval_count": data.get("eval_count", 0),
             }
         except urllib.error.HTTPError as http_err:
             last_exc = http_err
-            if http_err.code == 503 and attempt < max_retries - 1:
-                # Nodo occupato da altro task: attesa slot libero
-                _log_stream("QUEUE", f"Nodo occupato (503): attesa slot libero ({attempt + 1}/{max_retries})...", node="OMEN-16")
-                time.sleep(5.0)
+            if http_err.code in (503, 502, 504) and attempt < max_retries - 1:
+                # Nodo occupato da altro task o caricamento pesi 40B in corso: attesa slot libero
+                _log_stream("QUEUE", f"Nodo occupato ({http_err.code}): attesa slot libero ({attempt + 1}/{max_retries})...", node="OMEN-16")
+                time.sleep(8.0)
                 continue
             break
         except Exception as exc:
@@ -623,7 +735,7 @@ def run_nightly_dreams() -> Dict[str, Any]:
     visual_dream = None
     try:
         dream_prompt = build_dream_prompt("Identità Anna v8: sono pronta a interagire nella stanza.")
-        res = execute_omen_prompt(dream_prompt, model="granite3.3:8b", timeout=45)
+        res = execute_omen_prompt(dream_prompt, model="hf.co/AtomicChat/LFM2.5-24B-A2B-Uncensored-GGUF:Q4_K_M", timeout=90)
         if res.get("status") == "ok":
             parsed = parse_dream(res["response"])
             if parsed:

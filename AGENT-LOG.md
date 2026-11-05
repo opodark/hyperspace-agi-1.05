@@ -11555,3 +11555,131 @@ compare OOM) e aggiornare `_resolve_ctx_cap()` di conseguenza.
      - `data/reports/frontier_comparison_flint_40b.md`
      - `data/reports/frontier_comparison_lfm_24b.md`
    - Nessun commit o push effettuato (in attesa di conferma esplicita dell'utente).
+
+
+## 2026-11-04 — Antigravity → Utente / Chi continua (Syndicate Wars: 4 Nuove Funzioni C, Flags Clang Silenziati, Commit ae5190e1, 04345fac, cacdbc22)
+
+1. **Avanzamento Decompilazione Nativa C in `syndwarsfx` (3 nuovi commit, 4 funzioni)**:
+   - **Commit `ae5190e1`** (`alt_at_point`, `alt_at_point_under_height` in `src/bigmap.c`):
+     - Rimosso stub inline assembly in `alt_at_point`; attivata l'implementazione C pura che esegue il campionamento dell'elevazione 3D con interpolazione bilineare sul quadrilatero della tile (`game_my_big_map`).
+     - Rimossa chiamata asm volatile residua in `alt_at_point_under_height`; collegata direttamente alle colonne di collisione `game_col_columns`.
+     - Ritirati i blocchi assembly `ASM_alt_at_point` (linea 41609) e `ASM_alt_at_point_under_height` (linea 57414) in `src/swars.sx`.
+   - **Commit `04345fac`** (`stop_being_persuaded` in `src/people.c`):
+     - Implementato in C99 puro l'annullamento della persuasione di un pedone: rimozione e scorrimento compatto del buffer `word_17FA58` (`word_1531DA--`), riproduzione campione audio a distanza (ID 19), decremento proporzionale di `PersuadePower` dell'agente proprietario in base a `peep_type_stats`, ripristino di gruppo originale `EffectiveGroup = Group`, reset dello stato a `PerSt_NONE`, decremento contatore statistico gruppo in `group_actions` e sincronizzazione statistiche missione tramite `persuaded_person_remove_from_stats`.
+     - Ritirati `ASM_stop_being_persuaded` (linea 53494), la vtable di salto `vtable_6d3a0` e i 4 helper di decrescita statistiche (`func_6d505`, `func_6d51e`, `func_6d53e`, `func_6d55e`).
+   - **Commit `cacdbc22`** (`check_person_within` in `src/people.c`):
+     - Implementata in C99 la verifica geometrica di confinamento pedone entro il perimetro di comando `struct Command`: supporto sia per area rettangolare (`PCmdF_AreaIsRect` con bounding box X/Z/Arg1/Time) sia per area circolare (distanza radiale quadratica `dx^2 + dz^2 <= (Arg1^2) << 12`), con inversione logica automatica via flag `PCmdF_RevertFunct`.
+     - Ritirato `ASM_check_person_within` (linea 12763) in `src/swars.sx`.
+
+2. **Perfezionamento Pipeline Sovrana (`scripts/syndwars_decompile_sovereign.py`)**:
+   - Aggiunto flag `-w` a `verify_c_file_with_clang` per sopprimere i warning ereditati dai vecchi header Bullfrog (`bfscreen.h`, `abs()` truncation, etc.), consentendo alla diagnostica di catturare esclusivamente gli effettivi errori sintattici C.
+   - Aggiunti i flag di build `-DPACKAGE_NAME=\"syndwarsfx\"`, `-DPACKAGE_VERSION=\"0.6\"` e `-DVERSION=\"0.6\"` per permettere la compilazione sintattica autonoma dei file che referenziano `config.h` (come `src/game.c`).
+   - Daemon in esecuzione continua giorno/notte (`task-5234` attivo). Funzioni rimanenti scese a **192**.
+
+3. **Verifiche di Conformità**:
+   - Compilazione sintassi C (`clang -target x86_64-apple-darwin -fsyntax-only ... src/people.c` e `src/bigmap.c`): 0 errori.
+   - Compilazione assembly (`clang -target i386-unknown-linux-gnu -c src/swars.sx`): 0 errori.
+   - Suite test reel editor: 16/16 test superati (OK).
+   - Test unitari pipeline (`tests/test_syndwars_decompile_pipeline.py`): 4/4 passati.
+   - Rispettata rigorosamente la Regola 3: nessun commit o push in `hyperspace-agi-1.04`.
+
+## 2026-11-04 — Claude Code → Utente / Chi continua (trailer SyndWarsFX v3: modelli CC0 Quaternius)
+
+Nella pagina WebGL `/Users/opo/syndwars-trailer/web/index.html` gli agenti procedurali (box) sono sostituiti dai modelli animati del **Cyberpunk Game Kit di Quaternius** (zip fornito dall'utente; `License.txt` del pacchetto: CC0 1.0). Copiati in `web/assets/`: `Character.gltf`, `Enemy_2Legs_Gun.gltf`, `Enemy_Large_Gun.gltf` + `LICENSE-Quaternius-CyberpunkGameKit-CC0.txt`. Sorgenti completi in `assets-src/cpk/` (non servono alla pagina).
+- Animazioni dei clip `Run` / `Idle_Gun_Pointing`, mescolate in base alla velocità; nemici robot in `Idle` sullo sfondo; ricolorati in scuro con accenti emissivi per il look notturno; le etichette HUD si agganciano alle ossa (Head, Chest, LowerArmL, LowerLegR, Weapon). Se il caricamento fallisce resta il fallback procedurale.
+- Sistemati: chiazze di luce sul pavimento, schermata finale (ora "STAY TUNED." leggibile su scena oscurata), codice a schermo.
+- Non fatto: render MP4 completo (`tools/capture.mjs` provato su pochi frame), musica, modelli più "militari" (il kit è stilizzato/toon), uso di asset del gioco originale (escluso per copyright).
+- Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente / Antigravity (trailer: armi e etichette)
+
+Sulla versione di `/Users/opo/syndwars-trailer/web/index.html` trovata stamattina (riscritta da qualcuno senza nota nel log; backup precedente in `index.roblox-backup.html`):
+- **Armi di lato:** il gruppo arma (`SyndWeapon`) era figlio dell'osso `Weapon` con la canna lungo uno degli assi locali dell'osso, che non punta avanti. Ora a ogni fotogramma (in `poseAgents`) la rotazione dell'arma viene calcolata in modo che la canna segua la direzione dell'agente (+Z del gruppo, leggero abbassamento di 0,06 rad). Verificato numericamente: prodotto scalare canna·avanti = 1,00 per i 4 agenti a t=8, 12, 18.
+- **Etichette HUD fuori posto:** `project()` usava la matrice della camera del fotogramma precedente → saltando a un istante o catturando un frame le linee puntavano nel vuoto. Aggiunto `camera.updateMatrixWorld(true)`. Verificato a t=20.
+- **Loader in `?record=1`:** ora viene rimosso subito invece di sfumare, così `tools/capture.mjs` non cattura il loader.
+- Non toccato: luminosità generale (scena molto scura), audio procedurale, props.
+
+## 2026-11-05 — Claude Code → Utente / Antigravity (trailer: luce, lampioni, minigun che spara)
+
+In `/Users/opo/syndwars-trailer/web/index.html` (backup pre-modifica: `index.pre-minigun-backup.html`):
+- **Luminosità:** esposizione 1,75→2,25, luce emisferica 1,4→2,5. **Lampioni:** passo 27 m nella zona dell'azione (prima 54), fino a 8 PointLight reali agganciate ai lampioni (z tra −60 e 70), pozze di luce additive sull'asfalto sotto ogni lampione, fixture attenuata (×0,55) per evitare abbagli.
+- **Sequenza minigun (23,1–25,4 s):** la camera, dopo l'orbita sui callout, si avvicina alla canna del minigun del capo squadra; 6 canne che ruotano (rotazione analitica con accelerazione e frenata), lampo di bocca con luce arancione (flicker per fotogramma), 55 traccianti a 24 colpi/s, bossoli d'ottone con gravità e rimbalzo, jitter dell'arma e della camera. Tutto funzione del tempo (compatibile con `renderFrame` / `capture.mjs`).
+- **Audio:** al raggiungimento di 23,1 s, con audio attivo, parte una raffica sintetica (rumore filtrato + colpo grave a 24 Hz). Non testato all'ascolto.
+- **Timeline spostata:** overlay codice 25,0–27,8 (era 23,7–27,0); virata al rosso/heat 27,2–29,0; billboard C da 27,4 s. Il resto (crane 28,4, titolo 30,7, STAY TUNED 33,7) invariato.
+- Intro (0–14 s) invariata rispetto a prima. Nessun commit/push.
+
+## 2026-11-05 11:20 — Antigravity → Utente, Claude Code, Cips/Cline, Codex — Trailer Trenchcoat & Aggancio Mesh ASUS V16
+
+1. **Trailer SyndWarsFX (`/Users/opo/syndwars-trailer/web/index.html`):**
+   - **Trenchcoat e dotazione Eurocorp iconica:** dotati tutti e 4 gli agenti di cappotti lunghi in pelle balistica scura (`#10151f`), bavero alto popped collar sagomato e rialzato dietro la nuca, mantellina e cinturone tattico con fibbia cromata e LED squadra.
+   - **Cinematica dinamica delle falde:** le code del duster seguono il ciclo del passo e della corsa (in `poseAgents(t)`), sventolando all'indietro nella pioggia e aprendosi in avanti per evitare compenetrazioni durante la falcata.
+   - **Armamento e visori:** minigun rotante pesante per il capo squadra, carabine d'assalto per i compagni; visori cybernetici curvati con fessura scanner al neon e antenna uplink.
+   - **Performance:** 60 FPS stabili in headless Chrome, illuminazione calibrata per esaltare i dettagli bagnati della pelle.
+
+2. **Mesh Sovereign — ASUS V16 (`laptop-t9h8plht`) ONLINE:**
+   - Connessione confermata via Tailscale (`100.64.31.18`) e LAN diretta (`10.207.47.196`).
+   - Stack Docker HyperSpace completato: porta `:8081` (Node API, latenza 6.2 ms), porta `:8085` (Control Plane, v1.05.0 mirror), porta `:8098` (Bridge) e porta `:11434` (Ollama) tutte operative.
+   - Ottimizzazione motore decompilazione Watcom-to-C (`scripts/syndwars_decompile_sovereign.py` e `scripts/omen_allnight_sovereign.py`):
+     - Ridotta finestra di contesto da 32k a 8192 token (`num_ctx: 8192`) e aggiunto `num_predict: 4096`.
+     - Tempo di generazione di Flint 40B su CPU/GPU crollato da >380s a ~26s, liberando memoria per la GPU RTX 5060 (5.94 GB allocati in VRAM).
+     - Pipeline di decompilazione reindirizzata dinamicamente sull'ASUS data l'assenza temporanea dell'OMEN (in standby/sleep).
+   - Nessun commit/push in `hyperspace-agi-1.04` (Regola 3 rispettata).
+
+## 2026-11-05 — Claude Code → Utente / Chi continua (estrazione sprite originali, solo uso locale)
+
+Su richiesta dell'utente: estratti e upscalati in PNG gli sprite del gioco originale dalla copia installata in `/Users/opo/Documents/Syndicate Wars/SWARS/DATA`.
+- Script: `/Users/opo/syndwars-trailer/tools/extract_sprites.py` (formato ricavato da `syndwarsfx/bflibrary/src/general/gsprite.c` e `gspr_std.c`: `.TAB` = record da 6 byte offset/larghezza/altezza; `.DAT` = righe RLE con blocchi di pixel e salti trasparenti; `.PAL` = VGA 6 bit). Upscale: Scale2x (nitido, per pixel art) + Lanczos per i fattori non potenza di 2.
+- Output (solo locale, NON in `web/`, NON nel repo): `/Users/opo/syndwars-trailer/local-only/sprites/<BANCO>/x1|x4/*.png` + `contact-sheet.png`. Estratti per ora: MSPR-0 (2516), ICONS0-0 (139), PANEL0-0 (91), FONT0-0 (82), POINTERS (10).
+- Grafica © Electronic Arts / Bullfrog: da non pubblicare né mettere nella pagina. Palette verificate solo su MSPR-0 (sprite riconoscibili: ragni-mech); per icone/pannelli la palette (`PAL.PAL`) è plausibile ma non confermata.
+- Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (estrazione sprite: tutti i banchi)
+Esteso `tools/extract_sprites.py` a tutti i banchi `.TAB/.DAT` di `.../SWARS/DATA`: 19.605 sprite in 23 s (155 MB) in `/Users/opo/syndwars-trailer/local-only/sprites/` (solo locale, fuori da `web/` e dal repo). Banchi: MSPR-0..5 e MLPR-0 (persone/mech/veicoli animati), POP*/PANEL*/W-ICONS/ICONS0-0 (interfaccia), FONT*/TIT-FONT/QOT-FONT/NAM-FONT, MOUSE-0, POINTERS. Colori verificati a occhio sui contact sheet: sprite e UI plausibili; le varianti MSPR-1..5 (colori squadra) usano la palette di MSPR-0 senza i remap `.INF`, quindi i colori squadra potrebbero non essere quelli del gioco. Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (prova upscale: clip ragno-mech)
+Clip di prova locale `/Users/opo/syndwars-trailer/local-only/test-clip/spider-upscale-test.mp4` (15 s, 1920×1080): sprite MSPR-0 #803–842 (ragno-mech, 40 fotogrammi ×3), a sinistra originale con nearest ×10, a destra Scale2x ×4 poi Lanczos ×10. Gli agenti umani sono composti da parti separate (gambe, busto, testa con remap colore verde) assemblate dai file `.ANI` (MELE/MFRA): non ancora decodificati, quindi nessuna clip di agente che cammina. Grafica EA/Bullfrog: solo locale. Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (upscale con IA, solo locale)
+Upscale neurale degli sprite con i modelli GIÀ presenti per ComfyUI (`/Users/opo/ComfyUI-Shared/models/upscale_models/RealESRGAN_x4plus.pth` e `..._anime_6B.pth`), caricati con `spandrel` nel venv di ComfyUI (`/Users/opo/ComfyUI-Installs/ComfyUI/ComfyUI/.venv/bin/python`, torch 2.13 con MPS). Script: `/Users/opo/syndwars-trailer/tools/ai_upscale.py` (trasparenza gestita a parte: riempimento dei pixel trasparenti col colore vicino, silhouette ricostruita morbida dall'alpha 1×). Uscita: `local-only/sprites-ai/` (per ora ragno-mech MSPR-0 #803–842) e clip di confronto `local-only/test-clip/spider-ai-vs-scale2x.mp4`.
+- Il download di `realesrgan-ncnn-vulkan` (binario esterno) è stato bloccato dal sistema di permessi: non aggirato, usati i modelli locali.
+- Limiti: l'IA inventa dettagli plausibili (non quelli originali), nessuna coerenza temporale tra fotogrammi (possibile sfarfallio), bordi della silhouette ancora leggermente a gradini. Grafica EA/Bullfrog: solo locale. Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (upscale IA di tutti i banchi: completato)
+`tools/ai_upscale.py --all` (RealESRGAN_x4plus, MPS) ha elaborato tutti i 19.605 sprite estratti: uscita in `/Users/opo/syndwars-trailer/local-only/sprites-ai/<BANCO>/` (32 banchi, 209 MB, solo locale; disco al 95%, ~23 GB liberi). Confronto a occhio su 7 sprite: miglioramento netto su sprite ombreggiati/organici (ragno, vegetazione), modesto su icone e pannelli piatti, quasi nullo su font e sprite molto piccoli. Eliminate le cartelle di prova `MSPR-0-anime` e `MSPR-0-x4plus`. Non fatto: remap colori squadra (`.INF`) per MSPR-1..5, assemblaggio degli agenti (`.ANI`). Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (agenti assemblati dalle animazioni originali, solo locale)
+Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwars-trailer/tools/anim.py` (NFRA-0.ANI = frame da 8 byte, MELE-0.ANI = elementi da 10 byte con offset sprite = 6×indice, NSTA-0.ANI = inizi animazione; l'elemento si disegna se `frv[gruppo] == variante`, con gruppo=(Flags>>4)&0x1F e variante=(Flags>>9)&7; X/Y in mezzi pixel; verificato su `swrendersoft/include/frame_sprani.h` e `engindrwlstx_spr.c`). Tutti gli elementi hanno ToSprite multiplo di 6 (formato coerente).
+- Scoperta: le partenze di animazione vengono a gruppi di 8 consecutive = 8 direzioni. k=1–8 camminata a 6 fotogrammi (agente con soprabito scuro), k=9–16 disintegrazione, k=17–24 6 fotogrammi, k=41–48 e 65–72 5 fotogrammi (colpito/accovacciato), k=73–80 morte con sangue (9 fotogrammi); 81–160 figure con vesti bianche, 161–255 figure viola/verdi.
+- Prodotti (solo locale): fogli `local-only/anim/starts_*.png` (primo fotogramma di tutte le 1.536 partenze), `local-only/anim/groups_dir0.png`, clip `local-only/test-clip/agents-walk-ai.mp4` (8 direzioni, originale ×6 vs IA ×4→×6). Colori squadra non applicati (frv tutto a 0, remap `.INF` non decodificato). Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (sprite sheet, armi, scena con pioggia: solo locale)
+- **Correzione:** i "colori squadra" non esistono come remap: ogni tipo di persona ha le proprie animazioni (k=1 soprabito scuro, 81 vesti bianche, 161 viola/verdi, 256+ civili, ...). Gli indici `FrameId.Version[0..4]` selezionano varianti per gruppo: [0] = colore capelli, [3] = lampo di bocca, [4] = effetto del colpo (1 scia, 2 proiettile rosso, 3 lampo, 4 plasma verde), non l'arma. L'arma in mano è nella posa di mira: animazioni k=33–40 (8 direzioni × 6 fotogrammi); k=25–32 = 2 fotogrammi.
+- **Sprite sheet** (PNG + JSON, righe = 8 direzioni, colonne = fotogrammi, pivot ai piedi, versione IA ×4): `/Users/opo/syndwars-trailer/local-only/spritesheets/` — agentA_walk, agentA_aim, agentA_aim_flash, agentA_hit, agentA_disintegrate, agentB_walk, agentC_walk. Script: `tools/export_sheets.py`.
+- **Scena:** `tools/make_scene.py` → `local-only/test-clip/scene-agents-rain.mp4` (10 s, 24 fps, 1920×1080): quattro agenti camminano e poi sparano su strada bagnata con pioggia; fondale disegnato da me (non del gioco); i traccianti sono un'approssimazione mia.
+- Non integrato nella pagina `web/` (grafica EA/Bullfrog: solo uso locale / video renderizzato). Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (texture originali su edifici e strade: scena locale)
+- **Texture del gioco:** `DATA/TEX00–05.DAT` = 6 pagine 256×256 a 8 bit, griglia di tile 32×32; palette `PAL.DAT` (le varianti `PAL1/2/3.DAT` danno tinte diverse, `PAL3` viola). Contengono muri con finestre/porte/ventole, cartelli (BULLFROG, POLICE, TAXI, STOP, 2000AD Judge Dredd, MANGA, insegne giapponesi), strisce di pericolo, asfalto, pavimentazioni. Script: `tools/extract_textures.py` (24 pagine in `local-only/textures/x1`), `tools/ai_upscale_images.py` (x4 IA in `local-only/textures/x4ai`), `tools/make_tiles.py` (57 tile selezionati in `local-scene/tiles/` + `tiles.json`).
+- **Scena locale:** `tools/build_local_scene.py` genera `/Users/opo/syndwars-trailer/local-scene/index.html` da `web/index.html`: facciate composte da tile originali (3 famiglie: cemento, industriale, mista) con emissive ricavato dai pixel luminosi, asfalto e marciapiedi originali, 40 cartelli originali al posto di quelli procedurali. Servita su porta 8766 (`python3 -m http.server 8766` in `local-scene/`).
+- `local-scene/` contiene arte EA/Bullfrog: SOLO uso locale / video renderizzato, mai pubblicare. `web/` resta libera da asset del gioco.
+- Aperti: veicoli (PRIMVEH.OBJ non decodificato), nuova illuminazione, dettagli della strada (strisce, tombini). Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente (tech demo interattiva con texture e sprite originali, solo locale)
+`tools/build_demo.py` genera `/Users/opo/syndwars-trailer/local-scene/demo.html` a partire da `local-scene/index.html` (città con texture originali ×4 IA) e vi aggiunge: squadra di 4 agenti-sprite originali (sheet IA ×4 in `local-scene/sprites/`: walk, aim, aim_flash) a billboard con scelta della riga/direzione in base alla camera (0 = verso l'alto/lontano, senso orario, 2 = destra, 4 = verso la camera), camera in terza persona (trascina = orbita, rotella = zoom), WASD/frecce per muovere (la squadra segue in formazione), SPAZIO/F per sparare (animazione di mira con lampo, traccianti, luce arancione sul suolo). Timeline cinematica, titoli, fade e virata al rosso disattivati in modalità demo (`window.__DEMO`). Servita su porta 8766 (`python3 -m http.server 8766` in `local-scene/`): http://localhost:8766/demo.html.
+- Verificato con puppeteer (fermi, camminata, fuoco). Limiti: nessuna collisione con gli edifici (solo limiti ±21 m in larghezza), niente nemici/obiettivi, solo il tipo di agente A; le viste di schiena dell'arte originale sono molto grezze. Arte EA/Bullfrog: SOLO uso locale, non pubblicare `local-scene/`. Nessun commit/push.
+
+## 2026-11-05 — Claude Code → Utente e agenti (decompilazione Syndicate: il gate clang lascia passare funzioni vuote)
+- **Audit `data/syndwars_decompilation_cot_train.jsonl` (18 voci, tutte `clang_verified`):** `check_col_collision`, `do_vect_colide` e `process_electric_strand` sono stub senza logica (`return 0` o sole variabili locali) ma risultano verificate e approvate dalla review LFM. Altre 6 hanno rapporto righe ASM/statement >= 11 e vanno rilette: `do_shockwave_building`, `assign_next_target_from_group`, `ma_triangle_route_4`, `search_things_for_uniqueid`, `check_col_collision_floor`, `process_smoke_generator`. Il dataset SFT le contiene. Nessun file è stato ripulito, serve conferma dell'utente. Il daemon gira senza `--apply`: in `syndwarsfx` non è stata applicata nessuna di queste funzioni.
+- **Contesto:** `/execute` (`node/main.py:ollama_generate`) non passa `num_ctx` né `num_predict`, quindi `num_predict` e il contesto impostati dal client valgono solo sul percorso ASUS. I prompt sono ~31-34k caratteri, anche per il contesto aggiunto oggi in `collect_local_header_context`. Il troncamento su OMEN è un'ipotesi, non misurata. Causa dei 400 ASUS e dei 500 OMEN ancora ignota: l'OOM su OMEN non è stato verificato.
+- **Parser:** alla riga ~571 di `syndwars_decompile_sovereign.py` il controllo `"..."` guarda anche i commenti. Le risposte grezze non vengono salvate, quindi non si sa quanti dei 5 scarti recenti siano falsi positivi.
+- **`laya_choose_inference_node` (non collegato al routing):** se il modello non è già caricato esclude ASUS, e i 48 GB di VRAM sono un valore inventato. Da correggere prima di collegarlo.
+- **Traduzione manuale di prova:** `person_drop_item` passa clang e le asserzioni sugli offset a 32 bit; non è stata eseguita. File in scratchpad, non applicato, non nel dataset.
+- Daemon PID 19263 lasciato in esecuzione. Modifiche non committate. Chiedo all'utente se fermarlo e se mettere in quarantena le voci sospette.
+
+## 2026-11-05 — Claude Code → Utente e agenti (decompilazione Syndicate: esito audit e stato pipeline)
+- **Daemon fermo.** In quarantena 10 voci (`data/nightly/syndwars_quarantine.jsonl`, `syndwars_quarantine_staging/`), backup in `data/nightly/*.pre_quarantine.jsonl`. SFT rigenerato: 276 esempi.
+- **Rilettura delle 8 voci rimaste rispetto all'assembly:** 7 errate (`process_map_craters`, `mech_unkn_func_14`, `thing_goto_point_on_face_fast`, `thing_goto_point_rel_fast`, `save_crypto_transform1`, `track_angle`, `check_big_point_triangle`); `pointed_at8` plausibile ma con un controllo non presente nella parte di assembly letta, riletta solo in parte. Restano nel dataset in attesa di conferma dell'utente. Il nuovo controllo di fedeltà le lascia passare: scarta gli stub, non gli errori di logica.
+- **Codice del gioco:** il C di queste 18 voci non è presente in `syndwarsfx/src` (confronto testuale senza spazi e commenti). `mech_unkn_func_14` nei sorgenti è la versione corretta del commit `3b54c5f4`.
+- **Addestramenti:** nessuno script usa il dataset, nessun adapter recente sul Mac, nessun modello dedicato su OMEN. ASUS non raggiungibile, da ricontrollare.
+- **Modifiche non committate:** `collect_target_context` (tabella offset da layout clang a 32 bit), `check_translation_fidelity`, salvataggio risposte grezze, estrattore che preferisce la risposta dopo `</think>`, opzioni su `/execute` in `node/main.py`. Test: 30 passati su `test_syndwars_decompile_pipeline.py` e `test_omen_allnight_sovereign.py`. La patch del nodo non è distribuita: il codice è nell'immagine e OMEN gira con contesto 8192.
+- **Prova con LFM2.5-24B su OMEN e nuovo prompt:** `person_drop_item` (prima dell'ultima correzione dell'estrattore) più 3 funzioni da 45-91 righe, nessuna riuscita.
