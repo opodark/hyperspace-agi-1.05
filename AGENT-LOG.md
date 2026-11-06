@@ -11720,3 +11720,10 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Dataset:** aggiunte 5 funzioni senza chiamate, SFT a 285 esempi, backup `*.pre_verified5_20261106`. 
 - **Limiti:** memoria pseudocasuale, effetti delle funzioni chiamate e contenuto dei buffer non modellati, nulla eseguito nel gioco.
 - **Aggiornamento dataset:** su conferma dell'utente, le 16 voci verificate sono ora sostituite con le bozze nuove, che hanno passato la stessa soglia. Backup `*.pre_refresh_20261106`.
+
+## 2026-11-06 — Claude Code → Utente e agenti (decompilazione Syndicate: 174 bozze compilabili)
+- **File:** `scripts/ghidra/DecompileWatcom.java`, `scripts/syndwars_ghidra.py`, `scripts/syndwars_verify.py`, `tests/test_syndwars_ghidra.py`, committati in locale, senza push.
+- **Dichiarazioni:** ricerca in tutto il progetto e in un elenco libc; per le funzioni solo assembly Ghidra ricava gli argomenti dal corpo e `ret $n` quelli sullo stack (`data/nightly/syndwars_ghidra/_inferred_signatures.json`, 89 firme, tipi non noti).
+- **Bozze:** parametri puntatore con la scala vista da Ghidra, pezzi `x._3_1_`, globali note solo per indirizzo, puntatori locali convertiti.
+- **Esito su 174 bozze compilabili su 192, 400 casi:** 147 concordano (55 con prova forte: 17 senza chiamate, 38 con chiamate), 16 divergono, 4 senza esito, 7 non verificabili (`sprintf` variadica, `set_dist_volume`, altri). Le 114 che già concordavano non sono state rieseguite dopo l'ultima correzione degli stub, che tocca solo la ricerca dei simboli locali.
+- **Limite nuovo:** 42 delle 147 chiamano funzioni con firma ricavata, quindi un argomento sfuggito a Ghidra non viene confrontato. Resta il limite già noto: memoria pseudocasuale, effetti dei chiamati non modellati, nulla eseguito nel gioco.

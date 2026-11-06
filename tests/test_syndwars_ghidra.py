@@ -10,7 +10,14 @@ from scripts.syndwars_ghidra import (
     clean_ghidra_c,
     fake_external_section,
     join_statements,
+    _clean_declaration,
+    cast_pointer_locals,
+    declare_missing_globals,
+    expand_ghidra_pieces,
     keep_unsigned_parameters,
+    make_compilable_draft,
+    parse_inferred_signatures,
+    stack_args_from_assembly,
     list_local_names,
     parse_names_reply,
     parse_ghidra_output,
@@ -74,6 +81,56 @@ class GhidraPipelineTest(unittest.TestCase):
         )
         self.assertEqual(keep_unsigned_parameters("void f(int x)", body, [("int", "x")]), body)
         self.assertEqual(keep_unsigned_parameters("void f(u32 x)", body, [("ushort", "x")]), body)
+
+    def test_stack_args_come_from_the_first_ret(self):
+        source = "ASM_x:\\n".replace("\\n", "\n") + "  nop\n  ret $0x8\nGLOBAL_FUNC(ASM_y)\n  ret\n"
+        self.assertEqual(stack_args_from_assembly("ASM_x", source), 2)
+        self.assertEqual(stack_args_from_assembly("ASM_y", source), 0)
+        self.assertIsNone(stack_args_from_assembly("ASM_z", source))
+
+    def test_inferred_signatures_use_c_names(self):
+        text = "//@@@INFER ac_foo 2 value\n//@@@INFER bar 0 void\n//@@@ ASM_f\nvoid f(void) {}\n"
+        self.assertEqual(parse_inferred_signatures(text), {"foo": "int foo(int a1, int a2);", "bar": "void bar(void);"})
+
+    def test_pieces_become_address_accesses(self):
+        self.assertEqual(expand_ghidra_pieces("x = y._2_2_;"), "x = (*(ushort *)((long)&y + 2));")
+        self.assertEqual(expand_ghidra_pieces("(*(int *)&d)._3_1_ = 1;"), "(*(ubyte *)((long)&(*(int *)&d) + 3)) = 1;")
+        self.assertEqual(expand_ghidra_pieces("x = y._1_3_;"), "x = ((*(u32 *)((long)&y + 1)) & 0xFFFFFF);")
+
+    def test_missing_globals_only_when_used_by_address(self):
+        message = "use of undeclared identifier 'data_1'\nuse of undeclared identifier 'bVar2'"
+        code = "void f(void)\n{ (*(int *)&data_1) = bVar2; }"
+        self.assertEqual(declare_missing_globals(code, message, "void f(void)"), "extern int data_1;\n" + code)
+
+    def test_inferred_call_is_declared_without_prototype(self):
+        target = {"current_c_stub": "void f(void)\n{\n}", "asm_code": "call foo\n"}
+        code = make_compilable_draft(target, "void f(void)\n{\n  foo(p);\n}", [], {"foo": "int foo(int a1);"})
+        self.assertIn("int foo();", code)
+        self.assertNotIn("int foo(int a1);", code)
+
+    def test_pointer_locals_get_their_cast(self):
+        body = "{\n  ubyte *p;\n  p = (long)&x + 1;\n}"
+        self.assertEqual(cast_pointer_locals(body), "{\n  ubyte *p;\n  p = (ubyte *)((long)&x + 1);\n}")
+
+    def test_ghidra_piece_of_a_global(self):
+        code = "void f(void)\n{ x = y_2 + (*(ushort *)&y); }"
+        repaired = declare_missing_globals(code, "undeclared identifier 'y_2'", "void f(void)")
+        self.assertIn("(*(ushort *)((long)&y + 2))", repaired)
+
+    def test_declaration_drops_comments_and_inline(self):
+        self.assertEqual(_clean_declaration("static inline void f(int a) // TODO\n;"), "void f(int a);")
+
+    def test_typed_ghidra_pointer_keeps_its_scale(self):
+        target = {"current_c_stub": "void f(struct M *p)\n{\n}", "asm_code": ""}
+        body = make_compilable_draft(target, "void f(int *p)\n{\n  x = p[1];\n  y = *p;\n}", [])
+        self.assertIn("x = ((int *)p)[1];", body)
+        self.assertIn("y = *((int *)p);", body)
+
+    def test_untyped_ghidra_pointer_stays_in_bytes(self):
+        target = {"current_c_stub": "void f(struct M *p)\n{\n}", "asm_code": ""}
+        body = make_compilable_draft(target, "void f(int p)\n{\n  x = (p - y) / 8;\n  z = p;\n}", [])
+        self.assertIn("x = ((long)p - y) / 8;", body)
+        self.assertIn("z = (long)p;", body)
 
     def test_resolve_data_addresses_maps_symbol_offset_and_width(self):
         symbols = {"players": 0x100000, "ingame": 0x110000}

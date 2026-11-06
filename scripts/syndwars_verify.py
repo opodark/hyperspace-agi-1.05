@@ -39,7 +39,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.syndwars_decompile_sovereign import PENDING_PATH, SWARS_DIR, _find_c_declaration, _project_include_dirs, ensure_bsndconf, load_jsonl
+from scripts.syndwars_decompile_sovereign import PENDING_PATH, SWARS_DIR, _project_include_dirs, ensure_bsndconf, load_jsonl
+from scripts.syndwars_ghidra import load_inferred_signatures, lookup_declaration
 from scripts.syndwars_orchestrate import load_sources, parse_signature
 
 PAGE = 0x1000
@@ -457,14 +458,15 @@ def called_functions(target: Dict[str, Any]) -> Dict[str, str]:
     return found
 
 
-def build_callees(target: Dict[str, Any], image: Image, asm: LoadedObject, candidate: LoadedObject) -> Tuple[List[Callee], List[Callee], List[str]]:
+def build_callees(target: Dict[str, Any], image: Image, asm: LoadedObject, candidate: LoadedObject,
+                  inferred: Optional[Dict[str, str]] = None) -> Tuple[List[Callee], List[Callee], List[str]]:
     """Stub per i due lati e l'elenco delle chiamate che non si possono rappresentare."""
     asm_side: List[Callee] = []
     c_side: List[Callee] = []
     blocked: List[str] = []
     sources = list(load_sources(target["c_file"]))
     for name, label in called_functions(target).items():
-        parsed = parse_declaration(_find_c_declaration(name, sources))
+        parsed = parse_declaration(lookup_declaration(name, sources, inferred))
         if not parsed:
             blocked.append(name)
             continue
@@ -474,7 +476,7 @@ def build_callees(target: Dict[str, Any], image: Image, asm: LoadedObject, candi
             blocked.append(name)
             continue
         asm_side.append(Callee(name, return_type, params, asm_address, max(0, len(params) - len(REGISTERS)) * 4))
-        c_address = candidate.symbols.get(name, image.externs.get(name, image.globals.get(name)))
+        c_address = candidate.symbols.get(name, image.externs.get(name, image.globals.get(name, image.locals.get(name))))
         if c_address is not None:
             c_side.append(Callee(name, return_type, params, c_address))
     return asm_side, c_side, blocked
@@ -498,7 +500,8 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     candidate = image.load(obj)
     if name not in candidate.symbols:
         return {"func": name, "verdict": "not_built", "error": "simbolo assente"}
-    asm_callees, c_callees, blocked = build_callees(target, image, asm, candidate)
+    inferred = load_inferred_signatures()
+    asm_callees, c_callees, blocked = build_callees(target, image, asm, candidate, inferred)
     if blocked:
         return {"func": name, "verdict": "unsupported_calls", "error": ", ".join(blocked)}
     start, end = function_extent(asm.symbols, name, target["asm_line_count"])
@@ -549,6 +552,7 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     if verdict == "agree" and completed < cases // 2:
         verdict = "inconclusive"  # Un guasto comune non confronta nulla.
     return {"func": name, "verdict": verdict, "agreed": agreed, "completed": completed, "disagreed": disagreed, "inconclusive": inconclusive, "undefined_input": undefined, "stopped_early": stopped_early,
+            "inferred_callees": sorted(c.name for c in asm_callees if c.name in inferred and not lookup_declaration(c.name, load_sources(target["c_file"]))),
             "coverage": round(coverage, 3), "mismatches": mismatches}
 
 

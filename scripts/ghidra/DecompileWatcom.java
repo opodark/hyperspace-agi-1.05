@@ -2,6 +2,7 @@
 // Decompila funzioni Watcom di un ELF i386 dopo aver dichiarato la convenzione __watcall.
 // Argomenti dello script: <file spec> <file di uscita>.
 // Spec, righe separate da tab: T|C <simbolo> <void|value> <parametro,parametro,...>
+// oppure I <simbolo> <argomenti sullo stack>: funzione senza prototipo, la firma la ricava il decompilatore.
 //@category HyperSpace
 
 import ghidra.app.decompiler.DecompInterface;
@@ -17,6 +18,7 @@ import ghidra.program.model.listing.Parameter;
 import ghidra.program.model.listing.ParameterImpl;
 import ghidra.program.model.listing.ReturnParameterImpl;
 import ghidra.program.model.mem.MemoryBlock;
+import ghidra.program.model.pcode.FunctionPrototype;
 import ghidra.program.model.pcode.HighFunction;
 import ghidra.program.model.pcode.HighSymbol;
 import ghidra.program.model.pcode.PcodeOp;
@@ -83,6 +85,24 @@ public class DecompileWatcom extends GhidraScript {
             SourceType.USER_DEFINED);
     }
 
+    /** Argomenti e ritorno dal corpo della funzione; la firma viene fissata cosi' anche i chiamanti la vedono. */
+    private String infer(Function f, String name, int stackArgs, DecompInterface decompiler) throws Exception {
+        f.setCallingConvention("__watcall" + stackArgs);
+        DecompileResults r = decompiler.decompileFunction(f, 60, monitor);
+        if (!r.decompileCompleted()) {
+            return null;
+        }
+        FunctionPrototype prototype = r.getHighFunction().getFunctionPrototype();
+        int count = stackArgs > 0 ? 4 + stackArgs : Math.min(prototype.getNumParams(), 4);
+        boolean isVoid = prototype.getReturnType() == null || prototype.getReturnType() instanceof VoidDataType;
+        StringBuilder params = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            params.append(i == 0 ? "" : ",").append("a").append(i + 1);
+        }
+        apply(f, new String[] {"C", name, isVoid ? "void" : "value", params.toString()});
+        return name + " " + count + " " + (isVoid ? "void" : "value");
+    }
+
     /** Larghezza reale degli accessi in memoria: la dimensione del simbolo non basta per i `_DAT_`. */
     private void printAccesses(HighFunction high, PrintWriter out) {
         Iterator<PcodeOpAST> ops = high.getPcodeOps();
@@ -115,9 +135,16 @@ public class DecompileWatcom extends GhidraScript {
             extension.addReplaceCompilerSpecExtension(watcallXml(stackArgs), monitor);
         }
 
+        DecompInterface decompiler = new DecompInterface();
+        decompiler.openProgram(currentProgram);
         List<Function> targets = new ArrayList<>();
+        List<String[]> toInfer = new ArrayList<>();
         for (String line : lines) {
             String[] spec = line.split("\t", -1);
+            if (spec[0].equals("I")) {
+                toInfer.add(spec);
+                continue;
+            }
             Function f = resolve(spec[1]);
             if (f == null) {
                 println("SIMBOLO NON TROVATO: " + spec[1]);
@@ -129,9 +156,18 @@ public class DecompileWatcom extends GhidraScript {
             }
         }
 
-        DecompInterface decompiler = new DecompInterface();
-        decompiler.openProgram(currentProgram);
+        List<String> inferred = new ArrayList<>();
+        for (String[] spec : toInfer) {
+            Function f = resolve(spec[1]);
+            String signature = f == null ? null : infer(f, spec[1], Integer.parseInt(spec[2]), decompiler);
+            if (signature != null) {
+                inferred.add(signature);
+            }
+        }
         try (PrintWriter out = new PrintWriter(args[1], "UTF-8")) {
+            for (String signature : inferred) {
+                out.println("//@@@INFER " + signature);
+            }
             MemoryBlock fake = currentProgram.getMemory().getBlock(".hsext");
             if (fake != null) {
                 for (Symbol sym : currentProgram.getSymbolTable().getAllSymbols(false)) {

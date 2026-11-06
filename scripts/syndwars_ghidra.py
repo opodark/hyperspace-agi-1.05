@@ -13,6 +13,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import os
 import re
@@ -58,6 +59,68 @@ _TYPE_WORDS = {"undefined8": "longlong", "undefined4": "int", "undefined2": "sho
 EXTERNAL_SLOT = 0x10000
 
 
+LIBC_DECLARATIONS = {
+    "memset": "void *memset(void *s, int c, unsigned int n);",
+    "memcpy": "void *memcpy(void *dest, const void *src, unsigned int n);",
+    "memmove": "void *memmove(void *dest, const void *src, unsigned int n);",
+    "strlen": "unsigned int strlen(const char *s);",
+    "strcpy": "char *strcpy(char *dest, const char *src);",
+    "strcat": "char *strcat(char *dest, const char *src);",
+    "strcmp": "int strcmp(const char *a, const char *b);",
+    "strncpy": "char *strncpy(char *dest, const char *src, unsigned int n);",
+    "sprintf": "int sprintf(char *s, const char *f, ...);",
+    "toupper": "int toupper(int c);",
+}
+INFERRED_SIGNATURES_PATH = OUTPUT_DIR / "_inferred_signatures.json"
+
+
+@functools.lru_cache(maxsize=1)
+def _project_sources() -> Tuple[str, ...]:
+    """Tutto il progetto: una funzione puo' essere dichiarata in un header che il file corrente non include."""
+    roots = (SWARS_DIR / "src", SWARS_DIR / "bflibrary" / "include")
+    paths = [p for root in roots if root.exists() for pattern in ("*.h", "*.c") for p in sorted(root.glob(pattern)) if not p.name.startswith("tmp")]
+    return tuple(p.read_text(encoding="utf-8", errors="replace") for p in paths)
+
+
+def _clean_declaration(declaration: str) -> str:
+    text = re.sub(r"//[^\n]*|/\*.*?\*/", " ", declaration, flags=re.DOTALL)
+    return " ".join(re.sub(r"\b(?:static|inline|__inline__)\b", "", text).split()).rstrip("; ") + ";"
+
+
+def lookup_declaration(name: str, sources: Sequence[str], inferred: Optional[Dict[str, str]] = None) -> str:
+    """Prima il file corrente, poi libc e il resto del progetto, infine la firma ricavata da Ghidra."""
+    found = _find_c_declaration(name, list(sources))
+    if found:
+        return _clean_declaration(found)
+    if name in LIBC_DECLARATIONS:
+        return LIBC_DECLARATIONS[name]
+    found = _find_c_declaration(name, list(_project_sources()))
+    if found:
+        return _clean_declaration(found)
+    return (inferred or {}).get(name, "")
+
+
+def load_inferred_signatures() -> Dict[str, str]:
+    if not INFERRED_SIGNATURES_PATH.exists():
+        return {}
+    return json.loads(INFERRED_SIGNATURES_PATH.read_text(encoding="utf-8"))
+
+
+@functools.lru_cache(maxsize=1)
+def _assembly_source() -> str:
+    return (SWARS_DIR / "src" / "swars.sx").read_text(encoding="utf-8", errors="replace")
+
+
+def stack_args_from_assembly(label: str, source: Optional[str] = None) -> Optional[int]:
+    """Argomenti sullo stack letti da `ret $n`; None se la funzione non e' in assembly."""
+    text = _assembly_source() if source is None else source
+    start = re.search(rf"^\s*(?:GLOBAL_FUNC\({re.escape(label)}\)|{re.escape(label)}:)", text, re.MULTILINE)
+    if not start:
+        return None
+    ret = re.compile(r"^\s*ret\b(?:\s+\$(0x[0-9a-fA-F]+|\d+))?", re.MULTILINE).search(text, start.end())
+    return int(ret.group(1), 0) // 4 if ret and ret.group(1) else 0
+
+
 def build_ghidra_spec(targets: Sequence[Dict[str, Any]]) -> str:
     lines: List[str] = []
     seen = set()
@@ -69,9 +132,12 @@ def build_ghidra_spec(targets: Sequence[Dict[str, Any]]) -> str:
             if raw in seen:
                 continue
             seen.add(raw)
-            decl = _find_c_declaration(re.sub(r"^(?:ac_|ASM_)", "", raw), sources)
+            decl = lookup_declaration(re.sub(r"^(?:ac_|ASM_)", "", raw), sources)
             m = re.match(r"(.*?)\b\w+\s*\((.*)\)\s*;?$", decl, re.DOTALL)
             if not m:
+                stack_args = stack_args_from_assembly(raw)
+                if stack_args is not None:
+                    lines.append(f"I\t{raw}\t{stack_args}")
                 continue
             args = [] if m.group(2).strip() in ("", "void") else [re.sub(r".*?(\w+)$", r"\1", a.strip(), flags=re.DOTALL) for a in m.group(2).split(",")]
             kind = "void" if m.group(1).replace("extern", "").strip() == "void" else "value"
@@ -90,6 +156,16 @@ def fake_external_section(undefined: Sequence[str], called: Sequence[str]) -> st
     return "\n".join(lines) + "\n"
 
 
+def parse_inferred_signatures(text: str) -> Dict[str, str]:
+    """{nome C: dichiarazione}; il tipo degli argomenti non si conosce, resta `int`."""
+    found: Dict[str, str] = {}
+    for label, count, kind in re.findall(r"^//@@@INFER (\S+) (\d+) (void|value)$", text, re.MULTILINE):
+        name = re.sub(r"^(?:ac_|ASM_)", "", label)
+        params = ", ".join(f"int a{i + 1}" for i in range(int(count))) or "void"
+        found[name] = f"{'void' if kind == 'void' else 'int'} {name}({params});"
+    return found
+
+
 def parse_ghidra_output(text: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int]]:
     head, *chunks = re.split(r"^//@@@ ", text, flags=re.MULTILINE)
     symbols = {m.group(1): int(m.group(2)) for m in re.finditer(r"^//@@@SYM (\S+) (\d+)$", head, re.MULTILINE)}
@@ -105,8 +181,8 @@ def parse_ghidra_output(text: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str,
     return result, symbols
 
 
-def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int]]:
-    """({funzione: C e dimensioni delle globali}, {esterno: indirizzo}). Il progetto e' temporaneo."""
+def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int], Dict[str, str]]:
+    """({funzione: C e dimensioni delle globali}, {esterno: indirizzo}, {funzione: firma ricavata}). Il progetto e' temporaneo."""
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         source = (SWARS_DIR / "src" / "swars.sx").read_text(encoding="utf-8", errors="replace")
@@ -130,7 +206,9 @@ def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, A
              "-scriptPath", str(ROOT / "scripts" / "ghidra"), "-postScript", "DecompileWatcom.java", str(spec), str(out)],
             check=True, capture_output=True, text=True, timeout=1800, env={**os.environ, "JAVA_HOME": JAVA_HOME},
         )
-        return parse_ghidra_output(out.read_text(encoding="utf-8"))
+        text = out.read_text(encoding="utf-8")
+        decompiled, symbols = parse_ghidra_output(text)
+        return decompiled, symbols, parse_inferred_signatures(text)
 
 
 # I 4 byte restano `int`: quando serve il confronto senza segno Ghidra scrive gia' `(uint)`.
@@ -202,6 +280,12 @@ GHIDRA_COMPAT = """#ifndef GHIDRA_COMPAT_H
 #define GHIDRA_COMPAT_H
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+#ifndef bool
+#define bool _Bool
+#define true 1
+#define false 0
+#endif
 typedef long long longlong;
 typedef unsigned long long ulonglong;
 typedef signed char int1;
@@ -360,18 +444,52 @@ def apply_known_fields(code: str, params: Sequence[Tuple[str, str]], layouts: Di
             return match.group(0)
 
         code = re.sub(rf"\*\((\w+) \*\)\({re.escape(param)} \+ (0x[0-9a-fA-F]+|\d+)\)", access, code)
+        for _offset, _size, field_type, path in fields:
+            if "*" in field_type:
+                code = re.sub(rf"^(\s*{re.escape(param)}->{re.escape(path)} = )(?!0;)(.+);\s*$", rf"\1({field_type})(\2);", code, flags=re.MULTILINE)
     return code
 
 
-def declare_unknown_symbols(target: Dict[str, Any], body: str, sources: Sequence[str]) -> List[str]:
+_PIECE_TYPES = {1: "ubyte", 2: "ushort", 4: "int"}
+_PIECE_BASE = r"\(\*\(\w+ \*\)(?:&\w+|\(\(long\)&\w+(?: \+ -?0x[0-9a-fA-F]+)?\))\)|\b[A-Za-z_]\w*"
+
+
+def expand_ghidra_pieces(code: str) -> str:
+    """`x._3_1_` e' un pezzo di variabile per Ghidra: in C diventa un accesso per indirizzo."""
+
+    def piece(match: "re.Match[str]") -> str:
+        base, offset, size = match.group(1), int(match.group(2)), int(match.group(3))
+        address = f"(long)&{base} + {offset}" if offset else f"(long)&{base}"
+        if size == 3:
+            return f"((*(u32 *)({address})) & 0xFFFFFF)"
+        return f"(*({_PIECE_TYPES[size]} *)({address}))" if size in _PIECE_TYPES else match.group(0)
+
+    return re.sub(rf"({_PIECE_BASE})\._(\d+)_(\d+)_\b", piece, code)
+
+
+def declare_missing_globals(code: str, diagnostics: str, signature: str) -> str:
+    """Solo cio' che il codice usa per indirizzo: una variabile locale mancante resta un errore visibile."""
+    names = dict.fromkeys(re.findall(r"undeclared identifier '(\w+)'", diagnostics))
+    for name in names:
+        # `simbolo_2` e' il pezzo di Ghidra a +2 di una globale gia' usata per indirizzo.
+        piece = re.fullmatch(r"(\w+?)_(\d+)", name)
+        if piece and re.search(rf"&{re.escape(piece.group(1))}\b", code):
+            code = re.sub(rf"\b{re.escape(name)}\b", f"(*(ushort *)((long)&{piece.group(1)} + {piece.group(2)}))", code)
+    missing = [n for n in names if (n.startswith("data_") or re.search(rf"&{re.escape(n)}\b", code)) and f"extern int {n};" not in code]
+    if not missing or signature not in code:
+        return code
+    return code.replace(signature, "".join(f"extern int {n};\n" for n in missing) + signature, 1)
+
+
+def declare_unknown_symbols(target: Dict[str, Any], body: str, sources: Sequence[str], inferred: Optional[Dict[str, str]] = None) -> List[str]:
     """Globali note solo all'assembly: `extern` col tipo usato da Ghidra, le chiamate senza prototipo K&R."""
     declared: List[str] = []
     calls = {re.sub(r"^(?:ac_|ASM_)", "", c) for c in re.findall(r"\bcall\s+([A-Za-z_]\w*)", target["asm_code"])}
     for name in dict.fromkeys(re.findall(r"EXPORT_SYMBOL\((\w+)\)", target["asm_code"])):
-        if name not in calls and not _find_c_declaration(name, list(sources)) and re.search(rf"\b{re.escape(name)}\b", body):
+        if name not in calls and not lookup_declaration(name, sources, inferred) and re.search(rf"\b{re.escape(name)}\b", body):
             declared.append(f"extern int {name};")
     for name in calls:
-        if not _find_c_declaration(name, list(sources)) and re.search(rf"\b{re.escape(name)}\s*\(", body):
+        if not lookup_declaration(name, sources, inferred) and re.search(rf"\b{re.escape(name)}\s*\(", body):
             declared.append(f"int {name}();")
     return declared
 
@@ -431,30 +549,65 @@ def keep_unsigned_parameters(header: str, body: str, params: Sequence[Tuple[str,
     return body.replace("{\n", "{\n" + "".join(declarations), 1) if declarations else body
 
 
-def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[str]) -> str:
+def ghidra_parameter_types(header: str) -> Dict[str, str]:
+    match = re.search(r"\((.*)\)", header, re.DOTALL)
+    types: Dict[str, str] = {}
+    for part in match.group(1).split(",") if match else []:
+        found = re.match(r"\s*(.*?)(\w+)\s*$", part, re.DOTALL)
+        if found and found.group(1).strip():
+            types[found.group(2)] = " ".join(found.group(1).replace("*", " * ").split())
+    return types
+
+
+def cast_pointer_locals(body: str) -> str:
+    """Le globali sono lette come interi: per un puntatore locale l'assegnamento va convertito."""
+    for ctype, name in re.findall(r"^\s*((?:struct\s+)?\w+\s*\*+)\s*(\w+);\s*$", body, re.MULTILINE):
+        body = re.sub(rf"^(\s*{re.escape(name)} = )(?!\(\s*{re.escape(ctype)}\))(.+);\s*$", rf"\1({ctype})(\2);", body, flags=re.MULTILINE)
+    return body
+
+
+def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[str], inferred: Optional[Dict[str, str]] = None) -> str:
     """C corretto senza modello: indirizzi come interi, cosi' l'aritmetica in byte di Ghidra resta valida."""
     signature = target["current_c_stub"].split("{")[0].strip()
     return_type, _name, params = parse_signature(target["current_c_stub"])
-    body = keep_unsigned_parameters(draft[:draft.index("{")], draft[draft.index("{"):], params)
+    header = draft[:draft.index("{")]
+    seen_types = ghidra_parameter_types(header)
+    body = keep_unsigned_parameters(header, draft[draft.index("{"):], params)
 
     prefix: List[str] = []
     calls = re.findall(r"\bcall\s+(?:ac_|ASM_)?([A-Za-z_]\w*)", target["asm_code"])
     for name in dict.fromkeys(calls):
-        decl = _find_c_declaration(name, list(sources))
+        decl = lookup_declaration(name, sources, inferred)
         if decl:
-            prefix.append(decl)
+            if name in LIBC_DECLARATIONS:  # Gia' negli header di sistema, e su macOS sono macro.
+                pass
+            elif decl == (inferred or {}).get(name):
+                # Firma ricavata: i tipi degli argomenti non si conoscono, quindi niente controllo.
+                prefix.append(f"{decl.split()[0]} {name}();")
+                continue
+            else:
+                prefix.append(decl)
             body = cast_call_arguments(body, name, decl)
             if re.match(rf"[^(]*\*\s*{re.escape(name)}\s*\(", decl):
                 body = re.sub(rf"(?<![\w)]){re.escape(name)}\s*\(", f"(long){name}(", body)
     for _type, param in params:
         if "*" in _type:
-            # Dopo la riscrittura dei campi restano solo offset grezzi: anche questi vanno in byte.
-            body = re.sub(rf"\(\s*{re.escape(param)}\s*\+", f"((long){param} +", body)
-            body = re.sub(rf"(?<![\w>(*&]){re.escape(param)}(?=\s*\+)", f"(long){param}", body)
+            seen = seen_types.get(param, "")
+            if "*" in seen:
+                # Per Ghidra e' un puntatore tipizzato: indici e somme usano la scala del suo tipo.
+                if " ".join(_type.replace("*", " * ").split()) != seen:
+                    body = re.sub(rf"(?<=\*){re.escape(param)}\b", f"(({seen}){param})", body)
+                    body = re.sub(rf"(?<![\w.>&)]){re.escape(param)}\b(?!\s*(?:=(?!=)|->))", f"(({seen}){param})", body)
+            else:
+                # Dopo la riscrittura dei campi restano solo offset grezzi: anche questi vanno in byte.
+                body = re.sub(rf"\(\s*{re.escape(param)}\s*([+-])(?!>)", rf"((long){param} \1", body)
+                body = re.sub(rf"(?<![\w>(*&)]){re.escape(param)}(?=\s*[+-](?!>))", f"(long){param}", body)
+                body = re.sub(rf"= {re.escape(param)};", f"= (long){param};", body)
             body = re.sub(rf"^(\s*){re.escape(param)}\s*=(?!=)\s*(.+);", rf"\1{param} = ({_type})(\2);", body, flags=re.MULTILINE)
     if "*" in return_type:
         body = re.sub(r"\breturn\s+([^;]+);", rf"return ({return_type})(\1);", body)
-    prefix.extend(declare_unknown_symbols(target, body, sources))
+    prefix.extend(declare_unknown_symbols(target, body, sources, inferred))
+    body = cast_pointer_locals(body)
     return GHIDRA_COMPAT + "".join(d + "\n" for d in prefix) + signature + "\n" + body
 
 
@@ -566,7 +719,9 @@ def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     print(f"Ghidra su {len(selected)} funzioni...", flush=True)
-    decompiled, symbols = run_ghidra(selected)
+    decompiled, symbols, inferred = run_ghidra(selected)
+    INFERRED_SIGNATURES_PATH.write_text(json.dumps(inferred, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"Firme ricavate da Ghidra: {len(inferred)}", flush=True)
     summary: Dict[str, Any] = {}
     for target in selected:
         name = target["func_name"]
@@ -578,9 +733,15 @@ def main() -> int:
             continue
         _rt, _n, params = parse_signature(target["current_c_stub"])
         layouts = {s: load_struct_layout(SWARS_DIR, s) for s in set(re.findall(r"struct\s+(\w+)\s*\*", target["current_c_stub"].split("{")[0]))}
-        draft = apply_known_fields(clean_ghidra_c(raw, symbols, entry.get("global_sizes")), params, layouts)
-        base = make_compilable_draft(target, draft, load_sources(target["c_file"]))
+        draft = expand_ghidra_pieces(apply_known_fields(clean_ghidra_c(raw, symbols, entry.get("global_sizes")), params, layouts))
+        base = make_compilable_draft(target, draft, load_sources(target["c_file"]), inferred)
         ok, diagnostics = compile_candidate(target, base)
+        for _ in range(3):
+            repaired = declare_missing_globals(base, diagnostics, target["current_c_stub"].split("{")[0].strip()) if not ok else base
+            if repaired == base:
+                break
+            base = repaired
+            ok, diagnostics = compile_candidate(target, base)
         (OUTPUT_DIR / f"{name}.base.c").write_text(base + "\n", encoding="utf-8")
         if not ok:
             print(f"RISULTATO {name}: bozza non compilabile: {diagnostics[:200]}", flush=True)
