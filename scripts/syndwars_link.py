@@ -184,6 +184,19 @@ def build_link_pack(symbols: List[str], sx_texts: List[str], drafts: List[str],
     return text, "\n".join(asm) + "\n", unresolved
 
 
+def extend_link_pack(header: str, sx_text: str, new_symbols: List[str], sx_texts: List[str], drafts: List[str],
+                     declarations: Dict[str, str]) -> Tuple[str, str, Dict[str, List[str]]]:
+    """Aggiunge a intestazione e assembly gia' applicati i soli simboli nuovi: (intestazione, assembly, irrisolti)."""
+    known = set(re.findall(r"^#define (\w+) \1" + SUFFIX, header, re.MULTILINE))
+    known |= set(re.findall(r"^\t\.global (\w+)$", sx_text[sx_text.find("/* Collegamento delle bozze"):], re.MULTILINE))
+    todo = [name for name in new_symbols if name not in known]
+    added_header, added_asm, unresolved = build_link_pack(todo, sx_texts, drafts, declarations)
+    defines = re.findall(r"^#define (\w+ \w+" + SUFFIX + r")$", added_header, re.MULTILINE)
+    lines = "".join(f"#define {define}\n" for define in defines)
+    position = header.rfind("#endif")
+    return header[:position] + lines + header[position:], sx_text.rstrip("\n") + "\n" + added_asm, unresolved
+
+
 def load_declarations(inferred_path: Path) -> Dict[str, str]:
     """Firme ricavate da Ghidra per le funzioni solo assembly."""
     import json
@@ -196,14 +209,40 @@ def load_declarations(inferred_path: Path) -> Dict[str, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--log", required=True, help="log di make con gli `undefined reference`")
-    parser.add_argument("--sx", required=True, help="src/swars.sx")
+    parser.add_argument("--log", default="", help="log di make con gli `undefined reference`")
+    parser.add_argument("--sx", default="", help="src/swars.sx")
     parser.add_argument("--extra-sx", nargs="*", default=[], help="altri file .sx con funzioni globali ASM_")
     parser.add_argument("--drafts", default=str(ROOT / "data/nightly/syndwars_ghidra"))
     parser.add_argument("--signatures", default=str(ROOT / "data/nightly/syndwars_ghidra/_inferred_signatures.json"))
     parser.add_argument("--project-src", default="", help="cartella src del progetto, per le firme scritte a mano e le definizioni C")
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--out", default="")
+    parser.add_argument("--extend", default="", help="repository a cui aggiungere i simboli nuovi, invece di scrivere in --out")
+    parser.add_argument("--names", nargs="*", default=[], help="con --extend: le funzioni appena portate in C")
     args = parser.parse_args()
+
+    if args.extend:
+        repo = Path(args.extend)
+        sx_path, header_path = repo / "src" / "swars.sx", repo / "src" / "drafts_link.h"
+        sx_text = sx_path.read_text(errors="replace")
+        sx_all = [sx_text] + [Path(p).read_text(errors="replace") for p in args.extra_sx]
+        drafts = [(Path(args.drafts) / f"{name}.base.c").read_text(errors="replace") for name in args.names]
+        c_texts = [p.read_text(errors="replace") for p in (repo / "src").glob("*.c")]
+        symbols = undefined_symbols(Path(args.log).read_text(errors="replace")) if args.log else []
+        for name in asm_only_callees(drafts, sx_all, c_texts):
+            if name not in symbols:
+                symbols.append(name)
+        declarations = load_declarations(Path(args.signatures))
+        for name in symbols:
+            found = prototype_from_drafts(name, drafts)
+            if found and name not in declarations:
+                declarations[name] = found
+        header, new_sx, unresolved = extend_link_pack(header_path.read_text(), sx_text, symbols, sx_all, drafts, declarations)
+        header_path.write_text(header)
+        sx_path.write_text(new_sx)
+        print(f"simboli considerati {len(symbols)}, irrisolti { {k: v for k, v in unresolved.items() if v} or 'nessuno'}")
+        return 0
+    if not args.out or not args.log:
+        parser.error("servono --log e --out, oppure --extend")
 
     symbols = undefined_symbols(Path(args.log).read_text(errors="replace"))
     sx_texts = [Path(args.sx).read_text(errors="replace")] + [Path(p).read_text(errors="replace") for p in args.extra_sx]

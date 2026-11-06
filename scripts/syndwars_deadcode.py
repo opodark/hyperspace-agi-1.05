@@ -52,6 +52,22 @@ def strip_comments(text: str) -> str:
     return LINE_COMMENT.sub("", COMMENT.sub(" ", text))
 
 
+def strip_disabled(text: str) -> str:
+    """Toglie i blocchi `#if 0`, spesso con la vecchia chiamata all'assembly; il ramo `#else` resta."""
+    kept: List[str] = []
+    stack: List[bool] = []  # True dove il ramo corrente e' spento
+    for line in text.split("\n"):
+        if OPEN_IF.match(line):
+            stack.append(bool(IF_ZERO.match(line)))
+        elif ELSE_IF.match(line) and stack:
+            stack[-1] = False
+        elif END_IF.match(line) and stack:
+            stack.pop()
+        elif not any(stack):
+            kept.append(line)
+    return "\n".join(kept)
+
+
 def line_code(line: str) -> str:
     return line.split("/*")[0]
 
@@ -175,7 +191,7 @@ def external_names(repo: Path, skip: Iterable[str]) -> Set[str]:
             continue
         if {"build", ".git", "tools"} & set(path.relative_to(repo).parts):
             continue
-        names.update(TOKEN.findall(strip_comments(path.read_text(errors="replace"))))
+        names.update(TOKEN.findall(strip_disabled(strip_comments(path.read_text(errors="replace")))))
     return names
 
 

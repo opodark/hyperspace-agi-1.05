@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.syndwars_deadcode import analyse, filter_tail, reachable, split_blocks
+from scripts.syndwars_deadcode import analyse, filter_tail, reachable, split_blocks, strip_disabled
 
 SEP = "/*----------------------------------------------------------------"
 
@@ -71,6 +71,13 @@ class DeadCodeTest(unittest.TestCase):
     def test_local_label_named_like_a_c_function_is_not_a_root(self):
         text = source(fn("same_name", "\tret"), fn("exported", "\tret", is_global=True))
         self.assertEqual(analyse(text, {"same_name", "exported"})["dead"], ["same_name"])
+
+    def test_disabled_c_code_is_not_a_reference(self):
+        text = "int f(void)\n{\n#if 0\n    asm(\"call ASM_old\");\n#else\n    g();\n#endif\n#ifdef X\n    h();\n#endif\n}"
+        kept = strip_disabled(text)
+        self.assertNotIn("ASM_old", kept)
+        self.assertIn("g();", kept)
+        self.assertIn("h();", kept)
 
     def test_blocks_keep_labels_inside_the_function(self):
         blocks = split_blocks(source(fn("start", "inner:", "\tjmp    inner")).split("\n"))

@@ -109,6 +109,12 @@ class GhidraPipelineTest(unittest.TestCase):
         self.assertIn("int foo();", code)
         self.assertNotIn("int foo(int a1);", code)
 
+    def test_inferred_int_parameter_that_ghidra_sees_as_pointer(self):
+        target = {"current_c_stub": "void f(int a1)\n{\n}", "asm_code": ""}
+        body = make_compilable_draft(target, "void f(ubyte *a1)\n{\n  *a1 = a1[2];\n}", [])
+        self.assertIn("void f(int a1)", body)
+        self.assertEqual(body.count("((ubyte *)a1)"), 2)
+
     def test_pointer_locals_get_their_cast(self):
         body = "{\n  ubyte *p;\n  p = (long)&x + 1;\n}"
         self.assertEqual(cast_pointer_locals(body), "{\n  ubyte *p;\n  p = (ubyte *)((long)&x + 1);\n}")

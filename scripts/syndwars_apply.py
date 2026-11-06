@@ -17,7 +17,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -28,6 +28,7 @@ MANUAL = DRAFTS / "manual"
 PENDING = ROOT / "data" / "syndwars_pending_targets.jsonl"
 COMPAT_HEADER = "ghidra_compat.h"
 LINK_HEADER = "drafts_link.h"
+TAIL_MARK = "/* Collegamento delle bozze"
 # Diverse o non chiarite nel gioco vero: restano in assembly finche' non sono spiegate.
 DEFAULT_EXCLUDE = {"mech_unkn_func_12", "create_a_pod", "explode_thing_building"}
 
@@ -97,6 +98,98 @@ def apply_drafts(repo: Path, names: List[str]) -> Dict[str, List[str]]:
     return {"applicate": applied, "stub_non_trovato": skipped, "file": sorted(by_file)}
 
 
+def wrapper_line(declaration: str) -> Optional[str]:
+    """Riga di `conf/wrappers_game.conf` per una firma ricavata: convenzione Watcom, tipo di ritorno, argomenti."""
+    match = re.match(r"\s*(\w+)\s+(\w+)\s*\((.*)\)\s*;?\s*$", declaration, re.DOTALL)
+    if not match:
+        return None
+    return_type, name, params = match.groups()
+    count = 0 if params.strip() in ("", "void") else params.count(",") + 1
+    kind = "v" if return_type == "void" else "i"
+    return f"{name}\t\t\tW\t{kind}" + (f"\t{'i' * count}" if count else "")
+
+
+def redirect_asm_calls(sx_text: str, name: str) -> Tuple[str, int, List[str]]:
+    """Le chiamate assembly a `name` passano dal C: (testo, quante, altri riferimenti che non si possono deviare)."""
+    tail_at = sx_text.find(TAIL_MARK)
+    body, tail = (sx_text, "") if tail_at < 0 else (sx_text[:tail_at], sx_text[tail_at:])
+    body, count = re.subn(rf"(\b(?:call|jmp)\s+){re.escape(name)}\b", rf"\1ac_{name}", body)
+    others = [line.strip() for line in body.split("\n")
+              if re.search(rf"(?<![\w.]){re.escape(name)}\b", line.split("/*")[0]) and not re.match(rf"\s*{re.escape(name)}:", line)]
+    return body + tail, count, others
+
+
+def remove_adapter(sx_text: str, name: str) -> str:
+    """Toglie l'adattatore `name__c` dalla coda: la bozza ora chiama direttamente la funzione C."""
+    return re.sub(rf"^\t\.global {re.escape(name)}__c\n{re.escape(name)}__c:\n.*?^\tret\n", "", sx_text,
+                  count=1, flags=re.MULTILINE | re.DOTALL)
+
+
+def reconcile_declarations(text: str) -> str:
+    """Toglie le dichiarazioni senza argomenti in conflitto con un prototipo vero dello stesso file."""
+    typed: Dict[str, str] = {}
+    for match in re.finditer(r"^((?:[A-Za-z_]\w*[ \t\*]+)+?)([A-Za-z_]\w*)\s*\((?!\s*\))[^;{}]*\)\s*;", text, re.MULTILINE):
+        typed.setdefault(match.group(2), " ".join(match.group(1).split()))
+
+    def fix(match: "re.Match[str]") -> str:
+        known = typed.get(match.group(2))
+        return "" if known and known != " ".join(match.group(1).split()) else match.group(0)
+
+    return re.sub(r"^((?:[A-Za-z_]\w*[ \t\*]+)+?)([A-Za-z_]\w*)\s*\(\s*\)\s*;\n", fix, text, flags=re.MULTILINE)
+
+
+def forward_structs(chunks: Iterable[str]) -> str:
+    """Una `struct X` citata per la prima volta in un prototipo vale solo li': due prototipi uguali risulterebbero diversi."""
+    names = sorted({name for chunk in chunks for name in re.findall(r"\bstruct\s+(\w+)\s*\*", chunk)})
+    return "".join(f"struct {name};\n" for name in names)
+
+
+def promote_local(repo: Path, names: Sequence[str], signatures: Dict[str, str]) -> Dict[str, Any]:
+    """Porta in C le funzioni assembly locali verificate: definizione nel file C, thunk `ac_` e chiamate assembly deviate.
+
+    L'assembly resta nel file finche' `syndwars_deadcode.py` non vede che nessuno lo raggiunge piu'. Una funzione con
+    riferimenti che non siano `call` o `jmp` (tabelle di puntatori, indirizzi) resta in assembly."""
+    from scripts.syndwars_decompile_sovereign import load_jsonl
+
+    targets = {t["func_name"]: t for t in load_jsonl(PENDING)}
+    sx_path = repo / "src" / "swars.sx"
+    sx_text = sx_path.read_text(errors="replace")
+    link_path = repo / "src" / LINK_HEADER
+    link_text = link_path.read_text()
+    conf_path = repo / "conf" / "wrappers_game.conf"
+    conf_text = conf_path.read_text()
+    promoted: List[str] = []
+    refused: Dict[str, str] = {}
+    additions: Dict[str, List[str]] = {}
+    for name in names:
+        line = wrapper_line(signatures.get(name, ""))
+        if line is None:
+            refused[name] = "firma non leggibile"
+            continue
+        new_text, _count, others = redirect_asm_calls(sx_text, name)
+        if others:
+            refused[name] = "riferimento non deviabile: " + others[0][:60]
+            continue
+        if re.search(rf"^{re.escape(name)}\s", conf_text, re.MULTILINE):
+            refused[name] = "gia' nei thunk"
+            continue
+        sx_text = remove_adapter(new_text, name)
+        link_text = re.sub(rf"^#define {re.escape(name)} {re.escape(name)}__c\n", "", link_text, flags=re.MULTILINE)
+        conf_text += line + "\n"
+        code = (DRAFTS / f"{name}.base.c").read_text()
+        _block, rest = split_compat(code)
+        additions.setdefault(targets[name]["c_file"], []).append(f'#include "{COMPAT_HEADER}"\n' + rest.strip())
+        promoted.append(name)
+    for c_file, chunks in additions.items():
+        path = repo / c_file
+        text = path.read_text(errors="replace").rstrip("\n") + "\n\n" + forward_structs(chunks) + "\n\n".join(chunks) + "\n"
+        path.write_text(reconcile_declarations(add_includes(text)))
+    sx_path.write_text(sx_text)
+    link_path.write_text(link_text)
+    conf_path.write_text(conf_text)
+    return {"portate": promoted, "rifiutate": refused, "file": sorted(additions)}
+
+
 def build_subset_tar(worktree: Path, names: List[str], all_files: List[str], link_dir: Path, tar_path: Path) -> None:
     """Riporta `worktree` a HEAD, applica `names` con il collegamento completo e impacchetta sempre gli stessi file."""
     import subprocess
@@ -126,7 +219,15 @@ def main() -> int:
     parser.add_argument("--exclude", nargs="*", default=[])
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--report", default="")
+    parser.add_argument("--promote", nargs="*", help="funzioni locali verificate da portare in C")
     args = parser.parse_args()
+    if args.promote is not None:
+        signatures = json.loads((DRAFTS / "_inferred_signatures.json").read_text())
+        report = promote_local(Path(args.repo), args.promote, signatures)
+        if args.report:
+            Path(args.report).write_text(json.dumps(report, indent=1))
+        print(f"portate {len(report['portate'])}, rifiutate {report['rifiutate'] or 'nessuna'}, file {len(report['file'])}")
+        return 0
     results = json.loads((DRAFTS / "_verify_all.json").read_text())
     manual = [p.name.replace(".base.c", "") for p in MANUAL.glob("*.base.c")]
     names = choose(results, manual, DEFAULT_EXCLUDE | set(args.exclude))

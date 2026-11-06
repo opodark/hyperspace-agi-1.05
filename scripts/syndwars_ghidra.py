@@ -651,8 +651,9 @@ def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[
             if re.match(rf"[^(]*\*\s*{re.escape(name)}\s*\(", decl):
                 body = re.sub(rf"(?<![\w)]){re.escape(name)}\s*\(", f"(long){name}(", body)
     for _type, param in params:
-        if "*" in _type:
-            seen = seen_types.get(param, "")
+        seen = seen_types.get(param, "")
+        # Le funzioni locali hanno firme ricavate tutte `int`, ma per Ghidra un argomento puo' essere un puntatore.
+        if "*" in _type or "*" in seen:
             if "*" in seen:
                 # Per Ghidra e' un puntatore tipizzato: indici e somme usano la scala del suo tipo.
                 if " ".join(_type.replace("*", " * ").split()) != seen:

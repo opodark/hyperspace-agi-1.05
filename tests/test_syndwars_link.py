@@ -66,3 +66,13 @@ def test_asm_only_callee_without_c_definition_is_found():
     assert asm_only_callees([draft], [sx], [c]) == ["rotate_obj"]
     assert prototype_from_drafts("rotate_obj", [draft]) == "void rotate_obj(int a, int b);"
     assert parameter_count(prototype_from_drafts("rotate_obj", [draft])) == 2
+
+
+def test_extend_adds_only_new_symbols():
+    from scripts.syndwars_link import extend_link_pack
+    header = "#ifndef G\n#define G\n#define old old__c\n#endif\n"
+    sx = "new_fn:\n\tret\nold:\n\tret\ndata_1:\n\t.long 0\n/* Collegamento delle bozze */\n\t.global old__c\nold__c:\n\tcall   old\n\tret\n"
+    out_header, out_sx, unresolved = extend_link_pack(header, sx, ["old", "new_fn", "data_1"], [sx], ["int new_fn();"], {"new_fn": "int new_fn(int a);", "old": "int old(int a);"})
+    assert out_header.count("#define old old__c") == 1 and "#define new_fn new_fn__c\n#endif" in out_header
+    assert out_sx.count("old__c:") == 1 and "new_fn__c:" in out_sx and "\t.global data_1" in out_sx
+    assert not any(unresolved.values())
