@@ -17,6 +17,7 @@ from scripts.syndwars_ghidra import (
     keep_unsigned_parameters,
     make_compilable_draft,
     parse_inferred_signatures,
+    parse_local_symbols,
     stack_args_from_assembly,
     list_local_names,
     parse_names_reply,
@@ -111,6 +112,28 @@ class GhidraPipelineTest(unittest.TestCase):
     def test_pointer_locals_get_their_cast(self):
         body = "{\n  ubyte *p;\n  p = (long)&x + 1;\n}"
         self.assertEqual(cast_pointer_locals(body), "{\n  ubyte *p;\n  p = (ubyte *)((long)&x + 1);\n}")
+
+    def test_internal_data_resolves_to_nearest_local_symbol(self):
+        local = {"tbl": 0x6c000, "other": 0x6d000}
+        self.assertEqual(resolve_data_addresses("x = DAT_0006ca84;", {}, {"DAT_0006ca84": 2}, local), "x = (*(ushort *)((long)&tbl + 0xa84));")
+        self.assertEqual(resolve_data_addresses("x = ram0x0006c004;", {}, {"_DAT_0006c004": 4}, local), "x = (*(int *)((long)&tbl + 0x4));")
+        self.assertEqual(resolve_data_addresses("x = DAT_00001000;", {}, {}, local), "x = DAT_00001000;")
+
+    def test_array_field_is_not_read_as_a_number(self):
+        fields = {"Thing": [(0x70, 4, "short[2]", "Timer")]}
+        self.assertEqual(apply_known_fields("x = *(int *)(p + 0x70);", [("struct Thing *", "p")], fields), "x = *(int *)(p + 0x70);")
+
+    def test_typed_pointer_after_a_cast_is_rewritten(self):
+        target = {"current_c_stub": "void f(struct M *p)\n{\n}", "asm_code": ""}
+        body = make_compilable_draft(target, "void f(ushort *p)\n{\n  *p = (ubyte)p[6];\n}", [])
+        self.assertIn("*((ushort *)p) = (ubyte)((ushort *)p)[6];", body)
+
+    def test_comma_assignment_to_pointer_local_gets_its_cast(self):
+        body = "{\n  ushort *p;\n  while (p = x + 1, y < p) {\n  }\n}"
+        self.assertIn("while (p = (ushort *)(x + 1), y < p)", cast_pointer_locals(body))
+
+    def test_local_symbols_ignore_ghidra_names(self):
+        self.assertEqual(parse_local_symbols("//@@@LOCAL tbl 5\n//@@@LOCAL DAT_1 6\n"), {"tbl": 5})
 
     def test_absolute_address_returns_to_its_symbol(self):
         symbols = {"text": 0x100000}

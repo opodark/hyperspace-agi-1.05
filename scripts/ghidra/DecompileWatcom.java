@@ -174,10 +174,17 @@ public class DecompileWatcom extends GhidraScript {
             }
         }
         try (PrintWriter out = new PrintWriter(args[1], "UTF-8")) {
+            MemoryBlock fake = currentProgram.getMemory().getBlock(".hsext");
+            // Dati interni dell'assembly: servono per riportare `DAT_` e `ram0x` a simbolo + offset.
+            for (Symbol sym : currentProgram.getSymbolTable().getAllSymbols(false)) {
+                if (sym.getSource() == SourceType.IMPORTED && sym.getAddress().isMemoryAddress()
+                        && (fake == null || !fake.contains(sym.getAddress()))) {
+                    out.println("//@@@LOCAL " + sym.getName() + " " + sym.getAddress().getOffset());
+                }
+            }
             for (String signature : inferred) {
                 out.println("//@@@INFER " + signature);
             }
-            MemoryBlock fake = currentProgram.getMemory().getBlock(".hsext");
             if (fake != null) {
                 for (Symbol sym : currentProgram.getSymbolTable().getAllSymbols(false)) {
                     if (fake.contains(sym.getAddress())) {

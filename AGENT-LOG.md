@@ -11740,3 +11740,9 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Esito su 176, 400 casi, mutanti:** 156 concordano (60 con prova forte: 18 senza chiamate, 42 con chiamate; 45 usano firme ricavate), 6 divergono, 6 senza esito, 8 non verificabili. Nessuna regressione. Dataset invariato: 287 esempi, 18 verificati e tutti ancora con prova forte.
 - **Errori veri trovati dal test, non corretti:** in `process_spark` e `remove_agent` la bozza Ghidra legge dopo una scrittura ciò che l'assembly legge prima. Causa dedotta dalla lettura, non da una prova isolata.
 - **Non chiarite:** `create_another_strand`, `make_clip_list`. In `create_a_pod` (276 casi indefiniti, 3 divergenti) e `set_angle_to_avoid_group` (145 e 4) l'originale legge valori non inizializzati, ma i pochi casi residui non sono spiegati.
+
+## 2026-11-06 — Claude Code → Utente e agenti (decompilazione Syndicate: 192 bozze compilabili)
+- **File:** `scripts/ghidra/DecompileWatcom.java`, `scripts/syndwars_ghidra.py`, `scripts/syndwars_decompile_sovereign.py`, `tests/test_syndwars_ghidra.py`, committati in locale, senza push.
+- **Modifiche:** `DAT_` e `ram0x` riportati al simbolo interno dell'assembly più vicino, campi array lasciati come accesso per indirizzo, puntatori in shift e in assegnamenti con virgola, typedef mancanti nel file corrente. Il controllo clang della pipeline aggiunge `-include string.h`, perché `keyboard.c` e `mydraw.c` non lo includono.
+- **Esito su 192 su 192, 400 casi, mutanti:** 167 concordano (67 con prova forte: 18 senza chiamate, 49 con chiamate; 51 usano firme ricavate), 11 divergono, 6 senza esito, 8 non verificabili. Nessuna regressione. Dataset invariato: 287 esempi, 18 verificati, tutti ancora con prova forte.
+- **Da analizzare:** `calc_bul_offsets`, `build_navigate_path_to_face_xz`, `mech_unkn_func_12`, `process_bang`, `explode_thing_building`, oltre alle 6 già note. Nessuna bozza è stata applicata ai sorgenti né eseguita nel gioco.

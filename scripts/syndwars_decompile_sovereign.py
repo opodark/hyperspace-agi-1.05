@@ -116,6 +116,7 @@ def verify_c_file_with_clang(swars_dir: Path, c_rel_path: str, patched_content: 
             "-fsyntax-only",
             "-w",
             "-std=gnu99",
+            "-include", "string.h",  # Alcuni .c del gioco usano strlen e simili senza includerlo.
             "-DLB_HAVE_STDINT_H=1",
             "-DLBS_PACKAGE=1",
             "-DPACKAGE_NAME=\"syndwarsfx\"",

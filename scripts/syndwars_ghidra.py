@@ -13,6 +13,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import bisect
 import functools
 import json
 import os
@@ -156,6 +157,11 @@ def fake_external_section(undefined: Sequence[str], called: Sequence[str]) -> st
     return "\n".join(lines) + "\n"
 
 
+def parse_local_symbols(text: str) -> Dict[str, int]:
+    return {m.group(1): int(m.group(2)) for m in re.finditer(r"^//@@@LOCAL ([A-Za-z_]\w*) (\d+)$", text, re.MULTILINE)
+            if not re.match(r"(?:DAT|LAB|FUN|SUB)_", m.group(1))}
+
+
 def parse_inferred_signatures(text: str) -> Dict[str, str]:
     """{nome C: dichiarazione}; il tipo degli argomenti non si conosce, resta `int`."""
     found: Dict[str, str] = {}
@@ -183,8 +189,8 @@ def parse_ghidra_output(text: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str,
     return result, symbols
 
 
-def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int], Dict[str, str]]:
-    """({funzione: C e dimensioni delle globali}, {esterno: indirizzo}, {funzione: firma ricavata}). Il progetto e' temporaneo."""
+def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int], Dict[str, str], Dict[str, int]]:
+    """({funzione: C e dimensioni}, {esterno: indirizzo}, {funzione: firma ricavata}, {simbolo interno: indirizzo}). Il progetto e' temporaneo."""
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         source = (SWARS_DIR / "src" / "swars.sx").read_text(encoding="utf-8", errors="replace")
@@ -210,7 +216,7 @@ def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, A
         )
         text = out.read_text(encoding="utf-8")
         decompiled, symbols = parse_ghidra_output(text)
-        return decompiled, symbols, parse_inferred_signatures(text)
+        return decompiled, symbols, parse_inferred_signatures(text), parse_local_symbols(text)
 
 
 # I 4 byte restano `int`: quando serve il confronto senza segno Ghidra scrive gia' `(uint)`.
@@ -223,14 +229,22 @@ def _is_sign_extended(text: str, position: int) -> bool:
     return text[:position].endswith("(int)")
 
 
-def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, int]) -> str:
+LOCAL_SYMBOL_REACH = 0x10000
+
+
+def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, int], local_symbols: Optional[Dict[str, int]] = None) -> str:
     """`_DAT_00abcd` torna `*(tipo *)((long)simbolo + offset)`; il tipo viene dalla dimensione vista da Ghidra."""
     ordered = sorted(symbols.items(), key=lambda kv: kv[1])
+    local_list = sorted((local_symbols or {}).items(), key=lambda kv: kv[1])
+    local_starts = [start for _name, start in local_list]
 
     def locate(address: int) -> Optional[Tuple[str, int]]:
         for name, start in ordered:
             if start - 0x1000 <= address < start + EXTERNAL_SLOT - 0x1000:
                 return name, address - start
+        index = bisect.bisect_right(local_starts, address) - 1
+        if index >= 0 and address - local_starts[index] < LOCAL_SYMBOL_REACH:
+            return local_list[index][0], address - local_starts[index]
         return None
 
     def array(match: "re.Match[str]") -> str:
@@ -257,6 +271,8 @@ def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, 
                 return f"(({_READ_TYPE.get(size, 'ubyte')} *){location})"
             return location
         size = sizes.get(f"{under}DAT_{match.group(3)}", 4 if under else 1)
+        if match.group(0).lstrip("&").startswith("ram0x"):
+            size = sizes.get(f"_DAT_{int(match.group(3), 16):08x}", 4)
         types = _SIGNED_READ_TYPE if _is_sign_extended(match.string, match.start()) else _READ_TYPE
         return f"(*({types.get(size, 'int')} *){location})"
 
@@ -270,7 +286,7 @@ def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, 
     # Ghidra somma simbolo e offset costante: nella bozza deve tornare un indirizzo del simbolo, non un numero.
     code = re.sub(r"(\+ )(0x[0-9a-fA-F]{6,8})\b", absolute, code)
     code = re.sub(r"\(&(_?)DAT_([0-9a-fA-F]{6,})\)\s*\[", array, code)
-    return re.sub(r"(&?)(_?)DAT_([0-9a-fA-F]{6,})", rewrite, code)
+    return re.sub(r"(&?)(_?)(?:DAT_|ram0x)([0-9a-fA-F]{6,})", rewrite, code)
 
 
 def rewrite_named_globals(code: str, sizes: Dict[str, int]) -> str:
@@ -358,7 +374,8 @@ def join_statements(code: str) -> List[str]:
     return joined
 
 
-def clean_ghidra_c(code: str, symbols: Optional[Dict[str, int]] = None, sizes: Optional[Dict[str, int]] = None) -> str:
+def clean_ghidra_c(code: str, symbols: Optional[Dict[str, int]] = None, sizes: Optional[Dict[str, int]] = None,
+                   local_symbols: Optional[Dict[str, int]] = None) -> str:
     """Toglie il rumore delle `push`/`call` su stack, i prefissi e i tipi `undefinedN` di Ghidra."""
     lines = [l for l in join_statements(code) if not l.lstrip().startswith("/* WARNING")]
 
@@ -388,7 +405,7 @@ def clean_ghidra_c(code: str, symbols: Optional[Dict[str, int]] = None, sizes: O
         kept.append(line)
     text = "\n".join(kept)
     if symbols:
-        text = resolve_data_addresses(text, symbols, sizes or {})
+        text = resolve_data_addresses(text, symbols, sizes or {}, local_symbols)
     text = rewrite_named_globals(text, sizes or {})
     text = re.sub(r"\b(?:ac|ASM)_(\w+)\s*\(", r"\1(", text)
     text = re.sub(r"(?<![\w.>])_([a-zA-Z]\w*)", r"\1", text)
@@ -460,6 +477,8 @@ def apply_known_fields(code: str, params: Sequence[Tuple[str, str]], layouts: Di
             if not hit or not size:
                 return match.group(0)
             path, field_size, delta, field_type = hit
+            if "[" in field_type:
+                return match.group(0)  # Un array non si legge come numero: resta l'accesso per indirizzo.
             if field_size == size and delta == 0:
                 expression = f"{param}->{path}"
                 if _is_written(match):
@@ -502,6 +521,10 @@ def expand_ghidra_pieces(code: str) -> str:
 
 def declare_missing_globals(code: str, diagnostics: str, signature: str) -> str:
     """Solo cio' che il codice usa per indirizzo: una variabile locale mancante resta un errore visibile."""
+    for type_name in dict.fromkeys(re.findall(r"unknown type name '(\w+)'", diagnostics)):
+        found = [m.group(1) for text in _project_sources() for m in re.finditer(rf"^\s*typedef\s+([\w ]+?)\s+{re.escape(type_name)}\s*;", text, re.MULTILINE)]
+        marker = "#define POPCOUNT(x) __builtin_popcount(x)\n#endif\n"
+        code = code.replace(marker, f"{marker}typedef {found[0] if found else 'int'} {type_name};\n", 1)
     names = dict.fromkeys(re.findall(r"undeclared identifier '(\w+)'", diagnostics))
     for name in names:
         # `simbolo_2` e' il pezzo di Ghidra a +2 di una globale gia' usata per indirizzo.
@@ -586,6 +609,7 @@ def cast_pointer_locals(body: str) -> str:
     """Le globali sono lette come interi: per un puntatore locale l'assegnamento va convertito."""
     for ctype, name in re.findall(r"^\s*((?:struct\s+)?\w+\s*\*+)\s*(\w+);\s*$", body, re.MULTILINE):
         body = re.sub(rf"^(\s*{re.escape(name)} = )(?!\(\s*{re.escape(ctype)}\))(.+);\s*$", rf"\1({ctype})(\2);", body, flags=re.MULTILINE)
+        body = re.sub(rf"\(({re.escape(name)} = )(?!\(\s*{re.escape(ctype)}\))([^,;]+),", rf"(\1({ctype})(\2),", body)
     return body
 
 
@@ -620,11 +644,11 @@ def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[
                 # Per Ghidra e' un puntatore tipizzato: indici e somme usano la scala del suo tipo.
                 if " ".join(_type.replace("*", " * ").split()) != seen:
                     body = re.sub(rf"(?<=\*){re.escape(param)}\b", f"(({seen}){param})", body)
-                    body = re.sub(rf"(?<![\w.>&)]){re.escape(param)}\b(?!\s*(?:=(?!=)|->))", f"(({seen}){param})", body)
+                    body = re.sub(rf"(?<![\w.>&])(?<!\({re.escape(seen)}\)){re.escape(param)}\b(?!\s*(?:=(?!=)|->))", f"(({seen}){param})", body)
             else:
                 # Dopo la riscrittura dei campi restano solo offset grezzi: anche questi vanno in byte.
-                body = re.sub(rf"\(\s*{re.escape(param)}\s*([+-])(?!>)", rf"((long){param} \1", body)
-                body = re.sub(rf"(?<![\w>(*&)]){re.escape(param)}(?=\s*[+-](?!>))", f"(long){param}", body)
+                body = re.sub(rf"\(\s*{re.escape(param)}\s*([+-](?!>)|>>)", rf"((long){param} \1", body)
+                body = re.sub(rf"(?<![\w>(*&)]){re.escape(param)}(?=\s*(?:[+-](?!>)|>>))", f"(long){param}", body)
                 body = re.sub(rf"= {re.escape(param)};", f"= (long){param};", body)
             body = re.sub(rf"^(\s*){re.escape(param)}\s*=(?!=)\s*(.+);", rf"\1{param} = ({_type})(\2);", body, flags=re.MULTILINE)
     if "*" in return_type:
@@ -742,7 +766,7 @@ def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     print(f"Ghidra su {len(selected)} funzioni...", flush=True)
-    decompiled, symbols, inferred = run_ghidra(selected)
+    decompiled, symbols, inferred, local_symbols = run_ghidra(selected)
     INFERRED_SIGNATURES_PATH.write_text(json.dumps(inferred, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Firme ricavate da Ghidra: {len(inferred)}", flush=True)
     summary: Dict[str, Any] = {}
@@ -756,7 +780,7 @@ def main() -> int:
             continue
         _rt, _n, params = parse_signature(target["current_c_stub"])
         layouts = {s: load_struct_layout(SWARS_DIR, s) for s in set(re.findall(r"struct\s+(\w+)\s*\*", target["current_c_stub"].split("{")[0]))}
-        draft = expand_ghidra_pieces(apply_known_fields(clean_ghidra_c(raw, symbols, entry.get("global_sizes")), params, layouts))
+        draft = expand_ghidra_pieces(apply_known_fields(clean_ghidra_c(raw, symbols, entry.get("global_sizes"), local_symbols), params, layouts))
         base = make_compilable_draft(target, draft, load_sources(target["c_file"]), inferred)
         ok, diagnostics = compile_candidate(target, base)
         for _ in range(3):
