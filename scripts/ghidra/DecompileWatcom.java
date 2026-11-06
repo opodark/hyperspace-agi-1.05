@@ -19,6 +19,9 @@ import ghidra.program.model.listing.ReturnParameterImpl;
 import ghidra.program.model.mem.MemoryBlock;
 import ghidra.program.model.pcode.HighFunction;
 import ghidra.program.model.pcode.HighSymbol;
+import ghidra.program.model.pcode.PcodeOp;
+import ghidra.program.model.pcode.PcodeOpAST;
+import ghidra.program.model.pcode.Varnode;
 import ghidra.program.model.symbol.SourceType;
 import ghidra.program.model.symbol.Symbol;
 import java.io.PrintWriter;
@@ -76,6 +79,29 @@ public class DecompileWatcom extends GhidraScript {
             SourceType.USER_DEFINED);
     }
 
+    /** Larghezza reale degli accessi in memoria: la dimensione del simbolo non basta per i `_DAT_`. */
+    private void printAccesses(HighFunction high, PrintWriter out) {
+        Iterator<PcodeOpAST> ops = high.getPcodeOps();
+        while (ops.hasNext()) {
+            PcodeOp op = ops.next();
+            int opcode = op.getOpcode();
+            if ((opcode == PcodeOp.STORE || opcode == PcodeOp.LOAD) && op.getInput(1).isConstant()) {
+                Varnode value = opcode == PcodeOp.STORE ? op.getInput(2) : op.getOutput();
+                out.println("//@@@ACCESS " + op.getInput(1).getOffset() + " " + value.getSize());
+            }
+            printDirect(op.getOutput(), out);
+            for (Varnode input : op.getInputs()) {
+                printDirect(input, out);
+            }
+        }
+    }
+
+    private void printDirect(Varnode node, PrintWriter out) {
+        if (node != null && node.getAddress().getAddressSpace().isLoadedMemorySpace()) {
+            out.println("//@@@ACCESS " + node.getOffset() + " " + node.getSize());
+        }
+    }
+
     @Override
     public void run() throws Exception {
         String[] args = getScriptArgs();
@@ -122,6 +148,7 @@ public class DecompileWatcom extends GhidraScript {
                         out.println("//@@@GLOBAL " + g.getName() + " " + g.getDataType().getLength());
                     }
                 }
+                printAccesses(high, out);
                 out.println(r.getDecompiledFunction().getC());
             }
         }

@@ -126,6 +126,28 @@ class TestSyndwarsDecompilePipeline(unittest.TestCase):
         layout = parse_record_layouts(dump)["T"]
         self.assertEqual([(o, s, f) for o, s, _t, f in layout], [(0, 2, "A"), (2, 1, "U.P.B"), (3, 1, "U.P.C")])
 
+    def test_export_marks_how_a_function_was_verified(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        from scripts import syndwars_decompile_sovereign as pipeline
+
+        record = {"func_name": "f", "c_file": "src/f.c", "clang_verified": True, "verification": "execution_unicorn",
+                  "lfm_approved": False, "asm_code": "ret", "reasoning_cot": "", "verified_c": "void f(void) {}"}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cot, golden, sft = root / "cot.jsonl", root / "golden.jsonl", root / "sft.jsonl"
+            cot.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            golden.write_text("", encoding="utf-8")
+            with mock.patch.multiple(pipeline, COT_TRAIN_PATH=cot, GOLDEN_PATH=golden, SFT_EXPORT_PATH=sft):
+                pipeline.export_sft_dataset()
+            exported = json.loads(sft.read_text(encoding="utf-8"))
+        self.assertEqual(exported["verification"], "execution_unicorn")
+        self.assertFalse(exported["has_deep_cot"])
+        self.assertNotIn("<think>", exported["messages"][2]["content"])
+
 
 if __name__ == "__main__":
     unittest.main()

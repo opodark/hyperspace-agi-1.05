@@ -97,7 +97,10 @@ def parse_ghidra_output(text: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str,
     for chunk in chunks:
         name, _, code = chunk.partition("\n")
         sizes = {m.group(1): int(m.group(2)) for m in re.finditer(r"^//@@@GLOBAL (\S+) (\d+)$", code, re.MULTILINE)}
-        body = re.sub(r"^//@@@GLOBAL .*\n", "", code, flags=re.MULTILINE).strip()
+        for m in re.finditer(r"^//@@@ACCESS (\d+) (\d+)$", code, re.MULTILINE):
+            key = f"_DAT_{int(m.group(1)):08x}"
+            sizes[key] = max(sizes.get(key, 0), int(m.group(2)))
+        body = re.sub(r"^//@@@(?:GLOBAL|ACCESS) .*\n", "", code, flags=re.MULTILINE).strip()
         result[re.sub(r"^ASM_", "", name.strip())] = {"code": body, "global_sizes": sizes}
     return result, symbols
 
@@ -130,16 +133,34 @@ def run_ghidra(targets: Sequence[Dict[str, Any]]) -> Tuple[Dict[str, Dict[str, A
         return parse_ghidra_output(out.read_text(encoding="utf-8"))
 
 
+# I 4 byte restano `int`: quando serve il confronto senza segno Ghidra scrive gia' `(uint)`.
+_READ_TYPE = {1: "ubyte", 2: "ushort", 4: "int", 8: "ulonglong"}
+_SIGNED_READ_TYPE = {1: "signed char", 2: "short", 4: "int", 8: "longlong"}
+
+
+def _is_sign_extended(text: str, position: int) -> bool:
+    """Ghidra scrive `(int)x` per l'estensione con segno e `(uint)x` per quella senza."""
+    return text[:position].endswith("(int)")
+
+
 def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, int]) -> str:
     """`_DAT_00abcd` torna `*(tipo *)((long)simbolo + offset)`; il tipo viene dalla dimensione vista da Ghidra."""
     ordered = sorted(symbols.items(), key=lambda kv: kv[1])
-    width_type = {1: "ubyte", 2: "ushort", 4: "u32"}
 
     def locate(address: int) -> Optional[Tuple[str, int]]:
         for name, start in ordered:
             if start - 0x1000 <= address < start + EXTERNAL_SLOT - 0x1000:
                 return name, address - start
         return None
+
+    def array(match: "re.Match[str]") -> str:
+        hit = locate(int(match.group(2), 16))
+        if not hit:
+            return match.group(0)
+        name, delta = hit
+        location = f"((long)&{name} + {delta:#x})" if delta else f"((long)&{name})"
+        size = sizes.get(f"{match.group(1)}DAT_{match.group(2)}", 1)
+        return f"(({_READ_TYPE.get(size, 'ubyte')} *){location})["
 
     def rewrite(match: "re.Match[str]") -> str:
         amp, under, addr = match.group(1), match.group(2), int(match.group(3), 16)
@@ -151,24 +172,29 @@ def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, 
         if amp:
             return location
         size = sizes.get(f"{under}DAT_{match.group(3)}", 4 if under else 1)
-        return f"(*({width_type.get(size, 'u32')} *){location})"
+        types = _SIGNED_READ_TYPE if _is_sign_extended(match.string, match.start()) else _READ_TYPE
+        return f"(*({types.get(size, 'int')} *){location})"
 
+    code = re.sub(r"\(&(_?)DAT_([0-9a-fA-F]{6,})\)\s*\[", array, code)
     return re.sub(r"(&?)(_?)DAT_([0-9a-fA-F]{6,})", rewrite, code)
 
 
 def rewrite_named_globals(code: str, sizes: Dict[str, int]) -> str:
     """Accesso per indirizzo con la larghezza vista da Ghidra: non dipende dal tipo dichiarato in C."""
-    width_type = {1: "ubyte", 2: "ushort", 4: "u32", 8: "ulonglong"}
     for ghidra_name, size in sorted(sizes.items(), key=lambda kv: -len(kv[0])):
         if re.match(r"_?DAT_", ghidra_name) or not re.match(r"[A-Za-z_]\w*$", ghidra_name):
             continue
         name = ghidra_name[1:] if ghidra_name.startswith("_") else ghidra_name
         escaped = re.escape(ghidra_name)
-        code = re.sub(rf"\(&{escaped}\)(\s*\[)", rf"((ubyte *)&{name})\1", code)
+        element = _READ_TYPE.get(size, "ubyte")
+        code = re.sub(rf"\(&{escaped}\)(\s*\[)", rf"(({element} *)&{name})\1", code)
         code = re.sub(rf"(?<!\*\))&{escaped}\b", f"((long)&{name})", code)
-        ctype = width_type.get(size)
-        if ctype:
-            code = re.sub(rf"(?<![\w.>&]){escaped}\b(?!\s*\()", f"(*({ctype} *)&{name})", code)
+        if size in _READ_TYPE:
+            code = re.sub(
+                rf"(?<![\w.>&]){escaped}\b(?!\s*\()",
+                lambda m, n=name, s=size: f"(*({(_SIGNED_READ_TYPE if _is_sign_extended(m.string, m.start()) else _READ_TYPE)[s]} *)&{n})",
+                code,
+            )
     return code
 
 

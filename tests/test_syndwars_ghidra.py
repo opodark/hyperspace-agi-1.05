@@ -54,7 +54,10 @@ class GhidraPipelineTest(unittest.TestCase):
         self.assertIn("iVar4 = iVar3 + 1;", code)
 
     def test_named_globals_use_address_and_ghidra_width(self):
-        self.assertEqual(rewrite_named_globals("x = _frame;", {"_frame": 4}), "x = (*(u32 *)&frame);")
+        self.assertEqual(rewrite_named_globals("x = _frame;", {"_frame": 4}), "x = (*(int *)&frame);")
+        self.assertEqual(rewrite_named_globals("x = (int)head;", {"head": 2}), "x = (int)(*(short *)&head);")
+        self.assertEqual(rewrite_named_globals("x = (uint)head;", {"head": 2}), "x = (uint)(*(ushort *)&head);")
+        self.assertEqual(rewrite_named_globals("x = (&tbl)[i];", {"tbl": 4}), "x = ((int *)&tbl)[i];")
         self.assertEqual(rewrite_named_globals("p = &people_frames;", {"people_frames": 2}), "p = ((long)&people_frames);")
         self.assertEqual(rewrite_named_globals("x = (&follow_dist)[i];", {"follow_dist": 1}), "x = ((ubyte *)&follow_dist)[i];")
 
@@ -66,6 +69,8 @@ class GhidraPipelineTest(unittest.TestCase):
         symbols = {"players": 0x100000, "ingame": 0x110000}
         self.assertEqual(resolve_data_addresses("x = _DAT_001000ce;", symbols, {"_DAT_001000ce": 2}), "x = (*(ushort *)((long)&players + 0xce));")
         self.assertEqual(resolve_data_addresses("x = DAT_00110001;", symbols, {}), "x = (*(ubyte *)((long)&ingame + 0x1));")
+        self.assertEqual(resolve_data_addresses("x = (&DAT_001000ce)[i];", symbols, {"DAT_001000ce": 4}), "x = ((int *)((long)&players + 0xce))[i];")
+        self.assertEqual(resolve_data_addresses("x = (int)DAT_001000ce;", symbols, {"DAT_001000ce": 2}), "x = (int)(*(short *)((long)&players + 0xce));")
         self.assertEqual(resolve_data_addresses("p = &DAT_00110000;", symbols, {}), "p = ((long)&ingame);")
 
     def test_fake_section_leaves_called_symbols_external(self):

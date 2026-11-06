@@ -620,14 +620,16 @@ def export_sft_dataset() -> Dict[str, Any]:
                 f"Decompile `ASM_{fname}` from `{dist['c_file']}` into portable C99.\n\n"
                 f"### Watcom x86 Assembly (`ASM_{fname}`):\n```asm\n{dist['asm_code']}\n```"
             )
+            reasoning = dist.get("reasoning_cot", "")
             assistant_msg = (
-                f"<think>\n{dist.get('reasoning_cot', '')}\n</think>\n\n"
-                f"```c\n{dist['verified_c']}\n```"
+                f"<think>\n{reasoning}\n</think>\n\n```c\n{dist['verified_c']}\n```"
+                if reasoning else f"```c\n{dist['verified_c']}\n```"
             )
             sft_records.append({
                 "func_name": fname,
                 "c_file": dist["c_file"],
-                "has_deep_cot": True,
+                "has_deep_cot": bool(dist.get("reasoning_cot")),
+                "verification": dist.get("verification", "clang"),
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT_DECOMPILER},
                     {"role": "user", "content": user_msg},
