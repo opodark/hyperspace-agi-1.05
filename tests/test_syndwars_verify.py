@@ -9,7 +9,7 @@ import pytest
 pytest.importorskip("unicorn")
 pytest.importorskip("elftools")
 
-from scripts.syndwars_verify import Callee, called_functions, choose_args, fill_page, make_mutants, narrow_value, parse_declaration, stub_return
+from scripts.syndwars_verify import Callee, called_functions, choose_args, fill_page, make_mutants, narrow_value, parse_declaration, resolve_base_type, stub_return
 
 
 class VerifyHelpersTest(unittest.TestCase):
@@ -39,6 +39,12 @@ class VerifyHelpersTest(unittest.TestCase):
         self.assertEqual(narrow_value("short", 0x18000), 0xFFFF8000)
         self.assertEqual(narrow_value("ubyte", 0x1FF), 0xFF)
         self.assertEqual(narrow_value("struct Thing *", 0x12345678), 0x12345678)
+
+    def test_typedefs_resolve_to_the_real_width(self):
+        table = {"MapCoord": "short", "Alias": "MapCoord", "Raw": "unsigned short"}
+        self.assertEqual(resolve_base_type("const Alias", table), "short")
+        self.assertEqual(resolve_base_type("Raw", table), "ushort")
+        self.assertEqual(resolve_base_type("int", table), "int")
 
     def test_stub_return_is_repeatable_and_fits_the_type(self):
         callee = Callee("f", "short", [], 0)

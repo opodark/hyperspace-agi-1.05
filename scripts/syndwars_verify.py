@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import functools
 import json
 import os
 import random
@@ -134,11 +135,37 @@ def parse_declaration(declaration: str) -> Optional[Tuple[str, List[str]]]:
     return return_type, types
 
 
+@functools.lru_cache(maxsize=1)
+def project_typedefs() -> Dict[str, str]:
+    found: Dict[str, str] = {}
+    for root in (SWARS_DIR / "src", SWARS_DIR / "bflibrary" / "include"):
+        for header in root.rglob("*.h"):
+            text = header.read_text(encoding="utf-8", errors="replace")
+            for match in re.finditer(r"^\s*typedef\s+((?:unsigned\s+|signed\s+)?\w+)\s+(\w+)\s*;", text, re.MULTILINE):
+                found.setdefault(match.group(2), " ".join(match.group(1).split()))
+    return found
+
+
+_BUILTIN_WORDS = {"unsigned short": "ushort", "unsigned char": "ubyte", "signed char": "sbyte", "signed short": "short"}
+_KNOWN_WIDTHS = {"short", "s16", "ThingIdx", "ushort", "u16", "ubyte", "u8", "TbBool", "char", "sbyte", "s8"}
+
+
+def resolve_base_type(ctype: str, typedefs: Optional[Dict[str, str]] = None) -> str:
+    """Segue i typedef del progetto: `MapCoord` e' un `short`, e il chiamante passa valori di quel dominio."""
+    table = project_typedefs() if typedefs is None else typedefs
+    base = ctype.replace("const", "").strip()
+    for _ in range(8):
+        if base in _KNOWN_WIDTHS or base not in table:
+            break
+        base = table[base]
+    return _BUILTIN_WORDS.get(base, base)
+
+
 def narrow_value(ctype: str, raw: int) -> int:
     """Il valore come lo vede il C dopo la conversione al tipo, esteso a 32 bit."""
     if "*" in ctype:
         return raw & 0xFFFFFFFF
-    base = ctype.replace("const", "").strip()
+    base = resolve_base_type(ctype)
     if base in ("short", "s16", "ThingIdx"):
         return struct.unpack("<h", struct.pack("<H", raw & 0xFFFF))[0] & 0xFFFFFFFF
     if base in ("ushort", "u16"):
@@ -475,7 +502,7 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     if blocked:
         return {"func": name, "verdict": "unsupported_calls", "error": ", ".join(blocked)}
     start, end = function_extent(asm.symbols, name, target["asm_line_count"])
-    mask = 0 if return_type == "void" else RETURN_MASKS.get(return_type.replace("const", "").strip(), 0xFFFFFFFF)
+    mask = 0 if return_type == "void" else RETURN_MASKS.get(resolve_base_type(return_type), 0xFFFFFFFF)
 
     rng = random.Random(0x5EED)
     agreed = inconclusive = completed = undefined = disagreed = 0

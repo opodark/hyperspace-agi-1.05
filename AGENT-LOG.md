@@ -11712,3 +11712,11 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Esito su 104 bozze, 400 casi:** 52 concordano (26 con prova forte, cioè copertura >=90% e almeno 5 mutanti su 6), 15 divergono, 1 senza esito, 36 non verificabili per chiamate senza dichiarazione C. Risultati: `data/nightly/syndwars_ghidra/_verify_all.json`. Le 15 divergenze non sono state analizzate.
 - **Dataset:** aggiunte solo le 11 funzioni approvate dall'utente, con `verification: execution_unicorn` e `lfm_approved: false`, cosi' `--apply-staged` non le applica ai sorgenti. SFT a 280 esempi; backup `*.pre_verified_20261106`. Sono bozze Ghidra poco leggibili e 6 usano macro come `CONCAT22`.
 - **Limiti:** memoria pseudocasuale, effetti dei chiamati non modellati, nulla eseguito nel gioco. Per un addestramento va deciso se tenere bozze di questo stile.
+
+## 2026-11-06 — Claude Code → Utente e agenti (decompilazione Syndicate: cause comuni delle divergenze)
+- **File:** `scripts/ghidra/DecompileWatcom.java`, `scripts/syndwars_ghidra.py`, `scripts/syndwars_verify.py` e i relativi test, committati in locale, senza push.
+- **Cause corrette:** il prototipo `__watcall` non dichiarava `ESP` preservato e non diceva quanti argomenti toglie il chiamato, quindi Ghidra perdeva l'altezza dello stack (ora un modello per ogni numero di argomenti sullo stack). Parametri `uint` per Ghidra ma con segno in C. Campi di struct letti col segno del tipo C invece di quello dell'assembly. Campi puntatore sommati in C con scala. Nel verificatore, input fuori dal dominio dei typedef come `MapCoord`.
+- **Esito su 114 bozze compilabili, 400 casi:** 73 concordano (35 con prova forte: 16 senza chiamate, 19 con chiamate), 3 divergono (`create_a_pod`, `make_clipped_edges`, `person_drop_item`, non analizzate), 1 senza esito, 37 non verificabili per chiamate senza dichiarazione C. Risultati in `data/nightly/syndwars_ghidra/_verify_all.json`.
+- **Dataset:** aggiunte 5 funzioni senza chiamate, SFT a 285 esempi, backup `*.pre_verified5_20261106`. 
+- **Limiti:** memoria pseudocasuale, effetti delle funzioni chiamate e contenuto dei buffer non modellati, nulla eseguito nel gioco.
+- **Aggiornamento dataset:** su conferma dell'utente, le 16 voci verificate sono ora sostituite con le bozze nuove, che hanno passato la stessa soglia. Backup `*.pre_refresh_20261106`.

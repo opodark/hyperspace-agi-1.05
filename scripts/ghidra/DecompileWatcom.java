@@ -32,8 +32,11 @@ import java.util.Iterator;
 import java.util.List;
 
 public class DecompileWatcom extends GhidraScript {
-    private static final String WATCALL_XML =
-        "<prototype name=\"__watcall\" extrapop=\"unknown\" stackshift=\"4\">"
+    private static final int MAX_STACK_ARGS = 16;
+
+    /** Il chiamato toglie i propri argomenti: un modello per ogni numero di argomenti sullo stack, cosi' Ghidra non perde l'altezza dello stack. */
+    private static String watcallXml(int stackArgs) {
+        return "<prototype name=\"__watcall" + stackArgs + "\" extrapop=\"" + (4 + stackArgs * 4) + "\" stackshift=\"4\">"
         + "<input>"
         + "<pentry minsize=\"1\" maxsize=\"4\"><register name=\"EAX\"/></pentry>"
         + "<pentry minsize=\"1\" maxsize=\"4\"><register name=\"EDX\"/></pentry>"
@@ -44,9 +47,10 @@ public class DecompileWatcom extends GhidraScript {
         + "<output><pentry minsize=\"1\" maxsize=\"4\"><register name=\"EAX\"/></pentry></output>"
         + "<unaffected>"
         + "<register name=\"EBX\"/><register name=\"ECX\"/><register name=\"EDX\"/>"
-        + "<register name=\"ESI\"/><register name=\"EDI\"/><register name=\"EBP\"/>"
+        + "<register name=\"ESI\"/><register name=\"EDI\"/><register name=\"EBP\"/><register name=\"ESP\"/>"
         + "</unaffected>"
         + "</prototype>";
+    }
 
     private Function resolve(String name) throws Exception {
         for (Symbol s : currentProgram.getSymbolTable().getSymbols(name)) {
@@ -75,7 +79,7 @@ public class DecompileWatcom extends GhidraScript {
         }
         ReturnParameterImpl ret = new ReturnParameterImpl(
             spec[2].equals("void") ? VoidDataType.dataType : Undefined4DataType.dataType, currentProgram);
-        f.updateFunction("__watcall", ret, params, FunctionUpdateType.DYNAMIC_STORAGE_ALL_PARAMS, true,
+        f.updateFunction("__watcall" + Math.max(0, params.size() - 4), ret, params, FunctionUpdateType.DYNAMIC_STORAGE_ALL_PARAMS, true,
             SourceType.USER_DEFINED);
     }
 
@@ -106,7 +110,10 @@ public class DecompileWatcom extends GhidraScript {
     public void run() throws Exception {
         String[] args = getScriptArgs();
         List<String> lines = Files.readAllLines(Paths.get(args[0]));
-        new SpecExtension(currentProgram).addReplaceCompilerSpecExtension(WATCALL_XML, monitor);
+        SpecExtension extension = new SpecExtension(currentProgram);
+        for (int stackArgs = 0; stackArgs <= MAX_STACK_ARGS; stackArgs++) {
+            extension.addReplaceCompilerSpecExtension(watcallXml(stackArgs), monitor);
+        }
 
         List<Function> targets = new ArrayList<>();
         for (String line : lines) {

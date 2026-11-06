@@ -10,6 +10,7 @@ from scripts.syndwars_ghidra import (
     clean_ghidra_c,
     fake_external_section,
     join_statements,
+    keep_unsigned_parameters,
     list_local_names,
     parse_names_reply,
     parse_ghidra_output,
@@ -65,6 +66,15 @@ class GhidraPipelineTest(unittest.TestCase):
         decl = "void foo(struct M33 *p_mat, int n);"
         self.assertEqual(cast_call_arguments("foo(iVar1 + 4, g(1, 2));", "foo", decl), "foo((struct M33 *)(iVar1 + 4), g(1, 2));")
 
+    def test_unsigned_ghidra_parameter_stays_unsigned_in_the_body(self):
+        body = "{\n  if (x < 3) p->x = x;\n}"
+        self.assertEqual(
+            keep_unsigned_parameters("u32 f(u32 x, int y)", body, [("int", "x"), ("int", "y")]),
+            "{\n  u32 x_u = (u32)x;\n  if (x_u < 3) p->x = x_u;\n}",
+        )
+        self.assertEqual(keep_unsigned_parameters("void f(int x)", body, [("int", "x")]), body)
+        self.assertEqual(keep_unsigned_parameters("void f(u32 x)", body, [("ushort", "x")]), body)
+
     def test_resolve_data_addresses_maps_symbol_offset_and_width(self):
         symbols = {"players": 0x100000, "ingame": 0x110000}
         self.assertEqual(resolve_data_addresses("x = _DAT_001000ce;", symbols, {"_DAT_001000ce": 2}), "x = (*(ushort *)((long)&players + 0xce));")
@@ -89,6 +99,17 @@ class GhidraPipelineTest(unittest.TestCase):
 
     def test_clean_joins_call_split_across_lines(self):
         self.assertIn("collapse_building(1)", clean_ghidra_c("ac_collapse_building\n      (1);"))
+
+    def test_field_read_keeps_the_sign_seen_in_the_assembly(self):
+        self.assertEqual(apply_known_fields("x = *(ushort *)(p_person + 0x28);", PARAMS, FIELDS), "x = ((ushort)p_person->Timer1);")
+        self.assertEqual(apply_known_fields("*(ushort *)(p_person + 0x28) = 1;", PARAMS, FIELDS), "p_person->Timer1 = 1;")
+        self.assertEqual(apply_known_fields("x = *(ushort *)(p_person + 0x28) == 1;", PARAMS, FIELDS), "x = ((ushort)p_person->Timer1) == 1;")
+
+    def test_pointer_field_arithmetic_stays_in_bytes(self):
+        fields = {"Thing": [(0x74, 4, "struct Thing *", "PTarget")]}
+        params = [("struct Thing *", "p")]
+        self.assertEqual(apply_known_fields("x = *(int *)(p + 0x74) + 10;", params, fields), "x = ((long)p->PTarget) + 10;")
+        self.assertEqual(apply_known_fields("*(int *)(p + 0x74) = 0;", params, fields), "p->PTarget = 0;")
 
     def test_fields_exact_high_word_and_byte_slice(self):
         self.assertEqual(apply_known_fields("*(short *)(p_person + 0x28)", PARAMS, FIELDS), "p_person->Timer1")

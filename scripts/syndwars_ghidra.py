@@ -293,13 +293,28 @@ def clean_ghidra_c(code: str, symbols: Optional[Dict[str, int]] = None, sizes: O
     return text
 
 
-def _field_for(fields: Sequence[Tuple[int, int, str, str]], offset: int, size: int, prefer: str) -> Optional[Tuple[str, int, int]]:
+_UNSIGNED_WORDS = {"ushort", "ubyte", "byte", "u8", "u16", "u32", "uint", "ulong", "TbBool"}
+_SIGNED_WORDS = {"short", "char", "sbyte", "s8", "s16", "s32", "int", "long", "ThingIdx", "MapCoord"}
+
+
+def _sign_of(ctype: str) -> Optional[bool]:
+    """True con segno, False senza, None se il tipo non si conosce."""
+    word = ctype.replace("const", "").strip()
+    return True if word in _SIGNED_WORDS else False if word in _UNSIGNED_WORDS else None
+
+
+def _is_written(match: "re.Match[str]") -> bool:
+    after = match.string[match.end():match.end() + 4]
+    return bool(re.match(r"\s*(?:=(?!=)|\+\+|--|[-+*/|&^%]=|<<=|>>=)", after)) or match.string[:match.start()].endswith("&")
+
+
+def _field_for(fields: Sequence[Tuple[int, int, str, str]], offset: int, size: int, prefer: str) -> Optional[Tuple[str, int, int, str]]:
     hits = [f for f in fields if f[0] <= offset < f[0] + f[1]]
     hits.sort(key=lambda f: (0 if prefer and f"U.{prefer}." in f[3] else 1))
-    for f_off, f_size, _type, path in hits:
+    for f_off, f_size, field_type, path in hits:
         if prefer and ".U" not in f".{path}"[:3] and path.startswith("U.") and f"U.{prefer}." not in path:
             continue
-        return path, f_size, offset - f_off
+        return path, f_size, offset - f_off, field_type
     return None
 
 
@@ -314,7 +329,10 @@ def apply_known_fields(code: str, params: Sequence[Tuple[str, str]], layouts: Di
 
         def high_word(match: "re.Match[str]") -> str:
             hit = _field_for(fields, int(match.group(1), 0) + 2, 2, prefer)
-            return f"{param}->{hit[0]}" if hit and hit[1] == 2 and hit[2] == 0 else match.group(0)
+            if not hit or hit[1] != 2 or hit[2] != 0:
+                return match.group(0)
+            # `sar $0x10` estende col segno anche se il campo in C e' senza segno.
+            return f"((short){param}->{hit[0]})" if _sign_of(hit[3]) is False else f"{param}->{hit[0]}"
 
         code = re.sub(rf"\*\(int \*\)\({re.escape(param)} \+ (0x[0-9a-fA-F]+|\d+)\) >> 0x10", high_word, code)
 
@@ -324,9 +342,18 @@ def apply_known_fields(code: str, params: Sequence[Tuple[str, str]], layouts: Di
             hit = _field_for(fields, offset, size or 1, prefer)
             if not hit or not size:
                 return match.group(0)
-            path, field_size, delta = hit
+            path, field_size, delta, field_type = hit
             if field_size == size and delta == 0:
-                return f"{param}->{path}"
+                expression = f"{param}->{path}"
+                if _is_written(match):
+                    return expression
+                if "*" in field_type:  # L'aritmetica di Ghidra sui puntatori e' in byte.
+                    return f"((long){expression})"
+                wanted, actual = _sign_of(ctype), _sign_of(field_type)
+                # Il segno dell'accesso viene dall'assembly, non dal tipo dichiarato nella struct.
+                if wanted is not None and actual is not None and wanted != actual:
+                    return f"(({ctype}){expression})"
+                return expression
             if size < field_size:
                 kind = "ubyte" if size == 1 else "ushort"
                 return f"((({kind} *)&{param}->{path})[{delta // size}])"
@@ -389,11 +416,26 @@ def cast_call_arguments(body: str, name: str, declaration: str) -> str:
         pos = i
 
 
+_SIGNED_C_TYPES = {"int", "long", "short", "char", "sbyte", "s8", "s16", "s32", "ThingIdx"}
+
+
+def keep_unsigned_parameters(header: str, body: str, params: Sequence[Tuple[str, str]]) -> str:
+    """Se Ghidra vede `uint` dove il C dichiara un tipo con segno, i confronti devono restare senza segno."""
+    match = re.search(r"\((.*)\)", header, re.DOTALL)
+    seen = {part.split()[-1]: part.split()[0] for part in (match.group(1).split(",") if match else []) if len(part.split()) >= 2}
+    declarations = []
+    for ctype, name in params:
+        if seen.get(name) == "u32" and ctype.replace("const", "").strip() in _SIGNED_C_TYPES:
+            body = re.sub(rf"(?<![\w.>]){re.escape(name)}\b", f"{name}_u", body)
+            declarations.append(f"  u32 {name}_u = (u32){name};\n")
+    return body.replace("{\n", "{\n" + "".join(declarations), 1) if declarations else body
+
+
 def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[str]) -> str:
     """C corretto senza modello: indirizzi come interi, cosi' l'aritmetica in byte di Ghidra resta valida."""
     signature = target["current_c_stub"].split("{")[0].strip()
     return_type, _name, params = parse_signature(target["current_c_stub"])
-    body = draft[draft.index("{"):]
+    body = keep_unsigned_parameters(draft[:draft.index("{")], draft[draft.index("{"):], params)
 
     prefix: List[str] = []
     calls = re.findall(r"\bcall\s+(?:ac_|ASM_)?([A-Za-z_]\w*)", target["asm_code"])
