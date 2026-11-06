@@ -361,3 +361,17 @@
  
  #pragma pack()
  /******************************************************************************/
+--- src/game.c	2026-11-06 14:50:22
++++ src/game.c	2026-11-06 20:26:46
+@@ -1029,6 +1029,11 @@
+ 
+ void setup_initial_screen_mode(void)
+ {
++    {   /* prova: modo di schermo della partita scelto da SW_HI_MODE (numero di TbScreenMode) */
++        const char *env_mode = getenv("SW_HI_MODE");
++        if (env_mode != NULL)
++            screen_mode_game_hi = (TbScreenMode)atoi(env_mode);
++    }
+     if (game_high_resolution)
+         lbDisplay.ScreenMode = screen_mode_game_hi;
+     else
