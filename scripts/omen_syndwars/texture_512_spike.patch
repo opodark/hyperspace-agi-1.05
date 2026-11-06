@@ -1,42 +1,152 @@
 --- bflibrary/include/poly.h	2026-11-06 14:50:22
-+++ bflibrary/include/poly.h	2026-11-06 20:05:00
-@@ -31,7 +31,7 @@
++++ bflibrary/include/poly.h	2026-11-06 20:15:50
+@@ -84,6 +84,12 @@
+ extern TbPixel vec_colour;
+ extern ubyte vec_mode;
  
- /** Shift required to Vb coord get position within vec_map texture data.
-  */
--#define VEC_MAP_PITCH_SH 8
-+#define VEC_MAP_PITCH_SH 9 /* prova texture 512x512 */
++/** Pitch (bit) della pagina campionata da trig(): 8 per le pagine 256x256, 9 per 512x512. */
++extern long trig_pitch_sh;
++
++void draw_gpoly_hires(struct PolyPoint *point_a, struct PolyPoint *point_b, struct PolyPoint *point_c,
++  int shaded, const ubyte *map, int pitch_sh, int scale);
++
+ extern ubyte *poly_screen;
  
- /** Line pitch within vec_map texture data.
-  */
+ extern long vec_window_width;
 --- bflibrary/src/general/poly.c	2026-11-06 14:50:22
-+++ bflibrary/src/general/poly.c	2026-11-06 20:05:00
-@@ -81,9 +81,14 @@
++++ bflibrary/src/general/poly.c	2026-11-06 20:22:37
+@@ -55,6 +55,7 @@
+ 
+ TbPixel vec_colour = 112;
+ ubyte vec_mode;
++long trig_pitch_sh = VEC_MAP_PITCH_SH;
+ 
+ // Static variables used only inside draw_gpoly().
+ long gpoly_mode;
+@@ -81,9 +82,14 @@
      LOGNO("Pb(%ld,%ld,%ld)", point_b->X, point_b->Y, point_b->S);
      LOGNO("Pc(%ld,%ld,%ld)", point_c->X, point_c->Y, point_c->S);
  
 -    opt_a = point_a;
 -    opt_b = point_b;
 -    opt_c = point_c;
-+    /* prova texture piu' grandi: le coordinate UV dei vertici sono in pixel di una pagina 256x256 */
-+    struct PolyPoint spike_a = *point_a, spike_b = *point_b, spike_c = *point_c;
-+    spike_a.U <<= (VEC_MAP_PITCH_SH - 8); spike_a.V <<= (VEC_MAP_PITCH_SH - 8);
-+    spike_b.U <<= (VEC_MAP_PITCH_SH - 8); spike_b.V <<= (VEC_MAP_PITCH_SH - 8);
-+    spike_c.U <<= (VEC_MAP_PITCH_SH - 8); spike_c.V <<= (VEC_MAP_PITCH_SH - 8);
-+    opt_a = &spike_a;
-+    opt_b = &spike_b;
-+    opt_c = &spike_c;
++    /* Le coordinate UV dei vertici sono in pixel di una pagina 256x256: con pagine piu' grandi si scalano. */
++    struct PolyPoint scaled_a = *point_a, scaled_b = *point_b, scaled_c = *point_c;
++    scaled_a.U <<= (trig_pitch_sh - VEC_MAP_PITCH_SH); scaled_a.V <<= (trig_pitch_sh - VEC_MAP_PITCH_SH);
++    scaled_b.U <<= (trig_pitch_sh - VEC_MAP_PITCH_SH); scaled_b.V <<= (trig_pitch_sh - VEC_MAP_PITCH_SH);
++    scaled_c.U <<= (trig_pitch_sh - VEC_MAP_PITCH_SH); scaled_c.V <<= (trig_pitch_sh - VEC_MAP_PITCH_SH);
++    opt_a = &scaled_a;
++    opt_b = &scaled_b;
++    opt_c = &scaled_c;
      start_type = trig_reorder_input_points(&opt_a, &opt_b, &opt_c);
  
      LOGNO("start type %d",(int)start_type);
---- bflibrary/src/general/poly_trigr.c	2026-11-06 14:50:22
-+++ bflibrary/src/general/poly_trigr.c	2026-11-06 20:05:00
-@@ -26,7 +26,7 @@
+@@ -562,3 +568,93 @@
+ }
  
- #define PITCH_SH VEC_MAP_PITCH_SH
- #define UA_MASK (VEC_MAP_PITCH - 1)
+ /******************************************************************************/
++
++
++/******************************************************************************/
++/* Rasterizzatore texturizzato per pagine a risoluzione piu' alta (pitch_sh bit, UV scalate di `scale`).
++ * Sostituisce draw_gpoly() nei modi 5 (sfumato) e 27 (colore del texel): X e Y dei vertici sono interi,
++ * U, V e S sono in 16.16 con il valore utile nella parte intera, come in gpoly_init_state().
++ * Copertura sui punti a coordinate intere, regola top-left; attributi interpolati in modo affine. */
++static inline long long hires_edge(long px, long py, long qx, long qy, long x, long y)
++{
++    return (long long)(qx - px) * (y - py) - (long long)(qy - py) * (x - px);
++}
++
++static inline long hires_floor(double x)
++{
++    long i = (long)x;
++    return (x < (double)i) ? i - 1 : i;
++}
++
++static inline int hires_top_left(long px, long py, long qx, long qy)
++{
++    return (qy < py) || (qy == py && qx > px);
++}
++
++void draw_gpoly_hires(struct PolyPoint *point_a, struct PolyPoint *point_b, struct PolyPoint *point_c,
++  int shaded, const ubyte *map, int pitch_sh, int scale)
++{
++    struct PolyPoint *pa = point_a, *pb = point_b, *pc = point_c;
++    long long area;
++    long min_x, max_x, min_y, max_y, x, y;
++    long long bias_a, bias_b, bias_c;
++    double inv_area, ua, ub, uc, va, vb, vc, sa, sb, sc;
++    const long mask = (1L << pitch_sh) - 1;
++
++    area = hires_edge(pa->X, pa->Y, pb->X, pb->Y, pc->X, pc->Y);
++    if (area == 0)
++        return;
++    if (area < 0) {
++        struct PolyPoint *tmp = pb; pb = pc; pc = tmp;
++        area = -area;
++    }
++    min_x = pa->X; max_x = pa->X; min_y = pa->Y; max_y = pa->Y;
++    if (pb->X < min_x) min_x = pb->X; if (pb->X > max_x) max_x = pb->X;
++    if (pc->X < min_x) min_x = pc->X; if (pc->X > max_x) max_x = pc->X;
++    if (pb->Y < min_y) min_y = pb->Y; if (pb->Y > max_y) max_y = pb->Y;
++    if (pc->Y < min_y) min_y = pc->Y; if (pc->Y > max_y) max_y = pc->Y;
++    if (min_x < 0) min_x = 0;
++    if (min_y < 0) min_y = 0;
++    if (max_x > vec_window_width - 1) max_x = vec_window_width - 1;
++    if (max_y > vec_window_height - 1) max_y = vec_window_height - 1;
++    if (min_x > max_x || min_y > max_y)
++        return;
++
++    /* w_a e' l'area opposta al vertice a (edge b->c), ecc.; sui bordi non top-left si esclude il punto */
++    bias_a = hires_top_left(pb->X, pb->Y, pc->X, pc->Y) ? 0 : -1;
++    bias_b = hires_top_left(pc->X, pc->Y, pa->X, pa->Y) ? 0 : -1;
++    bias_c = hires_top_left(pa->X, pa->Y, pb->X, pb->Y) ? 0 : -1;
++
++    inv_area = 1.0 / (double)area;
++    ua = (double)pa->U * (scale / 65536.0); ub = (double)pb->U * (scale / 65536.0); uc = (double)pc->U * (scale / 65536.0);
++    va = (double)pa->V * (scale / 65536.0); vb = (double)pb->V * (scale / 65536.0); vc = (double)pc->V * (scale / 65536.0);
++    sa = (double)(pa->S >> 16); sb = (double)(pb->S >> 16); sc = (double)(pc->S >> 16);
++
++    for (y = min_y; y <= max_y; y++)
++    {
++        ubyte *out = vec_screen + y * vec_screen_width;
++        for (x = min_x; x <= max_x; x++)
++        {
++            long long wa = hires_edge(pb->X, pb->Y, pc->X, pc->Y, x, y);
++            long long wb = hires_edge(pc->X, pc->Y, pa->X, pa->Y, x, y);
++            long long wc = hires_edge(pa->X, pa->Y, pb->X, pb->Y, x, y);
++            double fa, fb, fc, u, v;
++            long iu, iv;
++            ubyte texel;
++            if (wa + bias_a < 0 || wb + bias_b < 0 || wc + bias_c < 0)
++                continue;
++            fa = (double)wa * inv_area; fb = (double)wb * inv_area; fc = (double)wc * inv_area;
++            u = fa * ua + fb * ub + fc * uc;
++            v = fa * va + fb * vb + fc * vc;
++            iu = hires_floor(u) & mask;
++            iv = hires_floor(v) & mask;
++            texel = map[(iv << pitch_sh) | iu];
++            if (shaded) {
++                long shade = (long)(fa * sa + fb * sb + fc * sc) & 0xFF;
++                out[x] = pixmap.fade_table[(shade << 8) | texel];
++            } else {
++                out[x] = texel;
++            }
++        }
++    }
++}
+--- bflibrary/src/general/poly_trigr.c	2026-11-06 14:50:22
++++ bflibrary/src/general/poly_trigr.c	2026-11-06 20:15:50
+@@ -24,9 +24,9 @@
+ #include "poly_trigp.h"
+ #include "privbflog.h"
+ 
+-#define PITCH_SH VEC_MAP_PITCH_SH
+-#define UA_MASK (VEC_MAP_PITCH - 1)
 -#define VB_MASK (0xFF)
-+#define VB_MASK (VEC_MAP_PITCH - 1)
++#define PITCH_SH trig_pitch_sh
++#define UA_MASK ((1L << trig_pitch_sh) - 1)
++#define VB_MASK ((1L << trig_pitch_sh) - 1)
  
  /**
   * whether the subtraction (x-y) of two short ints would overflow
@@ -193,16 +303,61 @@
              factorA_carry = __CFADDL__(lsh_var_60, factorC);
              factorC += lsh_var_60;
              factorC = (factorC & 0xFFFFFF00) | (((tlr->var_60 >> 16) + factorA_carry + factorC) & 0xFF);
+--- swrendersoft/src/render_gpoly.c	2026-11-06 14:50:22
++++ swrendersoft/src/render_gpoly.c	2026-11-06 20:22:37
+@@ -18,6 +18,7 @@
+  */
+ /******************************************************************************/
+ #include "render_gpoly.h"
++#include "engintxtrmap.h"
+ 
+ #include "bfendian.h"
+ #include "bfgentab.h"
+@@ -40,16 +41,32 @@
+     gpoly_pro_enable_mode_ofs = 0;
+ }
+ 
++/** Vero se `vec_map` e' una pagina di texture a risoluzione piu' alta (VEC_TMAP_SH bit di pitch). */
++static int vec_map_is_hires_page(void)
++{
++    int i;
++    for (i = 0; i < VEC_TMAP_LIMIT && vec_tmap[i] != NULL; i++)
++        if (vec_tmap[i] == vec_map)
++            return 1;
++    return 0;
++}
++
+ void trigpoly(struct PolyPoint *point_a, struct PolyPoint *point_b, struct PolyPoint *point_c)
+ {
++    int hires = vec_map_is_hires_page();
+     switch (vec_mode)
+     {
+     case 5:
+     case 27:
+-      draw_gpoly(point_a, point_b, point_c);
++      if (hires)
++          draw_gpoly_hires(point_a, point_b, point_c, vec_mode == 5, vec_map, VEC_TMAP_SH, 1 << (VEC_TMAP_SH - 8));
++      else
++          draw_gpoly(point_a, point_b, point_c);
+       break;
+     default:
++      trig_pitch_sh = hires ? VEC_TMAP_SH : VEC_MAP_PITCH_SH;
+       trig(point_a, point_b, point_c);
++      trig_pitch_sh = VEC_MAP_PITCH_SH;
+       break;
+     }
+ }
 --- swrendersoft/include/engintxtrmap.h	2026-11-06 14:50:22
-+++ swrendersoft/include/engintxtrmap.h	2026-11-06 20:05:00
-@@ -28,8 +28,8 @@
++++ swrendersoft/include/engintxtrmap.h	2026-11-06 20:15:50
+@@ -28,8 +28,9 @@
  #pragma pack(1)
  
  #define VEC_TMAP_LIMIT 18
 -#define VEC_TMAP_WIDTH 256
 -#define VEC_TMAP_HEIGHT 256
-+#define VEC_TMAP_WIDTH 512
-+#define VEC_TMAP_HEIGHT 512
++#define VEC_TMAP_SH 9
++#define VEC_TMAP_WIDTH (1 << VEC_TMAP_SH)
++#define VEC_TMAP_HEIGHT (1 << VEC_TMAP_SH)
  
  #pragma pack()
  /******************************************************************************/
