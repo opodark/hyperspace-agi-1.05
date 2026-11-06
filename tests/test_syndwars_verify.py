@@ -9,7 +9,7 @@ import pytest
 pytest.importorskip("unicorn")
 pytest.importorskip("elftools")
 
-from scripts.syndwars_verify import COMPILER_HELPERS, Callee, called_functions, choose_args, fill_page, make_mutants, narrow_value, parse_declaration, pointee_width, resolve_base_type, stub_return
+from scripts.syndwars_verify import is_narrow_type, looks_like_address, truncated_addresses, COMPILER_HELPERS, Callee, called_functions, choose_args, fill_page, make_mutants, narrow_value, parse_declaration, pointee_width, resolve_base_type, stub_return
 
 
 class VerifyHelpersTest(unittest.TestCase):
@@ -39,6 +39,16 @@ class VerifyHelpersTest(unittest.TestCase):
         self.assertEqual(narrow_value("short", 0x18000), 0xFFFF8000)
         self.assertEqual(narrow_value("ubyte", 0x1FF), 0xFF)
         self.assertEqual(narrow_value("struct Thing *", 0x12345678), 0x12345678)
+
+    def test_truncated_addresses_need_a_steady_pattern(self):
+        self.assertEqual(truncated_addresses({("rotate_obj", 3): [40, 40]}, {("rotate_obj", 3): [0, 40]}), ["rotate_obj#3"])
+        self.assertEqual(truncated_addresses({("rotate_obj", 3): [40, 40]}, {("rotate_obj", 3): [40, 40]}), [])
+        self.assertEqual(truncated_addresses({("f", 0): [5, 40], ("g", 1): [3, 3]}, {}), [])
+        self.assertTrue(looks_like_address(0x10000000 + 0x1000, 5))
+        self.assertTrue(looks_like_address(0x40000100, 5))
+        self.assertFalse(looks_like_address(0x7FFF, 5))
+        self.assertTrue(is_narrow_type("short"))
+        self.assertFalse(is_narrow_type("long"))
 
     def test_typedefs_resolve_to_the_real_width(self):
         table = {"MapCoord": "short", "Alias": "MapCoord", "Raw": "unsigned short"}

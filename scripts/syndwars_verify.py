@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
-from unicorn import UC_ARCH_X86, UC_HOOK_BLOCK, UC_HOOK_CODE, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE, UC_HOOK_MEM_WRITE_UNMAPPED, UC_HOOK_MEM_FETCH_UNMAPPED, UC_MODE_32, Uc, UcError
+from unicorn import UC_ARCH_X86, UC_HOOK_BLOCK, UC_HOOK_CODE, UC_HOOK_MEM_READ, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE, UC_HOOK_MEM_WRITE_UNMAPPED, UC_HOOK_MEM_FETCH_UNMAPPED, UC_MODE_32, Uc, UcError
 from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBP, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDI, UC_X86_REG_EDX, UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,8 +52,15 @@ STACK_BASE = 0x7F000000
 STACK_SIZE = 0x40000
 RETURN_SENTINEL = 0x7EFF0000
 POINTER_ARENA = 0x40000000
+ADDRESS_MARGIN = 0x400000
+TRUNCATED_MIN_CALLS = 10
+TRUNCATED_RATIO = 0.9
 MAX_INSTRUCTIONS = 200_000
 # Il C a -O0 esegue molte piu' istruzioni dell'assembly: stesso lavoro, budget piu' alto.
+# Casi guidati: un argomento prende un valore che la funzione ha letto dalla memoria, cosi' i rami "uguale" vengono eseguiti.
+GUIDED_SEEDS = 30
+GUIDED_READS_KEPT = 12
+GUIDED_CASES_MAX = 200
 CANDIDATE_MAX_INSTRUCTIONS = 5_000_000
 # Oltre questa soglia, se i casi senza esito superano gli accordi, la funzione non arrivera' alla maggioranza.
 LIMIT_CASES_BEFORE_STOP = 100
@@ -94,6 +101,8 @@ class RunResult:
     writes: Dict[int, int]
     covered: Set[int]
     calls: List[Tuple[Any, ...]] = field(default_factory=list)
+    reads: List[int] = field(default_factory=list)
+    narrow_args: List[Tuple[str, int, bool]] = field(default_factory=list)
 
 
 @dataclass
@@ -330,7 +339,8 @@ COMPILER_HELPERS = {
 
 
 def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence[int], cdecl: bool, seed: int,
-             callees: Sequence[Callee] = (), saved_seed: Optional[int] = None, max_instructions: int = MAX_INSTRUCTIONS) -> RunResult:
+             callees: Sequence[Callee] = (), saved_seed: Optional[int] = None, max_instructions: int = MAX_INSTRUCTIONS,
+             collect_reads: bool = False) -> RunResult:
     uc = Uc(UC_ARCH_X86, UC_MODE_32)
     low = min(b for b, _ in image.blobs) & ~(PAGE - 1)
     high = (max(b + len(d) for b, d in image.blobs) + PAGE) & ~(PAGE - 1)
@@ -357,6 +367,7 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
     writes: Dict[int, int] = {}
     covered: Set[int] = set()
     calls: List[Tuple[Any, ...]] = []
+    narrow_args: List[Tuple[str, int, bool]] = []
     sequences: Dict[str, int] = {}
 
     def on_stub(emu: Uc, _address: int, _size: int, callee: Callee) -> None:
@@ -370,6 +381,8 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
                 slot = index if cdecl else index - len(REGISTERS)
                 raw = struct.unpack("<I", emu.mem_read(esp + 4 + slot * 4, 4))[0]
             raw_values.append(raw)
+            if is_narrow_type(ctype):
+                narrow_args.append((callee.name, index, looks_like_address(raw, len(image.externs))))
             # Le due versioni tengono i buffer locali in punti diversi dello stack.
             seen.append("stack" if STACK_BASE <= raw < STACK_BASE + STACK_SIZE else narrow_value(ctype, raw))
         calls.append((callee.name, *seen))
@@ -436,6 +449,22 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
     def on_block(_emu: Uc, address: int, size: int, _data: Any) -> None:
         covered.update(range(address, address + size))
 
+    reads: List[int] = []
+
+    def on_read(emu: Uc, _access: int, address: int, size: int, _value: int, _data: Any) -> None:
+        if size not in (2, 4) or STACK_BASE <= address < STACK_BASE + STACK_SIZE or len(reads) >= GUIDED_READS_KEPT:
+            return
+        try:
+            raw = bytes(emu.mem_read(address, size))
+        except UcError:
+            page = address & ~(PAGE - 1)
+            raw = fill_page(seed, page)[address - page:address - page + size]
+        value = int.from_bytes(raw, "little", signed=True)
+        if value not in reads:
+            reads.append(value)
+
+    if collect_reads:
+        uc.hook_add(UC_HOOK_MEM_READ, on_read)
     uc.hook_add(UC_HOOK_MEM_WRITE, on_write)
     if not cdecl:  # La copertura si misura solo sull'assembly.
         uc.hook_add(UC_HOOK_BLOCK, on_block)
@@ -470,7 +499,7 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
         status = f"fault:{exc.errno}"
     # Conta lo stato finale: riscrivere il valore gia' presente non cambia nulla.
     changed = {a: v for a, v in writes.items() if initial.get(a) != v}
-    return RunResult(status, uc.reg_read(UC_X86_REG_EAX), changed, covered, calls)
+    return RunResult(status, uc.reg_read(UC_X86_REG_EAX), changed, covered, calls, reads, narrow_args)
 
 
 def choose_args(params: Sequence[Tuple[str, str]], rng: random.Random) -> List[int]:
@@ -566,6 +595,29 @@ def build_callees(target: Dict[str, Any], image: Image, asm: LoadedObject, candi
     return asm_side, c_side, blocked
 
 
+def is_narrow_type(ctype: str) -> bool:
+    return narrow_value(ctype, 0x12345678) != 0x12345678
+
+
+def looks_like_address(raw: int, extern_count: int) -> bool:
+    """Il valore cade fra i dati globali simulati (con margine per gli indici) o nell'arena dei puntatori."""
+    return (EXTERN_BASE - ADDRESS_MARGIN <= raw < EXTERN_BASE + extern_count * EXTERN_SLOT + ADDRESS_MARGIN
+            or POINTER_ARENA <= raw < POINTER_ARENA + ADDRESS_MARGIN * 8)
+
+
+def truncated_addresses(asm_seen: Dict[Tuple[str, int], List[int]], c_seen: Dict[Tuple[str, int], List[int]]) -> List[str]:
+    """Parametri dichiarati stretti (short, byte) dove l'assembly passa quasi sempre un indirizzo e la bozza no.
+
+    Il confronto delle chiamate riduce entrambi i lati al tipo dichiarato, quindi un puntatore troncato dalla bozza
+    non si vede: `rotate_obj(..., short zang)` passava il verificatore e nel gioco andava in crash."""
+    found = []
+    for key, (addresses, total) in asm_seen.items():
+        c_addresses, c_total = c_seen.get(key, [0, 0])
+        if total >= TRUNCATED_MIN_CALLS and addresses >= total * TRUNCATED_RATIO and c_addresses < c_total * TRUNCATED_RATIO:
+            found.append(f"{key[0]}#{key[1]}")
+    return sorted(found)
+
+
 def same_behaviour(first: RunResult, second: RunResult, mask: int) -> bool:
     return (first.status == second.status and (first.eax & mask) == (second.eax & mask)
             and first.writes == second.writes and first.calls == second.calls)
@@ -597,51 +649,90 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     mismatches: List[Dict[str, Any]] = []
     covered: Set[int] = set()
     timed_out = False
+    narrow_asm: Dict[Tuple[str, int], List[int]] = {}
+    narrow_c: Dict[Tuple[str, int], List[int]] = {}
+    def compare_case(case: int, values: List[int]) -> str:
+        """Esegue le due versioni con lo stesso seme: 'agree', 'limit', 'undefined' o 'mismatch'."""
+        nonlocal disagreed, completed
+        reg_args, stack_args = values[:4], values[4:]
+        original = run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees)
+        budget = CANDIDATE_MAX_INSTRUCTIONS if original.status == "ok" else MAX_INSTRUCTIONS
+        rebuilt = run_case(image, candidate.symbols[name], values, [], True, case + 1, c_callees, max_instructions=budget)
+        covered.update(a for a in original.covered if start <= a < end)
+        for seen_args, table in ((original.narrow_args, narrow_asm), (rebuilt.narrow_args, narrow_c)):
+            for callee, index, is_address in seen_args:
+                slot = table.setdefault((callee, index), [0, 0])
+                slot[0] += is_address
+                slot[1] += 1
+        if original.status == "limit" and rebuilt.status == "limit":
+            return "limit"
+        same_status = original.status.split(":")[0] == rebuilt.status.split(":")[0]
+        same_return = (original.eax & mask) == (rebuilt.eax & mask)
+        if same_status and (original.status != "ok" or (same_return and original.writes == rebuilt.writes and original.calls == rebuilt.calls)):
+            completed += original.status == "ok"
+            return "agree"
+        # Se l'assembly cambia esito coi soli registri non inizializzati, nessun C puo' riprodurlo.
+        # Piu' semi: un valore non inizializzato e poi mascherato puo' coincidere per caso.
+        probes = (run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, saved_seed=(case + 1) * 0x10001 + k) for k in range(3))
+        if any(not same_behaviour(original, probe, mask) for probe in probes):
+            return "undefined"
+        disagreed += 1
+        if len(mismatches) < 5:
+            diff = sorted(a for a in set(original.writes) | set(rebuilt.writes) if original.writes.get(a) != rebuilt.writes.get(a))
+            mismatches.append({"case": case + 1, "args": [hex(v & 0xFFFFFFFF) for v in values],
+                               "status": [original.status, rebuilt.status],
+                               "return": [hex(original.eax & mask), hex(rebuilt.eax & mask)],
+                               "write_diffs": [hex(a) for a in diff[:6]], "n_write_diffs": len(diff),
+                               "calls": [] if original.calls == rebuilt.calls else [str(original.calls[:4]), str(rebuilt.calls[:4])]})
+        return "mismatch"
+
+    first_values: List[List[int]] = []
     for case in range(cases):
         if deadline is not None and time.monotonic() > deadline:
             stopped_early = timed_out = True
             break
         values = choose_args(params, rng)
-        reg_args, stack_args = values[:4], values[4:]
-        original = run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees)
-        budget = CANDIDATE_MAX_INSTRUCTIONS if original.status == "ok" else MAX_INSTRUCTIONS
-        rebuilt = run_case(image, candidate.symbols[name], values, [], True, case + 1, c_callees, max_instructions=budget)
-        covered |= {a for a in original.covered if start <= a < end}
-        if original.status == "limit" and rebuilt.status == "limit":
+        if case < GUIDED_SEEDS:
+            first_values.append(values)
+        outcome = compare_case(case, values)
+        if outcome == "limit":
             inconclusive += 1
             if inconclusive > LIMIT_CASES_BEFORE_STOP and inconclusive > agreed:
                 stopped_early = True
                 break
-            continue
-        same_status = original.status.split(":")[0] == rebuilt.status.split(":")[0]
-        same_return = (original.eax & mask) == (rebuilt.eax & mask)
-        if same_status and (original.status != "ok" or (same_return and original.writes == rebuilt.writes and original.calls == rebuilt.calls)):
+        elif outcome == "agree":
             agreed += 1
-            completed += original.status == "ok"
-            continue
-        # Se l'assembly cambia esito coi soli registri non inizializzati, nessun C puo' riprodurlo.
-        # Piu' semi: un valore non inizializzato e poi mascherato puo' coincidere per caso.
-        probes = (run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, saved_seed=(case + 1) * 0x10000 + i) for i in range(3))
-        if any(not same_behaviour(original, probe, mask) for probe in probes):
+        elif outcome == "undefined":
             undefined += 1
-            continue
-        disagreed += 1
-        if len(mismatches) < 5:
-            diff = sorted(a for a in set(original.writes) | set(rebuilt.writes) if original.writes.get(a) != rebuilt.writes.get(a))
-            mismatches.append({"case": case + 1, "args": [hex(v) for v in values],
-                               "status": [original.status, rebuilt.status],
-                               "return": [hex(original.eax & mask), hex(rebuilt.eax & mask)],
-                               "write_diffs": [hex(a) for a in diff[:6]], "n_write_diffs": len(diff),
-                               "calls": [] if original.calls == rebuilt.calls else [str(original.calls[:4]), str(rebuilt.calls[:4])]})
-        if disagreed >= max_mismatches:
+        elif disagreed >= max_mismatches:
             stopped_early = True
             break
+
+    # Casi guidati: gli input casuali non coincidono quasi mai con i valori in memoria e i rami "uguale" restano scoperti.
+    guided = guided_failed = 0
+    scalar = [i for i, (ctype, _p) in enumerate(params) if "*" not in ctype]
+    for case, values in enumerate(first_values):
+        if stopped_early or guided >= GUIDED_CASES_MAX or not scalar:
+            break
+        reg_args, stack_args = values[:4], values[4:]
+        seen = run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, collect_reads=True).reads
+        for read in seen:
+            for index in scalar:
+                if guided >= GUIDED_CASES_MAX or (deadline is not None and time.monotonic() > deadline):
+                    break
+                trial = list(values)
+                trial[index] = narrow_value(params[index][0], read & 0xFFFFFFFF) & 0xFFFFFFFF  # come farebbe un chiamante vero
+                guided += 1
+                guided_failed += compare_case(case, trial) == "mismatch"
     coverage = len(covered) / max(1, end - start)
     verdict = "mismatch" if disagreed else "inconclusive" if agreed < cases // 2 else "agree"
     if verdict == "agree" and completed < cases // 2:
         verdict = "inconclusive"  # Un guasto comune non confronta nulla.
+    truncated = truncated_addresses(narrow_asm, narrow_c)
+    if truncated and verdict == "agree":
+        verdict = "mismatch"
     return {"func": name, "verdict": verdict, "agreed": agreed, "completed": completed, "disagreed": disagreed, "inconclusive": inconclusive, "undefined_input": undefined, "stopped_early": stopped_early, "timed_out": timed_out,
-            "inferred_callees": sorted(c.name for c in asm_callees if c.name in inferred and not lookup_declaration(c.name, load_sources(target["c_file"]))),
+            "guided": guided, "guided_failed": guided_failed, "truncated_addresses": truncated, "inferred_callees": sorted(c.name for c in asm_callees if c.name in inferred and not lookup_declaration(c.name, load_sources(target["c_file"]))),
             "coverage": round(coverage, 3), "mismatches": mismatches}
 
 

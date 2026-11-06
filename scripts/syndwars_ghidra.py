@@ -289,6 +289,18 @@ def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, 
     return re.sub(r"(&?)(_?)(?:DAT_|ram0x)([0-9a-fA-F]{6,})", rewrite, code)
 
 
+_MIXED_EQUALITY = re.compile(r"(\(short\)\w+\s*(?:==|!=)\s*)\(\*\(ushort \*\)&(\w+)\)")
+_MIXED_EQUALITY_LEFT = re.compile(r"\(\*\(ushort \*\)&(\w+)\)(\s*(?:==|!=)\s*\(short\)\w+)")
+
+
+def fix_mixed_16bit_equality(code: str) -> str:
+    """`(short)x != (*(ushort *)&g)` e' sempre vero per i negativi: in C i due lati si estendono in modo diverso.
+
+    L'assembly confronta 16 bit puri (`cmp ...,%dx`), quindi conta solo che i due lati abbiano lo stesso segno."""
+    code = _MIXED_EQUALITY.sub(lambda m: f"{m.group(1)}(*(short *)&{m.group(2)})", code)
+    return _MIXED_EQUALITY_LEFT.sub(lambda m: f"(*(short *)&{m.group(1)}){m.group(2)}", code)
+
+
 def rewrite_named_globals(code: str, sizes: Dict[str, int]) -> str:
     """Accesso per indirizzo con la larghezza vista da Ghidra: non dipende dal tipo dichiarato in C."""
     for ghidra_name, size in sorted(sizes.items(), key=lambda kv: -len(kv[0])):
@@ -407,6 +419,7 @@ def clean_ghidra_c(code: str, symbols: Optional[Dict[str, int]] = None, sizes: O
     if symbols:
         text = resolve_data_addresses(text, symbols, sizes or {}, local_symbols)
     text = rewrite_named_globals(text, sizes or {})
+    text = fix_mixed_16bit_equality(text)
     text = re.sub(r"\b(?:ac|ASM)_(\w+)\s*\(", r"\1(", text)
     text = re.sub(r"(?<![\w.>])_([a-zA-Z]\w*)", r"\1", text)
     text = re.sub(r"\b(undefined[1248]?|byte|uint)\b", lambda m: _TYPE_WORDS[m.group(1)], text)

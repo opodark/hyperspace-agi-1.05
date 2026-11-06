@@ -238,3 +238,11 @@ class GhidraPipelineTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_mixed_16bit_equality_uses_the_same_sign_on_both_sides():
+    from scripts.syndwars_ghidra import fix_mixed_16bit_equality as fix
+
+    assert fix("if ((short)tngno != (*(ushort *)&head)) {") == "if ((short)tngno != (*(short *)&head)) {"
+    assert fix("(*(ushort *)&head) == (short)x") == "(*(short *)&head) == (short)x"
+    assert fix("y = (u32)(*(ushort *)&head);") == "y = (u32)(*(ushort *)&head);"
