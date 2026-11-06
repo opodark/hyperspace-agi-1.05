@@ -304,16 +304,17 @@
              factorC += lsh_var_60;
              factorC = (factorC & 0xFFFFFF00) | (((tlr->var_60 >> 16) + factorA_carry + factorC) & 0xFF);
 --- swrendersoft/src/render_gpoly.c	2026-11-06 14:50:22
-+++ swrendersoft/src/render_gpoly.c	2026-11-06 20:22:37
-@@ -18,6 +18,7 @@
++++ swrendersoft/src/render_gpoly.c	2026-11-06 20:38:41
+@@ -18,6 +18,8 @@
   */
  /******************************************************************************/
  #include "render_gpoly.h"
 +#include "engintxtrmap.h"
++#include "enginshadws.h"
  
  #include "bfendian.h"
  #include "bfgentab.h"
-@@ -40,16 +41,32 @@
+@@ -40,16 +42,32 @@
      gpoly_pro_enable_mode_ofs = 0;
  }
  
@@ -323,7 +324,7 @@
 +    int i;
 +    for (i = 0; i < VEC_TMAP_LIMIT && vec_tmap[i] != NULL; i++)
 +        if (vec_tmap[i] == vec_map)
-+            return 1;
++            return i != shadow_tmap_page; /* la pagina d'ombra e' scritta e letta con pitch 256 */
 +    return 0;
 +}
 +
