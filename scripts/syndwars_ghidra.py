@@ -260,6 +260,15 @@ def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, 
         types = _SIGNED_READ_TYPE if _is_sign_extended(match.string, match.start()) else _READ_TYPE
         return f"(*({types.get(size, 'int')} *){location})"
 
+    def absolute(match: "re.Match[str]") -> str:
+        hit = locate(int(match.group(2), 16))
+        if not hit:
+            return match.group(0)
+        name, delta = hit
+        return f"{match.group(1)}(int)((long)&{name} + {delta:#x})"
+
+    # Ghidra somma simbolo e offset costante: nella bozza deve tornare un indirizzo del simbolo, non un numero.
+    code = re.sub(r"(\+ )(0x[0-9a-fA-F]{6,8})\b", absolute, code)
     code = re.sub(r"\(&(_?)DAT_([0-9a-fA-F]{6,})\)\s*\[", array, code)
     return re.sub(r"(&?)(_?)DAT_([0-9a-fA-F]{6,})", rewrite, code)
 

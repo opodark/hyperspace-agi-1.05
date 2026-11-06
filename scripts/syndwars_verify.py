@@ -26,6 +26,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -57,6 +58,8 @@ CANDIDATE_MAX_INSTRUCTIONS = 5_000_000
 # Oltre questa soglia, se i casi senza esito superano gli accordi, la funzione non arrivera' alla maggioranza.
 LIMIT_CASES_BEFORE_STOP = 100
 MISMATCHES_BEFORE_STOP = 20
+# Tetto per funzione, mutanti compresi: una sola funzione lenta non deve fermare tutta la verifica.
+FUNCTION_TIME_LIMIT_S = 900
 REGISTERS = (UC_X86_REG_EAX, UC_X86_REG_EDX, UC_X86_REG_EBX, UC_X86_REG_ECX)
 RETURN_MASKS = {"char": 0xFF, "ubyte": 0xFF, "sbyte": 0xFF, "TbBool": 0xFF, "u8": 0xFF, "s8": 0xFF,
                 "short": 0xFFFF, "ushort": 0xFFFF, "u16": 0xFFFF, "s16": 0xFFFF, "ThingIdx": 0xFFFF}
@@ -335,7 +338,8 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
     for base, data in image.blobs:
         uc.mem_write(base, data)
     uc.mem_map(STACK_BASE, STACK_SIZE)
-    uc.mem_write(STACK_BASE, fill_page(seed, STACK_BASE) * (STACK_SIZE // PAGE))
+    # Il seme alternativo cambia anche lo stack: serve a vedere se l'originale legge locali non inizializzate.
+    uc.mem_write(STACK_BASE, fill_page(seed if saved_seed is None else saved_seed, STACK_BASE) * (STACK_SIZE // PAGE))
     uc.mem_map(RETURN_SENTINEL & ~(PAGE - 1), PAGE)
     uc.mem_write(RETURN_SENTINEL, b"\xf4")
 
@@ -381,10 +385,13 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
         if callee.return_type != "void":
             emu.reg_write(UC_X86_REG_EAX, stub_return(callee, sequence, seed))
 
+    helper_fault = [False]
+
     def on_helper(emu: Uc, _address: int, _size: int, operation: Any) -> None:
         left, right = _helper_operands(emu)
         if right == 0:
-            emu.emu_stop()  # Come `div` per zero: l'esito resta visibile nel confronto.
+            helper_fault[0] = True  # Come `div` per zero nell'assembly.
+            emu.emu_stop()
             return
         result = operation(left, right) & 0xFFFFFFFFFFFFFFFF
         emu.reg_write(UC_X86_REG_EAX, result & 0xFFFFFFFF)
@@ -455,7 +462,9 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
     status = "ok"
     try:
         uc.emu_start(entry, RETURN_SENTINEL, count=max_instructions)
-        if uc.reg_read(UC_X86_REG_EIP) != RETURN_SENTINEL:
+        if helper_fault[0]:
+            status = "fault:21"
+        elif uc.reg_read(UC_X86_REG_EIP) != RETURN_SENTINEL:
             status = "limit"
     except UcError as exc:
         status = f"fault:{exc.errno}"
@@ -563,7 +572,7 @@ def same_behaviour(first: RunResult, second: RunResult, mask: int) -> bool:
 
 
 def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Path, cases: int, label: str,
-                     max_mismatches: int = MISMATCHES_BEFORE_STOP) -> Dict[str, Any]:
+                     max_mismatches: int = MISMATCHES_BEFORE_STOP, deadline: Optional[float] = None) -> Dict[str, Any]:
     name = target["func_name"]
     return_type, _n, params = parse_signature(target["current_c_stub"])
     obj, error = compile_candidate(code, target["c_file"], work, label)
@@ -587,7 +596,11 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     stopped_early = False
     mismatches: List[Dict[str, Any]] = []
     covered: Set[int] = set()
+    timed_out = False
     for case in range(cases):
+        if deadline is not None and time.monotonic() > deadline:
+            stopped_early = timed_out = True
+            break
         values = choose_args(params, rng)
         reg_args, stack_args = values[:4], values[4:]
         original = run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees)
@@ -607,8 +620,9 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
             completed += original.status == "ok"
             continue
         # Se l'assembly cambia esito coi soli registri non inizializzati, nessun C puo' riprodurlo.
-        probe = run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, saved_seed=case + 1 + 0x10000)
-        if not same_behaviour(original, probe, mask):
+        # Piu' semi: un valore non inizializzato e poi mascherato puo' coincidere per caso.
+        probes = (run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, saved_seed=(case + 1) * 0x10000 + i) for i in range(3))
+        if any(not same_behaviour(original, probe, mask) for probe in probes):
             undefined += 1
             continue
         disagreed += 1
@@ -626,7 +640,7 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     verdict = "mismatch" if disagreed else "inconclusive" if agreed < cases // 2 else "agree"
     if verdict == "agree" and completed < cases // 2:
         verdict = "inconclusive"  # Un guasto comune non confronta nulla.
-    return {"func": name, "verdict": verdict, "agreed": agreed, "completed": completed, "disagreed": disagreed, "inconclusive": inconclusive, "undefined_input": undefined, "stopped_early": stopped_early,
+    return {"func": name, "verdict": verdict, "agreed": agreed, "completed": completed, "disagreed": disagreed, "inconclusive": inconclusive, "undefined_input": undefined, "stopped_early": stopped_early, "timed_out": timed_out,
             "inferred_callees": sorted(c.name for c in asm_callees if c.name in inferred and not lookup_declaration(c.name, load_sources(target["c_file"]))),
             "coverage": round(coverage, 3), "mismatches": mismatches}
 
@@ -659,27 +673,31 @@ def make_mutants(code: str, signature: str, limit: int = 6) -> List[Tuple[str, s
     return mutants
 
 
-def mutation_score(target: Dict[str, Any], code: str, work: Path, asm_obj: Path, cases: int, label: str) -> Dict[str, Any]:
-    killed, survived, unbuilt = 0, [], 0
+def mutation_score(target: Dict[str, Any], code: str, work: Path, asm_obj: Path, cases: int, label: str,
+                   deadline: Optional[float] = None) -> Dict[str, Any]:
+    killed, survived, unbuilt, timed_out = 0, [], 0, 0
     signature = target["current_c_stub"].split("{")[0].strip()
     for index, (description, mutant) in enumerate(make_mutants(code, signature)):
-        outcome = compare_function(target, mutant, work, asm_obj, cases, f"{label}_m{index}", max_mismatches=1)
-        if outcome["verdict"] == "not_built":
+        outcome = compare_function(target, mutant, work, asm_obj, cases, f"{label}_m{index}", max_mismatches=1, deadline=deadline)
+        if outcome.get("timed_out"):
+            timed_out += 1  # Ne' preso ne' sopravvissuto: la prova resta incompleta.
+        elif outcome["verdict"] == "not_built":
             unbuilt += 1
         elif outcome["verdict"] == "mismatch":
             killed += 1
         else:
             survived.append(description)
-    return {"killed": killed, "survived": survived, "unbuilt": unbuilt}
+    return {"killed": killed, "survived": survived, "unbuilt": unbuilt, "timed_out": timed_out}
 
 
 def verify_one(target: Dict[str, Any], code: str, asm_obj: Path, cases: int, with_mutants: bool) -> Dict[str, Any]:
     """Un processo per funzione: ognuno ha la sua cartella, cosi' gli stub degli header non si intralciano."""
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
-        result = compare_function(target, code, work, asm_obj, cases, "cand")
+        deadline = time.monotonic() + FUNCTION_TIME_LIMIT_S
+        result = compare_function(target, code, work, asm_obj, cases, "cand", deadline=deadline)
         if result["verdict"] == "agree" and with_mutants:
-            result["mutants"] = mutation_score(target, code, work, asm_obj, cases, "cand")
+            result["mutants"] = mutation_score(target, code, work, asm_obj, cases, "cand", deadline=deadline)
     return result
 
 

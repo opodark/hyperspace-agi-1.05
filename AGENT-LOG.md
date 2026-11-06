@@ -11733,3 +11733,10 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Cause corrette:** accessi `_nome` piu' larghi del simbolo, `&simbolo + n` scalato sull'elemento, parametri che Ghidra vede come puntatori tipizzati non mappati a campi per offset in byte. Nel verificatore: aritmetica a 64 bit del compilatore (`__udivdi3` e simili), `memset`/`memcpy` reali, stub che scrivono lo stesso valore nei puntatori allo stack.
 - **Esito su 175 delle 176 bozze compilabili (riesecuzione completa, 400 casi, mutanti):** 154 concordano (58 con prova forte: 18 senza chiamate, 40 con chiamate; 45 usano firme ricavate), 8 divergono, 5 senza esito, 8 non verificabili. Nessuna regressione. `make_clipped_edges` era ancora in corso; copia dei parziali in `data/nightly/syndwars_ghidra/_verify_175.json`.
 - **Dataset:** i 17 verificati restano tutti con prova forte. Su conferma dell'utente aggiunta `remove_sthing`: 287 esempi, 18 verificati.
+
+## 2026-11-06 — Claude Code → Utente e agenti (decompilazione Syndicate: verifica finale sulle 176 bozze)
+- **File:** `scripts/syndwars_ghidra.py`, `scripts/syndwars_verify.py`, `tests/test_syndwars_ghidra.py`, committati in locale, senza push.
+- **Modifiche:** indirizzi assoluti sommati riportati al simbolo; divisione per zero a 64 bit contata come guasto; rilevamento degli input non inizializzati esteso allo stack e a 3 semi; tetto di 15 minuti per funzione.
+- **Esito su 176, 400 casi, mutanti:** 156 concordano (60 con prova forte: 18 senza chiamate, 42 con chiamate; 45 usano firme ricavate), 6 divergono, 6 senza esito, 8 non verificabili. Nessuna regressione. Dataset invariato: 287 esempi, 18 verificati e tutti ancora con prova forte.
+- **Errori veri trovati dal test, non corretti:** in `process_spark` e `remove_agent` la bozza Ghidra legge dopo una scrittura ciò che l'assembly legge prima. Causa dedotta dalla lettura, non da una prova isolata.
+- **Non chiarite:** `create_another_strand`, `make_clip_list`. In `create_a_pod` (276 casi indefiniti, 3 divergenti) e `set_angle_to_avoid_group` (145 e 4) l'originale legge valori non inizializzati, ma i pochi casi residui non sono spiegati.

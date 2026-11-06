@@ -112,6 +112,11 @@ class GhidraPipelineTest(unittest.TestCase):
         body = "{\n  ubyte *p;\n  p = (long)&x + 1;\n}"
         self.assertEqual(cast_pointer_locals(body), "{\n  ubyte *p;\n  p = (ubyte *)((long)&x + 1);\n}")
 
+    def test_absolute_address_returns_to_its_symbol(self):
+        symbols = {"text": 0x100000}
+        self.assertEqual(resolve_data_addresses("*(byte *)(x + 0x100005) = 0;", symbols, {}), "*(byte *)(x + (int)((long)&text + 0x5)) = 0;")
+        self.assertEqual(resolve_data_addresses("y = x & 0x100005;", symbols, {}), "y = x & 0x100005;")
+
     def test_address_plus_index_keeps_the_element_scale(self):
         self.assertEqual(rewrite_named_globals("x = *(byte *)(&tbl + n);", {"tbl": 4}), "x = *(byte *)(((int *)&tbl) + n);")
         self.assertEqual(rewrite_named_globals("x = (int)&tbl + n;", {"tbl": 4}), "x = (int)((long)&tbl) + n;")
