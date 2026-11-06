@@ -64,6 +64,8 @@ STAGING_DIR = DATA_DIR / "syndwars_decompiled_staging"
 STATE_PATH = DATA_DIR / "nightly" / "syndwars_decompile_state.json"
 RAW_RESPONSES_PATH = DATA_DIR / "nightly" / "syndwars_raw_responses.jsonl"
 NUM_CTX = int(os.getenv("SWARS_NUM_CTX", "16384"))
+NUM_PREDICT = int(os.getenv("SWARS_NUM_PREDICT", "0")) or None
+GENERATION_TIMEOUT_S = int(os.getenv("SWARS_TIMEOUT_S", "600"))
 
 WORKER_MODEL = os.getenv("SWARS_WORKER_MODEL", "hf.co/DuoNeural/LFM2.5-8B-A1B-Abliterated-GGUF:Q4_K_M")
 EXPERT_MODEL = os.getenv("SWARS_EXPERT_MODEL", "hf.co/Abiray/Qwen3.5-9B-abliterated-GGUF:Q6_K")
@@ -676,7 +678,7 @@ def process_one_target(
             previous_attempt=candidate_c,
         )
         _log(tier_tag, f"Tentativo {attempt}/2 per `{fname}` su {current_model}...")
-        res = execute_omen_prompt(prompt, model=current_model, timeout=600 if attempt == 2 else 500, num_ctx=NUM_CTX)
+        res = execute_omen_prompt(prompt, model=current_model, timeout=GENERATION_TIMEOUT_S, num_ctx=NUM_CTX, num_predict=NUM_PREDICT)
         routed_node = res.get("routed_via", "unknown")
         if res.get("status") != "ok":
             _log("ERROR", f"{tier_tag} errore di rete: {res.get('error')}")
@@ -695,6 +697,8 @@ def process_one_target(
             "response": res["response"],
         }
         _save_raw_response(raw_record)
+        if NUM_PREDICT and res.get("eval_count", 0) >= NUM_PREDICT:
+            _log("TRUNCATED", f"Risposta tagliata al limite di {NUM_PREDICT} token: il modello non ha finito.")
         tok_s = res.get("tok_s", 0.0)
         eval_cnt = res.get("eval_count", 0)
         eval_dur = res.get("eval_duration_s", res.get("elapsed_s", 0))
