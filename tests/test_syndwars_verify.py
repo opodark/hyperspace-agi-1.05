@@ -9,7 +9,7 @@ import pytest
 pytest.importorskip("unicorn")
 pytest.importorskip("elftools")
 
-from scripts.syndwars_verify import Callee, called_functions, choose_args, fill_page, make_mutants, narrow_value, parse_declaration, resolve_base_type, stub_return
+from scripts.syndwars_verify import COMPILER_HELPERS, Callee, called_functions, choose_args, fill_page, make_mutants, narrow_value, parse_declaration, pointee_width, resolve_base_type, stub_return
 
 
 class VerifyHelpersTest(unittest.TestCase):
@@ -26,7 +26,7 @@ class VerifyHelpersTest(unittest.TestCase):
             self.assertGreaterEqual(pointer, 0x40000000)
 
     def test_parse_declaration_handles_unnamed_and_pointer_parameters(self):
-        self.assertEqual(parse_declaration("extern short calc(struct Thing *p, short, ubyte b);"), ("short", ["void *", "short", "ubyte"]))
+        self.assertEqual(parse_declaration("extern short calc(struct Thing *p, short, ubyte b);"), ("short", ["struct Thing *", "short", "ubyte"]))
         self.assertEqual(parse_declaration("void f(void);"), ("void", []))
         self.assertEqual(parse_declaration("void g(void (*cb)(int, int), int n);"), ("void", ["void *", "int"]))
 
@@ -45,6 +45,18 @@ class VerifyHelpersTest(unittest.TestCase):
         self.assertEqual(resolve_base_type("const Alias", table), "short")
         self.assertEqual(resolve_base_type("Raw", table), "ushort")
         self.assertEqual(resolve_base_type("int", table), "int")
+
+    def test_signed_64_bit_helpers_truncate_toward_zero(self):
+        minus_seven = (1 << 64) - 7
+        self.assertEqual(COMPILER_HELPERS["__divdi3"](minus_seven, 2) & 0xFFFFFFFF, (1 << 32) - 3)
+        self.assertEqual(COMPILER_HELPERS["__moddi3"](minus_seven, 2) & 0xFFFFFFFF, (1 << 32) - 1)
+        self.assertEqual(COMPILER_HELPERS["__udivdi3"](7, 2), 3)
+
+    def test_pointee_width_avoids_unknown_sizes(self):
+        self.assertEqual(pointee_width("short *"), 2)
+        self.assertEqual(pointee_width("int *"), 4)
+        self.assertEqual(pointee_width("struct Thing *"), 0)
+        self.assertEqual(pointee_width("int"), 4)
 
     def test_stub_return_is_repeatable_and_fits_the_type(self):
         callee = Callee("f", "short", [], 0)

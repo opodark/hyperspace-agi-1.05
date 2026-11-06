@@ -126,8 +126,11 @@ def parse_declaration(declaration: str) -> Optional[Tuple[str, List[str]]]:
     for param in params:
         if param == "...":
             return None
-        if "(" in param or "*" in param:
+        if "(" in param:
             types.append("void *")
+            continue
+        if "*" in param:
+            types.append(param.replace("const", "")[:param.replace("const", "").rindex("*") + 1].strip())
             continue
         words = param.replace("const", "").split()
         if "struct" in words or "long long" in " ".join(words):
@@ -176,6 +179,29 @@ def narrow_value(ctype: str, raw: int) -> int:
     if base in ("char", "sbyte", "s8"):
         return struct.unpack("<b", struct.pack("<B", raw & 0xFF))[0] & 0xFFFFFFFF
     return raw & 0xFFFFFFFF
+
+
+def pointee_width(ctype: str) -> int:
+    """Byte che uno stub puo' scrivere dietro un puntatore allo stack; 0 se la dimensione non si conosce."""
+    if "*" not in ctype:
+        return 4  # Firma ricavata: il tipo non si conosce, l'argomento e' comunque un indirizzo.
+    base = resolve_base_type(ctype[:ctype.rindex("*")])
+    if ctype.count("*") > 1:
+        return 4
+    return {"short": 2, "s16": 2, "ushort": 2, "u16": 2, "ThingIdx": 2, "ubyte": 1, "u8": 1, "char": 1, "sbyte": 1, "s8": 1,
+            "int": 4, "long": 4, "ulong": 4, "u32": 4, "s32": 4}.get(base, 0)
+
+
+def apply_memory_helper(emu: Uc, name: str, raw: Sequence[int]) -> bool:
+    """`memset` e simili fanno davvero il loro lavoro: spesso preparano buffer che la funzione poi legge."""
+    if name not in ("memset", "memcpy", "memmove") or len(raw) < 3 or raw[2] > 0x10000:
+        return False
+    try:
+        data = bytes([raw[1] & 0xFF]) * raw[2] if name == "memset" else bytes(emu.mem_read(raw[1], raw[2]))
+        emu.mem_write(raw[0], data)
+    except UcError:
+        pass  # Destinazione non mappata: stesso esito per le due versioni.
+    return True
 
 
 def stub_return(callee: Callee, sequence: int, seed: int) -> int:
@@ -276,6 +302,30 @@ def fill_page(seed: int, address: int) -> bytes:
     return bytes(out)
 
 
+def _helper_operands(emu: Uc) -> Tuple[int, int]:
+    esp = emu.reg_read(UC_X86_REG_ESP)
+    left, right = struct.unpack("<QQ", emu.mem_read(esp + 4, 16))
+    return left, right
+
+
+def _signed64(value: int) -> int:
+    return value - (1 << 64) if value >> 63 else value
+
+
+def _truncated_div(left: int, right: int) -> int:
+    quotient = abs(left) // abs(right)
+    return -quotient if (left < 0) != (right < 0) else quotient
+
+
+# Il compilatore a 32 bit chiama queste funzioni per l'aritmetica a 64 bit: l'assembly usa `div` e `idiv`.
+COMPILER_HELPERS = {
+    "__udivdi3": lambda a, b: a // b,
+    "__umoddi3": lambda a, b: a % b,
+    "__divdi3": lambda a, b: _truncated_div(_signed64(a), _signed64(b)),
+    "__moddi3": lambda a, b: _signed64(a) - _truncated_div(_signed64(a), _signed64(b)) * _signed64(b),
+}
+
+
 def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence[int], cdecl: bool, seed: int,
              callees: Sequence[Callee] = (), saved_seed: Optional[int] = None, max_instructions: int = MAX_INSTRUCTIONS) -> RunResult:
     uc = Uc(UC_ARCH_X86, UC_MODE_32)
@@ -308,19 +358,44 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
     def on_stub(emu: Uc, _address: int, _size: int, callee: Callee) -> None:
         esp = emu.reg_read(UC_X86_REG_ESP)
         seen = []
+        raw_values = []
         for index, ctype in enumerate(callee.params):
             if not cdecl and index < len(REGISTERS):
                 raw = emu.reg_read(REGISTERS[index])
             else:
                 slot = index if cdecl else index - len(REGISTERS)
                 raw = struct.unpack("<I", emu.mem_read(esp + 4 + slot * 4, 4))[0]
+            raw_values.append(raw)
             # Le due versioni tengono i buffer locali in punti diversi dello stack.
             seen.append("stack" if STACK_BASE <= raw < STACK_BASE + STACK_SIZE else narrow_value(ctype, raw))
         calls.append((callee.name, *seen))
         sequence = sequences.get(callee.name, 0)
         sequences[callee.name] = sequence + 1
+        if not apply_memory_helper(emu, callee.name, raw_values):
+            # Il chiamato riempie spesso i buffer locali: stesso contenuto ai due lati, non stesso indirizzo.
+            for index, raw in enumerate(raw_values):
+                width = pointee_width(callee.params[index])
+                if width and STACK_BASE <= raw < STACK_BASE + STACK_SIZE:
+                    value = random.Random(f"{seed}:{callee.name}:{sequence}:{index}").getrandbits(8 * width)
+                    emu.mem_write(raw, value.to_bytes(width, "little"))
         if callee.return_type != "void":
             emu.reg_write(UC_X86_REG_EAX, stub_return(callee, sequence, seed))
+
+    def on_helper(emu: Uc, _address: int, _size: int, operation: Any) -> None:
+        left, right = _helper_operands(emu)
+        if right == 0:
+            emu.emu_stop()  # Come `div` per zero: l'esito resta visibile nel confronto.
+            return
+        result = operation(left, right) & 0xFFFFFFFFFFFFFFFF
+        emu.reg_write(UC_X86_REG_EAX, result & 0xFFFFFFFF)
+        emu.reg_write(UC_X86_REG_EDX, result >> 32)
+
+    for name, operation in COMPILER_HELPERS.items():
+        if name in image.externs and cdecl:
+            address = image.externs[name]
+            uc.mem_map(address & ~(PAGE - 1), PAGE)
+            uc.mem_write(address, b"\xc3")
+            uc.hook_add(UC_HOOK_CODE, on_helper, operation, address, address)
 
     for callee in callees:
         page = callee.address & ~(PAGE - 1)

@@ -176,7 +176,9 @@ def parse_ghidra_output(text: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str,
         for m in re.finditer(r"^//@@@ACCESS (\d+) (\d+)$", code, re.MULTILINE):
             key = f"_DAT_{int(m.group(1)):08x}"
             sizes[key] = max(sizes.get(key, 0), int(m.group(2)))
-        body = re.sub(r"^//@@@(?:GLOBAL|ACCESS) .*\n", "", code, flags=re.MULTILINE).strip()
+        for m in re.finditer(r"^//@@@WIDE (\S+) (\d+)$", code, re.MULTILINE):
+            sizes[m.group(1)] = max(sizes.get(m.group(1), 0), int(m.group(2)))
+        body = re.sub(r"^//@@@(?:GLOBAL|ACCESS|WIDE) .*\n", "", code, flags=re.MULTILINE).strip()
         result[re.sub(r"^ASM_", "", name.strip())] = {"code": body, "global_sizes": sizes}
     return result, symbols
 
@@ -248,6 +250,11 @@ def resolve_data_addresses(code: str, symbols: Dict[str, int], sizes: Dict[str, 
         name, delta = hit
         location = f"((long)&{name} + {delta:#x})" if delta else f"((long)&{name})"
         if amp:
+            size = sizes.get(f"{under}DAT_{match.group(3)}", 1)
+            followed = re.match(r"\s*\+", match.string[match.end():])
+            # `&simbolo + n` di Ghidra e' scalato sull'elemento; `(int)&simbolo + n` no.
+            if followed and size > 1 and not _is_sign_extended(match.string, match.start()):
+                return f"(({_READ_TYPE.get(size, 'ubyte')} *){location})"
             return location
         size = sizes.get(f"{under}DAT_{match.group(3)}", 4 if under else 1)
         types = _SIGNED_READ_TYPE if _is_sign_extended(match.string, match.start()) else _READ_TYPE
@@ -266,6 +273,9 @@ def rewrite_named_globals(code: str, sizes: Dict[str, int]) -> str:
         escaped = re.escape(ghidra_name)
         element = _READ_TYPE.get(size, "ubyte")
         code = re.sub(rf"\(&{escaped}\)(\s*\[)", rf"(({element} *)&{name})\1", code)
+        if size > 1 and size in _READ_TYPE:
+            # `&simbolo + n` di Ghidra e' scalato sull'elemento; `(int)&simbolo + n` no.
+            code = re.sub(rf"(?<!\(int\))(?<!\*\))&{escaped}\b(?=\s*\+)", f"(({_READ_TYPE[size]} *)&{name})", code)
         code = re.sub(rf"(?<!\*\))&{escaped}\b", f"((long)&{name})", code)
         if size in _READ_TYPE:
             code = re.sub(
@@ -377,6 +387,16 @@ def clean_ghidra_c(code: str, symbols: Optional[Dict[str, int]] = None, sizes: O
     return text
 
 
+def ghidra_parameter_types(header: str) -> Dict[str, str]:
+    match = re.search(r"\((.*)\)", header, re.DOTALL)
+    types: Dict[str, str] = {}
+    for part in match.group(1).split(",") if match else []:
+        found = re.match(r"\s*(.*?)(\w+)\s*$", part, re.DOTALL)
+        if found and found.group(1).strip():
+            types[found.group(2)] = " ".join(found.group(1).replace("*", " * ").split())
+    return types
+
+
 _UNSIGNED_WORDS = {"ushort", "ubyte", "byte", "u8", "u16", "u32", "uint", "ulong", "TbBool"}
 _SIGNED_WORDS = {"short", "char", "sbyte", "s8", "s16", "s32", "int", "long", "ThingIdx", "MapCoord"}
 
@@ -404,10 +424,14 @@ def _field_for(fields: Sequence[Tuple[int, int, str, str]], offset: int, size: i
 
 def apply_known_fields(code: str, params: Sequence[Tuple[str, str]], layouts: Dict[str, Sequence[Tuple[int, int, str, str]]]) -> str:
     """Solo per i parametri tipizzati: `*(short *)(p + 0x3a)` -> `p->Health`. Gli altri restano al modello."""
+    header_end = code.find("{")
+    seen_types = ghidra_parameter_types(code[:header_end]) if header_end > 0 else {}
     for param_type, param in params:
         m = re.match(r"struct\s+(\w+)\s*\*", param_type)
         if not m or m.group(1) not in layouts:
             continue
+        if "*" in seen_types.get(param, ""):
+            continue  # Per Ghidra `p + n` e' scalato sul suo tipo: non e' un offset in byte.
         fields = layouts[m.group(1)]
         prefer = "UPerson" if "p_person" in param else "UVehicle" if "p_vehicle" in param else ""
 
@@ -547,16 +571,6 @@ def keep_unsigned_parameters(header: str, body: str, params: Sequence[Tuple[str,
             body = re.sub(rf"(?<![\w.>]){re.escape(name)}\b", f"{name}_u", body)
             declarations.append(f"  u32 {name}_u = (u32){name};\n")
     return body.replace("{\n", "{\n" + "".join(declarations), 1) if declarations else body
-
-
-def ghidra_parameter_types(header: str) -> Dict[str, str]:
-    match = re.search(r"\((.*)\)", header, re.DOTALL)
-    types: Dict[str, str] = {}
-    for part in match.group(1).split(",") if match else []:
-        found = re.match(r"\s*(.*?)(\w+)\s*$", part, re.DOTALL)
-        if found and found.group(1).strip():
-            types[found.group(2)] = " ".join(found.group(1).replace("*", " * ").split())
-    return types
 
 
 def cast_pointer_locals(body: str) -> str:

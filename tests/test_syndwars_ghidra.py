@@ -112,6 +112,19 @@ class GhidraPipelineTest(unittest.TestCase):
         body = "{\n  ubyte *p;\n  p = (long)&x + 1;\n}"
         self.assertEqual(cast_pointer_locals(body), "{\n  ubyte *p;\n  p = (ubyte *)((long)&x + 1);\n}")
 
+    def test_address_plus_index_keeps_the_element_scale(self):
+        self.assertEqual(rewrite_named_globals("x = *(byte *)(&tbl + n);", {"tbl": 4}), "x = *(byte *)(((int *)&tbl) + n);")
+        self.assertEqual(rewrite_named_globals("x = (int)&tbl + n;", {"tbl": 4}), "x = (int)((long)&tbl) + n;")
+
+    def test_wide_access_to_a_named_global(self):
+        decompiled, _ = parse_ghidra_output("//@@@ ASM_f\n//@@@WIDE _head 4\nvoid f(void) {}\n")
+        self.assertEqual(decompiled["f"]["global_sizes"], {"_head": 4})
+        self.assertEqual(rewrite_named_globals("x = _head;", {"_head": 4}), "x = (*(int *)&head);")
+
+    def test_typed_pointer_parameter_is_not_a_byte_offset(self):
+        code = "void f(short *p_person)\n{\n  x = *(short *)(p_person + 0x28);\n}"
+        self.assertEqual(apply_known_fields(code, PARAMS, FIELDS), code)
+
     def test_ghidra_piece_of_a_global(self):
         code = "void f(void)\n{ x = y_2 + (*(ushort *)&y); }"
         repaired = declare_missing_globals(code, "undeclared identifier 'y_2'", "void f(void)")

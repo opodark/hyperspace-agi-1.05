@@ -111,7 +111,7 @@ public class DecompileWatcom extends GhidraScript {
             int opcode = op.getOpcode();
             if ((opcode == PcodeOp.STORE || opcode == PcodeOp.LOAD) && op.getInput(1).isConstant()) {
                 Varnode value = opcode == PcodeOp.STORE ? op.getInput(2) : op.getOutput();
-                out.println("//@@@ACCESS " + op.getInput(1).getOffset() + " " + value.getSize());
+                printAccess(op.getInput(1).getOffset(), value.getSize(), out);
             }
             printDirect(op.getOutput(), out);
             for (Varnode input : op.getInputs()) {
@@ -120,9 +120,18 @@ public class DecompileWatcom extends GhidraScript {
         }
     }
 
+    /** Ghidra scrive `_nome` quando l'accesso e' piu' largo del simbolo: serve la larghezza anche per nome. */
+    private void printAccess(long offset, int size, PrintWriter out) {
+        out.println("//@@@ACCESS " + offset + " " + size);
+        Symbol symbol = currentProgram.getSymbolTable().getPrimarySymbol(toAddr(offset));
+        if (symbol != null && !symbol.getName().startsWith("DAT_")) {
+            out.println("//@@@WIDE _" + symbol.getName() + " " + size);
+        }
+    }
+
     private void printDirect(Varnode node, PrintWriter out) {
         if (node != null && node.getAddress().getAddressSpace().isLoadedMemorySpace()) {
-            out.println("//@@@ACCESS " + node.getOffset() + " " + node.getSize());
+            printAccess(node.getOffset(), node.getSize(), out);
         }
     }
 
