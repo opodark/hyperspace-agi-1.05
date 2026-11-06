@@ -72,8 +72,12 @@ def main() -> int:
     parser.add_argument("--workdir", required=True)
     parser.add_argument("--upload", required=True, help="comando con {tar} e {name}")
     parser.add_argument("--eval", required=True, dest="evaluate", help="comando con {name}")
+    parser.add_argument("--worktree", help="albero git su cui applicare le bozze con syndwars_apply.py")
+    parser.add_argument("--link-dir", help="cartella con drafts_link.h e drafts_link_tail.sx completi")
+    parser.add_argument("--all-files", help="file con l'elenco dei sorgenti da impacchettare sempre")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--funcs", nargs="+")
+    group.add_argument("--funcs-file", help="un nome per riga")
     group.add_argument("--solid", action="store_true")
     group.add_argument("--all", action="store_true")
     args = parser.parse_args()
@@ -82,6 +86,7 @@ def main() -> int:
 
     funcs = (solid_functions() if args.solid
              else [r["func"] for r in json.loads((DRAFTS / "_verify_all.json").read_text())] if args.all
+             else Path(args.funcs_file).read_text().split() if args.funcs_file
              else args.funcs)
     work = Path(args.workdir)
     work.mkdir(parents=True, exist_ok=True)
@@ -99,7 +104,11 @@ def main() -> int:
         counter[0] += 1
         name = f"b{counter[0]:03d}"
         tar = work / f"{name}.tar"
-        build_tar(subset, tar)
+        if args.worktree:
+            from scripts.syndwars_apply import build_subset_tar
+            build_subset_tar(Path(args.worktree), subset, Path(args.all_files).read_text().split(), Path(args.link_dir), tar)
+        else:
+            build_tar(subset, tar)
         subprocess.run(args.upload.format(tar=tar, name=name), shell=True, check=True)
         done = subprocess.run(args.evaluate.format(name=name), shell=True, capture_output=True, text=True)
         outcome, detail = parse_result(done.stdout + done.stderr, name)

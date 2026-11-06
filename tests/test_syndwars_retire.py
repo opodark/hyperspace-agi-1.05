@@ -58,3 +58,26 @@ def test_apply_wraps_each_function_in_if0_and_keeps_balance():
     assert text.count("#if 0") == 2 and text.count("#endif") == 2
     assert text.index("#if 0") < text.index("GLOBAL_FUNC(ASM_dead)") < text.index("#endif")
     assert "GLOBAL_FUNC(ASM_shared)" in text.split("#endif")[-1]
+
+
+def test_local_function_after_the_block_stays_alive():
+    sx = """/*----------------------------------------------------------------*/
+GLOBAL_FUNC(ASM_dead)
+/*----------------------------------------------------------------*/
+\t\tret
+
+
+/*----------------------------------------------------------------*/
+local_helper:\t/* 0x1234 */
+/*----------------------------------------------------------------*/
+\t\tret
+
+/*----------------------------------------------------------------*/
+GLOBAL_FUNC(ASM_user)
+/*----------------------------------------------------------------*/
+\t\tcall   local_helper
+"""
+    retire, rejected = plan({"a.sx": sx.split("\n")}, ["ASM_dead"])
+    assert set(retire) == {"ASM_dead"} and rejected == {}
+    out = "\n".join(apply({"a.sx": sx.split("\n")}, retire)["a.sx"])
+    assert out.index("#endif") < out.index("local_helper:")

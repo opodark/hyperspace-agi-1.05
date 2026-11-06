@@ -34,7 +34,7 @@ def function_regions(lines: List[str]) -> Dict[str, Tuple[int, int]]:
     """nome -> (prima riga, riga dopo l'ultima) del blocco di una funzione attiva.
 
     Il blocco comincia dal separatore `/*----` sopra `GLOBAL_FUNC` e finisce prima del separatore della funzione
-    seguente o prima di una direttiva del preprocessore."""
+    seguente (globale o locale) o prima di una direttiva del preprocessore."""
     starts: List[Tuple[int, str]] = []
     active_depth = 0
     zero_stack: List[bool] = []
@@ -54,6 +54,11 @@ def function_regions(lines: List[str]) -> Dict[str, Tuple[int, int]]:
         # si ferma alla prima direttiva del preprocessore dopo il nome (blocco `#if 0` seguente, `#endif`, ...)
         for index in range(start + 2, end):
             if DIRECTIVE.match(lines[index]):
+                end = index
+                break
+            # intestazione di una funzione locale (separatore, `nome:`, separatore): non fa parte di questo blocco
+            if (SEPARATOR.match(lines[index]) and index + 2 < len(lines)
+                    and LABEL.match(lines[index + 1]) and SEPARATOR.match(lines[index + 2])):
                 end = index
                 break
         regions[name] = (start, end)

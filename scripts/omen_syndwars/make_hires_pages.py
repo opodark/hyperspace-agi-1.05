@@ -1,4 +1,5 @@
 """Uso: SW_GAME_DIR=... SW_X4_DIR=... python make_hires_pages.py <uscita> <palette: pal|pal1|pal2|pal3> <file palette es. QDATA/PAL0.DAT> 512 [forza dettaglio]
+   Scrive tex00h.dat ... tex03h.dat, da mettere in data/ accanto agli originali: il gioco li preferisce se esistono.
    Pagine 512x512 a 8 bit: i colori vengono dall'originale (palette del gioco), il dettaglio dall'IA.
    H = originale ingrandito (bicubico) + (IA 512 - IA sfocata alla risoluzione dell'originale); poi palette piu' vicina."""
 import os, sys, numpy as np
@@ -13,12 +14,12 @@ pal = (raw * 255 / 63).round() if raw.max() <= 63 else raw
 def up(a, size, mode):  # a: HxWx3 float
     ch = [np.asarray(Image.fromarray(np.clip(a[..., c], 0, 255).astype(np.uint8)).resize((size, size), mode), dtype=np.float32) for c in range(3)]
     return np.stack(ch, -1)
-for i in range(6):
+for i in range(4):  # le pagine 4 e 5 vengono scritte a runtime con passo 256 (animazioni, monitor, ombre): restano originali
     orig = np.frombuffer((G / "DATA" / f"TEX{i:02d}.DAT").read_bytes(), dtype=np.uint8).reshape(256, 256)
     big0 = np.kron(orig, np.ones((S // 256, S // 256), dtype=np.uint8))
     src = X4 / f"TEX{i:02d}_{name}.png"
-    if i == 5 or not src.exists():
-        (out / f"TEX{i:02d}.DAT").write_bytes(big0.tobytes()); continue
+    if not src.exists():
+        print(f"TEX{i:02d}: manca {src}, salto"); continue
     O = pal[orig]                                    # 256x256x3
     O_up = up(O, S, Image.BICUBIC)
     A = np.asarray(Image.open(src).convert("RGB").resize((S, S), Image.BOX), dtype=np.float32)
@@ -33,6 +34,6 @@ for i in range(6):
     oluma = (0.299 * pal[big0][..., 0] + 0.587 * pal[big0][..., 1] + 0.114 * pal[big0][..., 2])
     keep = oluma >= 215                                       # texel molto luminosi: si tiene l'indice originale
     idx[keep] = big0[keep]
-    (out / f"TEX{i:02d}.DAT").write_bytes(idx.tobytes())
+    (out / f"tex{i:02d}h.dat").write_bytes(idx.tobytes())
     same = (idx == big0).mean()
     print(f"TEX{i:02d}: indici usati {len(np.unique(idx))}, uguali all'originale ingrandito {same:.1%}")

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Banchi di sprite a doppia risoluzione per Syndicate Wars, nello stesso formato .tab/.dat.
 
-I colori vengono dallo sprite originale (palette del gioco); l'IA aggiunge solo il dettaglio ad alta frequenza e,
-dove c'e', il profilo piu' morbido (canale alfa). Gli sprite senza versione IA sono ingranditi per replica dei pixel.
+I colori vengono dallo sprite originale (palette del gioco); l'IA aggiunge solo il dettaglio ad alta frequenza;
+il profilo e' arrotondato con Scale2x. Gli sprite senza versione IA usano solo Scale2x.
 Il risultato e' `<uscita>/mspr-Nh.tab` e `<uscita>/mspr-Nh.dat`: ogni sprite ha larghezza e altezza doppie
 rispetto all'originale (indice per indice), e il gioco lo usa al posto dell'originale quando disegna in scala.
 
@@ -125,31 +125,49 @@ def replicate(idx: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray
     return np.kron(idx, ones), np.kron(mask.astype(np.uint8), ones).astype(bool)
 
 
+def scale2x_keys(keys: np.ndarray) -> np.ndarray:
+    """Scale2x su una matrice di interi: arrotonda le scalette senza inventare valori nuovi."""
+    a = np.pad(keys, 1, mode="constant", constant_values=-1)
+    p, up, right, left, down = a[1:-1, 1:-1], a[:-2, 1:-1], a[1:-1, 2:], a[1:-1, :-2], a[2:, 1:-1]
+    e0 = np.where((left == up) & (left != down) & (up != right), up, p)
+    e1 = np.where((up == right) & (up != left) & (right != down), right, p)
+    e2 = np.where((down == left) & (down != right) & (left != up), left, p)
+    e3 = np.where((right == down) & (right != up) & (down != left), down, p)
+    h, w = keys.shape
+    out = np.empty((h * 2, w * 2), dtype=keys.dtype)
+    out[0::2, 0::2] = e0
+    out[0::2, 1::2] = e1
+    out[1::2, 0::2] = e2
+    out[1::2, 1::2] = e3
+    return out
+
+
 def upscale_sprite(idx: np.ndarray, mask: np.ndarray, ai_rgba: Optional[np.ndarray],
                    palette: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Sprite a doppia risoluzione: colori originali, dettaglio e profilo dall'IA."""
     height, width = idx.shape
-    base_idx, base_mask = replicate(idx, mask)
+    keys = scale2x_keys(np.where(mask, idx.astype(np.int32), -1))
+    base_mask = keys >= 0
+    base_idx = np.where(base_mask, keys, 0).astype(np.uint8)
     if ai_rgba is None or ai_rgba.shape[0] != height * 4 or ai_rgba.shape[1] != width * 4:
         return base_idx, base_mask
     size = (width * SCALE, height * SCALE)
     original = palette[idx]
-    o_up, _ = _premult_resize(original, mask.astype(np.float32) * 255, size, Image.BICUBIC)
+    o_up, o_alpha = _premult_resize(original, mask.astype(np.float32) * 255, size, Image.BICUBIC)
     ai_color, ai_alpha = _premult_resize(ai_rgba[..., :3].astype(np.float32), ai_rgba[..., 3].astype(np.float32), size, Image.BOX)
     low_color, _ = _premult_resize(ai_color, ai_alpha, (width, height), Image.BOX)
     low_up, _ = _premult_resize(low_color, np.full((height, width), 255.0, dtype=np.float32), size, Image.BICUBIC)
     luma = 0.299 * o_up[..., 0] + 0.587 * o_up[..., 1] + 0.114 * o_up[..., 2]
     weight = np.clip((DETAIL_FADE[0] - luma) / DETAIL_FADE[1], 0.0, 1.0)[..., None]
-    colors = np.clip(o_up + weight * (ai_color - low_up), 0, 255)
+    # sui pixel aggiunti dal profilo l'interpolazione non ha colore affidabile: si usa quello di Scale2x, senza dettaglio
+    edge = (o_alpha < 128)[..., None]
+    start = np.where(edge, palette[base_idx], o_up)
+    weight = np.where(edge, 0.0, weight)
+    colors = np.clip(start + weight * (ai_color - low_up), 0, 255)
     new_idx = nearest_palette(colors, palette)
-    new_mask = ai_alpha >= 128
-    # il profilo dell'IA non esce piu' di un pixel dall'originale: dove l'originale e' lontano, si scarta
-    near = np.kron(mask.astype(np.uint8), np.ones((SCALE, SCALE), dtype=np.uint8)).astype(bool)
-    grown = near.copy()
-    grown[1:, :] |= near[:-1, :]; grown[:-1, :] |= near[1:, :]; grown[:, 1:] |= near[:, :-1]; grown[:, :-1] |= near[:, 1:]
-    new_mask &= grown
-    bright = (0.299 * palette[base_idx][..., 0] + 0.587 * palette[base_idx][..., 1] + 0.114 * palette[base_idx][..., 2]) >= BRIGHT_LUMA
-    keep = bright & base_mask & new_mask
+    new_mask = base_mask   # l'alfa dell'IA ricalca il profilo originale (352 sprite su 363 identici): non aiuta
+    luma_base = 0.299 * palette[base_idx][..., 0] + 0.587 * palette[base_idx][..., 1] + 0.114 * palette[base_idx][..., 2]
+    keep = (luma_base >= BRIGHT_LUMA) & base_mask
     new_idx[keep] = base_idx[keep]
     return new_idx, new_mask
 
