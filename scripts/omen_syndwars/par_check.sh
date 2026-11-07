@@ -30,7 +30,9 @@ new_job_env() {  # $1 = numero del lavoro: display e HOME dedicati
   cp -r /root/.config/syndwarsfx $HOME_J/.config/
   export HOME=$HOME_J
   (setsid Xvfb :$D -screen 0 1024x768x24 >/dev/null 2>&1 &)
-  sleep 1
+  # con molti lavori insieme un Xvfb puo' non essere pronto dopo un secondo: si aspetta che risponda
+  for _ in $(seq 1 30); do xwd -root -silent -display :$D >/dev/null 2>&1 && break; sleep 1; done
+  xwd -root -silent -display :$D >/dev/null 2>&1 || echo "display :$D non disponibile" >> $LOGDIR/errori.txt
 }
 
 mission_job() {  # indice, missione, numero registrazione, orizzonte
