@@ -239,6 +239,14 @@ def main() -> int:
         header, new_sx, unresolved = extend_link_pack(header_path.read_text(), sx_text, symbols, sx_all, drafts, declarations)
         header_path.write_text(header)
         sx_path.write_text(new_sx)
+        # Un dato definito in un altro file assembly si rende globale in quel file.
+        for extra in args.extra_sx:
+            extra_path = Path(extra)
+            extra_text = extra_path.read_text(errors="replace")
+            found = [n for n in unresolved["dato_non_trovato"] if re.search(rf"^\s*{re.escape(n)}:", extra_text, re.MULTILINE)]
+            if found:
+                extra_path.write_text(extra_text.rstrip("\n") + "\n" + "".join(f"\t.global {n}\n" for n in found))
+                unresolved["dato_non_trovato"] = [n for n in unresolved["dato_non_trovato"] if n not in found]
         print(f"simboli considerati {len(symbols)}, irrisolti { {k: v for k, v in unresolved.items() if v} or 'nessuno'}")
         return 0
     if not args.out or not args.log:

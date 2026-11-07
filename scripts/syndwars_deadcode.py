@@ -28,7 +28,7 @@ IF_ZERO = re.compile(r"^\s*#\s*if\s+0\b")
 OPEN_IF = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ELSE_IF = re.compile(r"^\s*#\s*(else|elif)\b")
 END_IF = re.compile(r"^\s*#\s*endif\b")
-TOKEN = re.compile(r"[A-Za-z_.$][\w.$]*")
+TOKEN = re.compile(r"[A-Za-z_.][\w.$]*")  # `$nome` e' l'indirizzo di `nome`: il `$` non fa parte del nome
 COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 LINE_COMMENT = re.compile(r"//[^\n]*")
 TAIL_MARK = "/* Collegamento delle bozze"
@@ -82,6 +82,13 @@ def is_header(lines: Sequence[str], index: int) -> bool:
     return False
 
 
+def starts_jump_table(lines: Sequence[str], index: int) -> bool:
+    """`vtable_x:` seguito da `.long`: tabella di salto, spesso in coda a una funzione che non la usa."""
+    if not LABEL.match(line_code(lines[index])) or line_code(lines[index]).split(":", 1)[1].strip():
+        return False
+    return index + 1 < len(lines) and bool(re.match(r"\s*\.long\s+[A-Za-z_]", lines[index + 1]))
+
+
 def split_blocks(lines: Sequence[str]) -> List[Block]:
     """Blocchi attivi del file, in ordine. Le righe in `#if 0` non appartengono a nessun blocco."""
     blocks: List[Block] = []
@@ -126,7 +133,8 @@ def split_blocks(lines: Sequence[str]) -> List[Block]:
         if section_match:
             close(index)
             section = "text" if section_match.group(1) == "text" else "data"
-        elif is_header(lines, index) or (GLOBAL_FUNC.match(line) and not (index and SEPARATOR.match(lines[index - 1]))):
+        elif (is_header(lines, index) or (GLOBAL_FUNC.match(line) and not (index and SEPARATOR.match(lines[index - 1])))
+              or starts_jump_table(lines, index)):
             close(index)
         if current is None:
             current = Block(index, index, root=bool(conditionals) or section != "text")
@@ -261,15 +269,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--file", default="src/swars.sx", help="file assembly da analizzare, relativo al repository")
     args = parser.parse_args()
     repo = Path(args.repo)
-    sx = repo / "src" / "swars.sx"
+    sx = repo / args.file
     # L'intestazione ha un #define per ogni simbolo mai servito: non dice cosa e' usato.
-    external = external_names(repo, {"swars.sx", "drafts_link.h"})
+    external = external_names(repo, {sx.name, "drafts_link.h"})
     result = analyse(sx.read_text(errors="replace"), external)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "swars.sx").write_text(str(result.pop("text")))
+    (out / sx.name).write_text(str(result.pop("text")))
     (out / "report.json").write_text(json.dumps(result, indent=1))
     print(f"blocchi {result['blocks']}, morti {len(result['dead'])}, istruzioni {result['instructions_before']} "
           f"-> {result['instructions_before'] - result['instructions_removed']}, "

@@ -76,6 +76,14 @@ class DeadCodeTest(unittest.TestCase):
         text = source(["#ifdef X", "# define Y(s) \\", "  s ##:", "#endif"], fn("first", "\tret"), fn("table", "\t.long  0"), fn("after_table", "\tret"), fn("user", "\tmov    table,%eax", "\tret", is_global=True))
         self.assertEqual(analyse(text, {"user"})["dead"], ["after_table", "first"])
 
+    def test_jump_table_is_not_part_of_the_function_above(self):
+        text = source(fn("used", "\tret", "vtable_1:", "\t.long   case_a", is_global=True), fn("case_a", "\tret"))
+        self.assertEqual(analyse(text, {"used"})["dead"], ["case_a", "vtable_1"])
+
+    def test_address_of_a_label_is_a_reference(self):
+        text = source(fn("start", "\tmovl   $target,%eax", "\tret", is_global=True), fn("target", "\tret"))
+        self.assertEqual(analyse(text, {"start"})["dead"], [])
+
     def test_disabled_c_code_is_not_a_reference(self):
         text = "int f(void)\n{\n#if 0\n    asm(\"call ASM_old\");\n#else\n    g();\n#endif\n#ifdef X\n    h();\n#endif\n}"
         kept = strip_disabled(text)

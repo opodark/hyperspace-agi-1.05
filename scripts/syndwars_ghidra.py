@@ -643,6 +643,11 @@ def cast_pointer_locals(body: str) -> str:
     return body
 
 
+def sign_concat_shifts(body: str) -> str:
+    """`CONCAT22(a,b) >> n`: Ghidra scrive `(uint)` quando lo shift e' senza segno, qui viene da `sar`. La macro e' `u32`."""
+    return re.sub(r"(?<![\w)*] )(?<![\w)*])(CONCAT22\([^()]*\)\s*>>)", r"(int)\1", body)
+
+
 def drop_debug_sprintf(body: str) -> str:
     """Toglie le `sprintf` in un buffer locale che nessuno legge: nell'originale preparavano messaggi di debug.
 
@@ -699,7 +704,7 @@ def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[
             body = re.sub(rf"^(\s*){re.escape(param)}\s*=(?!=)\s*(.+);", rf"\1{param} = ({_type})(\2);", body, flags=re.MULTILINE)
     if "*" in return_type:
         body = re.sub(r"\breturn\s+([^;]+);", rf"return ({return_type})(\1);", body)
-    body = drop_debug_sprintf(body)
+    body = sign_concat_shifts(drop_debug_sprintf(body))
     prefix.extend(declare_unknown_symbols(target, body, sources, inferred))
     body = cast_pointer_locals(body)
     return GHIDRA_COMPAT + "".join(d + "\n" for d in prefix) + signature + "\n" + body

@@ -17,6 +17,7 @@ from scripts.syndwars_ghidra import (
     keep_unsigned_parameters,
     asm_call_targets,
     drop_debug_sprintf,
+    sign_concat_shifts,
     make_compilable_draft,
     parse_inferred_signatures,
     parse_local_symbols,
@@ -116,6 +117,11 @@ class GhidraPipelineTest(unittest.TestCase):
         self.assertEqual(drop_debug_sprintf(unused), "{\n  char local_c0[64];\n  g();\n}")
         used = "{\n  char local_c0[64];\n  sprintf((char *)(local_c0), (const char *)(x), 1);\n  g(local_c0);\n}"
         self.assertEqual(drop_debug_sprintf(used), used)
+
+    def test_concat_shift_keeps_the_sign(self):
+        self.assertEqual(sign_concat_shifts("f(CONCAT22(a,b) >> 8);"), "f((int)CONCAT22(a,b) >> 8);")
+        self.assertEqual(sign_concat_shifts("(x * CONCAT22(a,b) >> 8)"), "(x * CONCAT22(a,b) >> 8)")
+        self.assertEqual(sign_concat_shifts("(int)CONCAT22(a,b) >> 8"), "(int)CONCAT22(a,b) >> 8")
 
     def test_asm_call_targets_include_tail_calls_only(self):
         code = "func_a:\n\tcall   helper\n\tjmp    other_fn\n\tjmp    inner\ninner:\n\tret\t/* jmp commented */"
