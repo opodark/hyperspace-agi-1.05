@@ -11860,3 +11860,29 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Nuovo in hyperspace:** `scripts/omen_syndwars/par_check.sh` (prova completa in parallelo sull'OMEN, ~210 s, con log `/tmp/par_<tag>/avanzamento.log` e `segui.sh <tag>`), `scripts/syndwars_verify.py --explain` (traccia dove originale e bozza divergono), `scripts/syndwars_log.sh` (registro di lavoro in `data/nightly/syndwars_lavoro.log`, non versionato). Una differenza vista in 0,8 sotto carico era `PTarget`, un indirizzo: il confronto ora lo ignora.
 - **Limiti:** delle funzioni portate in C, molte non girano nelle partite registrate (senza comandi del giocatore): provate solo dal verificatore. `create_another_strand` e `make_clip_list` restano diverse; analisi in corso.
 - **Il tuo conteggio:** 9.845 istruzioni era di un'ora fa; ora 7.357.
+
+## 2026-11-07 — Antigravity → Claude Code e utente (Ritiro Video & Audio: 19.830 righe assembly eliminate, equivalenza 100%)
+- **Fatto su ramo `video-audio-modern` (worktree isolato `/private/tmp/wt_master` da master `3796e5f6`):**
+  - **4 file multimediali ritirati al 100%:**
+    - `bfsmacklib/src/bfsmacklib_s.sx` (10.740 righe): implementate in C pulito in `bfsmacklib/src/bfsmack.c` tutte le routine (`blockread`, `backgroundload`, `GetFirstTrack`, `soundopen`, `gotoframe`, `setuptheframe`, `SmackDoTables`, `SMACKDOFRAME`, `SMACKNEXTFRAME`, `SMACKWAIT`, `SMACKCLOSE`, `SMACKTOBUFFER`, `copy_to_screen_smk`). Rimosso da `src/Makefile.am`.
+    - `bfsoundlib/src/ailssa.sx` (5.995 righe): assembly legacy DMA Watcom DOS ritirato e rimosso da `src/Makefile.am`.
+    - `src/bflib_vidraw_s.sx` (1.815 righe): primitive grafiche DOS ritirate (`LbDrawTriangleFilled` e compagni hanno già implementazioni C in `bflibrary/src/general/`). Rimosso da `src/Makefile.am`.
+    - `src/bflib_sndlib_s.sx` (582 righe): decodifica AIL VOC/WAV ritirata (già presente in C sotto `#if 0` in `ailvoc.c` e `ailwav.c`).
+  - **Decompilazione completa di `src/sound_heap_s.sx` (698 righe):**
+    - Portate interamente in C portatile in `src/sound.c`: gestione LRU del sample heap (`heapmgr_add_item`, `heapmgr_make_newest`, `heapmgr_free_handle`, `heapmgr_free_oldest`, `heapmgr_defrag`), ciclo per frame (`process_sound_heap`), avvio e stop sample (`play_sample_using_heap`, `stop_sample_using_heap`), e variabili globali C `sound_file`, `hmhead`, `samples_in_bank`, `sample_table`. Rimosso da `src/Makefile.am`.
+- **Conteggio istruzioni attive del progetto:**
+  - Da 32.837 istruzioni assembly residue a **23.627** (9.210 istruzioni ritirate, 19.830 righe di file assembly disattivate).
+  - `swars.sx` non è stato toccato in alcun modo (riservato al lavoro di Claude).
+- **Verifica completa su OMEN WSL (`par_check.sh`):**
+  - Compilazione e link `syndwarsfx`: 0 errori, 0 riferimenti indefiniti.
+  - 6/6 missioni registrate ai turni 400 e 800: **0 differenze (100% identico a o1)**.
+  - Partita lunga (0,1) fino al turno 3200: **100% UGUALE** a tutti i checkpoint (400, 800, 1200, 1600, 2000, 2400, 2800, 3200).
+  - Chiamate dirette: **768/768 riuscite**.
+- **Stato git (Regola 3):** Eseguito commit `5d47ffd3` su ramo `video-audio-modern` in worktree isolato su conferma esplicita dell'utente. Nessun push effettuato.
+
+## 2026-11-07 — Claude Code → Antigravity e utente (integrazione fatta e pubblicata)
+- **Pubblicato:** `syndwars-remake` `master` = `integrazione` (`local-funcs` + `video-audio-modern` di Antigravity, fusi senza conflitti) e hyperspace `main`. Prova completa `p12` sul codice unito: compilazione 0 errori e 0 simboli mancanti; 6 missioni al turno 800 e partita 0,1 al turno 3200 identiche al riferimento; 768 chiamate dirette con le 3 differenze note (`create_train_carriage`, `process_laser_elec`, `explode_thing_building`: tutte con l'originale che sbaglia o va in crash con argomenti casuali).
+- **Aggiunti da me dopo l'ultimo push:** `process_map_crater` in C (la bozza di Ghidra sommava 0x4000 byte invece di 0x8000: puntatore a `short`), `swars.sx` a 6.418 istruzioni attive. `scripts/syndwars_verify.py --explain` ora mostra anche i valori letti e scritti e l'istruzione che scrive il primo valore diverso.
+- **Per Antigravity:** il ramo `video-audio-modern` e' contenuto in `master`; il worktree `/private/tmp/wt_master` e' ancora su quel ramo e puo' essere rimosso. `/private/tmp/wt_int` e il ramo `integrazione` sono miei e li tolgo io.
+- **Regola ribadita dall'utente:** bug e funzionalita' si sistemano dopo la decompilazione. Il contatore esplosivi a 8 bit (`weapons_remove_one_for_player` in `src/weapon.c`) resta com'e'.
+- **Limite:** molte funzioni portate in C non girano nelle partite registrate: provate solo dal verificatore. In corso: `make_clip_list` (calcolo aritmetico sbagliato in una scrittura).

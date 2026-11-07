@@ -53,6 +53,7 @@ STACK_SIZE = 0x40000
 RETURN_SENTINEL = 0x7EFF0000
 POINTER_ARENA = 0x40000000
 ADDRESS_MARGIN = 0x400000
+EXPLAIN_LISTING = "ultime"
 TRACE_EVENTS_MAX = 20000
 TRACE_PCS_KEPT = 400
 # Ghidra le legge con la convenzione a registri e ne sbaglia gli argomenti: non si confrontano e nella bozza non possono restare.
@@ -490,6 +491,7 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
             event = ("scrive" if access == UC_MEM_WRITE else "legge", address, size, number)
             if not trace["mem"] or trace["mem"][-1][:3] != event[:3]:
                 trace["mem"].append(event)
+                trace.setdefault("pc_of", []).append(_emu.reg_read(UC_X86_REG_EIP))
 
         def on_trace_code(_emu: Uc, address: int, _size: int, _data: Any) -> None:
             trace["pcs"].append(address)
@@ -697,6 +699,31 @@ def explain_divergence(original: Dict[str, Any], rebuilt: Dict[str, Any], names:
         if only:
             first = only[0][0]
             out.append(f"   attorno al primo accesso solo {label} (#{first}): " + "; ".join(show(e) for e in events[max(0, first - 4):first + 2]))
+    # Stessi indirizzi ma valori diversi: la prima scrittura dell'originale il cui valore finale non coincide.
+    def last_values(events: List[Tuple[str, int, int, int]]) -> Dict[int, int]:
+        values: Dict[int, int] = {}
+        for kind, address, size, number in events:
+            if kind == "scrive":
+                for k in range(size):
+                    values[address + k] = (number >> (8 * k)) & 0xFF
+        return values
+
+    final_a, final_b = last_values(a), last_values(b)
+    for index, event in enumerate(a):
+        if event[0] == "scrive" and any(final_a.get(event[1] + k) != final_b.get(event[1] + k) for k in range(event[2])):
+            wrong = next(k for k in range(event[2]) if final_a.get(event[1] + k) != final_b.get(event[1] + k))
+            out.append(f"   prima scrittura con valore finale diverso: originale #{index} {show(event)}; "
+                       f"al byte {event[1] + wrong:#x} originale {final_a.get(event[1] + wrong)}, bozza {final_b.get(event[1] + wrong)}")
+            if original.get("pc_of") and index < len(original["pc_of"]):
+                pc = original["pc_of"][index] - delta
+                out.append(f"      istruzione che scrive (offset {pc:#x}) e le {EXPLAIN_LISTING} prima nell'assembly:")
+                for offset in sorted(o for o in listing if pc - 120 <= o <= pc):
+                    out.append(f"         {offset:#06x}  {listing[offset]}")
+            out.append("      letture dell'originale prima: " + "; ".join(show(e) for e in a[max(0, index - 8):index]))
+            twin = next((j for j, e in enumerate(b) if e[0] == "scrive" and e[1] <= event[1] < e[1] + e[2]), None)
+            if twin is not None:
+                out.append(f"      la bozza scrive li' a #{twin}: " + "; ".join(show(e) for e in b[max(0, twin - 8):twin + 1]))
+            break
     out.append("ultime istruzioni dell'originale (la penultima decisione e' quasi sempre un salto condizionato):")
     for pc in original["pcs"][-12:]:
         out.append(f"   {pc - delta:#06x}  {listing.get(pc - delta, '?')}")
