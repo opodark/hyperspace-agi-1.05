@@ -15,6 +15,7 @@ cd /opt/sw || exit 1
 pkill -9 Xvfb 2>/dev/null; sleep 1
 START=$(date +%s)
 LOGDIR=/tmp/par_$TAG; rm -rf $LOGDIR; mkdir -p $LOGDIR
+echo "$(date +%H:%M:%S) prova $TAG avviata sul binario $BIN" > $LOGDIR/avanzamento.log
 rm -f /tmp/su_${TAG}_* /tmp/L_${TAG}_* /tmp/dc_${TAG}*.txt
 
 # stesso dc_gdb.py ma con la lista di nomi presa da un file e senza i dump per chiamata
@@ -94,6 +95,21 @@ G
     echo "chiamate parte $1 rc=$? righe $(wc -l < /tmp/dc_${TAG}_$1.txt 2>/dev/null)" > $LOGDIR/dc$1.done )
 }
 
+# avanzamento: una riga ogni 15 secondi in $LOGDIR/avanzamento.log, da seguire con `tail -f`
+progress_loop() {
+  while [ ! -f $LOGDIR/finito ]; do
+    now=$(( $(date +%s) - START ))
+    miss=""; for m in $(awk '{gsub(",","_",$1); print $1}' $W/suite.txt); do
+      miss="$miss $m=$(ls /tmp/su_${TAG}_${m}_*_t.bin 2>/dev/null | sed -E 's/.*_([0-9]+)_t.bin/\1/' | sort -n | tail -1)"; done
+    dcr=0; for k in $(seq 0 $((PARTS-1))); do dcr=$((dcr + $(grep -vc '^#' /tmp/dc_${TAG}_$k.txt 2>/dev/null || echo 0))); done
+    fatti=$(ls $LOGDIR/*.done 2>/dev/null | wc -l)
+    echo "$(date +%H:%M:%S) +${now}s lavori finiti ${fatti} | turni:${miss} lunga=$(ls /tmp/L_${TAG}_*_t.bin 2>/dev/null | sed -E 's/.*_([0-9]+)_t.bin/\1/' | sort -n | tail -1) | chiamate dirette ${dcr}/$(( $(wc -l < $W/names.txt) * 4 )) | giochi attivi $(pgrep -c '^game\.')" >> $LOGDIR/avanzamento.log
+    sleep 15
+  done
+}
+progress_loop &
+PROGRESS_PID=$!
+
 i=0
 while read m num; do
   H=800; [ "$m" = "0,1" ] && H=800
@@ -102,7 +118,9 @@ while read m num; do
 done < $W/suite.txt
 long_job &
 for k in $(seq 0 $((PARTS-1))); do dc_job $k & done
-wait
+wait $(jobs -p | grep -v "^$PROGRESS_PID$")
+touch $LOGDIR/finito; wait $PROGRESS_PID 2>/dev/null
+echo "$(date +%H:%M:%S) prova finita" >> $LOGDIR/avanzamento.log
 pkill -9 Xvfb 2>/dev/null
 END=$(date +%s)
 echo "durata totale $((END-START)) s con $((i+1+PARTS)) lavori"
@@ -117,7 +135,16 @@ echo "--- missioni contro il riferimento o1"
 python3 - <<P
 import glob,re
 S,T=60,168
-nd=lambda p,q,k:sum(p[i:i+k]!=q[i:i+k] for i in range(0,min(len(p),len(q)),k))
+# PTarget (byte 64..67 di ogni Thing) e' un indirizzo di memoria: con piu' processi insieme l'allocazione cambia di un
+# multiplo di pagina e il valore si sposta, senza che il comportamento cambi. Si confronta senza quei quattro byte.
+def mask(buf,k):
+    if k != 168: return buf
+    out=bytearray(buf)
+    for i in range(0,len(out)-len(out)%k,k): out[i+64:i+68]=b"\0\0\0\0"
+    return bytes(out)
+def nd(p,q,k):
+    p,q=mask(p,k),mask(q,k)
+    return sum(p[i:i+k]!=q[i:i+k] for i in range(0,min(len(p),len(q)),k))
 for line in open('$W/suite.txt'):
     m,_=line.split(); t=m.replace(',','_'); r=[]
     for f in sorted(glob.glob(f'/tmp/su_o1_{t}_*_t.bin')):
