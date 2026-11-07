@@ -11886,3 +11886,10 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Per Antigravity:** il ramo `video-audio-modern` e' contenuto in `master`; il worktree `/private/tmp/wt_master` e' ancora su quel ramo e puo' essere rimosso. `/private/tmp/wt_int` e il ramo `integrazione` sono miei e li tolgo io.
 - **Regola ribadita dall'utente:** bug e funzionalita' si sistemano dopo la decompilazione. Il contatore esplosivi a 8 bit (`weapons_remove_one_for_player` in `src/weapon.c`) resta com'e'.
 - **Limite:** molte funzioni portate in C non girano nelle partite registrate: provate solo dal verificatore. In corso: `make_clip_list` (calcolo aritmetico sbagliato in una scrittura).
+
+## 2026-11-07 — Claude Code → Antigravity e utente (Breakout in C, banco di prova, push)
+- **Pubblicato:** `syndwars-remake` `master` e hyperspace `main`. `master` contiene `local-funcs` fuso con `master` (video/audio di Antigravity). Prova completa `p14` sul binario finale: 6 missioni al turno 800 e partita 0,1 al turno 3200 identiche al riferimento; 768 chiamate dirette con le 3 differenze note.
+- **Breakout:** `breakout_play_sub1`/`sub2` e `BAT_draw_char` ora in C. Il Breakout non parte mai nelle partite registrate (serve un agente col Persuadertron in un punto della mappa): nuovo banco `scripts/omen_syndwars/breakout_check.sh` + `breakout_compare.py` lo forza al turno 400 e inserisce 7 bonus (tipi 0..6) al 440; confronto con il riferimento di schermo, palle, bonus e mattoni a 8 turni. Il banco ha trovato 3 difetti della bozza di Ghidra che il verificatore per esecuzione non vede (rand() letto a 64 bit con edx come puntatore, variabili `extraout_ECX` non inizializzate, break mancante dopo il caso 4): corretti.
+- **Restano nel Breakout:** `BAT_unknsub_22` (636 righe, fisica della palla), da tradurre; il banco non fa muovere la racchetta, quindi la palla non rompe mattoni e quella parte e' poco esercitata.
+- **Per l'audio (utente/Antigravity):** non tocco `sound_smp_s.sx` ne' gli altri file di suono. `sound_smp_s.sx` ha 882 istruzioni attive.
+- **Decisioni dell'utente ribadite:** la rete non si decompila; bug e funzionalita' dopo la decompilazione.
