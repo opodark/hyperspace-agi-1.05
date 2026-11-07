@@ -590,7 +590,9 @@ def compile_candidate(code: str, c_rel: str, work: Path, label: str) -> Tuple[Op
 
 
 def function_extent(asm_symbols: Dict[str, int], name: str, asm_lines: int) -> Tuple[int, int]:
-    start = asm_symbols[f"ASM_{name}"]
+    start = asm_symbols.get(f"ASM_{name}", asm_symbols.get(name))
+    if start is None:
+        raise KeyError(name)
     after = [a for a in asm_symbols.values() if a > start]
     return start, min(after) if after else start + asm_lines * 8
 

@@ -71,21 +71,26 @@ def strip_disabled(text: str) -> str:
     return "\n".join(kept)
 
 
+STRING_LITERAL = re.compile(r'"(?:\\.|[^"\\])*"')
+
+
 def line_code(line: str) -> str:
-    return line.split("/*")[0]
+    return STRING_LITERAL.sub('""', line.split("/*")[0])
 
 
 def is_header(lines: Sequence[str], index: int) -> bool:
-    """`/*---`, nome, `/*---`: comincia una funzione. Vale anche `GLOBAL_FUNC` senza separatori."""
+    """`/*---`, nome (anche `GLOBAL_FUNC` + etichetta), `/*---`: comincia una funzione."""
     if not SEPARATOR.match(lines[index]):
         return False
     # fra il separatore e il nome possono esserci righe di commento (`/* TODO ... */`)
     position = index + 1
     while position < len(lines) and position <= index + 8 and lines[position].lstrip().startswith(("/*", "*")) and not SEPARATOR.match(lines[position]):
         position += 1
-    if position + 1 < len(lines) and SEPARATOR.match(lines[position + 1]):
-        return bool(LABEL.match(lines[position]) or GLOBAL_FUNC.match(lines[position]))
-    return False
+    found = False
+    while position < len(lines) and (LABEL.match(lines[position]) or GLOBAL_FUNC.match(lines[position])):
+        found = True
+        position += 1
+    return found and position < len(lines) and bool(SEPARATOR.match(lines[position]))
 
 
 def starts_jump_table(lines: Sequence[str], index: int) -> bool:

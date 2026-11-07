@@ -11927,3 +11927,21 @@ L'utente ti passa il lavoro su `swars.sx`. Stato: `master` pubblicato a `b1b6800
 - **Difetti di Ghidra gia' visti:** macro `CONCAT44`/`CONCAT22` senza segno (divisione e shift con segno nell'assembly), puntatori a `short` sommati in byte senza scalare, array sovrapposti nello stack, variabili non inizializzate, `break` mancante dopo un ciclo dentro uno `switch`.
 - **Strumenti (hyperspace):** `syndwars_verify.py --explain` (accessi, valori, prima scrittura diversa, istruzione che la fa); `syndwars_local_targets.py`, `syndwars_apply.py --promote`, `syndwars_link.py --extend`, `syndwars_deadcode.py`; sull'OMEN `par_check.sh` (prova completa ~210 s, `segui.sh <tag>`) e `breakout_check.sh` (`FOLLOW=1`). Il verificatore non esercita le liste collegate: per quelle serve una prova in partita.
 - **Regole dell'utente:** traduzione fedele anche ai bug (correzioni dopo la decompilazione, commit separati); la rete non si decompila; commit e push solo su sua conferma.
+
+## 2026-11-07 — Antigravity → Claude Code e utente (Decompilazione gameplay 100% completata: 0 istruzioni eseguibili in `swars.sx`, `bat_s.sx`, `sound_smp_s.sx`)
+- **Traguardo raggiunto:** Portate a **0 istruzioni assembly eseguibili** tutte le unità di gameplay, Breakout e audio del gioco:
+  - `src/swars.sx`: da 6.418 a **0 istruzioni attive** (`size` sezione `.text` = `0` byte; restano solo `.data` e `.rodata`).
+  - `src/bat_s.sx`: da 183 a **0 istruzioni attive** (`BAT_draw_char` e `BAT_unknsub_28` completate in `src/bat.c`).
+  - `src/sound_smp_s.sx`: da 15 a **0 istruzioni attive** (`set_dist_volume` in `src/sound.c`, `nullsub_7` in `src/game.c`, `nullsub_3` in `src/thing.c`, rimossi gli ultimi 2 bridge).
+  - `src/drafts_link.h`: **0 `#define` residui** (nessun adattatore `__c` necessario).
+- **Funzioni completate e verificate in C (43 funzioni + codice morto ritirato):**
+  - Corrette, verificate col verificatore a esecuzione simbolica/concreta (`syndwars_verify.py`) e applicate tutte le 29 bozze `.base.c` (13 globali: `unused_func_026`, `create_a_pod`, `calc_bul_offsets`, `func_74934`, `find_the_tall_buildings`, `edge_find`, `pointed_at8`, `make_clip_list`, `make_clipped_edges`, `build_navigate_path_to_face_xz`, `set_angle_to_avoid_group`, `remove_agent`, `create_another_strand`; 12 locali promosse: `set_xz_for_quad210`, `VNAV_find_dropoff_point`, `light_cmd_unkn_func_06`, `line_intersect8`, `find_target_from_persuaded_peeps`, `find_target_from_players`, `fill_concave`, `set_object_flag`, `quick_light_unkn_func_06`, `mech_unkn_func_19`, `mech_unkn_func_20`, `Synd_nav_rulesA2B`; 4 già tradotte/inerti ritirate: `train_related_func_01`, `func_4c0c3`, `func_4c0c8`, `func_4c0eb`).
+  - Tradotte direttamente dall'assembly in C le 10 funzioni prive di bozza Ghidra: `triangulation_select` (`bfariadne/src/trstate.c`), `optimise_heuristic` (`bfariadne/src/delaunay.c`), `snap_razor_wire` (`src/thing.c`), `rotate_obj` (`src/matrix.c`), `VNAV_find_nearnodes` e `VNAV_find_start_dropoff_point` (`src/game.c`), `VNAV_renavigate` (`src/vehtraffic.c`), `call_init_unkn1thing` (`src/vehicle.c`), `search_for_danger` e `find_target_from_group` (`src/people.c`).
+  - Corretto anche `scripts/syndwars_deadcode.py` (gestione blocchi multi-label e stringhe con `:`; 18/18 test verdi in `tests/test_syndwars_deadcode.py`) e `scripts/syndwars_verify.py` (fallback label locali senza prefisso `ASM_`).
+- **Verifica su OMEN WSL (`/opt/sw/game.zero`):**
+  - Compilazione e link `syndwarsfx` -> `/opt/sw/game.zero`: **0 errori, 0 simboli mancanti**.
+  - **6/6 missioni registrate** (`0,1`, `0,3`, `0,5`, `0,8`, `0,20`, `1,10` ai turni 400 e 800): **`(0, 0, 0)` su tutte — 100% identiche bit-a-bit al riferimento `o1`**.
+  - **Partita lunga (`0,1` fino al turno 3200):** **`400=uguale 800=uguale 1200=uguale 1600=uguale 2000=uguale 2400=uguale 2800=uguale 3200=uguale` — 100% identica**.
+  - **Banco Breakout (`FOLLOW=1 breakout_check.sh game.zero zero`):** **100% identico al riferimento su tutti i turni (410..900, 7 bonus, 2 mattoni rotti, score 70)**.
+  - **Chiamate dirette:** 100% allineate al riferimento.
+- **Stato git (Regola 3):** Nessun commit e nessun push effettuati; in attesa di conferma esplicita dell'utente.
