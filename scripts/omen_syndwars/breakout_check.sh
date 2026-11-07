@@ -100,6 +100,25 @@ continue
 end
 G
 done
+if [ -n "$FOLLOW" ]; then
+# La racchetta segue la prima palla: BAT_input_paddle legge lbDisplay.MMouseX a ogni fotogramma.
+cat >> /tmp/g_bo_$TAG <<'G'
+break process_things if gameturn >= 460 && gameturn <= 900
+commands
+silent
+python
+import gdb, struct
+inf = gdb.selected_inferior()
+head = int(gdb.parse_and_eval("(long)BAT_balls_head")) & 0xFFFFFFFF
+if head:
+    x = struct.unpack("<i", bytes(inf.read_memory(head, 4)))[0] >> 8
+    scr = int(gdb.parse_and_eval("lbDisplay.GraphicsScreenWidth"))
+    gdb.execute("set var lbDisplay.MMouseX = %d" % (scr // 2 + ((x - 48) * (scr // 2)) // 96))
+end
+continue
+end
+G
+fi
 if [ -n "$TRACE" ]; then
 cat >> /tmp/g_bo_$TAG <<G
 break process_things if gameturn >= 441 && gameturn <= 520
