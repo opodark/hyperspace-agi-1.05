@@ -690,6 +690,7 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
                                "status": [original.status, rebuilt.status],
                                "return": [hex(original.eax & mask), hex(rebuilt.eax & mask)],
                                "write_diffs": [hex(a) for a in diff[:6]], "n_write_diffs": len(diff),
+                               "write_values": [[hex(a), original.writes.get(a), rebuilt.writes.get(a)] for a in diff[:6]],
                                "calls": [] if original.calls == rebuilt.calls else [str(original.calls[:4]), str(rebuilt.calls[:4])]})
         return "mismatch"
 
