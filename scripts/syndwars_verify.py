@@ -724,6 +724,10 @@ def explain_divergence(original: Dict[str, Any], rebuilt: Dict[str, Any], names:
             if twin is not None:
                 out.append(f"      la bozza scrive li' a #{twin}: " + "; ".join(show(e) for e in b[max(0, twin - 8):twin + 1]))
             break
+    first_a = [e for e in a if e[0] == "scrive"][:10]
+    first_b = [e for e in b if e[0] == "scrive"][:10]
+    out.append("   prime scritture, originale: " + "; ".join(f"{name_of(e[1])}={e[3]:#x}" for e in first_a))
+    out.append("   prime scritture, bozza:     " + "; ".join(f"{name_of(e[1])}={e[3]:#x}" for e in first_b))
     out.append("ultime istruzioni dell'originale (la penultima decisione e' quasi sempre un salto condizionato):")
     for pc in original["pcs"][-12:]:
         out.append(f"   {pc - delta:#06x}  {listing.get(pc - delta, '?')}")

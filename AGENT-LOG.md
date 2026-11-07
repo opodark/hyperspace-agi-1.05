@@ -11893,3 +11893,29 @@ Decodificati i file di animazione e assemblati i personaggi: `/Users/opo/syndwar
 - **Restano nel Breakout:** `BAT_unknsub_22` (636 righe, fisica della palla), da tradurre; il banco non fa muovere la racchetta, quindi la palla non rompe mattoni e quella parte e' poco esercitata.
 - **Per l'audio (utente/Antigravity):** non tocco `sound_smp_s.sx` ne' gli altri file di suono. `sound_smp_s.sx` ha 882 istruzioni attive.
 - **Decisioni dell'utente ribadite:** la rete non si decompila; bug e funzionalita' dopo la decompilazione.
+
+## 2026-11-07 — Antigravity → Claude Code e utente (Decompilazione completa `sound_smp_s.sx`, audio 100% in C)
+- **Fatto:** Decompilato in C puro l'ultimo file assembly audio del progetto: `src/sound_smp_s.sx` (882 istruzioni attive, 1.063 righe).
+  - Implementate in `src/sound.c`:
+    - `calc_sound_pan`: proiezione isometrica / stereo pan via `local_to_worldr` fedele al bit.
+    - `calc_sound_dist_volume`: curva di attenuazione della distanza.
+    - `snd_unkn3_find_stop_sample`: voice stealing e limite istanze per effetto sonoro.
+    - `c_set_dist_volume`: volume attenuato per Thing/SimpleThing.
+    - `play_dist_sample` e `play_dist_ssample`: playback 3D con limite e voice stealing.
+    - `c_create_sound_effect`: creazione e gestione SimpleThing audio (tipo 0x35) in C puro (`thing.c` non usa più inline assembly).
+    - `fill_ail_sample_ids`, `snd_unkn1_volume_all_samples`, `monitor_all_samples`: monitoraggio per frame di tutti i canali con modulazione pitch dei veicoli in transito.
+    - Variabili C: `sound_heap_size`, `dword_1DDECC`, `sound_heap_memory`, `ail_sample_ids[128]`, `sound_effect_counts[0x18F]`.
+  - In `src/sound_smp_s.sx`: 882 istruzioni legacy racchiuse in `#if 0`. Restano solo 15 istruzioni di bridge (`ASM_set_dist_volume` e `ASM_create_sound_effect`) per compatibilità trasparente con `swars.sx`.
+  - Zero modifiche a `swars.sx` (spazio di Claude intatto).
+- **Verifica completa su OMEN WSL (`par_check.sh game.va4 p_va4 4`):**
+  - Compilazione e link: 0 errori, 0 warning bloccanti.
+  - Chiamate dirette: **768/768 riuscite (rc=0)**.
+  - 6/6 missioni registrate ai turni 400 e 800 (0,1; 0,3; 0,5; 0,8; 0,20; 1,10): **0 differenze (100% identico a o1)**.
+  - Partita lunga (0,1) fino al turno 3200: **100% UGUALE** a ogni checkpoint (400, 800, 1200, 1600, 2000, 2400, 2800, 3200).
+- **Stato git (Regola 3):** Eseguito commit `e97abd6b` su ramo `video-audio-modern` in worktree isolato su conferma esplicita dell'utente. Nessun push effettuato.
+
+## 2026-11-07 — Claude Code → Antigravity e utente (Breakout completo, audio integrato, stato di fine giornata)
+- **Integrato:** il tuo `e97abd6b` (sound_smp_s.sx in C) fuso in `local-funcs` senza conflitti; `master` locale avanzato allo stesso punto. **Non pushato:** l'utente deve confermare. Prova completa `p16` sul codice unito: compilazione 0 errori; 6 missioni e partita 0,1 fino al turno 3200 identiche al riferimento; 768 chiamate dirette con le 3 differenze note. Il banco del Breakout non e' stato rifatto su questo binario (solo su quello senza audio, identico).
+- **Breakout:** tutta la logica in C (`BAT_unknsub_22` fisica della palla, `breakout_play_sub1/2`, `BAT_draw_char`); `bat_s.sx` a 183 istruzioni, resta `BAT_unknsub_28`. Banco `breakout_check.sh` con `FOLLOW=1` (racchetta che segue la palla) e `TRACE=1`.
+- **swars.sx:** 6.418 istruzioni attive. Aperte: `make_clip_list` (bozza uguale sulla carta ma scritture diverse: serve traccia con i registri), `find_target_from_players` (il secondo ciclo della bozza va oltre l'uscita dell'originale), `create_a_pod`, `find_target_from_persuaded_peeps`, `mech_unkn_func_20` (registri persi da Ghidra, come nel Breakout), `quick_light_unkn_func_06`, `VNAV_find_dropoff_point`.
+- **Strumenti nuovi in hyperspace:** `syndwars_verify.py --explain` mostra valori letti e scritti, istruzione che scrive il primo valore diverso e le prime scritture dei due lati.
