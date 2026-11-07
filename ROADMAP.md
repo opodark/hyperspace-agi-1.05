@@ -158,7 +158,7 @@ Progetto parallelo alla roadmap del runtime. Il gioco vive nel repository privat
 **6.1 — Chiudere la logica in C (in corso)**
 - Stato al 2026-11-07: in `swars.sx` restano circa 11.000 istruzioni assembly attive (68.225 all'inizio); in tutto il gioco circa 30.000.
 - Restano le funzioni grandi (`process_weapon`, `process_vehicle`, `thing_hit_by_bullet`, `mech_unkn_func_12`, `explode_thing_building`, `create_another_strand`, `make_clip_list`) e le bozze che il verificatore dà diverse dall'originale: da analizzare una per una.
-- Video Smack, audio e rete (`bfsmacklib`, `ailssa`, `radica*`, `net*`, `sound_*`) **non si decompilano**: si sostituiscono con componenti del nuovo motore (decisione del 2026-11-07).
+- Video Smack, audio e rete (`bfsmacklib`, `ailssa`, `radica*`, `net*`, `sound_*`) **non si decompilano**: si sostituiscono con componenti del nuovo motore (decisione del 2026-11-07). Video e suono sono già ritirati da Antigravity; la rete resta com'è (assembly escluso dalla decompilazione) finché non servirà il multiplayer, che si rifarà con un trasporto nuovo.
 - Accelerare: registrare partite con comandi del giocatore (oggi non ce ne sono e molte funzioni non girano mai), distribuire Ghidra e verifica su OMEN e ASUS, correzione guidata dagli errori del verificatore.
 - Criterio di uscita: nessuna istruzione x86 attiva fuori dalle librerie da sostituire; stato di gioco identico a master su tutte le partite registrate.
 
