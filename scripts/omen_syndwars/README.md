@@ -31,3 +31,6 @@ Tutti i dati generati derivano dagli asset EA/Bullfrog: restano solo in locale.
 
 ## Prova completa in parallelo: `par_check.sh`
 `par_check.sh <binario in /opt/sw> <tag> [parti]` fa in un colpo solo le 6 partite registrate, la partita lunga fino al turno 3200 e le chiamate dirette (divise in `parti`, default 4), con un display virtuale e una cartella HOME per lavoro. Alla fine confronta con i riferimenti `su_o1_*` e `L_o_*` in `/tmp` e scrive `dc_<tag>.txt` in `swbuild`, da confrontare con `dc_cmp.py`. Sull'OMEN (8 thread) con il binario del 2026-11-07: 201 s con 11 lavori, risultati uguali alla prova in serie. Non misurato il tempo della prova in serie sullo stesso binario.
+
+## Monitor: `monitor.py`
+Mosaico video 4x3 dei display virtuali di `par_check.sh` (missioni, partita lunga, chiamate dirette) più avanzamento in JSON. Gira nella distro WSL e ascolta solo su 127.0.0.1, perché mostra il gioco originale (materiale EA, solo locale). Dal Mac: `ssh -L 8099:127.0.0.1:8099 opoda@100.104.238.125`, poi `http://127.0.0.1:8099/`. Avvio nella distro: `setsid nohup python3 /mnt/c/Users/opoda/swbuild/monitor.py &`. I riquadri neri sono lavori senza finestra di gioco (le chiamate dirette) o terminati. Limite noto: la distro WSL si ferma quando non ha sessioni aperte, e il monitor con lei.
