@@ -648,7 +648,8 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     if blocked:
         return {"func": name, "verdict": "unsupported_calls", "error": ", ".join(blocked)}
     start, end = function_extent(asm.symbols, name, target["asm_line_count"])
-    mask = 0 if return_type == "void" else RETURN_MASKS.get(resolve_base_type(return_type), 0xFFFFFFFF)
+    # `return_ignored`: nessun chiamante usa il ritorno, che nell'originale e' un residuo di registro.
+    mask = 0 if return_type == "void" or target.get("return_ignored") else RETURN_MASKS.get(resolve_base_type(return_type), 0xFFFFFFFF)
 
     rng = random.Random(0x5EED)
     agreed = inconclusive = completed = undefined = disagreed = 0
