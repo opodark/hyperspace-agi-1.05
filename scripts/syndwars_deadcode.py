@@ -35,6 +35,7 @@ TAIL_MARK = "/* Collegamento delle bozze"
 NO_FALLTHROUGH = {"ret", "retl", "lret", "iret", "jmp", "ljmp", "hlt"}
 GLOBAL_DIRECTIVE = re.compile(r"^\.glob(?:a)?l\s+(\w+)")
 SECTION = re.compile(r"^\s*\.(text|data|bss|section)\b")
+DATA_DIRECTIVE = re.compile(r"\.(?:byte|short|word|long|int|quad|ascii|asciz|string|fill|space|zero|skip)\b")
 SOURCE_SUFFIXES = {".c", ".h", ".cpp", ".hpp", ".sx", ".S", ".s", ".inc"}
 
 
@@ -46,6 +47,8 @@ class Block:
     refs: Set[str] = field(default_factory=set)
     root: bool = False
     falls_through: bool = True
+    has_code: bool = False
+    has_data: bool = False
 
 
 def strip_comments(text: str) -> str:
@@ -93,7 +96,18 @@ def split_blocks(lines: Sequence[str]) -> List[Block]:
             blocks.append(current)
             current = None
 
+    in_comment = False
     for index, line in enumerate(lines):
+        # Commento su piu' righe: le sue righe non sono ne' istruzioni ne' direttive.
+        if in_comment:
+            if "*/" in line:
+                in_comment = False
+            continue
+        if line.count("/*") > line.count("*/") and not SEPARATOR.match(line):
+            in_comment = True
+        # Corpo di una macro su piu' righe: non e' codice in questo punto.
+        if index and lines[index - 1].rstrip().endswith("\\"):
+            continue
         if OPEN_IF.match(line):
             close(index)
             conditionals.append(bool(IF_ZERO.match(line)))
@@ -126,10 +140,13 @@ def split_blocks(lines: Sequence[str]) -> List[Block]:
             current.labels.add(match.group(1))
             code = code.split(":", 1)[1]
         stripped = code.strip()
-        if not stripped or GLOBAL_DIRECTIVE.match(stripped):
-            continue  # dichiarare un simbolo globale non e' usarlo
+        if not stripped or stripped.startswith("#") or stripped.endswith("\\") or GLOBAL_DIRECTIVE.match(stripped):
+            continue  # direttive, macro su piu' righe; dichiarare un simbolo globale non e' usarlo
         current.refs.update(TOKEN.findall(stripped))
-        if not stripped.startswith("."):
+        if stripped.startswith("."):
+            current.has_data = current.has_data or bool(DATA_DIRECTIVE.match(stripped))
+        else:
+            current.has_code = True
             current.falls_through = stripped.split()[0] not in NO_FALLTHROUGH
     close(len(lines))
     return blocks
@@ -143,6 +160,7 @@ def reachable(blocks: Sequence[Block], external: Set[str]) -> Set[int]:
             owner.setdefault(label, position)
     seen: Set[int] = set()
     todo = [i for i, b in enumerate(blocks) if b.root or b.labels & external]
+    seeds = set(todo)
     while todo:
         position = todo.pop()
         if position in seen:
@@ -150,7 +168,9 @@ def reachable(blocks: Sequence[Block], external: Set[str]) -> Set[int]:
         seen.add(position)
         block = blocks[position]
         todo.extend(owner[ref] for ref in block.refs if ref in owner)
-        if block.falls_through and position + 1 < len(blocks):
+        # Senza istruzioni un punto di partenza non esegue nulla, e i dati non si eseguono mai.
+        passes_control = block.has_code or not (block.has_data or position in seeds)
+        if block.falls_through and passes_control and position + 1 < len(blocks):
             todo.append(position + 1)
     return seen
 

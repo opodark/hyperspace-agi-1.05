@@ -72,6 +72,10 @@ class DeadCodeTest(unittest.TestCase):
         text = source(fn("same_name", "\tret"), fn("exported", "\tret", is_global=True))
         self.assertEqual(analyse(text, {"same_name", "exported"})["dead"], ["same_name"])
 
+    def test_empty_root_and_data_do_not_keep_the_next_block(self):
+        text = source(["#ifdef X", "# define Y(s) \\", "  s ##:", "#endif"], fn("first", "\tret"), fn("table", "\t.long  0"), fn("after_table", "\tret"), fn("user", "\tmov    table,%eax", "\tret", is_global=True))
+        self.assertEqual(analyse(text, {"user"})["dead"], ["after_table", "first"])
+
     def test_disabled_c_code_is_not_a_reference(self):
         text = "int f(void)\n{\n#if 0\n    asm(\"call ASM_old\");\n#else\n    g();\n#endif\n#ifdef X\n    h();\n#endif\n}"
         kept = strip_disabled(text)

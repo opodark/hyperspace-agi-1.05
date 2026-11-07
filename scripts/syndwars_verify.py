@@ -41,7 +41,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.syndwars_decompile_sovereign import PENDING_PATH, SWARS_DIR, _project_include_dirs, ensure_bsndconf, load_jsonl
-from scripts.syndwars_ghidra import load_inferred_signatures, lookup_declaration
+from scripts.syndwars_ghidra import asm_call_targets, load_inferred_signatures, lookup_declaration
 from scripts.syndwars_orchestrate import load_sources, parse_signature
 
 PAGE = 0x1000
@@ -53,6 +53,8 @@ STACK_SIZE = 0x40000
 RETURN_SENTINEL = 0x7EFF0000
 POINTER_ARENA = 0x40000000
 ADDRESS_MARGIN = 0x400000
+# Funzioni con argomenti variabili in cdecl anche dall'assembly: posizione del formato fra gli argomenti.
+VARIADIC_FORMATS = {"sprintf": 1, "printf": 0}
 TRUNCATED_MIN_CALLS = 10
 TRUNCATED_RATIO = 0.9
 MAX_INSTRUCTIONS = 200_000
@@ -338,6 +340,32 @@ COMPILER_HELPERS = {
 }
 
 
+def read_c_string(emu: Uc, address: int, limit: int = 256) -> str:
+    out = bytearray()
+    try:
+        while len(out) < limit:
+            byte = emu.mem_read(address + len(out), 1)[0]
+            if byte == 0:
+                break
+            out.append(byte)
+    except UcError:
+        return f"<illeggibile {address:#x}>"
+    return out.decode("latin-1")
+
+
+def read_format_call(emu: Uc, esp: int, format_slot: int) -> List[Any]:
+    """Argomenti di una funzione con formato: contano il testo del formato e i valori, non l'indirizzo della stringa."""
+    def slot(index: int) -> int:
+        return struct.unpack("<I", emu.mem_read(esp + 4 + index * 4, 4))[0]
+
+    text = read_c_string(emu, slot(format_slot))
+    count = len(re.findall(r"%[^%]", text.replace("%%", "")))
+    values = [slot(format_slot + 1 + index) for index in range(min(count, 16))]
+    leading = [slot(index) for index in range(format_slot)]
+    normal = ["stack" if STACK_BASE <= raw < STACK_BASE + STACK_SIZE else raw for raw in [*leading, *values]]
+    return [text, *normal]
+
+
 def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence[int], cdecl: bool, seed: int,
              callees: Sequence[Callee] = (), saved_seed: Optional[int] = None, max_instructions: int = MAX_INSTRUCTIONS,
              collect_reads: bool = False) -> RunResult:
@@ -374,6 +402,11 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
         esp = emu.reg_read(UC_X86_REG_ESP)
         seen = []
         raw_values = []
+        if callee.name in VARIADIC_FORMATS:
+            calls.append((callee.name, *read_format_call(emu, esp, VARIADIC_FORMATS[callee.name])))
+            if callee.return_type != "void":
+                emu.reg_write(UC_X86_REG_EAX, 0)
+            return
         for index, ctype in enumerate(callee.params):
             if not cdecl and index < len(REGISTERS):
                 raw = emu.reg_read(REGISTERS[index])
@@ -564,7 +597,7 @@ def function_extent(asm_symbols: Dict[str, int], name: str, asm_lines: int) -> T
 def called_functions(target: Dict[str, Any]) -> Dict[str, str]:
     """{nome C: etichetta chiamata dall'assembly}, senza la funzione stessa."""
     found: Dict[str, str] = {}
-    for label in re.findall(r"\bcall\s+([A-Za-z_]\w*)", target["asm_code"]):
+    for label in asm_call_targets(target["asm_code"]):
         name = re.sub(r"^(?:ac_|ASM_)", "", label)
         if name != target["func_name"]:
             found.setdefault(name, label)
@@ -579,7 +612,7 @@ def build_callees(target: Dict[str, Any], image: Image, asm: LoadedObject, candi
     blocked: List[str] = []
     sources = list(load_sources(target["c_file"]))
     for name, label in called_functions(target).items():
-        parsed = parse_declaration(lookup_declaration(name, sources, inferred))
+        parsed = ("int", []) if name in VARIADIC_FORMATS else parse_declaration(lookup_declaration(name, sources, inferred))
         if not parsed:
             blocked.append(name)
             continue

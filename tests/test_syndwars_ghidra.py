@@ -15,6 +15,7 @@ from scripts.syndwars_ghidra import (
     declare_missing_globals,
     expand_ghidra_pieces,
     keep_unsigned_parameters,
+    asm_call_targets,
     make_compilable_draft,
     parse_inferred_signatures,
     parse_local_symbols,
@@ -108,6 +109,15 @@ class GhidraPipelineTest(unittest.TestCase):
         code = make_compilable_draft(target, "void f(void)\n{\n  foo(p);\n}", [], {"foo": "int foo(int a1);"})
         self.assertIn("int foo();", code)
         self.assertNotIn("int foo(int a1);", code)
+
+    def test_asm_call_targets_include_tail_calls_only(self):
+        code = "func_a:\n\tcall   helper\n\tjmp    other_fn\n\tjmp    inner\ninner:\n\tret\t/* jmp commented */"
+        self.assertEqual(asm_call_targets(code), ["helper", "other_fn"])
+
+    def test_stub_with_inferred_signature_is_declared_without_prototype(self):
+        target = {"current_c_stub": "void f(void)\n{\n}", "asm_code": "call foo\n"}
+        code = make_compilable_draft(target, "void f(void)\n{\n  foo(&x);\n}", ["int foo(int a1)\n{\n    return 0;\n}\n"])
+        self.assertIn("int foo();", code)
 
     def test_inferred_int_parameter_that_ghidra_sees_as_pointer(self):
         target = {"current_c_stub": "void f(int a1)\n{\n}", "asm_code": ""}

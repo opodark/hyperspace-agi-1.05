@@ -78,9 +78,26 @@ INFERRED_SIGNATURES_PATH = OUTPUT_DIR / "_inferred_signatures.json"
 @functools.lru_cache(maxsize=1)
 def _project_sources() -> Tuple[str, ...]:
     """Tutto il progetto: una funzione puo' essere dichiarata in un header che il file corrente non include."""
-    roots = (SWARS_DIR / "src", SWARS_DIR / "bflibrary" / "include")
+    roots = (SWARS_DIR / "src", SWARS_DIR / "bflibrary" / "include", SWARS_DIR / "swrendersoft" / "include", SWARS_DIR / "swrendersoft" / "src",
+             SWARS_DIR / "bfariadne" / "include", SWARS_DIR / "bfariadne" / "src")
     paths = [p for root in roots if root.exists() for pattern in ("*.h", "*.c") for p in sorted(root.glob(pattern)) if not p.name.startswith("tmp")]
     return tuple(p.read_text(encoding="utf-8", errors="replace") for p in paths)
+
+
+# Lo stub di una funzione locale ha la firma ricavata: `int f(int a1, int a2);`.
+INFERRED_FORM = r"(?:int|void) \w+\((?:void|int a\d+(?:, int a\d+)*)?\);"
+
+
+def asm_call_targets(asm_code: str) -> List[str]:
+    """Etichette chiamate: `call` e i `jmp` verso l'esterno, che sono chiamate in coda.
+
+    Una funzione locale finisce spesso con `jmp altra_funzione`; i salti a etichette interne non contano."""
+    code = re.sub(r"/\*.*?\*/", " ", asm_code, flags=re.DOTALL)
+    code = "\n".join(line.split("/*")[0] for line in code.split("\n"))
+    inner = set(re.findall(r"^\s*([A-Za-z_]\w*):", code, re.MULTILINE))
+    found = re.findall(r"\bcall\s+([A-Za-z_]\w*)", code)
+    found += [label for label in re.findall(r"\bjmp\s+([A-Za-z_]\w*)", code) if label not in inner]
+    return list(dict.fromkeys(found))
 
 
 def _clean_declaration(declaration: str) -> str:
@@ -129,7 +146,7 @@ def build_ghidra_spec(targets: Sequence[Dict[str, Any]]) -> str:
         return_type, name, params = parse_signature(target["current_c_stub"])
         lines.append(f"T\tASM_{name}\t{'void' if return_type == 'void' else 'value'}\t{','.join(p[1] for p in params)}")
         sources = load_sources(target["c_file"])
-        for raw in re.findall(r"\bcall\s+([A-Za-z_]\w*)", target["asm_code"]):
+        for raw in asm_call_targets(target["asm_code"]):
             if raw in seen:
                 continue
             seen.add(raw)
@@ -553,7 +570,7 @@ def declare_missing_globals(code: str, diagnostics: str, signature: str) -> str:
 def declare_unknown_symbols(target: Dict[str, Any], body: str, sources: Sequence[str], inferred: Optional[Dict[str, str]] = None) -> List[str]:
     """Globali note solo all'assembly: `extern` col tipo usato da Ghidra, le chiamate senza prototipo K&R."""
     declared: List[str] = []
-    calls = {re.sub(r"^(?:ac_|ASM_)", "", c) for c in re.findall(r"\bcall\s+([A-Za-z_]\w*)", target["asm_code"])}
+    calls = {re.sub(r"^(?:ac_|ASM_)", "", c) for c in asm_call_targets(target["asm_code"])}
     for name in dict.fromkeys(re.findall(r"EXPORT_SYMBOL\((\w+)\)", target["asm_code"])):
         if name not in calls and not lookup_declaration(name, sources, inferred) and re.search(rf"\b{re.escape(name)}\b", body):
             declared.append(f"extern int {name};")
@@ -635,13 +652,13 @@ def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[
     body = keep_unsigned_parameters(header, draft[draft.index("{"):], params)
 
     prefix: List[str] = []
-    calls = re.findall(r"\bcall\s+(?:ac_|ASM_)?([A-Za-z_]\w*)", target["asm_code"])
+    calls = [re.sub(r"^(?:ac_|ASM_)", "", label) for label in asm_call_targets(target["asm_code"])]
     for name in dict.fromkeys(calls):
         decl = lookup_declaration(name, sources, inferred)
         if decl:
             if name in LIBC_DECLARATIONS:  # Gia' negli header di sistema, e su macOS sono macro.
                 pass
-            elif decl == (inferred or {}).get(name):
+            elif decl == (inferred or {}).get(name) or re.fullmatch(INFERRED_FORM, decl):
                 # Firma ricavata: i tipi degli argomenti non si conoscono, quindi niente controllo.
                 prefix.append(f"{decl.split()[0]} {name}();")
                 continue
