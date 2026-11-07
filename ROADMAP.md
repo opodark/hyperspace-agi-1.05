@@ -152,6 +152,35 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 - Ottimizzare inferenza locale, startup, persistenza e monitoraggio.
 - Rendere Linux il target production-first, lasciando Windows come profilo supportato per bootstrap e transizione.
 
+### Fase 6 — Syndicate Wars: dal decompilato a un motore moderno
+Progetto parallelo alla roadmap del runtime. Il gioco vive nel repository privato `syndwars-remake` (fork di syndwarsfx, GPL 3); gli strumenti di decompilazione restano qui in `scripts/syndwars_*.py` finché sono in sviluppo. Stato e numeri aggiornati in `AGENT-LOG.md`.
+
+**6.1 — Chiudere la logica in C (in corso)**
+- Stato al 2026-11-07: in `swars.sx` restano circa 11.000 istruzioni assembly attive (68.225 all'inizio); in tutto il gioco circa 30.000.
+- Restano le funzioni grandi (`process_weapon`, `process_vehicle`, `thing_hit_by_bullet`, `mech_unkn_func_12`, `explode_thing_building`, `create_another_strand`, `make_clip_list`) e le bozze che il verificatore dà diverse dall'originale: da analizzare una per una.
+- Video Smack, audio e rete (`bfsmacklib`, `ailssa`, `radica*`, `net*`, `sound_*`) **non si decompilano**: si sostituiscono con componenti del nuovo motore (decisione del 2026-11-07).
+- Accelerare: registrare partite con comandi del giocatore (oggi non ce ne sono e molte funzioni non girano mai), distribuire Ghidra e verifica su OMEN e ASUS, correzione guidata dagli errori del verificatore.
+- Criterio di uscita: nessuna istruzione x86 attiva fuori dalle librerie da sostituire; stato di gioco identico a master su tutte le partite registrate.
+
+**6.2 — Compilazione in WebAssembly con grafica software**
+- Richiede 0 assembly. Test decisivo: la logica gira nel browser con il rasterizzatore attuale mostrato in una canvas. Da misurare: prestazioni della simulazione.
+- Dati originali **mai** distribuiti: caricati dalla copia dell'utente, oppure dati propri.
+
+**6.3 — Multiplayer**
+- Il gioco ha già rete a passi fissi (IPX e seriale) e simulazione deterministica sulla stessa macchina.
+- Sostituire il trasporto con UDP, prima su due processi nativi; verificare il determinismo fra macchine e compilatori (variabili non inizializzate, aritmetica); controllo periodico dello stato per rilevare subito le divergenze.
+- Poi WebRTC o relay WebSocket per il browser.
+
+**6.4 — Rasterizzatore WebGPU**
+- Sostituire `trigpoly`/sprite con triangoli e shader: i modi di disegno sono formule semplici, già mappate; texture a indici con la palette nello shader.
+- Riuso: texture 512 e sprite a doppia risoluzione già pronti come opzione (`data/texNNh.dat`, `mspr-Nh`).
+- Rischio principale: luci e ombre, che nel gioco passano dalle tabelle della palette.
+
+**6.5 — Audio, filmati, rifinitura**
+- Web Audio al posto di ail; formato nuovo per i filmati.
+
+Aperto: licenza e distribuzione (codice GPL 3, dati EA solo locali); quale intro o materiale pubblicare nel work in progress.
+
 ## Deliverable prioritari
 
 | Priorità | Deliverable | Scopo | Stato |
