@@ -480,8 +480,15 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
         def on_trace_mem(_emu: Uc, access: int, address: int, size: int, _value: int, _data: Any) -> None:
             if STACK_BASE <= address < STACK_BASE + STACK_SIZE or len(trace["mem"]) >= TRACE_EVENTS_MAX:
                 return
-            event = ("scrive" if access == UC_MEM_WRITE else "legge", address, size)
-            if not trace["mem"] or trace["mem"][-1] != event:
+            if access == UC_MEM_WRITE:
+                number = _value & ((1 << (8 * size)) - 1)
+            else:
+                try:
+                    number = int.from_bytes(bytes(_emu.mem_read(address, size)), "little")
+                except UcError:
+                    number = -1
+            event = ("scrive" if access == UC_MEM_WRITE else "legge", address, size, number)
+            if not trace["mem"] or trace["mem"][-1][:3] != event[:3]:
                 trace["mem"].append(event)
 
         def on_trace_code(_emu: Uc, address: int, _size: int, _data: Any) -> None:
@@ -669,14 +676,14 @@ def explain_divergence(original: Dict[str, Any], rebuilt: Dict[str, Any], names:
         best = max((a for a in names if a <= address), default=None)
         return f"{names[best]}+{address - best:#x}" if best is not None and address - best < 0x100000 else f"{address:#x}"
 
-    def show(event: Tuple[str, int, int]) -> str:
-        return f"{event[0]} {name_of(event[1])} ({event[2]} byte)"
+    def show(event: Tuple[str, int, int, int]) -> str:
+        return f"{event[0]} {name_of(event[1])} ({event[2]} byte) = {event[3]:#x}"
 
     a, b = original["mem"], rebuilt["mem"]
     out: List[str] = []
     # Il compilatore ordina gli accessi diversamente: si confrontano gli insiemi, non le sequenze.
     # Un accesso da 4 byte dell'originale e due da 2 byte della bozza sono lo stesso dato: si confrontano i byte toccati.
-    def covered(events: List[Tuple[str, int, int]], kind: str) -> Set[int]:
+    def covered(events: List[Tuple[str, int, int, int]], kind: str) -> Set[int]:
         return {address + k for e in events if e[0] == kind for address in (e[1],) for k in range(e[2])}
 
     covered_a = {kind: covered(a, kind) for kind in ("legge", "scrive")}
