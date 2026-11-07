@@ -28,3 +28,6 @@ Tutti i dati generati derivano dagli asset EA/Bullfrog: restano solo in locale.
 - `../syndwars_apply.py`: sostituisce gli stub con le bozze verificate su una copia di lavoro.
 - `evalad.sh` con `../syndwars_bisect.py --worktree ...`: bisezione su un orizzonte di turni a scelta. I riferimenti `/tmp/k_a_*` si creano con `hires_check.sh`.
 - Attenzione: `evalset.sh` ripristina solo i file delle bozze con `pristine.tar`; dopo prove su `bflibrary/` o `swrendersoft/` l'albero di build resta contaminato. Prima di un riferimento si rifa' `/src` dal repository.
+
+## Prova completa in parallelo: `par_check.sh`
+`par_check.sh <binario in /opt/sw> <tag> [parti]` fa in un colpo solo le 6 partite registrate, la partita lunga fino al turno 3200 e le chiamate dirette (divise in `parti`, default 4), con un display virtuale e una cartella HOME per lavoro. Alla fine confronta con i riferimenti `su_o1_*` e `L_o_*` in `/tmp` e scrive `dc_<tag>.txt` in `swbuild`, da confrontare con `dc_cmp.py`. Sull'OMEN (8 thread) con il binario del 2026-11-07: 201 s con 11 lavori, risultati uguali alla prova in serie. Non misurato il tempo della prova in serie sullo stesso binario.
