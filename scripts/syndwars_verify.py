@@ -675,11 +675,21 @@ def explain_divergence(original: Dict[str, Any], rebuilt: Dict[str, Any], names:
     a, b = original["mem"], rebuilt["mem"]
     out: List[str] = []
     # Il compilatore ordina gli accessi diversamente: si confrontano gli insiemi, non le sequenze.
-    only_a = [(i, e) for i, e in enumerate(a) if (e[0], e[1]) not in {(x[0], x[1]) for x in b}]
-    only_b = [(i, e) for i, e in enumerate(b) if (e[0], e[1]) not in {(x[0], x[1]) for x in a}]
+    # Un accesso da 4 byte dell'originale e due da 2 byte della bozza sono lo stesso dato: si confrontano i byte toccati.
+    def covered(events: List[Tuple[str, int, int]], kind: str) -> Set[int]:
+        return {address + k for e in events if e[0] == kind for address in (e[1],) for k in range(e[2])}
+
+    covered_a = {kind: covered(a, kind) for kind in ("legge", "scrive")}
+    covered_b = {kind: covered(b, kind) for kind in ("legge", "scrive")}
+    only_a = [(i, e) for i, e in enumerate(a) if not all(e[1] + k in covered_b[e[0]] for k in range(e[2]))]
+    only_b = [(i, e) for i, e in enumerate(b) if not all(e[1] + k in covered_a[e[0]] for k in range(e[2]))]
     out.append(f"accessi alla memoria: originale {len(a)}, bozza {len(b)}")
     out.append(f"   solo l'originale ({len(only_a)}): " + "; ".join(f"#{i} {show(e)}" for i, e in only_a[:4]))
     out.append(f"   solo la bozza ({len(only_b)}): " + "; ".join(f"#{i} {show(e)}" for i, e in only_b[:4]))
+    for label, events, only in (("originale", a, only_a), ("bozza", b, only_b)):
+        if only:
+            first = only[0][0]
+            out.append(f"   attorno al primo accesso solo {label} (#{first}): " + "; ".join(show(e) for e in events[max(0, first - 4):first + 2]))
     out.append("ultime istruzioni dell'originale (la penultima decisione e' quasi sempre un salto condizionato):")
     for pc in original["pcs"][-12:]:
         out.append(f"   {pc - delta:#06x}  {listing.get(pc - delta, '?')}")
@@ -766,7 +776,8 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
         if any(not same_behaviour(original, probe, mask) for probe in probes):
             return "undefined"
         disagreed += 1
-        if explain and not mismatches:
+        # Si spiega un caso in cui entrambe le versioni finiscono normalmente: gli altri sono quasi sempre ingressi folli.
+        if explain and not explanation and (original.status == "ok" and rebuilt.status == "ok" or len(mismatches) >= 4):
             original_trace: Dict[str, Any] = {}
             rebuilt_trace: Dict[str, Any] = {}
             run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, trace=original_trace)
