@@ -25,6 +25,12 @@ class LocalTargetsTest(unittest.TestCase):
         self.assertEqual(self.lines[2:4], ["GLOBAL_FUNC(ASM_tank_los)", "tank_los:\t/* 0x05F8B4 */"])
         self.assertFalse(add_global_alias(self.lines, "missing"))
 
+    def test_comment_lines_before_the_name_are_allowed(self):
+        lines = ["x", SEP, "/* TODO when rewriting */", "tri64:\t/* 0x1 */", SEP, "\tret", SEP, "other:", SEP]
+        self.assertEqual(find_local_function(lines, "tri64"), (3, 6))
+        lines = ["x", SEP, "/* long f(long)", " */", "f:", SEP, "\tret"]
+        self.assertEqual(find_local_function(lines, "f")[0], 4)
+
     def test_global_labels_count_as_local_functions(self):
         lines = [SEP, "GLOBAL_FUNC(swoosh_veh)\t/* 0x1 */", SEP, "\tret"]
         self.assertEqual(find_local_function(lines, "swoosh_veh"), (1, 4))

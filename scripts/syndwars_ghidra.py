@@ -648,6 +648,25 @@ def sign_concat_shifts(body: str) -> str:
     return re.sub(r"(?<![\w)*] )(?<![\w)*])(CONCAT22\([^()]*\)\s*>>)", r"(int)\1", body)
 
 
+def sign_concat_division(body: str) -> str:
+    """`CONCAT44(h,l) / (longlong)x`: la macro e' senza segno, quindi la divisione lo diventa; nell'assembly e' `idiv`."""
+    out = []
+    position = 0
+    for match in re.finditer(r"CONCAT44\(", body):
+        if match.start() < position:
+            continue
+        depth, index = 1, match.end()
+        while index < len(body) and depth:
+            depth += body[index] == "("
+            depth -= body[index] == ")"
+            index += 1
+        if re.match(r"\s*[/%]\s*\(longlong\)", body[index:]) and not body[:match.start()].endswith("(longlong)"):
+            out.append(body[position:match.start()] + "(longlong)" + body[match.start():index])
+            position = index
+    out.append(body[position:])
+    return "".join(out)
+
+
 def drop_debug_sprintf(body: str) -> str:
     """Toglie le `sprintf` in un buffer locale che nessuno legge: nell'originale preparavano messaggi di debug.
 
@@ -704,7 +723,7 @@ def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[
             body = re.sub(rf"^(\s*){re.escape(param)}\s*=(?!=)\s*(.+);", rf"\1{param} = ({_type})(\2);", body, flags=re.MULTILINE)
     if "*" in return_type:
         body = re.sub(r"\breturn\s+([^;]+);", rf"return ({return_type})(\1);", body)
-    body = sign_concat_shifts(drop_debug_sprintf(body))
+    body = sign_concat_division(sign_concat_shifts(drop_debug_sprintf(body)))
     prefix.extend(declare_unknown_symbols(target, body, sources, inferred))
     body = cast_pointer_locals(body)
     return GHIDRA_COMPAT + "".join(d + "\n" for d in prefix) + signature + "\n" + body

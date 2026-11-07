@@ -34,7 +34,11 @@ def find_local_function(lines: Sequence[str], name: str) -> Optional[Tuple[int, 
     for index, line in enumerate(lines):
         if not label.match(line):
             continue
-        if not (index and SEPARATOR.match(lines[index - 1]) and index + 1 < len(lines) and SEPARATOR.match(lines[index + 1])):
+        # sopra il nome: il separatore, con eventuali righe di commento in mezzo; sotto: il separatore
+        above = index - 1
+        while above > 0 and not SEPARATOR.match(lines[above]) and lines[above].lstrip().startswith(("/*", "*")) and index - above <= 8:
+            above -= 1
+        if not (SEPARATOR.match(lines[above]) and index + 1 < len(lines) and SEPARATOR.match(lines[index + 1])):
             continue
         for end in range(index + 2, len(lines)):
             if SEPARATOR.match(lines[end]) or re.match(r"^\s*#\s*(if|endif|else)\b", lines[end]):

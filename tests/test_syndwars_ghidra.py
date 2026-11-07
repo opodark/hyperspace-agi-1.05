@@ -17,6 +17,7 @@ from scripts.syndwars_ghidra import (
     keep_unsigned_parameters,
     asm_call_targets,
     drop_debug_sprintf,
+    sign_concat_division,
     sign_concat_shifts,
     make_compilable_draft,
     parse_inferred_signatures,
@@ -117,6 +118,12 @@ class GhidraPipelineTest(unittest.TestCase):
         self.assertEqual(drop_debug_sprintf(unused), "{\n  char local_c0[64];\n  g();\n}")
         used = "{\n  char local_c0[64];\n  sprintf((char *)(local_c0), (const char *)(x), 1);\n  g(local_c0);\n}"
         self.assertEqual(drop_debug_sprintf(used), used)
+
+    def test_concat_division_is_signed(self):
+        self.assertEqual(sign_concat_division("y = (int)(CONCAT44(a >> 1, f(b)) / (longlong)c);"),
+                         "y = (int)((longlong)CONCAT44(a >> 1, f(b)) / (longlong)c);")
+        self.assertEqual(sign_concat_division("(longlong)CONCAT44(a,b) / (longlong)c"), "(longlong)CONCAT44(a,b) / (longlong)c")
+        self.assertEqual(sign_concat_division("CONCAT44(a,b) + 1"), "CONCAT44(a,b) + 1")
 
     def test_concat_shift_keeps_the_sign(self):
         self.assertEqual(sign_concat_shifts("f(CONCAT22(a,b) >> 8);"), "f((int)CONCAT22(a,b) >> 8);")

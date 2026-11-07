@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
-from unicorn import UC_ARCH_X86, UC_HOOK_BLOCK, UC_HOOK_CODE, UC_HOOK_MEM_READ, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE, UC_HOOK_MEM_WRITE_UNMAPPED, UC_HOOK_MEM_FETCH_UNMAPPED, UC_MODE_32, Uc, UcError
+from unicorn import UC_MEM_WRITE, UC_ARCH_X86, UC_HOOK_BLOCK, UC_HOOK_CODE, UC_HOOK_MEM_READ, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE, UC_HOOK_MEM_WRITE_UNMAPPED, UC_HOOK_MEM_FETCH_UNMAPPED, UC_MODE_32, Uc, UcError
 from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBP, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDI, UC_X86_REG_EDX, UC_X86_REG_EIP, UC_X86_REG_ESI, UC_X86_REG_ESP
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,6 +53,8 @@ STACK_SIZE = 0x40000
 RETURN_SENTINEL = 0x7EFF0000
 POINTER_ARENA = 0x40000000
 ADDRESS_MARGIN = 0x400000
+TRACE_EVENTS_MAX = 20000
+TRACE_PCS_KEPT = 400
 # Ghidra le legge con la convenzione a registri e ne sbaglia gli argomenti: non si confrontano e nella bozza non possono restare.
 DEBUG_FORMATTERS = {"sprintf"}
 TRUNCATED_MIN_CALLS = 10
@@ -342,7 +344,7 @@ COMPILER_HELPERS = {
 
 def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence[int], cdecl: bool, seed: int,
              callees: Sequence[Callee] = (), saved_seed: Optional[int] = None, max_instructions: int = MAX_INSTRUCTIONS,
-             collect_reads: bool = False) -> RunResult:
+             collect_reads: bool = False, trace: Optional[Dict[str, Any]] = None) -> RunResult:
     uc = Uc(UC_ARCH_X86, UC_MODE_32)
     low = min(b for b, _ in image.blobs) & ~(PAGE - 1)
     high = (max(b + len(d) for b, d in image.blobs) + PAGE) & ~(PAGE - 1)
@@ -471,6 +473,24 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
     if collect_reads:
         uc.hook_add(UC_HOOK_MEM_READ, on_read)
     uc.hook_add(UC_HOOK_MEM_WRITE, on_write)
+    if trace is not None:
+        trace.setdefault("mem", [])
+        trace.setdefault("pcs", [])
+
+        def on_trace_mem(_emu: Uc, access: int, address: int, size: int, _value: int, _data: Any) -> None:
+            if STACK_BASE <= address < STACK_BASE + STACK_SIZE or len(trace["mem"]) >= TRACE_EVENTS_MAX:
+                return
+            event = ("scrive" if access == UC_MEM_WRITE else "legge", address, size)
+            if not trace["mem"] or trace["mem"][-1] != event:
+                trace["mem"].append(event)
+
+        def on_trace_code(_emu: Uc, address: int, _size: int, _data: Any) -> None:
+            trace["pcs"].append(address)
+            if len(trace["pcs"]) > TRACE_PCS_KEPT:
+                del trace["pcs"][0]
+
+        uc.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, on_trace_mem)
+        uc.hook_add(UC_HOOK_CODE, on_trace_code)
     if not cdecl:  # La copertura si misura solo sull'assembly.
         uc.hook_add(UC_HOOK_BLOCK, on_block)
 
@@ -623,13 +643,58 @@ def truncated_addresses(asm_seen: Dict[Tuple[str, int], List[int]], c_seen: Dict
     return sorted(found)
 
 
+def disassemble_object(obj: Path) -> Tuple[Dict[int, str], Dict[str, int]]:
+    """({offset: istruzione}, {simbolo: offset}) dalla disassemblazione dell'oggetto assemblato."""
+    done = subprocess.run(["objdump", "-d", "--no-show-raw-insn", str(obj)], capture_output=True, text=True)
+    lines: Dict[int, str] = {}
+    symbols: Dict[str, int] = {}
+    for line in done.stdout.splitlines():
+        header = re.match(r"([0-9a-f]+) <([^>]+)>:", line)
+        if header:
+            symbols[header.group(2)] = int(header.group(1), 16)
+            continue
+        row = re.match(r"\s*([0-9a-f]+):\s*(.*)", line)
+        if row:
+            lines[int(row.group(1), 16)] = row.group(2).strip()
+    return lines, symbols
+
+
+def explain_divergence(original: Dict[str, Any], rebuilt: Dict[str, Any], names: Dict[int, str], listing: Dict[int, str],
+                       delta: int) -> List[str]:
+    """Testo che indica dove originale e bozza smettono di comportarsi allo stesso modo.
+
+    Confronta la sequenza di letture e scritture su memoria non di stack (le due versioni toccano i dati nello stesso
+    ordine anche se il codice e' diverso) e mostra le ultime istruzioni eseguite dall'originale."""
+    def name_of(address: int) -> str:
+        best = max((a for a in names if a <= address), default=None)
+        return f"{names[best]}+{address - best:#x}" if best is not None and address - best < 0x100000 else f"{address:#x}"
+
+    def show(event: Tuple[str, int, int]) -> str:
+        return f"{event[0]} {name_of(event[1])} ({event[2]} byte)"
+
+    a, b = original["mem"], rebuilt["mem"]
+    out: List[str] = []
+    # Il compilatore ordina gli accessi diversamente: si confrontano gli insiemi, non le sequenze.
+    only_a = [(i, e) for i, e in enumerate(a) if (e[0], e[1]) not in {(x[0], x[1]) for x in b}]
+    only_b = [(i, e) for i, e in enumerate(b) if (e[0], e[1]) not in {(x[0], x[1]) for x in a}]
+    out.append(f"accessi alla memoria: originale {len(a)}, bozza {len(b)}")
+    out.append(f"   solo l'originale ({len(only_a)}): " + "; ".join(f"#{i} {show(e)}" for i, e in only_a[:4]))
+    out.append(f"   solo la bozza ({len(only_b)}): " + "; ".join(f"#{i} {show(e)}" for i, e in only_b[:4]))
+    out.append("ultime istruzioni dell'originale (la penultima decisione e' quasi sempre un salto condizionato):")
+    for pc in original["pcs"][-12:]:
+        out.append(f"   {pc - delta:#06x}  {listing.get(pc - delta, '?')}")
+    return out
+
+
 def same_behaviour(first: RunResult, second: RunResult, mask: int) -> bool:
     return (first.status == second.status and (first.eax & mask) == (second.eax & mask)
             and first.writes == second.writes and first.calls == second.calls)
 
 
 def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Path, cases: int, label: str,
-                     max_mismatches: int = MISMATCHES_BEFORE_STOP, deadline: Optional[float] = None) -> Dict[str, Any]:
+                     max_mismatches: int = MISMATCHES_BEFORE_STOP, deadline: Optional[float] = None,
+                     explain: bool = False) -> Dict[str, Any]:
+    explain = explain or bool(os.environ.get("SW_EXPLAIN"))
     name = target["func_name"]
     return_type, _n, params = parse_signature(target["current_c_stub"])
     obj, error = compile_candidate(code, target["c_file"], work, label)
@@ -648,6 +713,15 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     if blocked:
         return {"func": name, "verdict": "unsupported_calls", "error": ", ".join(blocked)}
     start, end = function_extent(asm.symbols, name, target["asm_line_count"])
+    listing: Dict[int, str] = {}
+    delta = 0
+    if explain:
+        listing, object_symbols = disassemble_object(asm_obj)
+        # con due simboli allo stesso indirizzo objdump ne stampa uno solo
+        delta = start - object_symbols.get(f"ASM_{name}", object_symbols.get(name, 0))
+        known: Dict[int, str] = {}
+        for table in (image.globals, image.locals, image.externs, asm.symbols, candidate.symbols):
+            known.update({address: symbol for symbol, address in table.items()})
     # `return_ignored`: nessun chiamante usa il ritorno, che nell'originale e' un residuo di registro.
     mask = 0 if return_type == "void" or target.get("return_ignored") else RETURN_MASKS.get(resolve_base_type(return_type), 0xFFFFFFFF)
 
@@ -657,6 +731,8 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     mismatches: List[Dict[str, Any]] = []
     covered: Set[int] = set()
     timed_out = False
+    asm_faults = [0]
+    explanation: List[str] = []
     narrow_asm: Dict[Tuple[str, int], List[int]] = {}
     narrow_c: Dict[Tuple[str, int], List[int]] = {}
     def compare_case(case: int, values: List[int]) -> str:
@@ -674,6 +750,11 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
                 slot[1] += 1
         if original.status == "limit" and rebuilt.status == "limit":
             return "limit"
+        # L'originale va in errore (divisione che trabocca, puntatore folle) e la bozza no: con quegli ingressi nessun
+        # chiamante vero puo' arrivarci. Si conta a parte; resta un mismatch se e' la bozza ad andare in errore.
+        if original.status.startswith("fault") and rebuilt.status == "ok":
+            asm_faults[0] += 1
+            return "asm_fault"
         same_status = original.status.split(":")[0] == rebuilt.status.split(":")[0]
         same_return = (original.eax & mask) == (rebuilt.eax & mask)
         if same_status and (original.status != "ok" or (same_return and original.writes == rebuilt.writes and original.calls == rebuilt.calls)):
@@ -685,6 +766,12 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
         if any(not same_behaviour(original, probe, mask) for probe in probes):
             return "undefined"
         disagreed += 1
+        if explain and not mismatches:
+            original_trace: Dict[str, Any] = {}
+            rebuilt_trace: Dict[str, Any] = {}
+            run_case(image, start, reg_args, stack_args, False, case + 1, asm_callees, trace=original_trace)
+            run_case(image, candidate.symbols[name], values, [], True, case + 1, c_callees, max_instructions=budget, trace=rebuilt_trace)
+            explanation.extend(explain_divergence(original_trace, rebuilt_trace, known, listing, delta))
         if len(mismatches) < 5:
             diff = sorted(a for a in set(original.writes) | set(rebuilt.writes) if original.writes.get(a) != rebuilt.writes.get(a))
             mismatches.append({"case": case + 1, "args": [hex(v & 0xFFFFFFFF) for v in values],
@@ -713,6 +800,8 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
             agreed += 1
         elif outcome == "undefined":
             undefined += 1
+        elif outcome == "asm_fault":
+            continue
         elif disagreed >= max_mismatches:
             stopped_early = True
             break
@@ -741,7 +830,7 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
     if truncated and verdict == "agree":
         verdict = "mismatch"
     return {"func": name, "verdict": verdict, "agreed": agreed, "completed": completed, "disagreed": disagreed, "inconclusive": inconclusive, "undefined_input": undefined, "stopped_early": stopped_early, "timed_out": timed_out,
-            "guided": guided, "guided_failed": guided_failed, "truncated_addresses": truncated, "inferred_callees": sorted(c.name for c in asm_callees if c.name in inferred and not lookup_declaration(c.name, load_sources(target["c_file"]))),
+            "guided": guided, "guided_failed": guided_failed, "asm_faults": asm_faults[0], "explanation": explanation, "truncated_addresses": truncated, "inferred_callees": sorted(c.name for c in asm_callees if c.name in inferred and not lookup_declaration(c.name, load_sources(target["c_file"]))),
             "coverage": round(coverage, 3), "mismatches": mismatches}
 
 
@@ -808,8 +897,11 @@ def main() -> int:
     parser.add_argument("--code-dir", default=str(ROOT / "data" / "nightly" / "syndwars_ghidra"))
     parser.add_argument("--output", default="")
     parser.add_argument("--no-mutants", action="store_true")
+    parser.add_argument("--explain", action="store_true", help="al primo mismatch mostra dove originale e bozza divergono")
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     args = parser.parse_args()
+    if args.explain:
+        os.environ["SW_EXPLAIN"] = "1"
     targets = {t["func_name"]: t for t in load_jsonl(PENDING_PATH)}
     results: List[Dict[str, Any]] = []
     with tempfile.TemporaryDirectory() as tmp:
@@ -830,6 +922,8 @@ def main() -> int:
                       f"copertura={result.get('coverage')} mutanti={result.get('mutants')} {result.get('error', '')[:300]}", flush=True)
                 for mismatch in result.get("mismatches", [])[:2]:
                     print(f"   {json.dumps(mismatch)[:300]}", flush=True)
+                for line in result.get("explanation", []):
+                    print(f"   | {line}", flush=True)
     return 0
 
 
