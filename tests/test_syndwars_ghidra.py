@@ -16,6 +16,7 @@ from scripts.syndwars_ghidra import (
     expand_ghidra_pieces,
     keep_unsigned_parameters,
     asm_call_targets,
+    drop_debug_sprintf,
     make_compilable_draft,
     parse_inferred_signatures,
     parse_local_symbols,
@@ -109,6 +110,12 @@ class GhidraPipelineTest(unittest.TestCase):
         code = make_compilable_draft(target, "void f(void)\n{\n  foo(p);\n}", [], {"foo": "int foo(int a1);"})
         self.assertIn("int foo();", code)
         self.assertNotIn("int foo(int a1);", code)
+
+    def test_debug_sprintf_is_dropped_only_when_nobody_reads_the_buffer(self):
+        unused = "{\n  char local_c0[64];\n  sprintf((char *)(local_c0), (const char *)(x), 1);\n  g();\n}"
+        self.assertEqual(drop_debug_sprintf(unused), "{\n  char local_c0[64];\n  g();\n}")
+        used = "{\n  char local_c0[64];\n  sprintf((char *)(local_c0), (const char *)(x), 1);\n  g(local_c0);\n}"
+        self.assertEqual(drop_debug_sprintf(used), used)
 
     def test_asm_call_targets_include_tail_calls_only(self):
         code = "func_a:\n\tcall   helper\n\tjmp    other_fn\n\tjmp    inner\ninner:\n\tret\t/* jmp commented */"

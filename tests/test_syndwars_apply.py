@@ -73,3 +73,9 @@ def test_reconcile_removes_only_conflicting_empty_declarations():
 
 def test_forward_structs_lists_each_struct_once():
     assert forward_structs(["void f(struct Path *p);", "void g(struct Path *p, struct Thing *t);"]) == "struct Path;\nstruct Thing;\n"
+
+
+def test_global_label_becomes_local():
+    text, count, others = redirect_asm_calls("GLOBAL_FUNC(foo)\t/* 0x1 */\n\tret\n\tcall   foo\n", "foo")
+    assert count == 1 and others == []
+    assert text.startswith("foo:\t/* 0x1 */\n")

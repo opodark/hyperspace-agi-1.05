@@ -53,8 +53,8 @@ STACK_SIZE = 0x40000
 RETURN_SENTINEL = 0x7EFF0000
 POINTER_ARENA = 0x40000000
 ADDRESS_MARGIN = 0x400000
-# Funzioni con argomenti variabili in cdecl anche dall'assembly: posizione del formato fra gli argomenti.
-VARIADIC_FORMATS = {"sprintf": 1, "printf": 0}
+# Ghidra le legge con la convenzione a registri e ne sbaglia gli argomenti: non si confrontano e nella bozza non possono restare.
+DEBUG_FORMATTERS = {"sprintf"}
 TRUNCATED_MIN_CALLS = 10
 TRUNCATED_RATIO = 0.9
 MAX_INSTRUCTIONS = 200_000
@@ -340,32 +340,6 @@ COMPILER_HELPERS = {
 }
 
 
-def read_c_string(emu: Uc, address: int, limit: int = 256) -> str:
-    out = bytearray()
-    try:
-        while len(out) < limit:
-            byte = emu.mem_read(address + len(out), 1)[0]
-            if byte == 0:
-                break
-            out.append(byte)
-    except UcError:
-        return f"<illeggibile {address:#x}>"
-    return out.decode("latin-1")
-
-
-def read_format_call(emu: Uc, esp: int, format_slot: int) -> List[Any]:
-    """Argomenti di una funzione con formato: contano il testo del formato e i valori, non l'indirizzo della stringa."""
-    def slot(index: int) -> int:
-        return struct.unpack("<I", emu.mem_read(esp + 4 + index * 4, 4))[0]
-
-    text = read_c_string(emu, slot(format_slot))
-    count = len(re.findall(r"%[^%]", text.replace("%%", "")))
-    values = [slot(format_slot + 1 + index) for index in range(min(count, 16))]
-    leading = [slot(index) for index in range(format_slot)]
-    normal = ["stack" if STACK_BASE <= raw < STACK_BASE + STACK_SIZE else raw for raw in [*leading, *values]]
-    return [text, *normal]
-
-
 def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence[int], cdecl: bool, seed: int,
              callees: Sequence[Callee] = (), saved_seed: Optional[int] = None, max_instructions: int = MAX_INSTRUCTIONS,
              collect_reads: bool = False) -> RunResult:
@@ -402,10 +376,8 @@ def run_case(image: Image, entry: int, args: Sequence[int], stack_args: Sequence
         esp = emu.reg_read(UC_X86_REG_ESP)
         seen = []
         raw_values = []
-        if callee.name in VARIADIC_FORMATS:
-            calls.append((callee.name, *read_format_call(emu, esp, VARIADIC_FORMATS[callee.name])))
-            if callee.return_type != "void":
-                emu.reg_write(UC_X86_REG_EAX, 0)
+        if callee.name in DEBUG_FORMATTERS:
+            emu.reg_write(UC_X86_REG_EAX, 0)  # solo messaggi di debug: la bozza li toglie, vedi drop_debug_sprintf
             return
         for index, ctype in enumerate(callee.params):
             if not cdecl and index < len(REGISTERS):
@@ -612,7 +584,7 @@ def build_callees(target: Dict[str, Any], image: Image, asm: LoadedObject, candi
     blocked: List[str] = []
     sources = list(load_sources(target["c_file"]))
     for name, label in called_functions(target).items():
-        parsed = ("int", []) if name in VARIADIC_FORMATS else parse_declaration(lookup_declaration(name, sources, inferred))
+        parsed = ("int", []) if name in DEBUG_FORMATTERS else parse_declaration(lookup_declaration(name, sources, inferred))
         if not parsed:
             blocked.append(name)
             continue
@@ -671,6 +643,8 @@ def compare_function(target: Dict[str, Any], code: str, work: Path, asm_obj: Pat
         return {"func": name, "verdict": "not_built", "error": "simbolo assente"}
     inferred = load_inferred_signatures()
     asm_callees, c_callees, blocked = build_callees(target, image, asm, candidate, inferred)
+    blocked += [formatter for formatter in sorted(DEBUG_FORMATTERS)
+                if re.search(rf"\b{formatter}\s*\(", code) and formatter not in blocked]
     if blocked:
         return {"func": name, "verdict": "unsupported_calls", "error": ", ".join(blocked)}
     start, end = function_extent(asm.symbols, name, target["asm_line_count"])

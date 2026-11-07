@@ -643,6 +643,21 @@ def cast_pointer_locals(body: str) -> str:
     return body
 
 
+def drop_debug_sprintf(body: str) -> str:
+    """Toglie le `sprintf` in un buffer locale che nessuno legge: nell'originale preparavano messaggi di debug.
+
+    Ghidra ne sbaglia gli argomenti (le legge a registri, in realta' sono sullo stack): se restassero, nel gioco andrebbero
+    in crash. Se il buffer serve a qualcuno la chiamata resta e il verificatore rifiuta la bozza."""
+    for match in list(re.finditer(r"^[ \t]*sprintf\(\(char \*\)\((\w+)\),[^;]*;[ \t]*\n", body, re.MULTILINE)):
+        buffer = match.group(1)
+        rest = body.replace(match.group(0), "", 1)
+        uses = re.findall(rf"\b{re.escape(buffer)}\b", rest)
+        declared = re.search(rf"^\s*[\w \*]+\b{re.escape(buffer)}(?:\s*\[[^\]]*\])?\s*;", rest, re.MULTILINE)
+        if declared and len(uses) == 1:
+            body = rest
+    return body
+
+
 def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[str], inferred: Optional[Dict[str, str]] = None) -> str:
     """C corretto senza modello: indirizzi come interi, cosi' l'aritmetica in byte di Ghidra resta valida."""
     signature = target["current_c_stub"].split("{")[0].strip()
@@ -684,6 +699,7 @@ def make_compilable_draft(target: Dict[str, Any], draft: str, sources: Sequence[
             body = re.sub(rf"^(\s*){re.escape(param)}\s*=(?!=)\s*(.+);", rf"\1{param} = ({_type})(\2);", body, flags=re.MULTILINE)
     if "*" in return_type:
         body = re.sub(r"\breturn\s+([^;]+);", rf"return ({return_type})(\1);", body)
+    body = drop_debug_sprintf(body)
     prefix.extend(declare_unknown_symbols(target, body, sources, inferred))
     body = cast_pointer_locals(body)
     return GHIDRA_COMPAT + "".join(d + "\n" for d in prefix) + signature + "\n" + body

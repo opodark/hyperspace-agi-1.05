@@ -30,7 +30,7 @@ SEPARATOR = re.compile(r"^/\*-{5,}")
 
 def find_local_function(lines: Sequence[str], name: str) -> Optional[Tuple[int, int]]:
     """(riga dell'etichetta, riga dopo il blocco) di una funzione locale con intestazione a separatori."""
-    label = re.compile(rf"^{re.escape(name)}:")
+    label = re.compile(rf"^(?:{re.escape(name)}:|GLOBAL_FUNC\(\s*{re.escape(name)}\s*\))")
     for index, line in enumerate(lines):
         if not label.match(line):
             continue
@@ -72,6 +72,14 @@ def nearest_c_file(line: int, targets: Sequence[Dict[str, Any]]) -> Optional[str
     return best[1] if best else None
 
 
+def find_wrapper(c_text: str, name: str) -> Optional[Tuple[str, str]]:
+    """(testo intero, firma) del `static inline` che chiama l'assembly col nome della funzione stessa."""
+    pattern = re.compile(rf"^static inline __attribute__\(\(always_inline\)\)\s+([^\n;{{}}]*\b{re.escape(name)}\s*\([^;{{}}]*\))\s*\{{.*?^\}}\n",
+                         re.MULTILINE | re.DOTALL)
+    match = pattern.search(c_text)
+    return (match.group(0), match.group(1).strip()) if match else None
+
+
 def make_target(name: str, declaration: str, sx_lines: Sequence[str], c_file: str, region: Tuple[int, int],
                 includes: Sequence[str]) -> Dict[str, Any]:
     start, end = region
@@ -100,22 +108,35 @@ def main() -> int:
         if name in known_names:
             print(f"{name}: gia' in coda")
             continue
-        if name not in signatures:
-            print(f"{name}: senza firma ricavata")
-            continue
         region = find_local_function(lines, name)
         if region is None:
             print(f"{name}: etichetta locale non trovata")
             continue
-        c_file = nearest_c_file(region[0], known)
-        if c_file is None:
-            print(f"{name}: nessun file C vicino")
-            continue
-        neighbour = next(t for t in known if t["c_file"] == c_file)
-        target = make_target(name, signatures[name], lines, c_file, region, neighbour.get("includes", []))
+        wrapper = None
+        for c_path in sorted((tree / "src").glob("*.c")):
+            wrapper = find_wrapper(c_path.read_text(errors="replace"), name)
+            if wrapper:
+                break
+        if wrapper:
+            # Il `static inline` ha i tipi veri: la firma viene da li' e lo stub prende il suo posto.
+            c_file = f"src/{c_path.name}"
+            neighbour = next((t for t in known if t["c_file"] == c_file), {})
+            target = make_target(name, wrapper[1] + ";", lines, c_file, region, neighbour.get("includes", []))
+            target["wrapper_text"] = wrapper[0]
+            c_path.write_text(c_path.read_text(errors="replace").replace(wrapper[0], target["current_c_stub"] + "\n", 1))
+        else:
+            if name not in signatures:
+                print(f"{name}: senza firma ricavata")
+                continue
+            c_file = nearest_c_file(region[0], known)
+            if c_file is None:
+                print(f"{name}: nessun file C vicino")
+                continue
+            neighbour = next(t for t in known if t["c_file"] == c_file)
+            target = make_target(name, signatures[name], lines, c_file, region, neighbour.get("includes", []))
+            path = tree / c_file
+            path.write_text(path.read_text(errors="replace").rstrip("\n") + "\n\n" + target["current_c_stub"] + "\n")
         add_global_alias(lines, name)
-        path = tree / c_file
-        path.write_text(path.read_text(errors="replace").rstrip("\n") + "\n\n" + target["current_c_stub"] + "\n")
         added.append(target)
         print(f"{name}: {c_file}, {target['asm_line_count']} righe")
     sx_path.write_text("\n".join(lines))

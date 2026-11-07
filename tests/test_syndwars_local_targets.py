@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.syndwars_local_targets import add_global_alias, find_local_function, make_target, nearest_c_file, stub_from_declaration
+from scripts.syndwars_local_targets import add_global_alias, find_local_function, find_wrapper, make_target, nearest_c_file, stub_from_declaration
 
 SEP = "/*----------------------------------------------------------------"
 
@@ -24,6 +24,17 @@ class LocalTargetsTest(unittest.TestCase):
         self.assertTrue(add_global_alias(self.lines, "tank_los"))
         self.assertEqual(self.lines[2:4], ["GLOBAL_FUNC(ASM_tank_los)", "tank_los:\t/* 0x05F8B4 */"])
         self.assertFalse(add_global_alias(self.lines, "missing"))
+
+    def test_global_labels_count_as_local_functions(self):
+        lines = [SEP, "GLOBAL_FUNC(swoosh_veh)\t/* 0x1 */", SEP, "\tret"]
+        self.assertEqual(find_local_function(lines, "swoosh_veh"), (1, 4))
+
+    def test_wrapper_gives_text_and_typed_signature(self):
+        c = "int a;\nstatic inline __attribute__((always_inline)) void swoosh_veh(struct Thing *p_vehicle)\n{\n    asm volatile (\"call swoosh_veh\");\n}\nint b;\n"
+        text, signature = find_wrapper(c, "swoosh_veh")
+        self.assertEqual(signature, "void swoosh_veh(struct Thing *p_vehicle)")
+        self.assertTrue(text.endswith("}\n"))
+        self.assertIsNone(find_wrapper(c, "other"))
 
     def test_stub_follows_the_signature(self):
         self.assertEqual(stub_from_declaration("int f(int a1);"), "int f(int a1)\n{\n    return 0;\n}")

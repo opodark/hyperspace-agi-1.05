@@ -114,6 +114,8 @@ def redirect_asm_calls(sx_text: str, name: str) -> Tuple[str, int, List[str]]:
     tail_at = sx_text.find(TAIL_MARK)
     body, tail = (sx_text, "") if tail_at < 0 else (sx_text[:tail_at], sx_text[tail_at:])
     body, count = re.subn(rf"(\b(?:call|jmp)\s+){re.escape(name)}\b", rf"\1ac_{name}", body)
+    # Il simbolo globale ora e' la funzione C: quello assembly resta solo come etichetta locale.
+    body = re.sub(rf"^GLOBAL_FUNC\(\s*{re.escape(name)}\s*\)", f"{name}:", body, flags=re.MULTILINE)
     others = [line.strip() for line in body.split("\n")
               if re.search(rf"(?<![\w.]){re.escape(name)}\b", line.split("/*")[0]) and not re.match(rf"\s*{re.escape(name)}:", line)]
     return body + tail, count, others
@@ -161,8 +163,12 @@ def promote_local(repo: Path, names: Sequence[str], signatures: Dict[str, str]) 
     promoted: List[str] = []
     refused: Dict[str, str] = {}
     additions: Dict[str, List[str]] = {}
+    wrappers: Dict[str, Tuple[Tuple[str, str], ...]] = {}
     for name in names:
-        line = wrapper_line(signatures.get(name, ""))
+        target = targets[name]
+        wrapper_text = target.get("wrapper_text")
+        head = target["current_c_stub"].split("{")[0].strip() + ";" if wrapper_text else signatures.get(name, "")
+        line = wrapper_line(head)
         if line is None:
             refused[name] = "firma non leggibile"
             continue
@@ -176,13 +182,21 @@ def promote_local(repo: Path, names: Sequence[str], signatures: Dict[str, str]) 
         sx_text = remove_adapter(new_text, name)
         link_text = re.sub(rf"^#define {re.escape(name)} {re.escape(name)}__c\n", "", link_text, flags=re.MULTILINE)
         conf_text += line + "\n"
-        code = (DRAFTS / f"{name}.base.c").read_text()
+        manual = MANUAL / f"{name}.base.c"
+        code = (manual if manual.exists() else DRAFTS / f"{name}.base.c").read_text()
         _block, rest = split_compat(code)
-        additions.setdefault(targets[name]["c_file"], []).append(f'#include "{COMPAT_HEADER}"\n' + rest.strip())
+        additions.setdefault(target["c_file"], []).append(f'#include "{COMPAT_HEADER}"\n' + rest.strip())
+        if wrapper_text:
+            wrappers[target["c_file"]] = wrappers.get(target["c_file"], ()) + ((wrapper_text, head + "\n"),)
         promoted.append(name)
     for c_file, chunks in additions.items():
         path = repo / c_file
-        text = path.read_text(errors="replace").rstrip("\n") + "\n\n" + forward_structs(chunks) + "\n\n".join(chunks) + "\n"
+        text = path.read_text(errors="replace")
+        for old, new in wrappers.get(c_file, ()):  # il `static inline` verso l'assembly lascia il posto a un prototipo
+            if old not in text:
+                raise KeyError(f"wrapper non trovato in {c_file}: {new.strip()}")
+            text = text.replace(old, new, 1)
+        text = text.rstrip("\n") + "\n\n" + forward_structs(chunks) + "\n\n".join(chunks) + "\n"
         path.write_text(reconcile_declarations(add_includes(text)))
     sx_path.write_text(sx_text)
     link_path.write_text(link_text)

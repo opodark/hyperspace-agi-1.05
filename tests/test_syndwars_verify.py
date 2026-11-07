@@ -50,18 +50,6 @@ class VerifyHelpersTest(unittest.TestCase):
         self.assertTrue(is_narrow_type("short"))
         self.assertFalse(is_narrow_type("long"))
 
-    def test_format_call_compares_text_and_values(self):
-        from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
-        from scripts.syndwars_verify import STACK_BASE, read_format_call
-        import struct
-        emu = Uc(UC_ARCH_X86, UC_MODE_32)
-        emu.mem_map(0x1000, 0x1000)
-        emu.mem_map(STACK_BASE, 0x1000)
-        emu.mem_write(0x1100, b"id %d of %s 100%%\0")
-        esp = STACK_BASE + 0x100
-        emu.mem_write(esp + 4, struct.pack("<IIII", STACK_BASE + 0x200, 0x1100, 7, 0x1100))
-        self.assertEqual(read_format_call(emu, esp, 1), ["id %d of %s 100%%", "stack", 7, 0x1100])
-
     def test_typedefs_resolve_to_the_real_width(self):
         table = {"MapCoord": "short", "Alias": "MapCoord", "Raw": "unsigned short"}
         self.assertEqual(resolve_base_type("const Alias", table), "short")
