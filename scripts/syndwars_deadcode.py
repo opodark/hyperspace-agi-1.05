@@ -77,8 +77,14 @@ def line_code(line: str) -> str:
 
 def is_header(lines: Sequence[str], index: int) -> bool:
     """`/*---`, nome, `/*---`: comincia una funzione. Vale anche `GLOBAL_FUNC` senza separatori."""
-    if index + 2 < len(lines) and SEPARATOR.match(lines[index]) and SEPARATOR.match(lines[index + 2]):
-        return bool(LABEL.match(lines[index + 1]) or GLOBAL_FUNC.match(lines[index + 1]))
+    if not SEPARATOR.match(lines[index]):
+        return False
+    # fra il separatore e il nome possono esserci righe di commento (`/* TODO ... */`)
+    position = index + 1
+    while position < len(lines) and position <= index + 8 and lines[position].lstrip().startswith(("/*", "*")) and not SEPARATOR.match(lines[position]):
+        position += 1
+    if position + 1 < len(lines) and SEPARATOR.match(lines[position + 1]):
+        return bool(LABEL.match(lines[position]) or GLOBAL_FUNC.match(lines[position]))
     return False
 
 

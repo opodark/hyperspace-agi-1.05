@@ -80,6 +80,14 @@ class DeadCodeTest(unittest.TestCase):
         text = source(fn("used", "\tret", "vtable_1:", "\t.long   case_a", is_global=True), fn("case_a", "\tret"))
         self.assertEqual(analyse(text, {"used"})["dead"], ["case_a", "vtable_1"])
 
+    def test_comment_between_separator_and_name_still_starts_a_function(self):
+        text = source(fn("start", "\tret", is_global=True), [SEP, "/* TODO when rewriting */", "second:", SEP, "\tret"])
+        self.assertEqual(analyse(text, {"start"})["dead"], ["second"])
+
+    def test_multiline_comment_before_the_name(self):
+        text = source(fn("start", "\tret", is_global=True), [SEP, "/* long second(long)", " */", "second:", SEP, "\tret"])
+        self.assertEqual(analyse(text, {"start"})["dead"], ["second"])
+
     def test_address_of_a_label_is_a_reference(self):
         text = source(fn("start", "\tmovl   $target,%eax", "\tret", is_global=True), fn("target", "\tret"))
         self.assertEqual(analyse(text, {"start"})["dead"], [])
