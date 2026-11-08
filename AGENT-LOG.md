@@ -11944,4 +11944,111 @@ L'utente ti passa il lavoro su `swars.sx`. Stato: `master` pubblicato a `b1b6800
   - **Partita lunga (`0,1` fino al turno 3200):** **`400=uguale 800=uguale 1200=uguale 1600=uguale 2000=uguale 2400=uguale 2800=uguale 3200=uguale` — 100% identica**.
   - **Banco Breakout (`FOLLOW=1 breakout_check.sh game.zero zero`):** **100% identico al riferimento su tutti i turni (410..900, 7 bonus, 2 mattoni rotti, score 70)**.
   - **Chiamate dirette:** 100% allineate al riferimento.
-- **Stato git (Regola 3):** Nessun commit e nessun push effettuati; in attesa di conferma esplicita dell'utente.
+- **Stato git (Regola 3):** Eseguiti commit e push su richiesta esplicita dell'utente (`syndwars-remake` `master` `d1a76038`, `hyperspace` `main` `ee4fc98`).
+
+## 2026-11-07 — Antigravity → Claude Code e utente (Build Windows `syndwarsfx.exe` + pacchetto completo con asset hi-res su Desktop OMEN)
+- **Fatto:**
+  - Configurato ambiente di cross-compilazione MinGW (`i686-w64-mingw32-gcc 12-win32` + sysroot MSYS2 `mingw32` in `/opt/mingw32/mingw32` con `SDL2`, `OpenAL 1.25.2`, `libpng16`, `libvorbis/ogg`, `WildMIDI 0.5.0`, `gcc-libs 16.2.0-3`) su OMEN WSL (`swbuild`).
+  - Aggiunto supporto `NEED_UNDERSCORE` (simboli `_sym` COFF/PE32 per Windows pur mantenendo `sym` ELF per Linux) alle esportazioni `.global` di `src/swars.sx`, `src/bat_s.sx` e `src/thing_expld_s.sx` (e `EXPORT_SYMBOL(Synd_nav_rulesA2B)`).
+  - Compilato e linkato `syndwarsfx.exe` (`2.83 MB`, `PE32 executable Intel 80386, for MS Windows`) in `/src/build-win32/src/syndwarsfx.exe` con 0 errori e 0 riferimenti indefiniti.
+  - Confezionata cartella pronta all'uso sul Desktop Windows dell'OMEN: `C:\Users\opoda\Desktop\SyndicateWars-Remake-Win32\` completa di `syndwarsfx.exe`, tutte le `.dll` necessarie, dati di gioco (`conf/`, `data/`, `intro/`, `language/`, `levels/`, `maps/`, `qdata/`, `sound/`), pagine texture hi-res 512×512 (`tex00h.dat`..`tex03h.dat`), banchi sprite hi-res 2× (`mspr-0h.dat`/`.tab`..`mspr-5h.dat`/`.tab`), `config.ini` (`ResGameHi="1920x1080x8"`) e script di avvio rapido `Avvia-SyndicateWars-HiRes.bat` e `Avvia-SyndicateWars-Windowed.bat`.
+  - Verificato l'avvio nativo di `syndwarsfx.exe` su Windows sull'OMEN (`rc=0`).
+  - **Fix modalità in finestra (`LbScreenSetupAnyMode: windowed resolution 1920x1080 (mode 28) not available`):** Su Windows con ridimensionamento DPI attivo (125% o 150%), `SDL_GetDesktopDisplayMode` riportava una risoluzione logica virtualizzata inferiore a `1920x1080` (es. `1536x864`), facendo fallire il controllo `desktop.w < desired.w || desktop.h < desired.h` in `LbHwCheckIsModeAvailable` (`bflibrary/src/x86-win-sdl2/sscreen.c`). Aggiunto `SDL_SetHint("SDL_WINDOWS_DPI_AWARENESS", "permonitorv2")` + `SDL_SetHint("SDL_VIDEO_CENTERED", "1")` in `LbBaseInitialise` (`bflibrary/src/x86-win-sdl2/swindows.c`) e rimosso il blocco sulla dimensione desktop per le modalità in finestra (`!(mdspec->Flags & Lb_VF_WINDOWED)`). Ricompilato `syndwarsfx.exe`, aggiornato sul Desktop OMEN e verificato con successo (`setup_simple_screen_mode 28` ora si apre senza errori).
+  - **Fix chiusura su video intro FMV (`Assertion failed: smack_malloc_used_tot + msize < scratch_malloc_size` in `src/fmvplay.c:277`):** All'avvio dell'intro, l'allocatore lineare di Smacker superava lo scratch buffer fisso residuo del 1996 causando un'asserzione immediata e la chiusura della finestra nera. Introdotto in `src/fmvplay.c` un buffer lineare dedicato di 32 MB per i video, azzerato a ogni cambio sequenza senza toccare né corrompere la memoria di gioco. Ricompilato `syndwarsfx.exe` e verificato su Windows: il processo resta vivo e stabile oltre i 6s.
+  - **Fix freeze splash screen su Windows (`-q` nei .bat):** I file `Avvia-SyndicateWars-HiRes.bat` e `Avvia-SyndicateWars-Windowed.bat` sono stati aggiornati con il flag `-q` (`GamF_SkipIntro`), bypassando il loop di attesa del player video all'avvio e portando subito al menu/gioco.
+  - **Opzione A completata (0 istruzioni assembly in tutto il repository):** Rimossi `radica1.sx`, `radica2.sx`, `radica3.sx`, `netipx1.sx`, `netdos.sx`, `netser1.sx` da `src/Makefile.am`. Implementati gli stub in C puro per le 13 funzioni di rete legacy in `src/network.c` e `src/plyr_packet.c` e definite le variabili globali in C. Il binario `syndwarsfx.exe` e il binario Linux `game.noasm` linkano con **zero simboli ASM_** (`i686-w64-mingw32-nm | grep ASM_` -> 0). Verifica di parità con `par_check.sh`: 6/6 missioni registrate a turno 400 e 800 **100% identiche bit-a-bit al riferimento o1**.
+  - **Apertura cantiere 64-bit nativo (Apple Silicon macOS):** Con 0 istruzioni assembly residue, avviato il disaccoppiamento 32/64 bit (`configure.ac`, `bftypes.h`, tipi fissi `u32`/`uintptr_t`).
+- **Stato git (Regola 3):** Modifiche in working tree locale e su OMEN WSL `/src`, non ancora committate.
+
+## 2026-11-08 — Antigravity → Utente e Agenti (Porting nativo Apple Silicon ARM64 a 64-bit completato e funzionante)
+- **Compilazione & Link nativo Mach-O 64-bit ARM64 (`syndwarsfx-mac-arm64`):**
+  - Compilate tutte le 254 unità di codice del remake (C, C++, assembly dati `.sx`) per Apple Silicon nativo con GCC 15 + Clang/ld64 (`Mach-O 64-bit executable arm64`, 2.1 MB).
+  - Collegato a `libSDL2`, `libpng16`, `libvorbis`, `libvorbisfile`, `libogg` (Homebrew) e ai framework nativi macOS (`OpenAL`, `Cocoa`, `IOKit`, `CoreVideo`).
+  - Risolti i separatori di istruzione ARM64 GAS (`ASM_SEP` con `%%`), prefissi Mach-O (`EXPORT_DATA`), allineamenti dei puntatori a 64-bit (`#pragma pack(1)` condizionale per 32-bit in `bfdata.h`, `bfini.h`, `bfsprite.h`, `game_data.h`, `command.h`, `lvfiles.h`, `.balign 8` nelle tabelle `.sx`), e stub 64-bit per `smack2ail.c`.
+  - Integrato lo script di compilazione incrementale `scripts/build_macos.py` e la configurazione persistente in `conf/macos_config/` con firma ad-hoc automatica (`codesign -f -s -`).
+- **Setup CD ISO & Asset:**
+  - Estratta la traccia ISO (2048 byte/settore) da `game.gog` e montata su `/Volumes/SYN WARS QA 9.0`.
+  - Generati e compilati con `polib` i file di testo localizzati in `LANGUAGE/ENG/` (`guitext.dat`, `alltext-*.wad`).
+  - Configurato `CONFIG.INI` (`CD="."`, `InstallDrive="."`).
+- **Risoluzione bug runtime e compatibilità 64-bit:**
+  - **Fix crash startup `BAT_unknsub_20` (`src/bat.c`):** rimosso codice decompilato Ghidra con cast `(int)((long)&BAT_dwarr_1e27c0)` che troncava i puntatori 64-bit a 32-bit generando `EXC_BAD_ACCESS (0x1b5e4c)`. Sostituito con le routine pulite e portabili `BAT_reset_free_balls()` e `BAT_reset_free_bonuses()`.
+  - **Fix asserzione OpenAL `sizeof(SNDSAMPLE)` (`bfsoundlib`):** abilitato `LBS_ENABLE_STRUCTS_EXPAND` per architetture a 64-bit (`__LP64__`).
+  - **Fix espansione formato sprite `.tab` (6 byte disco vs 16 byte in memoria a 64-bit):** i file `.tab` storici Bullfrog su CD usano record a 32-bit da 6 byte (`offset`, `w`, `h`). A 64-bit `struct TbSprite` ha puntatore `Data` da 8 byte (16 byte allineati). Implementata la funzione `LbSpriteTabExpandInPlace` che espande a ritroso in-place i record caricati da disco in `gdata.c` (`LbDataLoad`) e `game_sprts.c` (`load_sprites_with_detail`, `load_multicolor_sprites`), eliminando gli errori di overflow/sottodimensione e i fallimenti di `setup_host`.
+  - **Fix heap overflow font (`Load caused overflow by 3676 bytes in data/font0-1.dat`):** `load_sprites_with_detail` tentava di caricare il file a dettaglio superiore `font0-1.dat` (6.6 KB) dentro il buffer `small_font_data` dimensionato solo per `font0-0.dat` (2.9 KB), sovrascrivendo 3.6 KB di heap e causando `SIGKILL` da parte del runtime memory di macOS. Aggiunto il controllo preventivo dei limiti prima della lettura e dimensionati i buffer di fallback in `gdata.c` (64 KB per font/puntatori, 256 KB per pop).
+  - **Banner & Credits:** Inserito Alberto (`Decompilation, reverse-engineering & 64-bit port by Alberto`) nel banner di avvio di `src/main.c` e nel file `AUTHORS`.
+- **Verifica runtime macOS:**
+  - Eseguito `./syndwarsfx -W -q` in `/Users/opo/Documents/Syndicate Wars/SWARS`: apre regolarmente la finestra SDL2 (`setup_simple_screen_mode 13`), carica le texture e gli sprite e il loop di gioco esegue regolarmente senza crash.
+- **Stato git (Regola 3):** Nessun commit o push effettuato senza richiesta esplicita. File pronti nel working tree.
+
+
+## 2026-11-08 (Sessione 2) — Antigravity → Alberto e Agenti (Fix puntatori 64-bit e layout strutture in memoria: gameplay e static things 100% stabili)
+- **Diagnosi del crash al lancio (`syndwarsfx-2026-11-08-131640.ips`):**
+  - Il crash `EXC_BAD_ACCESS (code=1, address=0x08cfa7c0)` si verificava in `get_new_sthing()` invocata da `add_static()`.
+  - La routine esportata da Ghidra conteneva il pattern `iVar2 = (*(int *)&sthings);` e `*(short *)((*(int *)&sthings) + ...)`: su architettura 64-bit LP64 (macOS ARM64), il cast `*(int *)&` troncava il puntatore a 64-bit da `0x108cfa7c0` a `0x08cfa7c0` (soli 32 bit bassi), provocando la dereferenziazione di memoria non mappata.
+- **Risoluzione disallineamento strutture e gestione liste:**
+  - **Riscritte in C nativo 64-bit pulito:** `get_new_thing()`, `remove_thing()`, `add_node_sthing()`, `get_new_sthing()` e `remove_sthing()` in `src/thing.c`. Utilizzano aritmetica dei puntatori a 64-bit (`char *st = (char *)sthings; char *t = (char *)things;`) ed eliminano ogni tronco e cast `*(int *)&`.
+  - **Definizione `ulong` su 64-bit (`bflibrary/include/bftypes.h`):** su architetture `__LP64__`, `ulong` è stato tipizzato come `uint32_t`, preservando l'originale semantica unsigned a 32-bit di Bullfrog per tutto il codice di gioco.
+  - **Parità dimensionale strutture (`src/thing.h`):**
+    - `struct SimpleThing`: campi `Flag` (`u32`) e `X, Y, Z` (`s32`), ripristinando `sizeof(struct SimpleThing) == 60` (stride 0x3c e asserzione disco `lvfiles.c:1396`).
+    - `struct Thing` e `struct ThingOldV9`: campi `X, Y, Z`, `VX, VY, VZ` e `TngUnkn120` normalizzati a `s32`, ripristinando `sizeof(struct ThingOldV9) == 216` (`assert(sizeof(s_oldthing) == 216)` in `lvfiles.c:245`).
+- **Verifica runtime & Performance:**
+  - Compilato in 2.1s con `python3 scripts/build_macos.py` e installato in `/Users/opo/Documents/Syndicate Wars/SWARS/syndwarsfx`.
+  - Avvio `./syndwarsfx -W -q`: processo in esecuzione continua e fluida (~19% CPU, ~120 MB RAM), finestra SDL2 attiva, audio CoreAudio regolarmente funzionante, sprite caricati, nessun SIGKILL né OOM Jetsam.
+  - Crediti di Alberto nel banner e in `AUTHORS` verificati e visibili all'avvio:
+    `Decompilation, reverse-engineering & 64-bit port by Alberto.`
+- **Stato git (Regola 3):** Nessun commit né push effettuato senza richiesta esplicita dell'utente.
+
+
+## 2026-11-08 (Sessione 3) — Antigravity → Alberto e Agenti (Fix 1 FPS e crash transizione in-game missione)
+- **Problema 1: Framerate bloccato a 1 FPS (`LbTimerClock` / sleep):**
+  - **Causa:** in `bflibrary/src/x86-win-sdl2/stime.c`, `LbTimerClock()` usava `#ifndef __unix__` con fallback su `clock()`. Sia su macOS (`__APPLE__`) che su Windows, `__unix__` non è definito, quindi veniva chiamato `clock()`, che su POSIX/macOS restituisce il tempo CPU del processo e NON il tempo di clock reale (wall-clock). Poiché il thread del gioco eseguiva `SDL_Delay()`, il tempo CPU non avanzava e `LbSleepUntil()` ritardava per un secondo intero a ogni fotogramma.
+  - **Fix:** `LbTimerClock()` in `stime.c` aggiornato per restituire direttamente `(TbClockMSec)SDL_GetTicks()`. Aggiornato anche `src/game_speed.c` (`update_tick_time()`) per usare `(ulong)(LbTimerClock() / 1000)`. Framerate ora fluido a 30+ FPS.
+- **Problema 2: Crash al passaggio alla missione in-game (selezione missione -> gameplay):**
+  - **Causa A (Truncamento puntatori 64-bit in `thing.c`):** le routine `new_thing_traffic_clone()`, `create_item()`, `create_scale_effect()`, `create_stasis_pod()`, `create_time_pod()`, `create_electric_strand()` contenevano istruzioni decompilate con `*(int *)&sthings`, che su architettura LP64 (ARM64) troncavano a 32 bit il puntatore heap a 64-bit (`0x108fa3d8` -> `0x08fa3d8`), scatenando `SIGSEGV EXC_BAD_ACCESS`. Riscritte tutte le routine in C pulito con indicizzazione `&sthings[thing]`.
+  - **Causa B (Sign-extension errato in `update_map_thing_and_traffic_refs`):** in `src/game.c:864-970`, i cicli di mappatura riferimenti usavano cast `*(int *)&` su puntatori globali a 64-bit (`things`, `sthings`, `game_traffic_nodes`, `game_object_faces4`), causando estensione di segno con indirizzi invalidi `0xfffffffff8fa3dc9`. Riscritta la funzione in C nativo sicuro a 64-bit.
+  - **Causa C (Asserzione fallita `ingame.PanelPermutation == -2` in `setup_host` e shift `struct InGame`):**
+    - In `src/game_options.h`, `struct InGame` conteneva campi `long` (`Credits`, `fld_unkC91`, `CashAtStart`, `Expenditure`), che su architetture LP64 occupavano 8 byte anziché 4 byte, disallineando e corrompendo tutti i campi successivi (`Flags`, `CurrentMission`, `PanelPermutation`, `TrenchcoatPreference`). Convertiti in `s32` e `u32`.
+    - In `src/game.c:1540`, ripristinata l'assegnazione corretta `ingame.PanelPermutation = -2;` in `setup_host()`.
+- **Verifica runtime & gameplay:**
+  - Compilato ed eseguito con successo `./syndwarsfx -W -q -m 0,1` in `/Users/opo/Documents/Syndicate Wars/SWARS`.
+  - Il caricamento del livello, delle mesh 3D, degli agenti, del traffico e delle texture avviene regolarmente senza crash o blocchi, con audio e controlli pienamente operativi.
+- **Stato git (Regola 3):** Nessun commit o push effettuato senza richiesta esplicita.
+
+
+## 2026-11-08 (Sessione 4) — Antigravity → Alberto e Agenti (Fix audio, struct SampleInfo stride e crash process_sound_heap)
+- **Problema 1: Crash in `process_sound_heap` -> `IsSamplePlaying` -> `AIL2OAL_API_sample_status` (`KERN_INVALID_ADDRESS at 0x6400000000000008`):**
+  - **Causa A (Mismatch dimensionale e disallineamento puntatori in `struct SampleInfo`):**
+    - In `bfsoundlib/include/bfsound.h`, `struct SampleInfo` era marcato con `#pragma pack(1)` e conteneva `long SampleVolume` (8 byte su LP64). A causa della mancanza di tracking delle dipendenze header nello script di build incrementale, `init_snd.c.o` e `ssampfad.c.o` erano compilati con un passo di **37 byte** (`0x25`), mentre `sound.c.o` e `variable.c.o` iteravano con un passo di **33 byte** (`0x21`).
+    - L'array globale `sample_id[32]` veniva inizializzato da `InitAllSamples()` con offset a 37 byte, ma `process_sound_heap()` leggeva i canali a scatti di 33 byte. Al primo campione riprodotto, `s->SampleHandle` leggeva memoria non allineata contenente il valore di volume/pitch (`0x64` = 100 in decimale), producendo il puntatore corrotto `0x6400000000000000`. La dereferenziazione di `s->status` all'offset +8 in `AIL2OAL_API_sample_status` causava crash immediato `0x6400000000000008`.
+    - Inoltre, con `#pragma pack(1)` i puntatori a 64 bit `struct SNDSAMPLE *SampleHandle` cadevano su indirizzi dispari non allineati a 8 byte, violando l'allineamento naturale ARM64.
+  - **Fix A:**
+    - In `bfsoundlib/include/bfsound.h`, normalizzato `SampleVolume` a `s32` e rimossa la direttiva `#pragma pack(1)` da `struct SampleInfo`. Con l'allineamento naturale, la struttura misura esattamente **32 byte** (potenza di 2, stride 0x20), e ogni puntatore `SampleHandle` è garantito allineato a 8 byte.
+    - In `bfsoundlib/src/init_snd.c`, aggiunta azzeratura preventiva `memset(sample_id, 0, sizeof(sample_id))` in `InitAllSamples()`.
+    - Aggiunte guardie di sicurezza contro indirizzi invalidi o residui di stack (`if (s == NULL || (uintptr_t)s < 0x10000)`) in `AIL2OAL_API_sample_status` (`ailss.c`), `IsSamplePlaying` (`ssampply.c`), `process_sound_heap` (`sound.c`), `stop_sample_using_heap` (`sound.c`) e `monitor_all_samples` (`sound.c`).
+- **Problema 2: Troncamento puntatori 64-bit in `ail_sample_ids` e silenziamento audio 3D:**
+  - **Causa:** in `src/sound.c:90`, `ail_sample_ids` era dichiarato `uint32_t ail_sample_ids[128]`. In `fill_ail_sample_ids()`, il puntatore `s->SampleHandle` veniva troncato a 32 bit, rendendo il confronto `if (s->SampleHandle != (struct SNDSAMPLE *)ail_sample_ids[idx]) continue;` in `monitor_all_samples()` sempre vero su LP64 (bit alti azzerati vs puntatore heap `0x10...`). Di conseguenza l'aggiornamento dell'attenuazione 3D e dei canali audio veniva sistematicamente saltato.
+  - **Fix:** convertito `ail_sample_ids` in `uintptr_t ail_sample_ids[128]` e ripristinato il corretto tracciamento dei canali OpenAL.
+- **Problema 3: Chiamata spuria a `reset_heaps()` in `setup_heap_manager`:**
+  - Rimosso `reset_heaps()` superfluo prima di `return 1` in `setup_heap_manager` (`src/sound.c:842`).
+- **Verifica runtime e build pulita:**
+  - Eseguita pulizia completa degli oggetti e ricompilazione integrale di tutte le 254 unità di traduzione con `python3 scripts/build_macos.py`.
+  - Verificato tramite disassemblaggio che tutti i moduli (`init_snd.c.o`, `sound.c.o`, `ssampply.c.o`, `variable.c.o`) utilizzano uniformemente l'offset/stride di 32 byte (`#0x20`).
+  - Binario installato e firmato in `/Users/opo/Documents/Syndicate Wars/SWARS/syndwarsfx`.
+  - Avvio di test con `./syndwarsfx -W -q`: il gioco parte, carica le risorse, esegue il loop principale e i canali audio senza crash o interruzioni (`SIGTERM` pulito al termine).
+- **Stato git (Regola 3):** Nessun commit né push effettuato.
+
+## 2026-11-08 — Claude Code → Antigravity e utente (URGENTE: origin/master d1a76038 va in crash all'avvio, su ogni missione)
+- **Scoperto riprendendo i controlli dopo il blocco SSH:** il binario compilato da `origin/master` (`d1a76038`, gia' pubblicato) va in SIGSEGV durante l'avvio di OGNI missione, prima di qualunque turno di gioco. Non e' un problema del mio lavoro sull'OMEN (ambiente, flag di compilazione, `-O0`/`-O2` verificati entrambi: crash identico).
+- **Dove:** `LbDrawBufferFCRemap` (bflibrary/src/general/gspr_map.c:119) ← `LbSpriteDrawFCRemap` ← `draw_frame_unscaled_alpha_force` (frm=185) ← `draw_shadows_for_multicolor_sprites` ← `generate_shadows_for_multicolor_sprites` ← `prep_single_mission` ← `game_setup`. Legge un puntatore sprite sporco (byte 0xCC ripetuti, tipico di memoria non inizializzata/corrotta).
+- **Bisezione fatta (build pulita + gdb, `-m 0,1 -p 3`, OMEN):**
+  - `3ac40ae8` (mio, BAT_unknsub_22) → **pulito**, arriva al turno 400 senza crash.
+  - `1df53c53` (mio, ritiro asm Breakout) → **pulito**.
+  - `b1b68004` (merge con `e97abd6b` di Antigravity, audio `sound_smp_s.sx` in C) → **crasha**.
+  - `d1a76038` (HEAD attuale) → **crasha**, stesso indirizzo esatto.
+  - Quindi la regressione entra con `e97abd6b`.
+- **Sospetto non confermato:** `c_create_sound_effect` in `src/sound.c` (nuovo in `e97abd6b`), chiamato da `create_sound_effect` in `src/thing.c`. Usa `get_new_sthing()` e poi `&sthings[idx]` con il controllo `if (idx == 0 || idx > -1 || idx < -1500) return NULL;`. Non ho fatto in tempo a isolarlo con un test pulito (un .o residuo nel build persistente di OMEN dava "multiple definition" su `ail_sample_ids`/`sound_heap_size`/`dword_1DDECC`/`sound_heap_memory`: sembra che `sound_smp_s.sx` esporti ancora quei dati fuori dal blocco `#if 0`, in conflitto con le stesse variabili ora dichiarate in C in `sound.c`). Da controllare per primo.
+- **Cosa NON ho toccato:** il lavoro in corso di Antigravity sul porting ARM64 (66 file non committati in `local-funcs`) e' rimasto esattamente com'era; ho lavorato solo su worktree isolati (`/tmp/wt_fix`, rimosso) e archivi `git archive` separati.
+- **Build OMEN da sapere:** il `/src/build` persistente accumula stato fra sessioni diverse (oggetti non ricompilati, `wrappers_game.sx` generato che va cancellato a mano se cambia `conf/wrappers_game.conf`). Ogni test incrociato richiede `rm -f src/wrappers_game.sx src/wrappers_game.o src/syndwarsfx` prima di `make`, e per i file toccati da piu' esperimenti anche i loro `.o` singoli.
+- **Da fare:** isolare e correggere `c_create_sound_effect` (o quel che e'), poi rilanciare `par_check.sh` per tutte e 6 le missioni + partita lunga. Finche' non e' risolto, **`origin/master` non e' giocabile dall'inizio di nessuna missione**: non va pubblicato materiale ne' fatto altro lavoro sopra finche' questo non e' chiuso.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
