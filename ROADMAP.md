@@ -155,7 +155,7 @@ Missione, lessico e principi architetturali sono fissati in [VISION.md](VISION.m
 ### Fase 6 — Syndicate Wars: dal decompilato a un motore moderno
 Progetto parallelo alla roadmap del runtime. Il gioco vive nel repository privato `syndwars-remake` (fork di syndwarsfx, GPL 3); gli strumenti di decompilazione restano qui in `scripts/syndwars_*.py` finché sono in sviluppo. Stato e numeri aggiornati in `AGENT-LOG.md`.
 
-**6.1 — Chiudere la logica in C (in corso)**
+**6.1 — Chiudere la logica in C (fatto, 2026-11-08: resta solo la rete, esclusa per scelta)**
 - Stato al 2026-11-07: in `swars.sx` restano circa 11.000 istruzioni assembly attive (68.225 all'inizio); in tutto il gioco circa 30.000.
 - Restano le funzioni grandi (`process_weapon`, `process_vehicle`, `thing_hit_by_bullet`, `mech_unkn_func_12`, `explode_thing_building`, `create_another_strand`, `make_clip_list`) e le bozze che il verificatore dà diverse dall'originale: da analizzare una per una.
 - Video Smack, audio e rete (`bfsmacklib`, `ailssa`, `radica*`, `net*`, `sound_*`) **non si decompilano**: si sostituiscono con componenti del nuovo motore (decisione del 2026-11-07). Video e suono sono già ritirati da Antigravity; la rete resta com'è (assembly escluso dalla decompilazione) finché non servirà il multiplayer, che si rifarà con un trasporto nuovo.
@@ -163,6 +163,7 @@ Progetto parallelo alla roadmap del runtime. Il gioco vive nel repository privat
 - Criterio di uscita: nessuna istruzione x86 attiva fuori dalle librerie da sostituire; stato di gioco identico a master su tutte le partite registrate.
 
 **6.2 — Compilazione in WebAssembly con grafica software**
+- Piano dettagliato di 6.2, 6.4 e del collegamento con i cicli notturni di HyperSpace: [`docs/syndwars-webgpu.md`](docs/syndwars-webgpu.md).
 - Richiede 0 assembly. Test decisivo: la logica gira nel browser con il rasterizzatore attuale mostrato in una canvas. Da misurare: prestazioni della simulazione.
 - Dati originali **mai** distribuiti: caricati dalla copia dell'utente, oppure dati propri.
 
