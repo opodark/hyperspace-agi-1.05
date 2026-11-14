@@ -1,0 +1,56 @@
+{
+  "_nota": "Copia in targets.json e sostituisci i FILL_ME. Le chiavi NON vanno scritte qui: solo il nome della variabile d'ambiente (key_env).",
+  "targets": [
+    {
+      "name": "hyperspace_system",
+      "kind": "system",
+      "components": "Control Plane :8085 (routing mesh, review gate LAYA) + modelli locali",
+      "declared_reasoning": "FILL_ME (acceso/spento, budget token)",
+      "model_type": "local-chat-completions",
+      "model_args": {
+        "model": "FILL_ME",
+        "base_url": "http://localhost:8085/v1/chat/completions",
+        "num_concurrent": 2,
+        "max_retries": 3,
+        "tokenized_requests": "False"
+      },
+      "gen_kwargs": {
+        "max_gen_toks": 4096
+      }
+    },
+    {
+      "name": "gemini_3_8_medium",
+      "kind": "frontier",
+      "components": "API Google, endpoint compatibile OpenAI",
+      "declared_reasoning": "medium — FILL_ME: parametro esatto e ID modello dalla documentazione Google",
+      "model_type": "local-chat-completions",
+      "key_env": "GEMINI_API_KEY",
+      "model_args": {
+        "model": "FILL_ME",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "num_concurrent": 4,
+        "max_retries": 5,
+        "tokenized_requests": "False"
+      },
+      "gen_kwargs": {
+        "max_gen_toks": 4096
+      }
+    },
+    {
+      "name": "claude_sonnet_5_5_medium",
+      "kind": "frontier",
+      "components": "API Anthropic",
+      "declared_reasoning": "medium — FILL_ME: come si imposta lo sforzo con questo tipo di modello nell'harness",
+      "model_type": "anthropic-chat-completions",
+      "key_env": "ANTHROPIC_API_KEY",
+      "key_target_env": "ANTHROPIC_API_KEY",
+      "model_args": {
+        "model": "claude-sonnet-5-5",
+        "max_retries": 5
+      },
+      "gen_kwargs": {
+        "max_gen_toks": 4096
+      }
+    }
+  ]
+}

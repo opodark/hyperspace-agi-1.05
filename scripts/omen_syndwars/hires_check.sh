@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 W=/mnt/c/Users/opoda/swbuild
 X="--exclude=Makefile.am --exclude=configure.ac --exclude=*.m4"
 tar -xmf $W/master_tree.tar $X -C /src; rm -f /src/src/drafts_link.h

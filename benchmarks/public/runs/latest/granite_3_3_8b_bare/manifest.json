@@ -1,0 +1,56 @@
+{
+  "target": "granite_3_3_8b_bare",
+  "kind": "model",
+  "components": "OMEN RTX 3070 — granite3.3:8b nudo (nessun review gate, nessun tool, inferenza diretta su GPU)",
+  "declared_reasoning": "nessun ragionamento/thinking; modello nudo",
+  "model_type": "local-chat-completions",
+  "model_args": {
+    "model": "granite3.3:8b",
+    "base_url": "http://100.104.238.125:8085/v1/chat/completions",
+    "num_concurrent": 1,
+    "max_retries": 3,
+    "tokenized_requests": "False"
+  },
+  "gen_kwargs": {
+    "temperature": 0,
+    "until": "</s>",
+    "max_gen_toks": 4096,
+    "surface": "workbench"
+  },
+  "key_env": null,
+  "headers": {
+    "X-Hyperspace-Tools": "off",
+    "X-Hyperspace-Surface": "workbench"
+  },
+  "tasks": [
+    "ifeval",
+    "gsm8k"
+  ],
+  "limit": 2,
+  "full_run": false,
+  "seed": 1234,
+  "command": [
+    "/Users/opo/.venvs/lm_eval/bin/lm_eval",
+    "run",
+    "--model",
+    "local-chat-completions",
+    "--config",
+    "benchmarks/public/runs/latest/granite_3_3_8b_bare/lm_eval_config.json",
+    "--tasks",
+    "ifeval,gsm8k",
+    "--apply_chat_template",
+    "--gen_kwargs",
+    "temperature=0,until=</s>,max_gen_toks=4096,surface=workbench",
+    "--seed",
+    "1234",
+    "--output_path",
+    "benchmarks/public/runs/latest/granite_3_3_8b_bare",
+    "--log_samples",
+    "--limit",
+    "2"
+  ],
+  "lm_eval_version": "0.4.13",
+  "repo_commit": "5ae2741e14c584e7059de207e20d990443574eed",
+  "python": "3.14.5",
+  "started_utc": "2026-11-14T13:16:06+00:00"
+}

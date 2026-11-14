@@ -93,3 +93,7 @@ strix_runs/
 # Reel specifici (non versionati: su git solo stili/template riusabili)
 integrations/tiktok_editor/motion/reels/youtube-our-world-2026-11-01.js
 integrations/tiktok_editor/motion/reels/youtube-our-world-short-2026-11-01.js
+
+# File auto-generato localmente da claude-mem
+.github/copilot-instructions.md
+

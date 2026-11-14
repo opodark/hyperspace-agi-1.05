@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 NAME=__NAME__
 H=__H__
 W=/mnt/c/Users/opoda/swbuild

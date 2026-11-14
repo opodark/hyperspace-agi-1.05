@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # uso: evalset.sh NOME   (il tar sta in $W/sets/NOME.tar)
 NAME=__NAME__
 W=/mnt/c/Users/opoda/swbuild

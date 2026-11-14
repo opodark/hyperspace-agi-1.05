@@ -146,7 +146,7 @@ integrations:
     local_path: vendor/wayfinder
     description: Workflow decisionali persistenti e mappe di pianificazione Wayfinder
     upstream_url: https://github.com/mattpocock/skills.git
-    pinned_ref: main
+    pinned_ref: 6fd947921b935b7e1e69293a200400f0fdd5c15f
     active_branch: main
     test_command: .venv/bin/python -m pytest tests/test_wayfinder.py -q
     auto_sync: true
@@ -156,7 +156,7 @@ integrations:
     local_path: vendor/ecc
     description: Bundle workflow per security review e loop di verifica formale
     upstream_url: https://github.com/affaan-m/ECC.git
-    pinned_ref: main
+    pinned_ref: 9ac593b55cba44c8b20152a5c7f28d300a67ec7e
     active_branch: main
     test_command: .venv/bin/python -m pytest tests/test_forge_skills.py -k ecc -q
     auto_sync: true
@@ -245,7 +245,8 @@ integrations:
     category: forge_bundle
     local_path: scripts/marketing/linkedin_generator.py
     description: Generatore e validatore euristico di post LinkedIn per aggiornamenti di sviluppo tecnico e build-in-public (fold-cutoff, readability, CTA)
-    upstream_url: https://liftli.ai/skills/
+    upstream_url: ''
+    reference_url: https://liftli.ai/skills/
     pinned_ref: main
     active_branch: main
     test_command: .venv/bin/python -m pytest tests/test_linkedin_generator.py -q
@@ -259,6 +260,16 @@ integrations:
     pinned_ref: 34f519533bc175d2fe287ab8316b0dd99bb9cc43
     active_branch: main
     test_command: test -f vendor/cli-anything/skills/cli-hub-meta-skill/SKILL.md
+    auto_sync: false
+  gamedev_skills:
+    name: Awesome GameDev Agent Skills (Abhishek Barali)
+    category: forge_bundle
+    local_path: vendor/gamedev-skills
+    description: Catalogo di 79 skill e router per lo sviluppo di videogiochi (Godot, Unity, Unreal, Bevy, Ebitengine, Phaser, PixiJS, three.js, Defold, LÖVE, pygame, Roblox, AI, shader, fisica, level design, UI/UX)
+    upstream_url: https://github.com/gamedev-skills/awesome-gamedev-agent-skills.git
+    pinned_ref: c6ca6c41c839b68319ffc08430b99ab768debc32
+    active_branch: main
+    test_command: .venv/bin/python -m pytest tests/test_gamedev_skills_vendor.py -q
     auto_sync: false
   open_webui:
     name: Open WebUI Client & Tool Server

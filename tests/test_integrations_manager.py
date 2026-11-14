@@ -96,3 +96,30 @@ def test_format_table():
     table = manager.format_table(statuses, with_upstream=False)
     assert "| ID " in table
     assert "tiktok_editor" in table
+
+
+def _check_with(monkeypatch, pinned_ref, local_sha, remote_sha):
+    """Esegue check_upstream su una sola voce finta, senza rete né filesystem."""
+    manager = IntegrationsManager()
+    manager.config = {"integrations": {"x": {"upstream_url": "https://example.invalid/x.git", "pinned_ref": pinned_ref}}}
+    entry = {"id": "x", "upstream_url": "https://example.invalid/x.git", "pinned_ref": pinned_ref,
+             "git": {"is_git": bool(local_sha), "commit_sha": local_sha}}
+    monkeypatch.setattr(manager, "status", lambda integration_id=None: [dict(entry)])
+    monkeypatch.setattr(manager, "query_remote_ref", lambda *a, **k: remote_sha)
+    return manager.check_upstream()[0]["upstream_status"]
+
+
+def test_check_upstream_compares_the_right_reference(monkeypatch):
+    a, b = "a" * 40, "b" * 40
+    # pin su un ramo/tag/versione: conta il commit locale, non la stringa del pin
+    assert _check_with(monkeypatch, "main", a, a) == "UP_TO_DATE"
+    assert _check_with(monkeypatch, "main", a, b) == "NEW_UPSTREAM_AVAILABLE"
+    assert _check_with(monkeypatch, "v0.12.0", a, a) == "UP_TO_DATE"
+    # pin su un commit: conta il pin, anche abbreviato
+    assert _check_with(monkeypatch, a, None, a) == "UP_TO_DATE"
+    assert _check_with(monkeypatch, a[:8], None, a) == "UP_TO_DATE"
+    assert _check_with(monkeypatch, a, None, b) == "NEW_UPSTREAM_AVAILABLE"
+    # né commit locale né pin su commit: raggiungibile ma non confrontabile
+    assert _check_with(monkeypatch, "main", None, a) == "CHECKED"
+    assert _check_with(monkeypatch, "6.7.0", None, a) == "CHECKED"
+    assert _check_with(monkeypatch, "main", a, None) == "REMOTE_UNREACHABLE"

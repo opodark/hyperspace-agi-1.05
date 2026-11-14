@@ -67,6 +67,22 @@ def download_file(url: str, dest: Path, timeout_sec: int = 15) -> bool:
     return res.returncode == 0
 
 
+def snapshot_files(paths: List[Path]) -> Dict[Path, Optional[bytes]]:
+    """Fotografa il contenuto dei file che un aggiornamento sta per toccare (None = assente)."""
+    return {p: (p.read_bytes() if p.exists() else None) for p in paths}
+
+
+def restore_files(snapshot: Dict[Path, Optional[bytes]]) -> None:
+    """Riporta i file allo stato della fotografia: un rollback che ripristina solo il
+    manifest lascerebbe file nuovi con hash vecchi."""
+    for p, content in snapshot.items():
+        if content is None:
+            p.unlink(missing_ok=True)
+        else:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(content)
+
+
 class UpstreamAutoSync:
     def __init__(self):
         self.manager = IntegrationsManager()
@@ -183,7 +199,14 @@ class UpstreamAutoSync:
             return res
 
         print(f"🔄 [Agency Agents] Nuovo commit {remote_commit[:10]} (attuale: {current_commit[:10]}). Sincronizzazione...")
-        backup_manifest = manifest_file.read_text(encoding="utf-8")
+        backup = snapshot_files(
+            [manifest_file]
+            + [bundle_dir / "upstream" / n for n in (
+                "engineering-multi-agent-systems-architect.md",
+                "engineering-code-reviewer.md",
+                "engineering-technical-writer.md",
+            )]
+        )
 
         try:
             # Scarica i file upstream specificati nel manifest
@@ -240,13 +263,13 @@ class UpstreamAutoSync:
                 })
             else:
                 print(f"⚠️ [Agency Agents] Test fallito! Rollback manifest...")
-                manifest_file.write_text(backup_manifest, encoding="utf-8")
+                restore_files(backup)
                 res["applied"] = False
                 res["status"] = "ROLLBACK_TEST_FAILED"
                 res["error"] = test_proc.stdout + "\n" + test_proc.stderr
 
         except Exception as exc:
-            manifest_file.write_text(backup_manifest, encoding="utf-8")
+            restore_files(backup)
             res["applied"] = False
             res["status"] = "ERROR"
             res["error"] = str(exc)
@@ -285,10 +308,10 @@ class UpstreamAutoSync:
             return res
 
         print(f"🔄 [AnyDoc] Nuovo commit {remote_commit[:10]}. Sincronizzazione...")
-        backup_manifest = manifest_file.read_text(encoding="utf-8")
+        skill_dest = bundle_dir / "skills" / "convert-documents-to-markdown" / "SKILL.md"
+        backup = snapshot_files([manifest_file, skill_dest])
 
         try:
-            skill_dest = bundle_dir / "skills" / "convert-documents-to-markdown" / "SKILL.md"
             raw_url = f"https://raw.githubusercontent.com/firecrawl/anydoc/{remote_commit}/skills/convert-documents-to-markdown/SKILL.md"
             if not download_file(raw_url, skill_dest):
                 raise RuntimeError(f"Download fallito per {raw_url}")
@@ -325,12 +348,12 @@ class UpstreamAutoSync:
                     "status": "UPDATED_SUCCESS",
                 })
             else:
-                manifest_file.write_text(backup_manifest, encoding="utf-8")
+                restore_files(backup)
                 res["applied"] = False
                 res["status"] = "ROLLBACK_TEST_FAILED"
 
         except Exception as exc:
-            manifest_file.write_text(backup_manifest, encoding="utf-8")
+            restore_files(backup)
             res["applied"] = False
             res["status"] = "ERROR"
             res["error"] = str(exc)

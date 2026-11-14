@@ -232,13 +232,26 @@ class IntegrationsManager:
 
             if not remote_sha:
                 entry["upstream_status"] = "REMOTE_UNREACHABLE"
-            elif pinned_ref:
-                if remote_sha.startswith(pinned_ref) or pinned_ref.startswith(remote_sha[:8]):
+            else:
+                # Il riferimento con cui confrontare lo SHA remoto: il pin solo se è
+                # davvero un commit; se è un ramo, un tag o una versione ("main",
+                # "v0.12.0", "6.7.0") vale il commit locale. Senza nessuno dei due
+                # il remoto è raggiungibile ma non confrontabile.
+                pinned = str(pinned_ref or "").strip().lower()
+                local_sha = (entry.get("git") or {}).get("commit_sha")
+                if re.fullmatch(r"[0-9a-f]{7,40}", pinned):
+                    reference = pinned
+                elif local_sha:
+                    reference = local_sha.lower()
+                else:
+                    reference = None
+
+                if reference is None:
+                    entry["upstream_status"] = "CHECKED"
+                elif remote_sha.lower().startswith(reference):
                     entry["upstream_status"] = "UP_TO_DATE"
                 else:
                     entry["upstream_status"] = "NEW_UPSTREAM_AVAILABLE"
-            else:
-                entry["upstream_status"] = "CHECKED"
 
         return statuses
 

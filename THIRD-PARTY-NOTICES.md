@@ -204,6 +204,23 @@ gestione `cli-anything-hub` (Apache-2.0) è installata nel runtime per consentir
 agli agenti di scoprire, installare e pilotare software desktop/server con
 output strutturato JSON.
 
+## awesome-gamedev-agent-skills — router e 79 skill per lo sviluppo di videogiochi
+
+`vendor/gamedev-skills` contiene il dispatcher `router/` e tutte le 79 Agent Skill
+sotto `skills/` (motori di gioco, discipline, generi e workflow, completi di
+`references/`, `scripts/`, `assets/` e `agents/`) dal repository ufficiale
+[gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills),
+commit `c6ca6c41c839b68319ffc08430b99ab768debc32`, sotto licenza Apache-2.0.
+Copyright 2026 Abhishek Barali and the awesome-gamedev-agent-skills contributors.
+I file integrali `LICENSE` e `NOTICE` sono conservati in
+`vendor/gamedev-skills/LICENSE` e `vendor/gamedev-skills/NOTICE`; provenienza e
+impronte SHA-256 di tutti i 254 file vendorizzati sono registrate in
+`vendor/gamedev-skills/manifest.json`. Esclusi deliberatamente `.github/`,
+`docs/`, `evals/`, `tests/`, `scripts/` e `templates/` del sito/CI upstream.
+All'interno di `skills/ebitengine/ebitengine-game/assets/starter/licenses/Go-Fonts.txt`
+è conservata la licenza BSD-3-Clause dei Go Fonts (Copyright (c) 2016 Bigelow &
+Holmes Inc.) inclusi nello starter template Ebitengine.
+
 ## pdf-inspector — classificazione dei PDF
 
 `pdf-inspector` (PyPI, MIT) è il binding Python della libreria Rust omonima di

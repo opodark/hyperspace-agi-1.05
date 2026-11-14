@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import gdb, os, signal, threading, hashlib
 inf = gdb.selected_inferior()
 import ctypes

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 cd /opt/sw; export SDL_AUDIODRIVER=dummy ALSOFT_DRIVERS=null
 pkill Xvfb; setsid nohup Xvfb :9 -screen 0 1024x768x24 >/dev/null 2>&1 & sleep 2; export DISPLAY=:9
 run() { tag=$1; bin=$2

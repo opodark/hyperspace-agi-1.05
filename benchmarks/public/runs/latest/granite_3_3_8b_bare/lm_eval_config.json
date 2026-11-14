@@ -1,0 +1,13 @@
+{
+  "model_args": {
+    "model": "granite3.3:8b",
+    "base_url": "http://100.104.238.125:8085/v1/chat/completions",
+    "num_concurrent": 1,
+    "max_retries": 3,
+    "tokenized_requests": "False",
+    "header": {
+      "X-Hyperspace-Tools": "off",
+      "X-Hyperspace-Surface": "workbench"
+    }
+  }
+}

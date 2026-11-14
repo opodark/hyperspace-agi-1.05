@@ -14,7 +14,8 @@ cosa:
    skill **`handoff`** (in `~/.claude/skills/handoff` o `.agents/skills/handoff`),
    che compila un documento in `$TMPDIR` indicando stato e suggested skills.
    Altre skill vendorizzate con lo stesso schema: `teach`, `marketing-psychology`,
-   `anatomy` — vedi "Altre skill vendorizzate" in AGENTS.md.
+   `anatomy`, `last30days`, `cli-hub-meta-skill`, `router` (`vendor/gamedev-skills`,
+   79 skill gamedev) — vedi "Altre skill vendorizzate" in AGENTS.md.
 
 Due cose che è facile sbagliare:
 

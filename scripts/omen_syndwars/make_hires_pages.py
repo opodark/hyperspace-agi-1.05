@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Uso: SW_GAME_DIR=... SW_X4_DIR=... python make_hires_pages.py <uscita> <palette: pal|pal1|pal2|pal3> <file palette es. QDATA/PAL0.DAT> 512 [forza dettaglio]
    Scrive tex00h.dat ... tex03h.dat, da mettere in data/ accanto agli originali: il gioco li preferisce se esistono.
    Pagine 512x512 a 8 bit: i colori vengono dall'originale (palette del gioco), il dettaglio dall'IA.

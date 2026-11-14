@@ -1,0 +1,35 @@
+{
+  "_nota": "Scritto PRIMA di misurare (2026-11-03). Non modificare dopo il primo giro: eventuali correzioni vanno in un file nuovo.",
+  "margin_points": 3.0,
+  "definizioni": {
+    "pareggio": "differenza entro ±margin_points rispetto al modello di frontiera",
+    "sconfitta": "sistema HyperSpace sotto di piu' di margin_points",
+    "non-sconfitta": "pareggio o vittoria"
+  },
+  "scommessa": {
+    "utente": "il sistema HyperSpace non perde contro Gemini 3.8 medium e Sonnet 5.5 medium su nessun benchmark",
+    "claude": "il sistema perde nettamente su ragionamento difficile (gpqa) e probabilmente su mmlu_pro; pareggia su gsm8k e ifeval; bbh incerto"
+  },
+  "predictions": {
+    "gsm8k": {
+      "utente": "non-sconfitta",
+      "claude": "non-sconfitta"
+    },
+    "ifeval": {
+      "utente": "non-sconfitta",
+      "claude": "non-sconfitta"
+    },
+    "bbh_cot_zeroshot": {
+      "utente": "non-sconfitta",
+      "claude": "incerto"
+    },
+    "mmlu_pro": {
+      "utente": "non-sconfitta",
+      "claude": "sconfitta"
+    },
+    "gpqa_diamond_cot_zeroshot": {
+      "utente": "non-sconfitta",
+      "claude": "sconfitta"
+    }
+  }
+}

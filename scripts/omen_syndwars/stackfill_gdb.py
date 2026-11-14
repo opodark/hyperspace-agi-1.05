@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import gdb, os
 inf = gdb.selected_inferior()
 fill = int(os.environ["FILL"]) if os.environ.get("FILL", "") != "" else None

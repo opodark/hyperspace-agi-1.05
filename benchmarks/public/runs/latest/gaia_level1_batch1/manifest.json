@@ -1,0 +1,10 @@
+{
+  "base_url": "http://100.104.238.125:8085/v1/chat/completions",
+  "model": "flint:latest",
+  "max_turns": 12,
+  "max_tokens": 4096,
+  "client_tools": false,
+  "allow_python": false,
+  "searxng_url": "http://localhost:8092",
+  "limit": 4
+}
