@@ -13384,3 +13384,30 @@ Completato il restyling delle UI del Control Plane e di Infra UI in stile "Sover
   - `.venv/bin/python -m pytest tests/test_company_org.py tests/test_surfaces.py tests/test_infra_ui_landing.py tests/test_diario_routes.py tests/test_conversations.py tests/test_intimate_page.py tests/test_code_conversation.py tests/test_code_channel.py tests/test_forge.py tests/test_dream_routes.py tests/test_graphify_surface.py tests/test_rea_surface.py tests/test_mission_routes.py tests/test_licensing.py -q` → **199 passed, 130 subtests passed** (`4.86s`).
   - Suite Node `tests/dashboard*.test.cjs` (8 file: `dashboard`, `dashboard_approval_dialog`, `dashboard_dev`, `dashboard_keyboard`, `dashboard_sandbox`, `dashboard_services`, `dashboard_wayfinder`, `dashboard_web_node`) → **tutte passate** (`RC=0`).
   - Check sintassi `<script>` inline con `node` (`vm.Script`) su tutti i 12 `.html` creati/modificati → **OK**.
+
+## 2026-11-15 (sera, seguito) — Antigravity → Utente, Claude Code e colleghi (Ripristino R&D su :8090 + Nuovo HyperSpace Sovereign OS Desktop)
+
+1. **Risoluzione collisione porta 8090 & Ripristino R&D Lab**:
+   - **Causa individuata**: il dashboard web di Neo-Milano (`/Users/opo/syndicate-godot/dashboard/server.py`) era impostato su `PORT = 8090` con tunnel Cloudflare associato (`sindacato.zerozerocomputer.it -> :8090`), impedendo l'avvio di `scripts/cockpit_service.py` di HyperSpace.
+   - **Disaccoppiamento**:
+     - Spostato il server di gioco su porta `8091` (`PORT = int(os.environ.get("PORT", 8091))`).
+     - Aggiornato `~/.cloudflared/config.yml` (`sindacato.zerozerocomputer.it` &rarr; `http://localhost:8091`) e inviato reload `SIGHUP` al demone del tunnel.
+     - Riavviato `syndicate-godot/dashboard/server.py` su `:8091` (HTTP 200).
+     - Riavviato `scripts/cockpit_service.py` sul suo porto nativo `:8090` (HTTP 200), ripristinando integralmente:
+       - **Sovereign R&D Lab & AST Gate**: `http://localhost:8090/research.html` (e `/api/research/*`)
+       - **HyperDev Studio**: `http://localhost:8090/devstudio.html` (e `/api/devstudio/*`)
+       - **Mission Control**: `http://localhost:8090/missions.html` (e `/api/missions`)
+       - **Analytics & Terminal**: `http://localhost:8090/analytics.html`
+       - **Arcade Games**: `http://localhost:8090/arcade.html`
+2. **Nuova UI Unificata "Sovereign OS Desktop" (`control-plane/desktop.html`)**:
+   - Trasformato l'endpoint principale (`http://localhost:8085/`) in un vero e proprio **Desktop OS Web** che aggrega e lancia tutte le 23+ superfici e funzioni dell'ecosistema:
+     - **Top Menu Bar**: logo HyperSpace, menu navigazione, status nodi mesh, pillola Mesh Doctor, live clock e toggle rapido.
+     - **Spotlight Search (`⌘K` / `Ctrl+K`)**: ricerca istantanea fuzzy su tutte le applicazioni, tool, porte e descrizioni.
+     - **Desktop Icons Grid**: icone con badge, categorie, effetto glow e dot di stato live (ping in tempo reale).
+     - **Window Manager**: apertura in finestre OS interne al desktop con barra del titolo stile macOS (traffic lights 🔴/🟡/🟢, drag, maximize, close, e pulsante pop-out per aprire in nuova scheda).
+     - **Floating Dock**: dock inferiore sfocato in stile Sovereign OS con app preferite (Company, Workspace, R&D Lab, Cockpit, HyperDev, Chat, Diario, Sindacato, Doctor) e indicatori dot per finestre aperte.
+     - **Launchpad Overlay**: schermata a pieno schermo con visualizzazione e raggruppamento a schede per categorie (Governance, R&D & Sviluppo, Mesh & Operazioni, Media & Creatività, Simulazione & Gaming).
+3. **Verifica & Docker**:
+   - `docker compose build control-plane && docker compose up -d control-plane` completato con successo.
+   - Verificata la corretta erogazione HTTP 200 su `http://localhost:8085/`, `http://localhost:8090/research.html` e `http://localhost:8091/`.
+   - Test suites: 20/20 test pytest passati + 8/8 test Node CJS passati.

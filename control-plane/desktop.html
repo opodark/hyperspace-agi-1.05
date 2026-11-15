@@ -1,209 +1,1258 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HyperSpace AGI — Desktop</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>HyperSpace AGI — Sovereign OS Desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/cockpit.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#090a0c;--panel:#0f1115;--border:#222630;
-  --txt:#e6e9ef;--muted:#939ba9;--p:#10b981;--acc:#38bdf8;
-  --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --bg:#07080a;
+  --surface:#0e1117;
+  --surface-elev:#141820;
+  --surface-glass:rgba(14,17,23,0.82);
+  --border:#202530;
+  --border-subtle:#181c24;
+  --txt:#e6e9ef;
+  --muted:#8b93a4;
+  --p:#10b981;
+  --p-glow:rgba(16,185,129,0.22);
+  --acc:#38bdf8;
+  --acc-glow:rgba(56,189,248,0.22);
+  --purp:#a855f7;
+  --amber:#f59e0b;
+  --rose:#f43f5e;
+  --ok:#22c55e;
+  --warn:#f59e0b;
+  --err:#ef4444;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono:'JetBrains Mono',monospace;
 }
-html,body{width:100%;min-height:100%;background:var(--bg);color:var(--txt);font-family:var(--font);letter-spacing:-.011em}
-body{padding:0 0 60px}
-.wrap{max-width:1240px;margin:0 auto;padding:20px 24px 0}
-header.desktop-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:12px}
-.brand-text h1{font-size:1.1rem;font-weight:600;letter-spacing:-.02em}
-.brand-text span{font-size:.75rem;color:var(--muted);font-family:var(--mono)}
-#doctor-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:6px;background:var(--panel);border:1px solid var(--border);font-size:.78rem;cursor:pointer;transition:border-color .14s}
-#doctor-pill:hover{border-color:var(--p)}
-#doctor-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
-#doctor-dot.ok{background:var(--ok)}
-#doctor-dot.warn{background:var(--warn)}
-#doctor-dot.fail{background:var(--err)}
-#doctor-label{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:28px}
-.tile{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;text-decoration:none;color:var(--txt);display:flex;flex-direction:column;gap:8px;transition:border-color .14s,background .14s;overflow:hidden}
-.tile:hover{border-color:var(--p);background:#14171d}
-.tile-icon{font-size:1.35rem;line-height:1}
-.tile-title{font-size:.92rem;font-weight:600}
-.tile-desc{font-size:.78rem;color:var(--muted);line-height:1.45;flex:1}
-.tile-foot{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);margin-top:4px;padding-top:8px;border-top:1px solid #181b22}
-.tile-port{opacity:.85}
-.tile-status{display:flex;align-items:center;gap:5px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
-.dot.up{background:var(--ok)}
-.dot.down{background:var(--err)}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--txt);
+  font-family:var(--font);letter-spacing:-.012em;
+  user-select:none;-webkit-user-select:none;
+}
 
-.section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:24px 0 10px;font-family:var(--mono)}
+/* Background Wallpaper & Grid */
+.os-wallpaper{
+  position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(16,185,129,0.06) 0%, transparent 40%),
+    radial-gradient(circle at 82% 82%, rgba(56,189,248,0.05) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(168,85,247,0.03) 0%, transparent 60%),
+    linear-gradient(to bottom, #08090c, #060709);
+}
+.os-wallpaper::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0.3) 100%);
+  pointer-events:none;
+}
 
-#doctor-panel{display:none;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:24px}
-#doctor-panel.open{display:block}
-#doctor-panel h2{font-size:.9rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.check-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid #181b22}
+/* OS Shell Container */
+.os-shell{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;
+  width:100%;height:100%;
+}
+
+/* Top Menu Bar */
+.os-menubar{
+  height:34px;background:rgba(10,12,16,0.88);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;font-size:12px;z-index:1000;
+}
+.os-menubar-left, .os-menubar-right, .os-menubar-center{
+  display:flex;align-items:center;gap:12px;
+}
+.os-apple-logo{
+  display:inline-flex;align-items:center;gap:7px;
+  font-weight:700;font-size:13px;color:var(--txt);
+  cursor:pointer;padding:2px 8px;border-radius:5px;
+  transition:background .15s;
+}
+.os-apple-logo:hover{background:rgba(255,255,255,0.06)}
+.os-apple-logo svg{width:16px;height:16px;color:var(--p)}
+.os-menu-item{
+  color:var(--muted);cursor:pointer;padding:3px 7px;
+  border-radius:4px;font-weight:500;transition:color .15s, background .15s;
+}
+.os-menu-item:hover, .os-menu-item.active{
+  color:var(--txt);background:rgba(255,255,255,0.06);
+}
+
+/* Spotlight search bar in menubar */
+.os-spotlight-btn{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:6px;padding:3px 12px;font-size:11px;color:var(--muted);
+  cursor:pointer;transition:border-color .15s, background .15s;
+}
+.os-spotlight-btn:hover{
+  border-color:var(--p);background:rgba(255,255,255,0.07);color:var(--txt);
+}
+.os-kbd{
+  font-family:var(--mono);font-size:10px;padding:1px 5px;
+  border-radius:3px;background:rgba(255,255,255,0.08);color:var(--muted);
+}
+
+/* Menubar Right Tray */
+.os-tray-item{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  padding:3px 6px;border-radius:4px;cursor:pointer;
+  transition:background .15s, color .15s;
+}
+.os-tray-item:hover{background:rgba(255,255,255,0.06);color:var(--txt)}
+.os-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block}
+.os-dot.ok{background:var(--ok);box-shadow:0 0 6px rgba(34,197,94,0.6)}
+.os-dot.warn{background:var(--warn)}
+.os-dot.err{background:var(--err)}
+
+/* Desktop Canvas */
+.os-desktop{
+  flex:1;position:relative;overflow:hidden;
+  padding:20px;
+}
+
+/* Desktop Icon Grid */
+.os-icon-grid{
+  display:grid;grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));
+  grid-auto-rows:105px;gap:16px 14px;
+  max-width:1400px;
+  align-content:start;
+}
+.os-icon{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:10px 6px;border-radius:10px;cursor:pointer;
+  text-align:center;position:relative;border:1px solid transparent;
+  transition:all .18s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration:none;color:inherit;
+}
+.os-icon:hover{
+  background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08);
+  transform:translateY(-2px);
+}
+.os-icon.selected{
+  background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.35);
+}
+.os-icon-box{
+  width:50px;height:50px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;position:relative;
+  background:linear-gradient(135deg, #161b24 0%, #0d1016 100%);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  transition:transform .18s, box-shadow .18s;
+}
+.os-icon:hover .os-icon-box{
+  transform:scale(1.05);box-shadow:0 6px 18px rgba(0,0,0,0.55);
+}
+.os-icon-box.glow-p{border-color:rgba(16,185,129,0.35);box-shadow:0 4px 14px var(--p-glow)}
+.os-icon-box.glow-acc{border-color:rgba(56,189,248,0.35);box-shadow:0 4px 14px var(--acc-glow)}
+.os-icon-box.glow-purp{border-color:rgba(168,85,247,0.35);box-shadow:0 4px 14px rgba(168,85,247,0.22)}
+.os-icon-box.glow-amber{border-color:rgba(245,158,11,0.35);box-shadow:0 4px 14px rgba(245,158,11,0.22)}
+.os-icon-box.glow-rose{border-color:rgba(244,63,94,0.35);box-shadow:0 4px 14px rgba(244,63,94,0.22)}
+
+.os-icon-badge{
+  position:absolute;top:-4px;right:-4px;
+  font-size:9px;font-family:var(--mono);padding:1px 4px;
+  border-radius:4px;background:#181e28;border:1px solid #2a3344;
+  color:var(--txt);line-height:1.2;
+}
+.os-icon-status-dot{
+  position:absolute;bottom:-2px;right:-2px;
+  width:9px;height:9px;border-radius:50%;
+  border:2px solid var(--bg);background:var(--muted);
+}
+.os-icon-status-dot.up{background:var(--ok);box-shadow:0 0 6px rgba(34,197,94,0.7)}
+.os-icon-status-dot.down{background:var(--err)}
+
+.os-icon-label{
+  font-size:11.5px;font-weight:500;line-height:1.2;
+  color:var(--txt);max-width:100px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
+}
+.os-icon-sub{
+  font-size:9.5px;color:var(--muted);font-family:var(--mono);
+}
+
+/* Bottom Floating Dock */
+.os-dock-wrapper{
+  position:fixed;bottom:14px;left:0;right:0;
+  display:flex;justify-content:center;z-index:900;
+  pointer-events:none;
+}
+.os-dock{
+  pointer-events:auto;
+  display:flex;align-items:center;gap:10px;
+  padding:7px 14px;border-radius:18px;
+  background:rgba(12,15,20,0.78);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 12px 36px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.os-dock-btn{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  width:44px;height:44px;border-radius:11px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);
+  align-items:center;justify-content:center;font-size:22px;
+  cursor:pointer;transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.os-dock-btn:hover{
+  transform:scale(1.22) translateY(-6px);
+  background:rgba(255,255,255,0.09);
+  border-color:rgba(255,255,255,0.18);
+  box-shadow:0 8px 18px rgba(0,0,0,0.5);
+}
+.os-dock-btn.active::after{
+  content:'';position:absolute;bottom:-5px;width:4px;height:4px;
+  border-radius:50%;background:var(--p);box-shadow:0 0 4px var(--p);
+}
+.os-dock-divider{
+  width:1px;height:26px;background:rgba(255,255,255,0.1);
+  margin:0 2px;
+}
+.os-dock-tooltip{
+  position:absolute;top:-34px;background:#141822;border:1px solid #2a3344;
+  color:var(--txt);font-size:11px;font-weight:500;padding:3px 8px;border-radius:5px;
+  white-space:nowrap;pointer-events:none;opacity:0;transform:translateY(4px);
+  transition:all .15s ease;box-shadow:0 4px 10px rgba(0,0,0,0.4);
+}
+.os-dock-btn:hover .os-dock-tooltip{
+  opacity:1;transform:translateY(0);
+}
+
+/* Window Manager (OS Windows) */
+.os-window-layer{
+  position:fixed;inset:34px 0 0 0;
+  pointer-events:none;z-index:500;
+}
+.os-window{
+  position:absolute;
+  pointer-events:auto;
+  background:#0d1016;border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 18px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.06);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  min-width:420px;min-height:280px;
+  transition:transform .12s cubic-bezier(0.16, 1, 0.3, 1), opacity .12s;
+}
+.os-window.maximized{
+  inset:6px 6px 70px 6px !important;
+  width:auto !important;height:auto !important;
+  border-radius:8px;
+}
+.os-window.minimized{
+  transform:scale(0.2) translateY(100vh) !important;
+  opacity:0;pointer-events:none;
+}
+.os-win-header{
+  height:36px;background:#12161f;border-bottom:1px solid #1a202c;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;cursor:grab;user-select:none;flex-shrink:0;
+}
+.os-win-header:active{cursor:grabbing}
+.os-win-traffic{
+  display:flex;align-items:center;gap:7px;
+}
+.os-traffic-btn{
+  width:12px;height:12px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:rgba(0,0,0,0.6);border:none;
+  transition:opacity .15s;
+}
+.os-traffic-close{background:#ff5f56;border:1px solid #e0443e}
+.os-traffic-min{background:#ffbd2e;border:1px solid #dea123}
+.os-traffic-max{background:#27c93f;border:1px solid #1aab29}
+.os-win-traffic:hover .os-traffic-btn span{opacity:1}
+.os-traffic-btn span{opacity:0;transition:opacity .1s}
+
+.os-win-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:600;color:var(--txt);
+}
+.os-win-title span.os-win-url{
+  font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400;
+}
+.os-win-actions{
+  display:flex;align-items:center;gap:8px;
+}
+.os-win-action-btn{
+  background:rgba(255,255,255,0.04);border:1px solid #232a38;
+  color:var(--muted);padding:3px 7px;border-radius:4px;
+  font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;
+  transition:all .15s;text-decoration:none;
+}
+.os-win-action-btn:hover{color:var(--txt);border-color:var(--p);background:rgba(255,255,255,0.08)}
+
+.os-win-body{
+  flex:1;position:relative;background:#090b0e;
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.os-win-iframe{
+  width:100%;height:100%;border:none;background:#090b0e;
+}
+.os-win-fallback{
+  padding:32px 24px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;height:100%;
+}
+
+/* Launchpad / App Drawer Overlay */
+.os-launchpad{
+  position:fixed;inset:34px 0 0 0;z-index:800;
+  background:rgba(8,10,13,0.92);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  display:none;flex-direction:column;padding:32px 48px 80px;
+  overflow-y:auto;
+}
+.os-launchpad.open{display:flex}
+.os-lp-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid #1a202c;
+}
+.os-lp-title h2{font-size:20px;font-weight:700}
+.os-lp-title p{font-size:12px;color:var(--muted);margin-top:2px}
+.os-lp-categories{
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.os-lp-cat-btn{
+  background:#121620;border:1px solid #232b3b;
+  color:var(--muted);padding:5px 14px;border-radius:20px;
+  font-size:12px;cursor:pointer;transition:all .15s;font-weight:500;
+}
+.os-lp-cat-btn:hover, .os-lp-cat-btn.active{
+  color:var(--txt);border-color:var(--p);background:rgba(16,185,129,0.12);
+}
+.os-lp-sec-title{
+  font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);margin:24px 0 14px;display:flex;align-items:center;gap:8px;
+}
+.os-lp-sec-title::after{content:'';flex:1;height:1px;background:#181d26}
+.os-lp-grid{
+  display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+  gap:12px;
+}
+.os-lp-card{
+  background:#10141d;border:1px solid #1e2533;border-radius:8px;
+  padding:14px;display:flex;gap:14px;align-items:flex-start;
+  cursor:pointer;transition:all .16s;text-decoration:none;color:inherit;
+}
+.os-lp-card:hover{
+  background:#141a26;border-color:var(--p);transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(0,0,0,0.4);
+}
+.os-lp-card-icon{
+  width:44px;height:44px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:#161c28;border:1px solid #242e40;
+}
+.os-lp-card-content{flex:1;min-width:0}
+.os-lp-card-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.os-lp-card-port{font-family:var(--mono);font-size:10px;color:var(--muted);background:rgba(255,255,255,0.05);padding:1px 5px;border-radius:3px}
+.os-lp-card-desc{font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:4px}
+
+/* Spotlight Search Modal */
+.os-spotlight-modal{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);
+  display:none;align-items:flex-start;justify-content:center;
+  padding-top:14vh;
+}
+.os-spotlight-modal.open{display:flex}
+.os-spotlight-box{
+  width:580px;max-width:92vw;background:#10141c;
+  border:1px solid #2a3346;border-radius:12px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06);
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.os-spotlight-input-row{
+  display:flex;align-items:center;gap:12px;padding:14px 18px;
+  border-bottom:1px solid #1c2230;background:#131822;
+}
+.os-spotlight-input-row svg{width:18px;height:18px;color:var(--muted);flex-shrink:0}
+.os-spotlight-input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--txt);font-size:15px;font-family:inherit;
+}
+.os-spotlight-results{
+  max-height:360px;overflow-y:auto;padding:8px 0;
+}
+.os-spotlight-item{
+  display:flex;align-items:center;gap:12px;padding:10px 18px;
+  cursor:pointer;transition:background .12s;
+}
+.os-spotlight-item:hover, .os-spotlight-item.active{
+  background:rgba(16,185,129,0.12);
+}
+.os-spotlight-item-icon{font-size:18px;width:28px;text-align:center}
+.os-spotlight-item-text{flex:1;min-width:0}
+.os-spotlight-item-title{font-size:13px;font-weight:600}
+.os-spotlight-item-desc{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.os-spotlight-item-badge{font-family:var(--mono);font-size:10px;color:var(--acc)}
+
+/* Mesh Doctor Modal Window */
+#doctor-window{
+  display:none;position:fixed;inset:50px auto auto 50%;
+  transform:translateX(-50%);width:760px;max-width:92vw;
+  max-height:80vh;background:#0d1016;border:1px solid #232b3b;
+  border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,0.8);
+  z-index:1500;flex-direction:column;overflow:hidden;
+}
+#doctor-window.open{display:flex}
+.doc-hdr{
+  padding:12px 18px;background:#121620;border-bottom:1px solid #1e2636;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.doc-body{
+  padding:18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px;
+}
+.check-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-top:1px solid #161b24}
 .check-row:first-of-type{border-top:none}
-.check-badge{flex-shrink:0;font-size:.66rem;font-family:var(--mono);text-transform:uppercase;padding:2px 7px;border-radius:4px;margin-top:2px}
-.check-badge.ok{background:rgba(34,197,94,.10);color:var(--ok)}
-.check-badge.warn{background:rgba(245,158,11,.10);color:var(--warn)}
-.check-badge.fail{background:rgba(239,68,68,.10);color:var(--err)}
-.check-body b{font-size:.84rem;font-weight:600;display:block;margin-bottom:2px}
-.check-body p{font-size:.78rem;color:var(--muted);line-height:1.4}
-.check-body .fix{font-size:.74rem;color:var(--acc);margin-top:4px;font-family:var(--mono)}
-#doctor-empty{font-size:.82rem;color:var(--muted)}
+.check-badge{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;text-transform:uppercase}
+.check-badge.ok{background:rgba(34,197,94,.12);color:var(--ok)}
+.check-badge.warn{background:rgba(245,158,11,.12);color:var(--warn)}
+.check-badge.fail{background:rgba(239,68,68,.12);color:var(--err)}
+.check-body b{font-size:13px;font-weight:600;display:block}
+.check-body p{font-size:11.5px;color:var(--muted);margin-top:2px}
+.check-body .fix{font-size:11px;color:var(--acc);margin-top:4px;font-family:var(--mono)}
 
-.mesh-telemetry-sec{margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
-.mesh-telemetry-title{font-size:.78rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:var(--txt);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)}
-.mesh-telemetry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.mesh-telemetry-card{background:#14171d;border:1px solid var(--border);border-radius:6px;padding:13px;display:flex;flex-direction:column;gap:8px;font-size:.78rem}
+/* Telemetry styles */
+.mesh-telemetry-sec{margin-top:10px;padding-top:14px;border-top:1px solid #1c2230}
+.mesh-telemetry-title{font-size:11px;font-family:var(--mono);text-transform:uppercase;color:var(--txt);margin-bottom:12px}
+.mesh-telemetry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.mesh-telemetry-card{background:#11151e;border:1px solid #1e2636;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:12px}
 .mesh-card-header{display:flex;align-items:center;justify-content:space-between}
 .mesh-card-title{font-weight:600;display:flex;align-items:center;gap:6px}
-.mesh-card-badges{display:flex;gap:6px;flex-wrap:wrap}
-.telem-pill{font-size:.66rem;font-family:var(--mono);padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--muted)}
-.telem-pill.crypto{background:rgba(56,189,248,.10);color:var(--acc);border:1px solid rgba(56,189,248,.25)}
-.telem-pill.git-clean{background:rgba(34,197,94,.10);color:var(--ok)}
-.telem-pill.git-dirty{background:rgba(245,158,11,.10);color:var(--warn)}
-.telem-pill.power-ac{background:rgba(34,197,94,.10);color:var(--ok);border:1px solid rgba(34,197,94,.22)}
-.telem-pill.power-batt{background:rgba(245,158,11,.10);color:var(--warn);border:1px solid rgba(245,158,11,.22)}
-.telem-pill.power-crit{background:rgba(239,68,68,.12);color:var(--err);font-weight:600;border:1px solid rgba(239,68,68,.28)}
-.telem-row{display:flex;justify-content:space-between;color:var(--muted);font-family:var(--font-mono, 'JetBrains Mono', monospace);font-size:.72rem}
+.telem-pill{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--muted)}
+.telem-pill.crypto{background:rgba(56,189,248,.12);color:var(--acc);border:1px solid rgba(56,189,248,.25)}
+.telem-pill.git-clean{background:rgba(34,197,94,.12);color:var(--ok)}
+.telem-pill.git-dirty{background:rgba(245,158,11,.12);color:var(--warn)}
+.telem-pill.power-ac{background:rgba(34,197,94,.12);color:var(--ok)}
+.telem-pill.power-batt{background:rgba(245,158,11,.12);color:var(--warn)}
+.telem-pill.power-crit{background:rgba(239,68,68,.14);color:var(--err);font-weight:600}
+.telem-row{display:flex;justify-content:space-between;color:var(--muted);font-family:var(--mono);font-size:11px}
 .telem-models{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.model-tag{font-size:.66rem;font-family:var(--mono);padding:2px 5px;border-radius:3px;background:rgba(16,185,129,.08);color:var(--p)}
-
-footer{text-align:center;font-size:.72rem;color:var(--muted);font-family:var(--mono);margin-top:20px}
-footer a{color:var(--p);text-decoration:none}
+.model-tag{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:3px;background:rgba(16,185,129,.1);color:var(--p)}
 </style>
 <script defer src="/spider/bootstrap.js"></script>
 </head>
-<body class="hs-body">
-<header class="hs-shell-bar">
-  <a class="hs-shell-brand" href="/">
-    <svg class="hs-shell-mark" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
-    HyperSpace AGI
-    <span class="hs-shell-scope">Desktop</span>
-  </a>
-  <nav class="hs-shell-nav" aria-label="Superfici HyperSpace">
-    <a class="hs-shell-link active" href="/">Desktop</a>
-    <a class="hs-shell-link" href="/dashboard">Cockpit Mesh</a>
-    <a class="hs-shell-link" href="/company">Company / Org</a>
-    <a class="hs-shell-link" href="/workspace">Workspace</a>
-    <a class="hs-shell-link" href="/activity">Activity</a>
-    <a class="hs-shell-link" href="/conversations">Conversazioni</a>
-    <a class="hs-shell-link" href="/diario">Diario</a>
-    <a class="hs-shell-link" href="/sites">Sites</a>
-    <a class="hs-shell-link" href="/p2p-monitor">P2P Sync</a>
-  </nav>
-</header>
-<div class="wrap">
-  <header class="desktop-hdr">
-    <div class="brand">
-      <div class="brand-text">
-        <h1>HyperSpace AGI</h1>
-        <span>desktop · tutti i servizi in un posto solo</span>
+<body>
+
+<div class="os-wallpaper"></div>
+
+<div class="os-shell">
+  <!-- 1. Top OS Menu Bar -->
+  <header class="os-menubar">
+    <div class="os-menubar-left">
+      <div class="os-apple-logo" onclick="toggleLaunchpad()">
+        <svg viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.8"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+        <span>HyperSpace OS</span>
+      </div>
+      <div class="os-menu-item active" onclick="closeAllOverlays()">Desktop</div>
+      <div class="os-menu-item" onclick="toggleLaunchpad()">Applicazioni</div>
+      <div class="os-menu-item" onclick="openWindowById('company')">Company / Org</div>
+      <div class="os-menu-item" onclick="openWindowById('research')">R&amp;D Lab</div>
+      <div class="os-menu-item" onclick="openWindowById('dashboard')">Mesh Cockpit</div>
+    </div>
+
+    <div class="os-menubar-center">
+      <div class="os-spotlight-btn" onclick="openSpotlight()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Cerca app, tool o servizio…</span>
+        <span class="os-kbd">⌘K</span>
       </div>
     </div>
-    <div id="doctor-pill" onclick="toggleDoctor()">
-      <div id="doctor-dot"></div>
-      <span id="doctor-label">controllo mesh…</span>
+
+    <div class="os-menubar-right">
+      <div class="os-tray-item" onclick="toggleDoctorWindow()" title="Stato Salute Mesh">
+        <span class="os-dot" id="tray-doc-dot"></span>
+        <span id="tray-doc-label">mesh…</span>
+      </div>
+      <div class="os-tray-item" title="Cifratura P2P E2EE">
+        <span style="color:var(--acc)">🔒 E2EE</span>
+      </div>
+      <div class="os-tray-item" id="tray-clock">00:00:00</div>
     </div>
   </header>
 
-  <div id="doctor-panel">
-    <h2>🩺 Mesh Doctor</h2>
-    <div id="doctor-body"><div id="doctor-empty">Caricamento diagnosi…</div></div>
+  <!-- 2. Desktop Workspace / Canvas -->
+  <main class="os-desktop" id="os-desktop">
+    <!-- Desktop Icons Grid -->
+    <div class="os-icon-grid" id="desktop-grid">
+      <!-- Icons injected by JS -->
+    </div>
+  </main>
+
+  <!-- 3. Bottom Floating OS Dock -->
+  <div class="os-dock-wrapper">
+    <div class="os-dock" id="os-dock">
+      <!-- Pinned items injected by JS -->
+    </div>
   </div>
+</div>
 
-  <div class="section-title">Usa la mesh</div>
-  <div class="grid" id="grid-use"></div>
+<!-- 4. Floating Window Manager Layer -->
+<div class="os-window-layer" id="window-layer"></div>
 
-  <div class="section-title">Osserva &amp; gestisci</div>
-  <div class="grid" id="grid-manage"></div>
+<!-- 5. Launchpad / All Apps Fullscreen Drawer -->
+<div class="os-launchpad" id="launchpad">
+  <div class="os-lp-header">
+    <div class="os-lp-title">
+      <h2>Tutte le Applicazioni &amp; Superfici HyperSpace</h2>
+      <p>Hub unificato per governance agentica, R&amp;D sovrano, cluster mesh, media generative e gaming.</p>
+    </div>
+    <div class="os-lp-categories" id="lp-cat-filters">
+      <button class="os-lp-cat-btn active" onclick="filterLaunchpad('all', this)">Tutte</button>
+      <button class="os-lp-cat-btn" onclick="filterLaunchpad('governance', this)">🏢 Governance</button>
+      <button class="os-lp-cat-btn" onclick="filterLaunchpad('rd', this)">🔬 R&amp;D &amp; Dev</button>
+      <button class="os-lp-cat-btn" onclick="filterLaunchpad('mesh', this)">🌐 Mesh &amp; Rete</button>
+      <button class="os-lp-cat-btn" onclick="filterLaunchpad('media', this)">🎨 Media &amp; AI</button>
+      <button class="os-lp-cat-btn" onclick="filterLaunchpad('game', this)">🎮 Simulazione</button>
+    </div>
+  </div>
+  <div id="lp-cards-container">
+    <!-- Cards grouped by section injected by JS -->
+  </div>
+</div>
 
-  <div class="section-title">Primo avvio</div>
-  <div class="grid" id="grid-setup"></div>
+<!-- 6. Spotlight Search Modal (Cmd+K) -->
+<div class="os-spotlight-modal" id="spotlight-modal" onclick="onSpotlightBackdrop(event)">
+  <div class="os-spotlight-box">
+    <div class="os-spotlight-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="os-spotlight-input" id="spotlight-input" placeholder="Cerca applicazione, servizio, porta o comando… (es. research, company, 8090, reel)" oninput="onSpotlightSearch(this.value)">
+      <span class="os-kbd">ESC per uscire</span>
+    </div>
+    <div class="os-spotlight-results" id="spotlight-results">
+      <!-- Search items injected by JS -->
+    </div>
+  </div>
+</div>
 
-  <footer>HyperSpace AGI · generato da <a href="/doctor" target="_blank">/doctor</a> — riapri questa pagina per lo stato aggiornato</footer>
+<!-- 7. Mesh Doctor Modal Window -->
+<div id="doctor-window">
+  <div class="doc-hdr">
+    <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px">
+      🩺 HyperSpace Mesh Doctor &amp; Telemetria
+    </div>
+    <button class="os-win-action-btn" onclick="toggleDoctorWindow()">✕ Chiudi</button>
+  </div>
+  <div class="doc-body" id="doctor-body">
+    <div style="color:var(--muted);font-size:12px">Caricamento stato nodi e diagnostiche…</div>
+  </div>
 </div>
 
 <script>
 const HOST = window.location.hostname;
 const CORE_PORT = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
-const SERVICES = {
-  use: [
-    {icon:'🛠️', title:'OpenWork Coding Agent', customUrl:'openwork://', customPort:'Desktop App', desc:'Workspace agentico su macOS: modifiche file, terminale, diff, MCP HyperSpace e modelli ASUS (Flint 40B) / Mac.'},
-    {icon:'⚡', title:'HyperDev Studio', port:8090, path:'/devstudio.html', desc:'IDE Web Sovrano per il Creatore: file explorer, editor di codice, git diff, terminale shell e runner Pytest.'},
-    {icon:'🪐', title:'Agentic Workspace', port:CORE_PORT, path:'/workspace', desc:'Il workspace di lavoro centrale: chat, DAG multi-agente, canvas per artefatti live e review Human-In-The-Loop.'},
-    {icon:'💬', title:'Chat', port:3000, path:'/', desc:'Open WebUI — chatta con la mesh, scegli modelli locali o OmniRoute dal menu.'},
-    {icon:'🔀', title:'OmniRoute', port:20128, path:'/', desc:'Gateway verso 278+ provider esterni — fallback e dashboard provider/costi.'},
-  ],
-  manage: [
-    {icon:'📟', title:'Attività Anna Batch', port:CORE_PORT, path:'/activity', desc:'Monitor in tempo reale della coda immagini e degli ultimi job. Solo lettura, nessun terminale da configurare.'},
-    {icon:'🏢', title:'Company / Org', port:CORE_PORT, path:'/company', desc:'Organigramma agenti BYOA, Goal Alignment (Goal → Project → Issue), Atomic Checkout e FinOps.'},
-    {icon:'📊', title:'Dashboard Mesh', port:CORE_PORT, path:'/dashboard', desc:'Nodi, task, log, config avanzata — la vista operativa del control-plane. La scheda ✨ Autogenerazione raccoglie sogni, development dream e Mission Control (DAG).'},
-    {icon:'✨', title:'Live 3D', port:8099, path:'/dashboard', desc:'Mesh in tempo reale via SSE — nodi, task, memoria, token/s.'},
-    {icon:'📖', title:'Diario', port:CORE_PORT, path:'/diario', desc:'Post e sogni illustrati delle influencer — gli sketch di Anna e Aurora.'},
-    {icon:'🌐', title:'Sites Builder', port:CORE_PORT, path:'/sites', desc:'Crea siti, importa le raccolte di Anna, visualizza l’anteprima e scarica lo ZIP.'},
-    {icon:'🎬', title:'Reel Editor', port:7860, path:'/', desc:'Monta video verticali di Anna e Aurora con foto, clip, musica e tagli sul beat. Servizio locale opzionale.'},
-    {icon:'💬', title:'Conversazioni', port:CORE_PORT, path:'/conversations', desc:'Il diario delle battute dei chatbot, filtrato per canale.'},
-  ],
-  setup: [
-    {icon:'🧙', title:Number(CORE_PORT) === 8088 ? 'Configurazione' : 'Setup Wizard', port:8088, path:Number(CORE_PORT) === 8088 ? '/dashboard' : '/', desc:Number(CORE_PORT) === 8088 ? 'Configurazione e gestione del control-plane.' : 'Primo avvio: configura .env, scarica modelli, imposta la specializzazione del nodo.'},
-  ],
-};
 
-function render(){
-  for (const section of Object.keys(SERVICES)){
-    const grid = document.getElementById('grid-'+section);
-    grid.innerHTML = SERVICES[section].map((s,i)=>{
-      const url = s.customUrl ? s.customUrl : (s.port === CORE_PORT ? `${window.location.origin}${s.path}` : `http://${HOST}:${s.port}${s.path}`);
-      const portText = s.customPort ? s.customPort : `:${s.port}`;
-      const id = `${section}-${i}`;
-      const targetAttr = s.customUrl ? '' : 'target="_blank" rel="noopener"';
-      const checkAttr = s.customUrl ? '' : `data-check="${url}"`;
-      return `<a class="tile" href="${url}" ${targetAttr} ${checkAttr} id="tile-${id}">
-        <div class="tile-icon">${s.icon}</div>
-        <div class="tile-title">${s.title}</div>
-        <div class="tile-desc">${s.desc}</div>
-        <div class="tile-foot"><span class="tile-port">${portText}</span><span class="tile-status"><span class="dot ${s.customUrl ? 'up' : ''}" id="dot-${id}"></span><span id="stat-${id}">${s.customUrl ? 'pronto' : '…'}</span></span></div>
-      </a>`;
-    }).join('');
+/* Master Registry of HyperSpace Applications & Surfaces */
+const APPS = [
+  // --- GOVERNANCE & ORG ---
+  {
+    id: 'company',
+    title: 'Company / Org Console',
+    category: 'governance',
+    icon: '🏢',
+    glow: 'glow-p',
+    port: CORE_PORT,
+    path: '/company',
+    badge: 'NEW',
+    pinned: true,
+    desc: 'Governance agentica BYOA: organigramma gerarchico, Goal Alignment, coda issue atomica e budget FinOps.'
+  },
+  {
+    id: 'workspace',
+    title: 'Agentic Workspace',
+    category: 'governance',
+    icon: '🪐',
+    glow: 'glow-p',
+    port: CORE_PORT,
+    path: '/workspace',
+    pinned: true,
+    desc: 'Workspace operativo con chat agenti, DAG multi-agente, canvas per artefatti live e approval gate.'
+  },
+  {
+    id: 'conversations',
+    title: 'Conversazioni Agenti',
+    category: 'governance',
+    icon: '💬',
+    glow: 'glow-acc',
+    port: CORE_PORT,
+    path: '/conversations',
+    desc: 'Registro completo dei dialoghi fra chatbot e canali della mesh.'
+  },
+
+  // --- R&D & DEVELOPMENT ---
+  {
+    id: 'research',
+    title: 'Sovereign R&D Lab',
+    category: 'rd',
+    icon: '🔬',
+    glow: 'glow-acc',
+    port: 8090,
+    path: '/research.html',
+    badge: ':8090',
+    pinned: true,
+    desc: 'Laboratorio R&D sovrano: AST Gate, prototype pipeline, research tree e promozioni codice.'
+  },
+  {
+    id: 'devstudio',
+    title: 'HyperDev Studio',
+    category: 'rd',
+    icon: '⚡',
+    glow: 'glow-amber',
+    port: 8090,
+    path: '/devstudio.html',
+    badge: ':8090',
+    pinned: true,
+    desc: 'IDE Web Sovrano per il Creatore: file explorer, editor di codice, git diff e test runner Pytest.'
+  },
+  {
+    id: 'missions',
+    title: 'Mission Control',
+    category: 'rd',
+    icon: '🎯',
+    glow: 'glow-purp',
+    port: 8090,
+    path: '/missions.html',
+    badge: ':8090',
+    desc: 'Pianificazione missioni autonome, execution DAG, scouting della rete e human review.'
+  },
+  {
+    id: 'openwork',
+    title: 'OpenWork Agent App',
+    category: 'rd',
+    icon: '🛠️',
+    glow: 'glow-p',
+    customUrl: 'openwork://',
+    customPort: 'macOS App',
+    desc: 'Client nativo OpenWork: modifiche file locali, terminale, diff e modelli ASUS Flint 40B / Mac.'
+  },
+  {
+    id: 'graphify',
+    title: 'Grafo Repository',
+    category: 'rd',
+    icon: '🗺️',
+    glow: 'glow-acc',
+    port: 7871,
+    path: '/',
+    desc: 'Grafo visuale del codice sorgente: community hub, archi di chiamata e freschezza rispetto a HEAD.'
+  },
+  {
+    id: 'rea',
+    title: 'Reverse Engineering (REA)',
+    category: 'rd',
+    icon: '🔍',
+    glow: 'glow-amber',
+    port: 7872,
+    path: '/',
+    desc: 'Analisi statica avanzata con REA: disassemblaggio, estrazione stringhe e ispezione binaria.'
+  },
+
+  // --- MESH & OPERATIONS ---
+  {
+    id: 'dashboard',
+    title: 'Cockpit Mesh',
+    category: 'mesh',
+    icon: '📊',
+    glow: 'glow-p',
+    port: CORE_PORT,
+    path: '/dashboard',
+    pinned: true,
+    desc: 'Vista operativa del Control Plane: topologia nodi P2P, grafi Cytoscape, autogenerazione e log.'
+  },
+  {
+    id: 'p2p_monitor',
+    title: 'P2P Sync Monitor',
+    category: 'mesh',
+    icon: '🕸️',
+    glow: 'glow-acc',
+    port: CORE_PORT,
+    path: '/p2p_monitor.html',
+    desc: 'Monitor di sincronizzazione P2P fra nodi federati, console di log ed eventi di gossip.'
+  },
+  {
+    id: 'infra_ui',
+    title: 'Live 3D & HUD (Infra UI)',
+    category: 'mesh',
+    icon: '📡',
+    glow: 'glow-acc',
+    port: 8099,
+    path: '/dashboard',
+    desc: 'HUD tecnico 3D e telemetria live della mesh via SSE + WebGL.'
+  },
+  {
+    id: 'infra_landing',
+    title: 'Infra Services Matrix',
+    category: 'mesh',
+    icon: '🌐',
+    glow: 'glow-acc',
+    port: 8099,
+    path: '/',
+    desc: 'Matrice di stato e latenze dei servizi di sistema del mesh bridge.'
+  },
+  {
+    id: 'analytics',
+    title: 'Analytics & Terminal',
+    category: 'mesh',
+    icon: '📈',
+    glow: 'glow-p',
+    port: 8090,
+    path: '/analytics.html',
+    badge: ':8090',
+    desc: 'Metriche live su cicli dev, CoT distillati, token/s e terminale operatore.'
+  },
+  {
+    id: 'omniroute',
+    title: 'OmniRoute Gateway',
+    category: 'mesh',
+    icon: '🔀',
+    glow: 'glow-purp',
+    port: 20128,
+    path: '/',
+    desc: 'Gateway verso 278+ provider esterni con fallback automatico e dashboard costi.'
+  },
+  {
+    id: 'searxng',
+    title: 'SearXNG Metasearch',
+    category: 'mesh',
+    icon: '🔎',
+    glow: 'glow-acc',
+    port: 8092,
+    path: '/',
+    desc: 'Motore di metaricerca locale per tool e benchmark web della mesh.'
+  },
+  {
+    id: 'setup',
+    title: 'Setup & Onboarding',
+    category: 'mesh',
+    icon: '🧙',
+    glow: 'glow-amber',
+    port: 8088,
+    path: '/',
+    desc: 'Wizard di primo avvio: configurazione .env, download modelli e assegnazione ruoli nodo.'
+  },
+
+  // --- MEDIA & CREATIVE ---
+  {
+    id: 'chat',
+    title: 'HyperSpace Chat (Open WebUI)',
+    category: 'media',
+    icon: '💬',
+    glow: 'glow-p',
+    port: 3000,
+    path: '/',
+    pinned: true,
+    desc: 'Interfaccia di conversazione multimodale con ComfyUI e tool di generazione.'
+  },
+  {
+    id: 'diario',
+    title: 'Diario di Bordo',
+    category: 'media',
+    icon: '📖',
+    glow: 'glow-rose',
+    port: CORE_PORT,
+    path: '/diario',
+    pinned: true,
+    desc: 'Cronologia sogni, post e sketch illustrati delle influencer Anna e Aurora.'
+  },
+  {
+    id: 'intimo',
+    title: 'Diario Intimo',
+    category: 'media',
+    icon: '🔒',
+    glow: 'glow-rose',
+    port: CORE_PORT,
+    path: '/intimo.html',
+    desc: 'Modulo di riflessione autonoma e diario personale protetto da token di rete.'
+  },
+  {
+    id: 'activity',
+    title: 'Attività Anna Batch',
+    category: 'media',
+    icon: '📟',
+    glow: 'glow-amber',
+    port: CORE_PORT,
+    path: '/activity',
+    desc: 'Coda batch di generazione immagini, job attivi e controllo worker in tempo reale.'
+  },
+  {
+    id: 'sites',
+    title: 'Sites Builder',
+    category: 'media',
+    icon: '🌐',
+    glow: 'glow-acc',
+    port: CORE_PORT,
+    path: '/sites',
+    desc: 'Generazione siti web, import raccolte grafiche, anteprima e download ZIP.'
+  },
+  {
+    id: 'reel_editor',
+    title: 'Reel Editor',
+    category: 'media',
+    icon: '🎬',
+    glow: 'glow-rose',
+    port: 7860,
+    path: '/',
+    desc: 'Montaggio video verticali con musica, scene vision, person layers e tagli sul beat.'
+  },
+
+  // --- SIMULAZIONE & GAMING ---
+  {
+    id: 'sindacato',
+    title: 'Neo-Milano: Il Sindacato',
+    category: 'game',
+    icon: '🎮',
+    glow: 'glow-rose',
+    port: 8091,
+    path: '/',
+    badge: ':8091',
+    pinned: true,
+    desc: 'Dashboard real-time di Neo-Milano: umore della città, mappa Settore 04 e anagrafe cyberpunk.'
+  },
+  {
+    id: 'arcade',
+    title: 'Arcade Games',
+    category: 'game',
+    icon: '🕹️',
+    glow: 'glow-amber',
+    port: 8090,
+    path: '/arcade.html',
+    badge: ':8090',
+    desc: 'Giochi arcade sintetici e benchmark di gamification della mesh.'
+  },
+  {
+    id: 'commercial',
+    title: 'Commercial Pillars',
+    category: 'governance',
+    icon: '💎',
+    glow: 'glow-p',
+    port: 8090,
+    path: '/commercial.html',
+    badge: ':8090',
+    desc: 'Pillole commerciali, pacchetti d’offerta e lead pipeline per l’ecosistema sovrano.'
   }
-  // Ping leggero per ogni tile (HEAD/GET con no-cors: non possiamo leggere lo
-  // status reale cross-origin, ma un fetch che non lancia errore di rete è
-  // già un buon segnale "il servizio risponde a qualcosa su questa porta".
-  document.querySelectorAll('[data-check]').forEach(el=>{
-    const url = el.dataset.check, id = el.id.replace('tile-','');
-    fetch(url, {mode:'no-cors', signal: AbortSignal.timeout(4000)})
-      .then(()=>setDot(id, true))
-      .catch(()=>setDot(id, false));
+];
+
+function getAppUrl(app) {
+  if (app.customUrl) return app.customUrl;
+  if (app.port === CORE_PORT) {
+    return `${window.location.origin}${app.path}`;
+  }
+  return `http://${HOST}:${app.port}${app.path}`;
+}
+
+/* =========================================================================
+   1. DESKTOP ICON GRID RENDERING
+   ========================================================================= */
+function renderDesktopIcons() {
+  const grid = document.getElementById('desktop-grid');
+  grid.innerHTML = APPS.map(app => {
+    const url = getAppUrl(app);
+    const portText = app.customPort || `:${app.port}`;
+    return `
+      <div class="os-icon" id="d-icon-${app.id}" onclick="onDesktopIconClick('${app.id}', event)" ondblclick="openApp('${app.id}')" title="${app.title} — ${app.desc}">
+        <div class="os-icon-box ${app.glow || 'glow-p'}">
+          ${app.icon}
+          ${app.badge ? `<span class="os-icon-badge">${app.badge}</span>` : ''}
+          <span class="os-icon-status-dot" id="dot-${app.id}"></span>
+        </div>
+        <span class="os-icon-label">${app.title}</span>
+        <span class="os-icon-sub">${portText}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+let selectedIconId = null;
+function onDesktopIconClick(id, event) {
+  event.stopPropagation();
+  if (selectedIconId) {
+    const prev = document.getElementById(`d-icon-${selectedIconId}`);
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedIconId = id;
+  const curr = document.getElementById(`d-icon-${id}`);
+  if (curr) curr.classList.add('selected');
+}
+
+document.getElementById('os-desktop').addEventListener('click', () => {
+  if (selectedIconId) {
+    const prev = document.getElementById(`d-icon-${selectedIconId}`);
+    if (prev) prev.classList.remove('selected');
+    selectedIconId = null;
+  }
+});
+
+/* =========================================================================
+   2. DOCK RENDERING
+   ========================================================================= */
+function renderDock() {
+  const dock = document.getElementById('os-dock');
+  const pinned = APPS.filter(a => a.pinned);
+
+  let html = `
+    <div class="os-dock-btn" onclick="toggleLaunchpad()" title="Launchpad">
+      🚀
+      <div class="os-dock-tooltip">Tutte le App (Launchpad)</div>
+    </div>
+    <div class="os-dock-divider"></div>
+  `;
+
+  html += pinned.map(app => `
+    <div class="os-dock-btn" id="dock-btn-${app.id}" onclick="openApp('${app.id}')">
+      ${app.icon}
+      <div class="os-dock-tooltip">${app.title}</div>
+    </div>
+  `).join('');
+
+  html += `
+    <div class="os-dock-divider"></div>
+    <div class="os-dock-btn" onclick="toggleDoctorWindow()" title="Mesh Doctor">
+      🩺
+      <div class="os-dock-tooltip">Mesh Doctor</div>
+    </div>
+  `;
+
+  dock.innerHTML = html;
+}
+
+/* =========================================================================
+   3. WINDOW MANAGER
+   ========================================================================= */
+const openWindows = new Map(); // id -> window state
+let topZIndex = 510;
+
+function openApp(id, forceNewTab = false) {
+  const app = APPS.find(a => a.id === id);
+  if (!app) return;
+
+  const url = getAppUrl(app);
+
+  // If custom app scheme like openwork:// or forced new tab, launch directly
+  if (app.customUrl || forceNewTab) {
+    window.open(url, '_blank');
+    return;
+  }
+
+  // If window already open, restore and focus
+  if (openWindows.has(id)) {
+    const winObj = openWindows.get(id);
+    const winEl = document.getElementById(`win-${id}`);
+    if (winEl) {
+      winEl.classList.remove('minimized');
+      focusWindow(id);
+    }
+    return;
+  }
+
+  // Create new OS window
+  topZIndex++;
+  const winCount = openWindows.size;
+  const cascadeOffset = (winCount % 8) * 28;
+  const left = Math.min(window.innerWidth - 820, 80 + cascadeOffset);
+  const top = Math.min(window.innerHeight - 560, 50 + cascadeOffset);
+  const width = Math.min(window.innerWidth - 120, 880);
+  const height = Math.min(window.innerHeight - 140, 580);
+
+  const winEl = document.createElement('div');
+  winEl.className = 'os-window';
+  winEl.id = `win-${id}`;
+  winEl.style.left = `${Math.max(20, left)}px`;
+  winEl.style.top = `${Math.max(40, top)}px`;
+  winEl.style.width = `${width}px`;
+  winEl.style.height = `${height}px`;
+  winEl.style.zIndex = topZIndex;
+
+  winEl.innerHTML = `
+    <div class="os-win-header" id="win-hdr-${id}" onmousedown="startDragWindow('${id}', event)">
+      <div class="os-win-traffic">
+        <button class="os-traffic-btn os-traffic-close" onclick="closeWindow('${id}')" title="Chiudi"><span>✕</span></button>
+        <button class="os-traffic-btn os-traffic-min" onclick="minimizeWindow('${id}')" title="Minimizza"><span>–</span></button>
+        <button class="os-traffic-btn os-traffic-max" onclick="maximizeWindow('${id}')" title="Ingrandisci"><span>+</span></button>
+      </div>
+      <div class="os-win-title">
+        <span>${app.icon}</span>
+        <span>${app.title}</span>
+        <span class="os-win-url">${url}</span>
+      </div>
+      <div class="os-win-actions">
+        <button class="os-win-action-btn" onclick="reloadWindow('${id}')" title="Ricarica">↻</button>
+        <a class="os-win-action-btn" href="${url}" target="_blank" rel="noopener" title="Apri in nuova scheda">↗ Nuova Scheda</a>
+      </div>
+    </div>
+    <div class="os-win-body">
+      <iframe class="os-win-iframe" id="win-frame-${id}" src="${url}"></iframe>
+    </div>
+  `;
+
+  winEl.addEventListener('mousedown', () => focusWindow(id));
+  document.getElementById('window-layer').appendChild(winEl);
+
+  openWindows.set(id, { element: winEl, app, isMax: false });
+  updateDockActiveIndicators();
+}
+
+function focusWindow(id) {
+  const win = openWindows.get(id);
+  if (!win) return;
+  topZIndex++;
+  win.element.style.zIndex = topZIndex;
+}
+
+function closeWindow(id) {
+  const win = openWindows.get(id);
+  if (!win) return;
+  win.element.remove();
+  openWindows.delete(id);
+  updateDockActiveIndicators();
+}
+
+function minimizeWindow(id) {
+  const win = openWindows.get(id);
+  if (!win) return;
+  win.element.classList.add('minimized');
+}
+
+function maximizeWindow(id) {
+  const win = openWindows.get(id);
+  if (!win) return;
+  win.isMax = !win.isMax;
+  win.element.classList.toggle('maximized', win.isMax);
+}
+
+function reloadWindow(id) {
+  const frame = document.getElementById(`win-frame-${id}`);
+  if (frame) frame.src = frame.src;
+}
+
+function updateDockActiveIndicators() {
+  APPS.forEach(app => {
+    const btn = document.getElementById(`dock-btn-${app.id}`);
+    if (btn) {
+      btn.classList.toggle('active', openWindows.has(app.id));
+    }
   });
 }
-function setDot(id, up){
-  const dot = document.getElementById('dot-'+id), stat = document.getElementById('stat-'+id);
-  if(!dot) return;
-  dot.className = 'dot ' + (up ? 'up' : 'down');
-  stat.textContent = up ? 'su' : 'giù?';
+
+function openWindowById(id) {
+  closeAllOverlays();
+  openApp(id);
 }
 
-let doctorOpen = false;
-function toggleDoctor(){
-  doctorOpen = !doctorOpen;
-  document.getElementById('doctor-panel').classList.toggle('open', doctorOpen);
+/* Window Dragging */
+let activeDrag = null;
+function startDragWindow(id, e) {
+  if (e.target.closest('.os-win-traffic') || e.target.closest('.os-win-actions')) return;
+  const win = openWindows.get(id);
+  if (!win || win.isMax) return;
+  focusWindow(id);
+  const rect = win.element.getBoundingClientRect();
+  activeDrag = {
+    element: win.element,
+    startX: e.clientX,
+    startY: e.clientY,
+    origX: rect.left,
+    origY: rect.top
+  };
+  window.addEventListener('mousemove', onDragMove);
+  window.addEventListener('mouseup', onDragEnd);
 }
-async function loadDoctor(){
-  try{
-    const r = await fetch('/doctor', {signal: AbortSignal.timeout(6000)});
+
+function onDragMove(e) {
+  if (!activeDrag) return;
+  const dx = e.clientX - activeDrag.startX;
+  const dy = e.clientY - activeDrag.startY;
+  const newX = Math.max(0, Math.min(window.innerWidth - 100, activeDrag.origX + dx));
+  const newY = Math.max(34, Math.min(window.innerHeight - 50, activeDrag.origY + dy));
+  activeDrag.element.style.left = `${newX}px`;
+  activeDrag.element.style.top = `${newY}px`;
+}
+
+function onDragEnd() {
+  activeDrag = null;
+  window.removeEventListener('mousemove', onDragMove);
+  window.removeEventListener('mouseup', onDragEnd);
+}
+
+/* =========================================================================
+   4. LAUNCHPAD / ALL APPS VIEW
+   ========================================================================= */
+function toggleLaunchpad() {
+  const lp = document.getElementById('launchpad');
+  const isOpen = lp.classList.toggle('open');
+  if (isOpen) {
+    renderLaunchpadCards('all');
+  }
+}
+
+function filterLaunchpad(category, btn) {
+  document.querySelectorAll('.os-lp-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLaunchpadCards(category);
+}
+
+function renderLaunchpadCards(filterCategory = 'all') {
+  const container = document.getElementById('lp-cards-container');
+  const categories = [
+    { id: 'governance', title: '🏢 Governance & Organizzazione Agenti' },
+    { id: 'rd', title: '🔬 Sovranità R&D & Sviluppo' },
+    { id: 'mesh', title: '🌐 Cluster Mesh & Operazioni' },
+    { id: 'media', title: '🎨 Generative Media & Creatività' },
+    { id: 'game', title: '🎮 Simulazione Città & Gaming' }
+  ];
+
+  let html = '';
+  categories.forEach(cat => {
+    if (filterCategory !== 'all' && filterCategory !== cat.id) return;
+    const catApps = APPS.filter(a => a.category === cat.id);
+    if (!catApps.length) return;
+
+    html += `
+      <div class="os-lp-sec-title">${cat.title} (${catApps.length})</div>
+      <div class="os-lp-grid">
+        ${catApps.map(app => {
+          const url = getAppUrl(app);
+          const portText = app.customPort || `:${app.port}`;
+          return `
+            <div class="os-lp-card" onclick="onLpCardClick('${app.id}')">
+              <div class="os-lp-card-icon">${app.icon}</div>
+              <div class="os-lp-card-content">
+                <div class="os-lp-card-title">
+                  <span>${app.title}</span>
+                  <span class="os-lp-card-port">${portText}</span>
+                  ${app.badge ? `<span style="font-size:9px;font-family:var(--mono);color:var(--p)">${app.badge}</span>` : ''}
+                </div>
+                <div class="os-lp-card-desc">${app.desc}</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function onLpCardClick(id) {
+  document.getElementById('launchpad').classList.remove('open');
+  openApp(id);
+}
+
+/* =========================================================================
+   5. SPOTLIGHT SEARCH (CMD+K)
+   ========================================================================= */
+function openSpotlight() {
+  const modal = document.getElementById('spotlight-modal');
+  modal.classList.add('open');
+  const input = document.getElementById('spotlight-input');
+  input.value = '';
+  input.focus();
+  renderSpotlightResults('');
+}
+
+function closeSpotlight() {
+  document.getElementById('spotlight-modal').classList.remove('open');
+}
+
+function onSpotlightBackdrop(e) {
+  if (e.target.id === 'spotlight-modal') closeSpotlight();
+}
+
+function onSpotlightSearch(query) {
+  renderSpotlightResults(query);
+}
+
+function renderSpotlightResults(query) {
+  const q = query.toLowerCase().trim();
+  const list = document.getElementById('spotlight-results');
+  const filtered = APPS.filter(app => {
+    if (!q) return true;
+    return app.title.toLowerCase().includes(q) ||
+           app.desc.toLowerCase().includes(q) ||
+           String(app.port).includes(q) ||
+           app.id.includes(q);
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="padding:16px 20px;font-size:12px;color:var(--muted)">Nessun tool o superficie trovata per "${query}".</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map((app, idx) => `
+    <div class="os-spotlight-item ${idx === 0 ? 'active' : ''}" onclick="onSpotlightSelect('${app.id}')">
+      <div class="os-spotlight-item-icon">${app.icon}</div>
+      <div class="os-spotlight-item-text">
+        <div class="os-spotlight-item-title">${app.title}</div>
+        <div class="os-spotlight-item-desc">${app.desc}</div>
+      </div>
+      <div class="os-spotlight-item-badge">${app.customPort || `:${app.port}`}</div>
+    </div>
+  `).join('');
+}
+
+function onSpotlightSelect(id) {
+  closeSpotlight();
+  openApp(id);
+}
+
+// Global Keyboard Shortcuts
+window.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    openSpotlight();
+  } else if (e.key === 'Escape') {
+    closeAllOverlays();
+  }
+});
+
+function closeAllOverlays() {
+  closeSpotlight();
+  document.getElementById('launchpad').classList.remove('open');
+  document.getElementById('doctor-window').classList.remove('open');
+}
+
+/* =========================================================================
+   6. MESH DOCTOR & TELEMETRY
+   ========================================================================= */
+function toggleDoctorWindow() {
+  const win = document.getElementById('doctor-window');
+  win.classList.toggle('open');
+  if (win.classList.contains('open')) {
+    loadDoctor();
+  }
+}
+
+async function loadDoctor() {
+  try {
+    const r = await fetch('/doctor', { signal: AbortSignal.timeout(6000) });
     const d = await r.json();
-    const dot = document.getElementById('doctor-dot'), label = document.getElementById('doctor-label');
-    dot.className = d.status;
-    const nWarn = d.checks.filter(c=>c.status!=='ok').length;
-    label.textContent = d.status==='ok' ? 'mesh sana' : `${nWarn} da controllare`;
-    let checksHtml = d.checks.map(c=>`
+
+    const dot = document.getElementById('tray-doc-dot');
+    const label = document.getElementById('tray-doc-label');
+    dot.className = 'os-dot ' + (d.status === 'ok' ? 'ok' : (d.status === 'warn' ? 'warn' : 'err'));
+    const nWarn = d.checks.filter(c => c.status !== 'ok').length;
+    label.textContent = d.status === 'ok' ? 'mesh sana' : `${nWarn} warning`;
+
+    let checksHtml = d.checks.map(c => `
       <div class="check-row">
         <span class="check-badge ${c.status}">${c.status}</span>
         <div class="check-body">
@@ -211,50 +1260,37 @@ async function loadDoctor(){
           <p>${c.detail}</p>
           ${c.fix_hint ? `<div class="fix">→ ${c.fix_hint}</div>` : ''}
         </div>
-      </div>`).join('');
+      </div>
+    `).join('');
 
     let telemHtml = '';
-    if(d.mesh_telemetry && d.mesh_telemetry.length){
+    if (d.mesh_telemetry && d.mesh_telemetry.length) {
       telemHtml = `
         <div class="mesh-telemetry-sec">
           <div class="mesh-telemetry-title">🔒 Nodi Mesh &amp; Telemetria Cifrata E2EE</div>
           <div class="mesh-telemetry-grid">
-            ${d.mesh_telemetry.map(t=>{
+            ${d.mesh_telemetry.map(t => {
               const cb = t.codebase || {};
               const hw = t.hardware || {};
               const sv = t.services || {};
               const ol = sv.ollama || {};
               const ly = sv.laya || {};
               const cm = sv.comfyui || {};
-              const gr = cb.graphify || {};
               const isEncrypted = t.channel === 'encrypted_ecdh_aes_gcm';
               const isLocal = t.is_local;
               const nodeIcon = isLocal ? '💻' : (t.tier === 'leaf' ? '🍏' : '🖥️');
               const nodeLabel = t.alias || (t.node_id ? t.node_id.slice(0, 10) + '…' : 'Nodo');
               const tierBadge = (t.tier || 'leaf').toUpperCase();
               const commitBadge = cb.git_commit && cb.git_commit !== 'unknown' ? cb.git_commit : 'n/d';
-              const dirtyBadge = cb.git_dirty ? `<span class="telem-pill git-dirty">⚠️ ${cb.dirty_files_count || 1} file dirty</span>` : `<span class="telem-pill git-clean">✓ pulito</span>`;
-              const cryptoPill = isEncrypted ? `<span class="telem-pill crypto">🔒 E2EE Cifrato</span>` : (isLocal ? `<span class="telem-pill crypto">🔒 Bus Locale</span>` : `<span class="telem-pill">⚠️ Legacy</span>`);
-
-              const models = (ol.models || []).slice(0, 5);
-              const extraModels = (ol.models || []).length - models.length;
+              const dirtyBadge = cb.git_dirty ? `<span class="telem-pill git-dirty">⚠️ dirty</span>` : `<span class="telem-pill git-clean">✓ pulito</span>`;
+              const cryptoPill = isEncrypted ? `<span class="telem-pill crypto">🔒 E2EE</span>` : (isLocal ? `<span class="telem-pill crypto">🔒 Locale</span>` : `<span class="telem-pill">⚠️ Legacy</span>`);
 
               const pwr = hw.power || {};
               const isAc = hw.ac_line !== undefined ? hw.ac_line : (pwr.ac_line !== undefined ? pwr.ac_line : true);
               const battPct = hw.battery_pct !== undefined ? hw.battery_pct : pwr.battery_pct;
-              let pwrBadge = '';
-              let pwrText = '🔌 Rete AC';
-              if (isAc) {
-                pwrBadge = '<span class="telem-pill power-ac">🔌 AC</span>';
-                pwrText = '🔌 Rete Elettrica (AC)';
-              } else if (battPct !== undefined && battPct !== null) {
-                const bClass = battPct < 20 ? 'power-crit' : 'power-batt';
-                pwrBadge = `<span class="telem-pill ${bClass}">🔋 ${Math.round(battPct)}%</span>`;
-                pwrText = `🔋 Batteria (${Math.round(battPct)}%)`;
-              } else {
-                pwrBadge = '<span class="telem-pill power-batt">🔋 Batteria</span>';
-                pwrText = '🔋 Batteria';
-              }
+              let pwrBadge = isAc ? '<span class="telem-pill power-ac">🔌 AC</span>' : `<span class="telem-pill power-batt">🔋 ${Math.round(battPct || 0)}%</span>`;
+
+              const models = (ol.models || []).slice(0, 4);
 
               return `
                 <div class="mesh-telemetry-card">
@@ -263,29 +1299,20 @@ async function loadDoctor(){
                     ${cryptoPill}
                   </div>
                   <div class="telem-row">
-                    <span>Alimentazione</span>
-                    <span>${pwrText}</span>
-                  </div>
-                  <div class="telem-row">
                     <span>Git HEAD</span>
-                    <span><b>${commitBadge}</b> (${cb.git_branch || 'main'}) ${dirtyBadge}</span>
+                    <span><b>${commitBadge}</b> ${dirtyBadge}</span>
                   </div>
                   <div class="telem-row">
-                    <span>Knowledge Graph</span>
-                    <span>${gr.available ? (gr.communities_count ? gr.communities_count + ' community' : 'Attivo') + ` · <span style="color:var(--p)">${gr.freshness}</span>` : 'Assente'}</span>
+                    <span>RAM / VRAM</span>
+                    <span>${hw.ram_free_gb ? hw.ram_free_gb + 'GB free' : 'n/d'} · ${hw.vram_total_gb ? hw.vram_total_gb + 'GB' : '0GB'}</span>
                   </div>
                   <div class="telem-row">
-                    <span>Hardware</span>
-                    <span>RAM ${hw.ram_free_gb ? hw.ram_free_gb + 'GB free' : 'n/d'} · VRAM ${hw.vram_total_gb ? hw.vram_total_gb + 'GB' : '0GB'}</span>
-                  </div>
-                  <div class="telem-row">
-                    <span>Servizi IA</span>
-                    <span>Ollama ${ol.online ? '●' : '○'} · Laya ${ly.online ? '● <span style="color:var(--ok)">' + (ly.latency_ms ? ly.latency_ms + 'ms' : 'sub-50ms') + '</span>' : '○'} · ComfyUI ${cm.online ? '●' : '○'}</span>
+                    <span>Inference IA</span>
+                    <span>Ollama ${ol.online ? '●' : '○'} · Laya ${ly.online ? '●' : '○'} · ComfyUI ${cm.online ? '●' : '○'}</span>
                   </div>
                   ${models.length ? `
                     <div class="telem-models">
-                      ${models.map(m=>`<span class="model-tag">${m.name} (${m.size_gb}G)</span>`).join('')}
-                      ${extraModels > 0 ? `<span class="telem-pill">+${extraModels} altri</span>` : ''}
+                      ${models.map(m => `<span class="model-tag">${m.name}</span>`).join('')}
                     </div>
                   ` : ''}
                 </div>
@@ -297,15 +1324,53 @@ async function loadDoctor(){
     }
 
     document.getElementById('doctor-body').innerHTML = checksHtml + telemHtml;
-  }catch(e){
-    document.getElementById('doctor-label').textContent = 'control-plane irraggiungibile';
-    document.getElementById('doctor-dot').className = 'fail';
-    document.getElementById('doctor-empty').textContent = 'Impossibile contattare /doctor: ' + e;
+  } catch (err) {
+    document.getElementById('tray-doc-dot').className = 'os-dot err';
+    document.getElementById('tray-doc-label').textContent = 'CP offline';
   }
 }
 
-render();
+/* =========================================================================
+   7. LIVE SERVICE PROBE PING
+   ========================================================================= */
+function probeServices() {
+  APPS.forEach(app => {
+    if (app.customUrl) {
+      setAppStatus(app.id, true);
+      return;
+    }
+    const url = getAppUrl(app);
+    fetch(url, { mode: 'no-cors', signal: AbortSignal.timeout(3500) })
+      .then(() => setAppStatus(app.id, true))
+      .catch(() => setAppStatus(app.id, false));
+  });
+}
+
+function setAppStatus(id, isUp) {
+  const dot = document.getElementById(`dot-${id}`);
+  if (dot) {
+    dot.className = `os-icon-status-dot ${isUp ? 'up' : 'down'}`;
+  }
+}
+
+/* =========================================================================
+   8. CLOCK & INIT
+   ========================================================================= */
+function updateClock() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const clockEl = document.getElementById('tray-clock');
+  if (clockEl) clockEl.textContent = timeStr;
+}
+
+// Initial Bootstrap
+renderDesktopIcons();
+renderDock();
 loadDoctor();
+probeServices();
+updateClock();
+setInterval(updateClock, 1000);
+setInterval(probeServices, 15000);
 setInterval(loadDoctor, 30000);
 </script>
 </body>
