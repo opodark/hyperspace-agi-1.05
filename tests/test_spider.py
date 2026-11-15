@@ -355,6 +355,13 @@ class BootstrapTest(unittest.TestCase):
             with self.subTest(atteso=atteso):
                 self.assertIn(atteso, self.src)
 
+    def test_il_desktop_ha_pannello_laterale_switch_e_config_ragno(self):
+        desktop = _testo(ROOT / "control-plane" / "desktop.html")
+        for atteso in ("spider-side-panel", "spider-master-switch",
+                       "setSpiderConfig", "toggleSpiderPanel", "resetSpiderConfig"):
+            with self.subTest(atteso=atteso):
+                self.assertIn(atteso, desktop)
+
 
 class DocumentazioneTest(unittest.TestCase):
     def test_la_doc_racconta_provenienza_limiti_e_comandi(self):

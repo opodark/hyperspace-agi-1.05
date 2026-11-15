@@ -449,6 +449,96 @@ html,body{
 .telem-row{display:flex;justify-content:space-between;color:var(--muted);font-family:var(--mono);font-size:11px}
 .telem-models{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .model-tag{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:3px;background:rgba(16,185,129,.1);color:var(--p)}
+
+/* Web-Crawler (Il Ragno) Side Panel */
+.os-spider-panel{
+  position:fixed;top:34px;right:0;bottom:0;width:360px;max-width:94vw;
+  z-index:1600;background:rgba(13,16,22,0.96);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-left:1px solid var(--border);
+  box-shadow:-16px 0 48px rgba(0,0,0,0.65);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);pointer-events:none;
+  transition:transform .22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.os-spider-panel.open{
+  transform:translateX(0);pointer-events:auto;
+}
+.os-sp-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 16px;background:#11151d;border-bottom:1px solid #1d2331;
+}
+.os-sp-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.os-sp-gadget-pill{
+  font-family:var(--mono);font-size:9.5px;padding:2px 6px;border-radius:4px;
+  background:rgba(16,185,129,0.12);color:var(--p);border:1px solid rgba(16,185,129,0.3);
+  letter-spacing:.05em;
+}
+.os-sp-body{
+  flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;
+}
+.os-sp-card{
+  background:#11151e;border:1px solid #1e2534;border-radius:8px;padding:13px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.os-sp-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.os-sp-row-info b{display:block;font-size:12.5px;font-weight:600;color:var(--txt)}
+.os-sp-row-info span{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35}
+.os-sp-sec-lbl{
+  font-family:var(--mono);font-size:10px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);margin-bottom:2px;
+}
+.os-switch{
+  position:relative;width:40px;height:22px;border-radius:999px;
+  background:#1f2635;border:1px solid #2e374b;cursor:pointer;flex-shrink:0;
+  transition:background .18s, border-color .18s;padding:0;
+}
+.os-switch::after{
+  content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;
+  border-radius:50%;background:#9ba3b4;transition:transform .18s, background .18s;
+}
+.os-switch.on{
+  background:rgba(16,185,129,0.22);border-color:var(--p);
+}
+.os-switch.on::after{
+  transform:translateX(18px);background:var(--p);
+  box-shadow:0 0 8px rgba(16,185,129,0.6);
+}
+.os-seg-group{
+  display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;
+}
+.os-seg-btn{
+  background:#0c0f15;border:1px solid #1e2534;border-radius:6px;
+  color:var(--muted);padding:7px 6px;font-size:11px;font-family:var(--mono);
+  cursor:pointer;text-align:center;transition:all .14s;
+}
+.os-seg-btn:hover{color:var(--txt);border-color:#2c364b}
+.os-seg-btn.active{
+  background:rgba(16,185,129,0.14);border-color:var(--p);color:var(--p);font-weight:600;
+}
+.os-sp-stat-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.os-sp-stat{
+  background:#0b0e13;border:1px solid #191f2c;border-radius:6px;padding:8px 10px;
+}
+.os-sp-stat-k{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.os-sp-stat-v{
+  font-size:12.5px;font-weight:600;font-family:var(--mono);
+  font-variant-numeric:tabular-nums;margin-top:3px;color:var(--txt);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.os-sp-roadmap-item{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  padding:8px 0;border-top:1px solid #191f2c;
+}
+.os-sp-roadmap-item:first-of-type{border-top:none;padding-top:2px}
+.os-sp-future-badge{
+  flex-shrink:0;font-family:var(--mono);font-size:9.5px;padding:2px 6px;border-radius:4px;
+  background:rgba(56,189,248,0.1);color:var(--acc);border:1px solid rgba(56,189,248,0.25);
+}
 </style>
 <script defer src="/spider/bootstrap.js"></script>
 </head>
@@ -480,6 +570,10 @@ html,body{
     </div>
 
     <div class="os-menubar-right">
+      <div class="os-tray-item" id="tray-spider-btn" onclick="toggleSpiderPanel()" title="Web-Crawler (Il Ragno) — Switch &amp; Configurazione">
+        <span class="os-dot" id="tray-spider-dot"></span>
+        <span>🕷️ Ragno</span>
+      </div>
       <div class="os-tray-item" onclick="toggleDoctorWindow()" title="Stato Salute Mesh">
         <span class="os-dot" id="tray-doc-dot"></span>
         <span id="tray-doc-label">mesh…</span>
@@ -557,6 +651,116 @@ html,body{
     <div style="color:var(--muted);font-size:12px">Caricamento stato nodi e diagnostiche…</div>
   </div>
 </div>
+
+<!-- 8. Web-Crawler (Il Ragno) Side Panel -->
+<aside class="os-spider-panel" id="spider-side-panel" aria-label="Pannello Web-Crawler Il Ragno">
+  <div class="os-sp-hdr">
+    <div class="os-sp-title">
+      <span>🕷️ Web-Crawler (Il Ragno)</span>
+      <span class="os-sp-gadget-pill">GADGET</span>
+    </div>
+    <button class="os-win-action-btn" onclick="toggleSpiderPanel()">✕ Chiudi</button>
+  </div>
+  <div class="os-sp-body">
+    <div class="os-sp-card">
+      <div class="os-sp-row">
+        <div class="os-sp-row-info">
+          <b id="spider-status-text">Stato ragno…</b>
+          <span>Scorciatoia rapida: <span class="os-kbd">Alt+Shift+S</span></span>
+        </div>
+        <button type="button" class="os-switch" id="spider-master-switch" onclick="toggleSpiderMaster()" aria-pressed="false" title="Accendi o spegni il ragno"></button>
+      </div>
+    </div>
+
+    <div class="os-sp-card">
+      <div class="os-sp-sec-lbl">Configurazione Procedurale</div>
+      <div>
+        <div style="font-size:11.5px;font-weight:500;margin-bottom:6px">Taglia Ragno (<span style="font-family:var(--mono);color:var(--muted)">size</span>)</div>
+        <div class="os-seg-group" id="sp-size-group">
+          <button type="button" class="os-seg-btn" data-size="S" onclick="setSpiderConfig({size:'S'})">S · Piccolo</button>
+          <button type="button" class="os-seg-btn" data-size="M" onclick="setSpiderConfig({size:'M'})">M · Medio</button>
+          <button type="button" class="os-seg-btn" data-size="L" onclick="setSpiderConfig({size:'L'})">L · Grande</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11.5px;font-weight:500;margin-bottom:6px">Densità &amp; Glitch (<span style="font-family:var(--mono);color:var(--muted)">density</span>)</div>
+        <div class="os-seg-group" id="sp-density-group">
+          <button type="button" class="os-seg-btn" data-density="calm" onclick="setSpiderConfig({density:'calm'})">Calm</button>
+          <button type="button" class="os-seg-btn" data-density="normal" onclick="setSpiderConfig({density:'normal'})">Normal</button>
+          <button type="button" class="os-seg-btn" data-density="wild" onclick="setSpiderConfig({density:'wild'})">Wild</button>
+        </div>
+      </div>
+
+      <div class="os-sp-row" style="padding-top:4px;border-top:1px solid #191f2c">
+        <div class="os-sp-row-info">
+          <b>Camminata Autonoma</b>
+          <span>Esplora le parole sulla pagina anche a cursore fermo (<span style="font-family:var(--mono)">autoRead</span>).</span>
+        </div>
+        <button type="button" class="os-switch" id="spider-autoread-switch" onclick="toggleSpiderAutoRead()" aria-pressed="false"></button>
+      </div>
+
+      <div class="os-sp-row" style="padding-top:4px;border-top:1px solid #191f2c">
+        <div class="os-sp-row-info">
+          <b>Chip Ricerca SearXNG</b>
+          <span>Mostra la parola calpestata; cerca con <span class="os-kbd">Alt+Shift+F</span>.</span>
+        </div>
+        <button type="button" class="os-switch" id="spider-search-switch" onclick="toggleSpiderSearch()" aria-pressed="true"></button>
+      </div>
+
+      <button type="button" class="os-win-action-btn" style="justify-content:center;padding:6px 10px" onclick="resetSpiderConfig()">↺ Ripristina Default</button>
+    </div>
+
+    <div class="os-sp-card">
+      <div class="os-sp-sec-lbl">Telemetria Live Gadget</div>
+      <div class="os-sp-stat-grid">
+        <div class="os-sp-stat">
+          <div class="os-sp-stat-k">Stato / Velocità</div>
+          <div class="os-sp-stat-v" id="sp-stat-speed">—</div>
+        </div>
+        <div class="os-sp-stat">
+          <div class="os-sp-stat-k">Posizione Vista</div>
+          <div class="os-sp-stat-v" id="sp-stat-pos">—</div>
+        </div>
+        <div class="os-sp-stat">
+          <div class="os-sp-stat-k">Zampe su Parole</div>
+          <div class="os-sp-stat-v" id="sp-stat-feet">—</div>
+        </div>
+        <div class="os-sp-stat">
+          <div class="os-sp-stat-k">Parola Rilevata</div>
+          <div class="os-sp-stat-v" id="sp-stat-word">—</div>
+        </div>
+      </div>
+      <button type="button" class="os-win-action-btn" style="justify-content:center;padding:6px 10px" onclick="triggerSpiderSearch()">🔎 Cerca parola su SearXNG ora</button>
+    </div>
+
+    <div class="os-sp-card">
+      <div class="os-sp-sec-lbl">Funzioni Future (Roadmap)</div>
+      <p style="font-size:11px;color:var(--muted);line-height:1.4">Modalità attuale: <b>Gadget procedurale DOM</b>. In futuro questo pannello ospiterà controlli operativi del crawler agentico:</p>
+      <div class="os-sp-roadmap-item">
+        <div class="os-sp-row-info">
+          <b>DOM Semantic Harvester</b>
+          <span>Raccolta contestuale dei blocchi e concetti calpestati.</span>
+        </div>
+        <span class="os-sp-future-badge">FUTURO</span>
+      </div>
+      <div class="os-sp-roadmap-item">
+        <div class="os-sp-row-info">
+          <b>Hermes Memory Feed</b>
+          <span>Salvataggio automatico dei concetti nella memoria di sessione.</span>
+        </div>
+        <span class="os-sp-future-badge">FUTURO</span>
+      </div>
+      <div class="os-sp-roadmap-item">
+        <div class="os-sp-row-info">
+          <b>Autonomous Link Scout</b>
+          <span>Esplorazione assistita dei collegamenti interni e esterni.</span>
+        </div>
+        <span class="os-sp-future-badge">FUTURO</span>
+      </div>
+    </div>
+  </div>
+</aside>
 
 <script>
 const HOST = window.location.hostname;
@@ -925,6 +1129,10 @@ function renderDock() {
 
   html += `
     <div class="os-dock-divider"></div>
+    <div class="os-dock-btn" id="dock-btn-spider" onclick="toggleSpiderPanel()" title="Web-Crawler (Il Ragno)">
+      🕷️
+      <div class="os-dock-tooltip">Web-Crawler (Il Ragno)</div>
+    </div>
     <div class="os-dock-btn" onclick="toggleDoctorWindow()" title="Mesh Doctor">
       🩺
       <div class="os-dock-tooltip">Mesh Doctor</div>
@@ -1228,6 +1436,8 @@ function closeAllOverlays() {
   closeSpotlight();
   document.getElementById('launchpad').classList.remove('open');
   document.getElementById('doctor-window').classList.remove('open');
+  const sp = document.getElementById('spider-side-panel');
+  if (sp) sp.classList.remove('open');
 }
 
 /* =========================================================================
@@ -1363,13 +1573,184 @@ function updateClock() {
   if (clockEl) clockEl.textContent = timeStr;
 }
 
+/* =========================================================================
+   9. WEB-CRAWLER (IL RAGNO) SIDE PANEL & CONFIG
+   ========================================================================= */
+function readSpiderStoredState() {
+  try {
+    return JSON.parse(window.sessionStorage.getItem('hspider.state') || '{}') || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeSpiderStoredPatch(patch) {
+  const curr = readSpiderStoredState();
+  Object.assign(curr, patch);
+  try {
+    window.sessionStorage.setItem('hspider.state', JSON.stringify(curr));
+  } catch (e) {}
+  return curr;
+}
+
+function getSpiderSnapshot() {
+  const st = (window.__hspider && window.__hspider.state) || readSpiderStoredState();
+  const cfg = window.__HSPIDER__ || {};
+  const available = !!(window.__hspider && window.__webCrawler);
+  const disabledByEnv = cfg.enabled === false;
+  const running = available
+    ? (typeof window.__hspider.running === 'function' ? window.__hspider.running() : !!window.__webCrawler.running)
+    : false;
+  const on = available ? running : (st.on === true);
+  return {
+    available,
+    disabledByEnv,
+    on,
+    running,
+    size: st.size || cfg.size || 'M',
+    density: st.density || cfg.density || 'normal',
+    autoRead: st.autoRead === true,
+    searchOn: st.searchOn !== false && cfg.search !== null
+  };
+}
+
+function toggleSpiderPanel() {
+  const panel = document.getElementById('spider-side-panel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  syncSpiderUI();
+}
+
+function setSpiderConfig(patch) {
+  if (window.__hspider && typeof window.__hspider.set === 'function') {
+    window.__hspider.set(patch);
+  } else {
+    writeSpiderStoredPatch(patch);
+  }
+  document.querySelectorAll('.os-win-iframe').forEach(frame => {
+    try {
+      const childSpider = frame.contentWindow && frame.contentWindow.__hspider;
+      if (childSpider && typeof childSpider.set === 'function') {
+        childSpider.set(patch);
+      }
+    } catch (e) {}
+  });
+  syncSpiderUI();
+}
+
+function toggleSpiderMaster() {
+  const snap = getSpiderSnapshot();
+  setSpiderConfig({ on: !snap.on });
+}
+
+function toggleSpiderAutoRead() {
+  const snap = getSpiderSnapshot();
+  setSpiderConfig({ autoRead: !snap.autoRead });
+}
+
+function toggleSpiderSearch() {
+  const snap = getSpiderSnapshot();
+  setSpiderConfig({ searchOn: !snap.searchOn });
+}
+
+function resetSpiderConfig() {
+  setSpiderConfig({ on: true, size: 'M', density: 'normal', autoRead: false, searchOn: true });
+}
+
+function triggerSpiderSearch() {
+  if (!window.__hspider || typeof window.__hspider.word !== 'function') return;
+  const word = window.__hspider.word();
+  if (word && typeof window.__hspider.cerca === 'function') {
+    window.__hspider.cerca(word);
+  }
+}
+
+function syncSpiderUI() {
+  const snap = getSpiderSnapshot();
+  const trayDot = document.getElementById('tray-spider-dot');
+  const dockBtn = document.getElementById('dock-btn-spider');
+  if (trayDot) {
+    trayDot.className = 'os-dot ' + (snap.disabledByEnv ? 'err' : (snap.running ? 'ok' : (snap.available ? '' : 'warn')));
+  }
+  if (dockBtn) {
+    dockBtn.classList.toggle('active', snap.running);
+  }
+
+  const panel = document.getElementById('spider-side-panel');
+  if (!panel) return;
+
+  const masterSw = document.getElementById('spider-master-switch');
+  const autoSw = document.getElementById('spider-autoread-switch');
+  const searchSw = document.getElementById('spider-search-switch');
+  const statusText = document.getElementById('spider-status-text');
+
+  if (masterSw) {
+    masterSw.classList.toggle('on', snap.on);
+    masterSw.setAttribute('aria-pressed', snap.on ? 'true' : 'false');
+  }
+  if (autoSw) {
+    autoSw.classList.toggle('on', snap.autoRead);
+    autoSw.setAttribute('aria-pressed', snap.autoRead ? 'true' : 'false');
+  }
+  if (searchSw) {
+    searchSw.classList.toggle('on', snap.searchOn);
+    searchSw.setAttribute('aria-pressed', snap.searchOn ? 'true' : 'false');
+  }
+  if (statusText) {
+    if (snap.disabledByEnv) {
+      statusText.textContent = 'Disabilitato (SPIDER_ENABLED=false)';
+    } else if (!snap.available) {
+      statusText.textContent = 'Engine non caricato (spider.js assente)';
+    } else {
+      statusText.textContent = snap.running ? 'Attivo sulla pagina' : 'In pausa / Spento';
+    }
+  }
+
+  document.querySelectorAll('#sp-size-group .os-seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.size === snap.size);
+  });
+  document.querySelectorAll('#sp-density-group .os-seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.density === snap.density);
+  });
+
+  if (!panel.classList.contains('open')) return;
+
+  const speedEl = document.getElementById('sp-stat-speed');
+  const posEl = document.getElementById('sp-stat-pos');
+  const feetEl = document.getElementById('sp-stat-feet');
+  const wordEl = document.getElementById('sp-stat-word');
+
+  if (snap.available && typeof window.__hspider.stats === 'function') {
+    try {
+      const st = window.__hspider.stats() || {};
+      const sp = st.spider || {};
+      if (speedEl) speedEl.textContent = st.running ? `${sp.speed || 0} px/s` : 'Fermo';
+      if (posEl) posEl.textContent = (typeof sp.vx === 'number' && typeof sp.vy === 'number')
+        ? `${Math.round(sp.vx * 100)}% , ${Math.round(sp.vy * 100)}%`
+        : '—';
+      if (feetEl) feetEl.textContent = (typeof st.feet === 'number')
+        ? `${st.feetOnWords || 0} / ${st.feet}`
+        : '—';
+      const w = typeof window.__hspider.word === 'function' ? window.__hspider.word() : '';
+      if (wordEl) wordEl.textContent = w || '—';
+    } catch (e) {}
+  } else {
+    if (speedEl) speedEl.textContent = 'Offline';
+    if (posEl) posEl.textContent = '—';
+    if (feetEl) feetEl.textContent = '—';
+    if (wordEl) wordEl.textContent = '—';
+  }
+}
+
 // Initial Bootstrap
 renderDesktopIcons();
 renderDock();
 loadDoctor();
 probeServices();
 updateClock();
+syncSpiderUI();
 setInterval(updateClock, 1000);
+setInterval(syncSpiderUI, 400);
 setInterval(probeServices, 15000);
 setInterval(loadDoctor, 30000);
 </script>

@@ -13411,3 +13411,19 @@ Completato il restyling delle UI del Control Plane e di Infra UI in stile "Sover
    - `docker compose build control-plane && docker compose up -d control-plane` completato con successo.
    - Verificata la corretta erogazione HTTP 200 su `http://localhost:8085/`, `http://localhost:8090/research.html` e `http://localhost:8091/`.
    - Test suites: 20/20 test pytest passati + 8/8 test Node CJS passati.
+
+## 2026-11-15 (sera, gadget Web-Crawler / Il Ragno) — Antigravity → Utente, Claude Code e colleghi
+
+Aggiunto il controllo completo e il pannello laterale destro del **Web-Crawler ("Il Ragno")** nel Sovereign OS Desktop:
+
+- **`control-plane/spider/bootstrap.js`**:
+  - Esteso `window.__hspider` con `.set(patch)`, `.opts()`, `.running()` (oltre a `.toggle()`, `.start()`, `.stop()`, `.stats()`, `.word()`, `.cerca()`, `.state`) mantenendo il bootstrap senza `innerHTML`, `document.body`, `localStorage` e API `chrome.*`.
+  - `opts()` rilegge `sessionStorage['hspider.state']` e `set(patch)` salva e applica in tempo reale `on`, `size` (`S`/`M`/`L`), `density` (`calm`/`normal`/`wild`), `autoRead` e `searchOn` (spegnimento immediato del chip SearXNG e di `cerca()` quando `searchOn: false`).
+- **`control-plane/desktop.html`**:
+  - Aggiunti bottone nella Top Menu Bar (`#tray-spider-btn` con `#tray-spider-dot`), pulsante nel Dock (`#dock-btn-spider`) e pannello laterale destro `#spider-side-panel` (aperto da `toggleSpiderPanel()`, chiuso anche con `ESC`).
+  - Nel pannello: switch ON/OFF `#spider-master-switch`, selettori `size` e `density`, switch `autoRead` (`#spider-autoread-switch`) e `searchOn` (`#spider-search-switch`), reset (`resetSpiderConfig()`), propagazione verso gli iframe same-origin aperti (`setSpiderConfig`), telemetria live (`#sp-stat-speed`, `#sp-stat-pos`, `#sp-stat-feet`, `#sp-stat-word` + ricerca manuale `triggerSpiderSearch()`) e sezione **Funzioni Future (Roadmap)** (*DOM Semantic Harvester*, *Hermes Memory Feed*, *Autonomous Link Scout*).
+- **Test e Verifica**:
+  - `tests/spider.test.cjs`: aggiunto test per `window.__hspider.set(...)` e disattivazione chip/ricerca con `searchOn: false` → **20/20** test Node passati.
+  - `tests/test_spider.py`: aggiunto `test_il_desktop_ha_pannello_laterale_switch_e_config_ragno`; eseguiti `tests/test_spider.py`, `tests/test_surfaces.py`, `tests/test_company_org.py`, `tests/test_licensing.py` → **56 passed, 83 subtests passed** (`1.46s`).
+  - Controllo sintassi `<script>` inline in `control-plane/desktop.html` → OK.
+  - Ricompilati e riavviati `control-plane` e `bridge` via `docker compose build control-plane bridge && docker compose up -d control-plane bridge`; verificati live `http://localhost:8085/`, `http://localhost:8085/spider/bootstrap.js` e `http://localhost:8099/spider/bootstrap.js`.

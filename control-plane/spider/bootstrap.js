@@ -84,6 +84,7 @@
   if (q) accesa = remember({ on: q[1] === 'on' }).on;
 
   function opts() {
+    state = stored();
     return {
       size: state.size || cfg.size || 'M',
       density: state.density || cfg.density || 'normal',
@@ -94,16 +95,41 @@
   function start() {
     if (!api) return false;
     var ok = api.start(opts());
-    remember({ on: true });
+    state = remember({ on: true });
     return ok;
   }
   function stop() {
     if (!api) return false;
     var ok = api.stop();
-    remember({ on: false });
+    state = remember({ on: false });
+    hide();
     return ok;
   }
   function toggle() { return (api && api.running) ? stop() : start(); }
+
+  function set(patch) {
+    if (!patch || typeof patch !== 'object') return stored();
+    var next = {};
+    if (typeof patch.size === 'string') next.size = patch.size;
+    if (typeof patch.density === 'string') next.density = patch.density;
+    if (typeof patch.autoRead === 'boolean') next.autoRead = patch.autoRead;
+    if (typeof patch.searchOn === 'boolean') next.searchOn = patch.searchOn;
+    if (typeof patch.on === 'boolean') next.on = patch.on;
+    state = remember(next);
+    if (typeof patch.on === 'boolean') {
+      if (patch.on) {
+        if (api && !api.running) api.start(opts());
+        else if (api && api.set) api.set(opts());
+      } else {
+        if (api && api.running) api.stop();
+        hide();
+      }
+    } else if (api && api.set) {
+      api.set(opts());
+    }
+    if (state.searchOn === false) hide();
+    return state;
+  }
 
   // Alt+Shift+S accende/spegne (lo stesso tasto dell'estensione upstream);
   // Alt+Shift+F manda in ricerca la parola che il ragno sta camminando.
@@ -225,6 +251,7 @@
   // ogni frame: deve costare poco, e' un di piu' della ragnatela, non il suo scopo.
   function poll() {
     if (!api || !api.running) return hide();
+    if (stored().searchOn === false) return hide();
     var st; try { st = api.stats(); } catch (e) { return hide(); }
     var sp = st && st.spider;
     if (!sp) return hide();
@@ -244,7 +271,7 @@
   // `port`/`path` arrivano dal contratto, non sono cablati qui. Ritorna false se
   // non c'e' niente da cercare: chi ci chiama decide se consumare il tasto.
   function cerca(parola) {
-    if (!SEARCH || !parola) return false;
+    if (!SEARCH || !parola || stored().searchOn === false) return false;
     var url = window.location.protocol + '//' + window.location.hostname + ':' +
               SEARCH.port + (SEARCH.path || '/search') + '?q=' + encodeURIComponent(parola);
     window.open(url, '_blank', 'noopener');
@@ -258,7 +285,9 @@
     document.addEventListener('keydown', onKey);
     install();
     window.__hspider = {
-      toggle: toggle, start: start, stop: stop,
+      toggle: toggle, start: start, stop: stop, set: set,
+      opts: opts,
+      running: function () { return !!(api && api.running); },
       stats: function () { return api.stats(); },
       // assistente alla ricerca (assente se il contratto non porta `search`)
       word: function () { return attuale; },

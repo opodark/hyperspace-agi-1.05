@@ -85,14 +85,14 @@ function harness(opts) {
   return { win, creati, listeners, store, timers, aperti };
 }
 
-// La ragnatela finta: registra start/stop e le opzioni ricevute.
+// La ragnatela finta: registra start/stop/set e le opzioni ricevute.
 function spia() {
-  const chiamate = { start: 0, stop: 0 };
+  const chiamate = { start: 0, stop: 0, set: 0 };
   const finto = {
-    running: false, opts: [],
+    running: false, opts: [], setOpts: [],
     start(o) { chiamate.start++; finto.running = true; finto.opts.push(Object.assign({}, o)); return true; },
     stop() { chiamate.stop++; finto.running = false; return true; },
-    set() {},
+    set(o) { chiamate.set++; finto.setOpts.push(Object.assign({}, o)); return true; },
     stats: () => ({ running: finto.running }),
   };
   return { finto, chiamate };
@@ -293,5 +293,27 @@ test("l'assistente e' nel file, e non tocca la pagina", () => {
   assert.match(CODICE, /data-hspider-chip/);
   assert.doesNotMatch(CODICE, /innerHTML/);
   assert.doesNotMatch(CODICE, /document\.body/);
+});
+
+test('window.__hspider.set aggiorna taglia/densita/autoRead/searchOn e switch on/off', () => {
+  const h = conRagno({ caret: { text: 'ciao mondo', offset: 6 } });
+  h.timers[0]();
+  assert.equal(h.creati[1].style.opacity, '1');
+  assert.equal(h.win.__hspider.running(), true);
+
+  h.win.__hspider.set({ size: 'L', density: 'wild', autoRead: true, searchOn: false });
+  assert.equal(h.win.__webCrawler.setOpts.length, 1);
+  assert.deepEqual(h.win.__webCrawler.setOpts[0], { size: 'L', density: 'wild', autoRead: true });
+  assert.equal(h.creati[1].style.opacity, '0', 'searchOn=false nasconde subito il chip');
+  assert.equal(h.win.__hspider.cerca('mondo'), false, 'searchOn=false disabilita la ricerca');
+
+  h.win.__hspider.set({ on: false });
+  assert.equal(h.win.__hspider.running(), false);
+  assert.equal(JSON.parse(h.store['hspider.state']).on, false);
+
+  h.win.__hspider.set({ on: true, searchOn: true });
+  assert.equal(h.win.__hspider.running(), true);
+  h.timers[0]();
+  assert.equal(h.creati[1].style.opacity, '1');
 });
 
