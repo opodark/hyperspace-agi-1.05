@@ -4,33 +4,37 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>HyperSpace AGI — Home</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root,[data-theme="dark"]{--bg:#0b0c0e;--surface:#131518;--surface2:#191c21;--surface3:#21252d;--border:#272b33;--divider:#1c1f26;--text:#c8cdd6;--text-muted:#636a78;--text-faint:#353a44;--primary:#4f98a3;--primary-h:#2d7d8a;--primary-bg:rgba(79,152,163,.12);--success:#6daa45;--error:#dd6974;--font-mono:'JetBrains Mono',monospace;--font-body:'Inter',sans-serif;--radius:5px;--radius-lg:9px;--tr:160ms cubic-bezier(.16,1,.3,1)}
-[data-theme="light"]{--bg:#f0f1f4;--surface:#fff;--surface2:#f6f7fa;--surface3:#eaecf0;--border:#d8dbe2;--text:#191c22;--text-muted:#636a78;--text-faint:#b0b8c8;--primary:#016970;--primary-h:#014f55;--primary-bg:rgba(1,105,112,.08);--success:#3a6e1a;--error:#a12c3a}
+:root,[data-theme="dark"]{--bg:#090a0c;--surface:#0f1115;--surface2:#14171d;--surface3:#1b1f27;--border:#222630;--divider:#181b22;--text:#e6e9ef;--text-muted:#939ba9;--text-faint:#677080;--primary:#10b981;--primary-h:#059669;--primary-bg:rgba(16,185,129,.10);--success:#22c55e;--error:#ef4444;--font-mono:'JetBrains Mono',monospace;--font-body:'Inter',sans-serif;--radius:6px;--radius-lg:8px;--tr:140ms cubic-bezier(.16,1,.3,1)}
+[data-theme="light"]{--bg:#f6f7f9;--surface:#ffffff;--surface2:#f1f3f6;--surface3:#e7eaef;--border:#dcdfe6;--divider:#eceef2;--text:#11141a;--text-muted:#525b6c;--text-faint:#778091;--primary:#059669;--primary-h:#047857;--primary-bg:rgba(5,150,105,.08);--success:#15803d;--error:#b91c1c}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:13px;-webkit-font-smoothing:antialiased}
-body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:12px;height:50px;position:sticky;top:0;z-index:200}
-.logo{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-weight:700;font-size:.9rem;color:var(--primary);white-space:nowrap}
-.hdr-right{margin-left:auto}
-#themeBtn{background:none;border:1px solid var(--border);cursor:pointer;padding:5px 7px;border-radius:var(--radius);color:var(--text-muted);line-height:1}
-main{padding:18px 20px;max-width:1200px;margin:0 auto}
-.sec-title{font-size:.65rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding-bottom:8px;border-bottom:1px solid var(--divider);margin-bottom:14px}
-.nodes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.node-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;transition:border-color var(--tr)}
-.node-card:hover{border-color:var(--primary)}
-.nc-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+html{font-size:15px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font-body);letter-spacing:-.011em;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:12px;height:48px;position:sticky;top:0;z-index:200}
+.logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:.9rem;color:var(--text);white-space:nowrap}
+.logo-mark{color:var(--primary);display:inline-flex}
+.scope-pill{font-family:var(--font-mono);font-size:.7rem;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:4px}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.hdr-link{font-size:.78rem;color:var(--text-muted);text-decoration:none;padding:4px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2)}
+.hdr-link:hover{color:var(--text);border-color:var(--primary)}
+#themeBtn{background:var(--surface2);border:1px solid var(--border);cursor:pointer;padding:4px 8px;border-radius:var(--radius);color:var(--text-muted);line-height:1}
+main{padding:20px;max-width:1240px;margin:0 auto}
+.sec-title{font-family:var(--font-mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);padding-bottom:8px;border-bottom:1px solid var(--divider);margin-bottom:14px}
+.nodes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.node-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:15px;transition:border-color var(--tr),background var(--tr)}
+.node-card:hover{border-color:var(--primary);background:var(--surface2)}
+.nc-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .svc-icon{color:var(--primary);flex-shrink:0;display:flex}
-.node-id{font-size:.78rem;color:var(--text);flex:1}
+.node-id{font-size:.88rem;font-weight:600;color:var(--text);flex:1}
 .node-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text-faint)}
-.node-status-dot.active{background:var(--success);box-shadow:0 0 6px var(--success)}
+.node-status-dot.active{background:var(--success)}
 .node-status-dot.unreachable{background:var(--error)}
-.node-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:.68rem}
-.nm-label{color:var(--text-muted)}.nm-val{font-family:var(--font-mono);color:var(--text)}
-.btn{display:inline-block;border:1px solid var(--border);cursor:pointer;padding:5px 12px;border-radius:var(--radius);font-size:.72rem;font-weight:500;color:var(--text);text-decoration:none;transition:border-color var(--tr),color var(--tr)}
+.node-meta{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;font-size:.76rem;padding-top:8px;border-top:1px solid var(--divider)}
+.nm-label{color:var(--text-muted)}.nm-val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);text-align:right}
+.btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:5px 11px;border-radius:var(--radius);font-size:.76rem;font-weight:500;color:var(--text);text-decoration:none;transition:border-color var(--tr),color var(--tr)}
 .btn:hover{border-color:var(--primary);color:var(--primary)}
-.nodes-empty{padding:40px;text-align:center;color:var(--text-faint);font-size:.8rem;grid-column:1/-1}
+.nodes-empty{padding:40px;text-align:center;color:var(--text-faint);font-size:.82rem;grid-column:1/-1}
 #onboardingFrame{width:100%;height:820px;border:1px solid var(--border);border-radius:var(--radius-lg);margin-top:10px;background:var(--surface)}
 section{margin-bottom:28px}
 </style>
@@ -38,12 +42,19 @@ section{margin-bottom:28px}
 </head>
 <body>
 <header>
-  <div class="logo">⧢ HyperSpace AGI</div>
-  <div class="hdr-right"><button id="themeBtn" onclick="toggleTheme()">◐</button></div>
+  <div class="logo">
+    <span class="logo-mark"><svg width="20" height="20" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg></span>
+    HyperSpace AGI
+    <span class="scope-pill">Bridge Hub</span>
+  </div>
+  <div class="hdr-right">
+    <a class="hdr-link" href="/dashboard">Live 3D Mesh</a>
+    <button id="themeBtn" onclick="toggleTheme()" title="Cambia tema">◐</button>
+  </div>
 </header>
 <main>
   <section>
-    <div class="sec-title">Servizi</div>
+    <div class="sec-title">Servizi della Mesh</div>
     <div class="nodes-grid" id="servicesGrid"><div class="nodes-empty">Caricamento…</div></div>
   </section>
   <section>
@@ -83,7 +94,7 @@ function cardHtml(s){
       <span class="nm-label">Stato</span><span class="nm-val">${stateLabel}</span>
       <span class="nm-label">Latenza</span><span class="nm-val">${latency}</span>
     </div>
-    <div style="margin-top:10px"><a class="btn" href="${url}" target="_blank" rel="noopener">Apri →</a></div>
+    <div style="margin-top:12px"><a class="btn" href="${url}" target="_blank" rel="noopener">Apri →</a></div>
   </div>`;
 }
 

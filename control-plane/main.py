@@ -1565,6 +1565,7 @@ from cp.mission import (
     mission_controller_loop,
     monta as monta_mission,
 )
+from cp.org import monta as monta_org
 
 # I tool nativi sono di main.py (gli handler usano `connector_manager`), ma
 # `cp/chat.py` deve poter chiedere quali sono per costruire il catalogo. La
@@ -3339,6 +3340,9 @@ SURFACES = [
     {"id": "dashboard", "label": "Dashboard Mesh", "category": "control-plane",
      "path": "/dashboard", "port": None,
      "desc": "Nodi, topologia, task, log, metriche e le schede operative."},
+    {"id": "company", "label": "Company / Org", "category": "control-plane",
+     "path": "/company", "port": None,
+     "desc": "Organigramma agenti, goal alignment, issue checkout atomico e budget FinOps."},
     {"id": "activity", "label": "Attività Anna Batch", "category": "control-plane",
      "path": "/activity", "port": None,
      "desc": "Coda immagini e ultimi job, in tempo reale. Solo lettura."},
@@ -4118,6 +4122,14 @@ def workspace_page():
 def dashboard_alias():
     return send_from_directory(BASE_DIR, 'dashboard.html')
 
+@app.route('/cockpit.css')
+def cockpit_css():
+    return send_from_directory(BASE_DIR, 'cockpit.css')
+
+@app.route('/company')
+def company_page():
+    return send_from_directory(BASE_DIR, 'company.html')
+
 @app.route('/p2p-monitor')
 def p2p_monitor_page():
     return send_from_directory(BASE_DIR, 'p2p_monitor.html')
@@ -4791,6 +4803,7 @@ monta_canali(app, image_queue=image_queue,
 
 
 monta_mission(app, code_sandbox=code_sandbox, advanced_config=advanced_config)
+monta_org(app)
 
 
 def _handlers_nativi_105() -> dict:

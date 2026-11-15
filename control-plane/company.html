@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HyperSpace AGI — Company &amp; Org Control Plane</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/cockpit.css">
+  <style>
+    main { max-width: 1400px; margin: 0 auto; padding: 18px 20px 48px; display: flex; flex-direction: column; gap: 16px; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .title-block h1 { font-size: 1.15rem; font-weight: 600; margin: 0 0 2px; letter-spacing: -0.02em; }
+    .title-block p { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
+    .token-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .token-bar input { width: 250px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 980px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+    .field label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+    .tree-node { border-left: 1px solid var(--border-strong); padding-left: 12px; margin: 6px 0; }
+    .tree-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.78rem; }
+    .tree-item .role { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
+    .status-msg { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-muted); min-height: 18px; }
+    .status-msg.err { color: var(--error); }
+    .status-msg.ok { color: var(--success); }
+    textarea.hs-inp { min-height: 76px; resize: vertical; font-family: var(--font-mono); font-size: 0.75rem; }
+    .actions-cell { display: flex; gap: 5px; flex-wrap: wrap; }
+    .goal-chain { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
+  </style>
+  <script defer src="/spider/bootstrap.js"></script>
+</head>
+<body class="hs-body">
+  <header class="hs-shell-bar">
+    <a class="hs-shell-brand" href="/">
+      <svg class="hs-shell-mark" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+      HyperSpace AGI
+      <span class="hs-shell-scope">Company / Org</span>
+    </a>
+    <nav class="hs-shell-nav" aria-label="Superfici HyperSpace">
+      <a class="hs-shell-link" href="/">Desktop</a>
+      <a class="hs-shell-link" href="/dashboard">Cockpit Mesh</a>
+      <a class="hs-shell-link active" href="/company">Company / Org</a>
+      <a class="hs-shell-link" href="/workspace">Workspace</a>
+      <a class="hs-shell-link" href="/activity">Activity</a>
+      <a class="hs-shell-link" href="/conversations">Conversazioni</a>
+      <a class="hs-shell-link" href="/diario">Diario</a>
+      <a class="hs-shell-link" href="/sites">Sites</a>
+      <a class="hs-shell-link" href="/p2p-monitor">P2P Sync</a>
+    </nav>
+    <div class="hs-shell-right">
+      <button class="hs-btn hs-btn-sm" id="themeBtn" onclick="toggleTheme()" title="Cambia tema">◐</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="title-block">
+        <h1>Company &amp; Org Control Plane</h1>
+        <p>Organigramma agenti BYOA, Goal Alignment (Goal → Project → Issue), Atomic Checkout e budget FinOps mensili.</p>
+      </div>
+      <div class="token-bar">
+        <input id="orgToken" class="hs-inp hs-inp-mono" type="password" autocomplete="off" placeholder="DREAM_REVIEW_TOKEN (operatore)" />
+        <button class="hs-btn hs-btn-sm" onclick="saveOrgToken()">Salva token</button>
+        <button class="hs-btn hs-btn-primary hs-btn-sm" onclick="refreshAll()">Aggiorna</button>
+      </div>
+    </div>
+
+    <div id="orgStatusMsg" class="status-msg"></div>
+
+    <!-- KPI Strip -->
+    <section class="hs-kpi-strip" aria-label="Metriche organizzazione">
+      <div class="hs-kpi"><span class="hs-kpi-label">Obiettivi attivi</span><span class="hs-kpi-val" id="kpiGoals">—</span><span class="hs-kpi-sub" id="kpiProjects">— progetti</span></div>
+      <div class="hs-kpi"><span class="hs-kpi-label">Agenti attivi</span><span class="hs-kpi-val" id="kpiAgentsActive">—</span><span class="hs-kpi-sub" id="kpiAgentsSub">— totali</span></div>
+      <div class="hs-kpi"><span class="hs-kpi-label">Issue aperte</span><span class="hs-kpi-val" id="kpiIssuesOpen">—</span><span class="hs-kpi-sub" id="kpiIssuesSub">— in corso · — done</span></div>
+      <div class="hs-kpi"><span class="hs-kpi-label">Spesa mese (USD)</span><span class="hs-kpi-val" id="kpiSpendUsd">—</span><span class="hs-kpi-sub" id="kpiTokensSub">0 in / 0 out tok</span></div>
+      <div class="hs-kpi"><span class="hs-kpi-label">Gate Board</span><span class="hs-kpi-val" id="kpiGate">—</span><span class="hs-kpi-sub">pending / budget_paused</span></div>
+    </section>
+
+    <!-- Goal & Project Creation -->
+    <div class="grid-2">
+      <section class="hs-card">
+        <div class="hs-card-head"><span class="hs-card-title">1. Obiettivi Strategici (Goals)</span><span class="hs-badge" id="goalCountBadge">0</span></div>
+        <div class="form-row">
+          <div class="field"><label>Titolo Goal</label><input id="goalTitle" class="hs-inp" placeholder="es. Lancia catalogo AI autonomo" /></div>
+          <div class="field"><label>Owner (Agent ID, opz.)</label><input id="goalOwner" class="hs-inp hs-inp-mono" placeholder="es. ceo" /></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Descrizione / Perché</label><input id="goalDesc" class="hs-inp" placeholder="Criterio strategico di lungo periodo" /></div>
+        </div>
+        <button class="hs-btn hs-btn-primary hs-btn-sm" onclick="createGoal()">Crea Goal</button>
+        <div style="margin-top:12px;overflow-x:auto">
+          <table class="hs-table"><thead><tr><th>ID</th><th>Titolo</th><th>Owner</th><th>Stato</th></tr></thead><tbody id="goalsBody"><tr><td colspan="4" class="hs-empty">Nessun goal configurato.</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <section class="hs-card">
+        <div class="hs-card-head"><span class="hs-card-title">2. Progetti (collegati ai Goal)</span><span class="hs-badge" id="projCountBadge">0</span></div>
+        <div class="form-row">
+          <div class="field"><label>Nome Progetto</label><input id="projName" class="hs-inp" placeholder="es. Pipeline Video Reel" /></div>
+          <div class="field"><label>Goal ID</label><select id="projGoalId" class="hs-sel"><option value="">Nessun goal</option></select></div>
+          <div class="field"><label>Budget Mese ($)</label><input id="projBudget" class="hs-inp hs-inp-mono" type="number" step="0.5" value="25" /></div>
+        </div>
+        <button class="hs-btn hs-btn-primary hs-btn-sm" onclick="createProject()">Crea Progetto</button>
+        <div style="margin-top:12px;overflow-x:auto">
+          <table class="hs-table"><thead><tr><th>Progetto</th><th>Goal</th><th class="num">Speso</th><th class="num">Cap</th></tr></thead><tbody id="projectsBody"><tr><td colspan="4" class="hs-empty">Nessun progetto configurato.</td></tr></tbody></table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Org Chart & Agent Hiring -->
+    <section class="hs-card">
+      <div class="hs-card-head">
+        <span class="hs-card-title">3. Organigramma Agenti &amp; FinOps</span>
+        <span class="hs-badge primary">BYOA · Heartbeat</span>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Nome Agente</label><input id="agName" class="hs-inp" placeholder="es. Chief Architect" /></div>
+        <div class="field"><label>Ruolo</label><input id="agRole" class="hs-inp hs-inp-mono" value="worker" placeholder="ceo / coder / verifier" /></div>
+        <div class="field"><label>Adapter</label>
+          <select id="agAdapter" class="hs-sel">
+            <option value="local_mission">local_mission</option>
+            <option value="claude_code">claude_code</option>
+            <option value="codex">codex</option>
+            <option value="gemini_cli">gemini_cli</option>
+            <option value="http_webhook">http_webhook</option>
+            <option value="shell">shell</option>
+          </select>
+        </div>
+        <div class="field"><label>Riporta a (Agent ID)</label><select id="agReportsTo" class="hs-sel"><option value="">Board (Root)</option></select></div>
+        <div class="field"><label>Budget USD/mese</label><input id="agBudget" class="hs-inp hs-inp-mono" type="number" step="0.5" value="10" /></div>
+        <div class="field"><label>Gate Board</label>
+          <select id="agApproval" class="hs-sel"><option value="false">Attivo subito</option><option value="true">Richiede approvazione Board</option></select>
+        </div>
+      </div>
+      <button class="hs-btn hs-btn-primary hs-btn-sm" onclick="hireAgent()">Assumi Agente</button>
+
+      <div class="grid-2" style="margin-top:14px">
+        <div>
+          <div style="font-size:0.74rem;font-weight:600;color:var(--text-muted);margin-bottom:8px">Albero Gerarchico</div>
+          <div id="orgTree"><div class="hs-empty">Nessun agente assunto.</div></div>
+        </div>
+        <div style="overflow-x:auto">
+          <div style="font-size:0.74rem;font-weight:600;color:var(--text-muted);margin-bottom:8px">Registro Operativo &amp; Consumi</div>
+          <table class="hs-table">
+            <thead><tr><th>Agente</th><th>Adapter</th><th>Stato</th><th class="num">Tok In/Out</th><th class="num">USD / Cap</th><th>Azioni</th></tr></thead>
+            <tbody id="agentsBody"><tr><td colspan="6" class="hs-empty">Nessun agente.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Issue Queue & Atomic Checkout -->
+    <section class="hs-card">
+      <div class="hs-card-head">
+        <span class="hs-card-title">4. Coda Issue &amp; Atomic Checkout</span>
+        <span class="hs-badge info">Lease Lock (409 su contesa)</span>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Titolo Issue</label><input id="issTitle" class="hs-inp" placeholder="es. Audit endpoint /org" /></div>
+        <div class="field"><label>Progetto</label><select id="issProj" class="hs-sel"><option value="">Generale</option></select></div>
+        <div class="field"><label>Assegnato a</label><select id="issAssignee" class="hs-sel"><option value="">Non assegnato</option></select></div>
+        <div class="field"><label>Priorità</label>
+          <select id="issPriority" class="hs-sel">
+            <option value="0">P0 · Critica</option>
+            <option value="1">P1 · Alta</option>
+            <option value="2" selected>P2 · Normale</option>
+            <option value="3">P3 · Bassa</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Dettagli operativi</label><input id="issDesc" class="hs-inp" placeholder="Contesto, criteri, file coinvolti" /></div>
+      </div>
+      <button class="hs-btn hs-btn-primary hs-btn-sm" onclick="createIssue()">Crea Issue</button>
+
+      <div style="margin-top:12px;overflow-x:auto">
+        <table class="hs-table">
+          <thead><tr><th>Priorità</th><th>Issue &amp; Goal Alignment</th><th>Stato</th><th>Assegnato / Lease</th><th>Azioni</th></tr></thead>
+          <tbody id="issuesBody"><tr><td colspan="5" class="hs-empty">Nessuna issue in coda.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Templates & Audit -->
+    <div class="grid-2">
+      <section class="hs-card">
+        <div class="hs-card-head">
+          <span class="hs-card-title">5. Company Templates (Export / Import)</span>
+          <div style="display:flex;gap:6px">
+            <button class="hs-btn hs-btn-sm" onclick="exportTemplate()">Esporta</button>
+            <button class="hs-btn hs-btn-primary hs-btn-sm" onclick="importTemplate()">Importa</button>
+          </div>
+        </div>
+        <textarea id="tplBox" class="hs-inp" placeholder='Premi "Esporta" per generare il blueprint JSON oppure incolla un template hyperspace.company_template.v1 da importare.'></textarea>
+      </section>
+
+      <section class="hs-card">
+        <div class="hs-card-head"><span class="hs-card-title">6. Audit Trail Immutabile</span><span class="hs-badge" id="auditCountBadge">0</span></div>
+        <div style="max-height:220px;overflow-y:auto">
+          <table class="hs-table"><thead><tr><th>Ora</th><th>Azione</th><th>Actor → Target</th></tr></thead><tbody id="auditBody"><tr><td colspan="3" class="hs-empty">Nessun evento registrato.</td></tr></tbody></table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const TOKEN_KEY = 'hs_dream_token';
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function toggleTheme() {
+      const h = document.documentElement;
+      const next = h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      h.setAttribute('data-theme', next);
+      try { localStorage.setItem('hs-theme', next); } catch {}
+    }
+    try {
+      const saved = localStorage.getItem('hs-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+      $('orgToken').value = localStorage.getItem(TOKEN_KEY) || '';
+    } catch {}
+
+    function saveOrgToken() {
+      const v = $('orgToken').value.trim();
+      try { localStorage.setItem(TOKEN_KEY, v); } catch {}
+      setStatus('Token salvato nella sessione locale.', false);
+      refreshAll();
+    }
+
+    function setStatus(msg, isErr) {
+      const el = $('orgStatusMsg');
+      el.textContent = msg || '';
+      el.className = 'status-msg ' + (isErr ? 'err' : (msg ? 'ok' : ''));
+    }
+
+    async function orgFetch(path, opts = {}) {
+      const tok = $('orgToken').value.trim();
+      const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+      if (tok) headers['Authorization'] = 'Bearer ' + tok;
+      const res = await fetch(path, Object.assign({}, opts, { headers }));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    function statusBadge(status) {
+      if (status === 'active' || status === 'done') return `<span class="hs-badge ok">${esc(status)}</span>`;
+      if (status === 'in_progress' || status === 'in_review') return `<span class="hs-badge info">${esc(status)}</span>`;
+      if (status === 'pending_approval' || status === 'blocked') return `<span class="hs-badge warn">${esc(status)}</span>`;
+      if (status === 'budget_paused' || status === 'terminated' || status === 'cancelled') return `<span class="hs-badge err">${esc(status)}</span>`;
+      return `<span class="hs-badge">${esc(status)}</span>`;
+    }
+
+    function renderTree(nodes) {
+      if (!nodes || !nodes.length) return '<div class="hs-empty">Nessun agente nell\'organigramma.</div>';
+      return nodes.map(n => `
+        <div class="tree-node">
+          <div class="tree-item">
+            <strong>${esc(n.name)}</strong>
+            <span class="role">${esc(n.role)} · ${esc(n.adapter)}</span>
+            ${statusBadge(n.status)}
+            <span class="hs-num" style="margin-left:auto;font-size:.72rem">$${Number(n.spent_usd_month || 0).toFixed(2)} / $${Number(n.monthly_budget_usd || 0).toFixed(2)}</span>
+          </div>
+          ${n.reports && n.reports.length ? renderTree(n.reports) : ''}
+        </div>`).join('');
+    }
+
+    async function refreshAll() {
+      try {
+        const [st, go, pr, ag, tr, is, au] = await Promise.all([
+          orgFetch('/org/status'),
+          orgFetch('/org/goals'),
+          orgFetch('/org/projects'),
+          orgFetch('/org/agents'),
+          orgFetch('/org/agents?tree=true'),
+          orgFetch('/org/issues'),
+          orgFetch('/org/audit?limit=40'),
+        ]);
+        const s = st.summary || {};
+        const a = s.agents || {};
+        const i = s.issues || {};
+        const sp = s.spend || {};
+        $('kpiGoals').textContent = s.goals ?? 0;
+        $('kpiProjects').textContent = `${s.projects ?? 0} progetti`;
+        $('kpiAgentsActive').textContent = a.active ?? 0;
+        $('kpiAgentsSub').textContent = `${a.total ?? 0} totali`;
+        $('kpiIssuesOpen').textContent = (i.todo || 0) + (i.in_progress || 0) + (i.in_review || 0);
+        $('kpiIssuesSub').textContent = `${i.in_progress || 0} in corso · ${i.done || 0} done`;
+        $('kpiSpendUsd').textContent = `$${Number(sp.total_usd_month || 0).toFixed(2)}`;
+        $('kpiTokensSub').textContent = `${sp.total_tokens_in_month || 0} in / ${sp.total_tokens_out_month || 0} out`;
+        $('kpiGate').textContent = (a.pending_approval || 0) + (a.budget_paused || 0);
+
+        const goals = go.goals || [];
+        $('goalCountBadge').textContent = goals.length;
+        $('goalsBody').innerHTML = goals.length ? goals.map(g => `<tr>
+          <td class="hs-mono">${esc(g.goal_id)}</td>
+          <td><strong>${esc(g.title)}</strong>${g.description ? `<div style="font-size:.7rem;color:var(--text-muted)">${esc(g.description)}</div>` : ''}</td>
+          <td class="hs-mono">${esc(g.owner_agent_id || '—')}</td>
+          <td>${statusBadge(g.status)}</td>
+        </tr>`).join('') : '<tr><td colspan="4" class="hs-empty">Nessun goal configurato.</td></tr>';
+
+        const prevGoal = $('projGoalId').value;
+        $('projGoalId').innerHTML = '<option value="">Nessun goal</option>' + goals.map(g => `<option value="${esc(g.goal_id)}">${esc(g.title)} (${esc(g.goal_id)})</option>`).join('');
+        $('projGoalId').value = prevGoal;
+
+        const projects = pr.projects || [];
+        $('projCountBadge').textContent = projects.length;
+        $('projectsBody').innerHTML = projects.length ? projects.map(p => `<tr>
+          <td><strong>${esc(p.name)}</strong> <span class="hs-mono" style="color:var(--text-faint)">${esc(p.project_id)}</span></td>
+          <td class="hs-mono">${esc(p.goal_id || '—')}</td>
+          <td class="num">$${Number(p.spent_usd_month || 0).toFixed(2)}</td>
+          <td class="num">$${Number(p.budget_usd_monthly || 0).toFixed(2)}</td>
+        </tr>`).join('') : '<tr><td colspan="4" class="hs-empty">Nessun progetto configurato.</td></tr>';
+
+        const prevProj = $('issProj').value;
+        $('issProj').innerHTML = '<option value="">Generale</option>' + projects.map(p => `<option value="${esc(p.project_id)}">${esc(p.name)}</option>`).join('');
+        $('issProj').value = prevProj;
+
+        const agents = ag.agents || [];
+        $('orgTree').innerHTML = renderTree(tr.tree || []);
+        const opts = agents.map(x => `<option value="${esc(x.agent_id)}">${esc(x.name)} (${esc(x.role)})</option>`).join('');
+        const prevRep = $('agReportsTo').value, prevAss = $('issAssignee').value;
+        $('agReportsTo').innerHTML = '<option value="">Board (Root)</option>' + opts;
+        $('issAssignee').innerHTML = '<option value="">Non assegnato</option>' + opts;
+        $('agReportsTo').value = prevRep;
+        $('issAssignee').value = prevAss;
+
+        $('agentsBody').innerHTML = agents.length ? agents.map(x => `<tr>
+          <td><strong>${esc(x.name)}</strong><div class="hs-mono" style="font-size:.7rem;color:var(--text-faint)">${esc(x.agent_id)} · ${esc(x.role)}</div></td>
+          <td class="hs-mono">${esc(x.adapter)}</td>
+          <td>${statusBadge(x.status)}</td>
+          <td class="num">${x.tokens_in_month} / ${x.tokens_out_month}</td>
+          <td class="num">$${Number(x.spent_usd_month || 0).toFixed(2)} / $${Number(x.monthly_budget_usd || 0).toFixed(2)}</td>
+          <td class="actions-cell">
+            <button class="hs-btn hs-btn-sm" onclick="triggerHeartbeat('${esc(x.agent_id)}')">Heartbeat</button>
+            ${x.status !== 'active' ? `<button class="hs-btn hs-btn-primary hs-btn-sm" onclick="approveAgent('${esc(x.agent_id)}')">Approva</button>` : ''}
+            <button class="hs-btn hs-btn-sm" onclick="quickUsage('${esc(x.agent_id)}')">+Uso</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="6" class="hs-empty">Nessun agente.</td></tr>';
+
+        const issues = is.issues || [];
+        const firstAgentId = agents[0] ? agents[0].agent_id : '';
+        $('issuesBody').innerHTML = issues.length ? issues.map(item => `<tr>
+          <td class="hs-mono">P${item.priority}</td>
+          <td>
+            <strong>${esc(item.title)}</strong>
+            <div class="goal-chain">${esc(item.issue_id)} · proj:${esc(item.project_id || '—')} · goal:${esc(item.goal_id || '—')}</div>
+          </td>
+          <td>${statusBadge(item.status)}</td>
+          <td class="hs-mono">${esc(item.checked_out_by ? `🔒 ${item.checked_out_by}` : (item.assignee_agent_id || '—'))}</td>
+          <td class="actions-cell">
+            ${item.status !== 'done' ? `<button class="hs-btn hs-btn-sm" onclick="checkoutIssue('${esc(item.issue_id)}','${esc(item.assignee_agent_id || firstAgentId)}')">Checkout</button>` : ''}
+            ${item.checked_out_by ? `<button class="hs-btn hs-btn-primary hs-btn-sm" onclick="releaseIssue('${esc(item.issue_id)}','${esc(item.checked_out_by)}','done')">Done</button>` : ''}
+            <button class="hs-btn hs-btn-sm" onclick="commentIssue('${esc(item.issue_id)}')">Commenta</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="5" class="hs-empty">Nessuna issue in coda.</td></tr>';
+
+        const audit = au.audit_log || [];
+        $('auditCountBadge').textContent = audit.length;
+        $('auditBody').innerHTML = audit.length ? audit.map(e => `<tr>
+          <td class="hs-mono" style="color:var(--text-faint)">${esc((e.at || '').slice(11, 19))}</td>
+          <td class="hs-mono">${esc(e.action)}</td>
+          <td class="hs-mono">${esc(e.actor)} → ${esc(e.target)}</td>
+        </tr>`).join('') : '<tr><td colspan="3" class="hs-empty">Nessun evento registrato.</td></tr>';
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    }
+
+    async function createGoal() {
+      try {
+        await orgFetch('/org/goals', { method: 'POST', body: JSON.stringify({ title: $('goalTitle').value, description: $('goalDesc').value, owner_agent_id: $('goalOwner').value || null }) });
+        $('goalTitle').value = ''; $('goalDesc').value = '';
+        setStatus('Goal creato.', false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function createProject() {
+      try {
+        await orgFetch('/org/projects', { method: 'POST', body: JSON.stringify({ name: $('projName').value, goal_id: $('projGoalId').value || null, budget_usd_monthly: Number($('projBudget').value || 0) }) });
+        $('projName').value = '';
+        setStatus('Progetto creato.', false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function hireAgent() {
+      try {
+        await orgFetch('/org/agents', { method: 'POST', body: JSON.stringify({
+          name: $('agName').value, role: $('agRole').value, adapter: $('agAdapter').value,
+          reports_to: $('agReportsTo').value || null,
+          monthly_budget_usd: Number($('agBudget').value || 0),
+          requires_approval: $('agApproval').value === 'true',
+        }) });
+        $('agName').value = '';
+        setStatus('Agente registrato nell\'organigramma.', false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function approveAgent(id) {
+      const budgetRaw = prompt('Nuovo budget mensile USD (lascia vuoto per mantenere):', '');
+      const payload = { reviewer: 'board', rationale: 'approvazione da /company' };
+      if (budgetRaw !== null && budgetRaw.trim() !== '') payload.new_budget_usd = Number(budgetRaw);
+      try {
+        await orgFetch(`/org/agents/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify(payload) });
+        setStatus(`Agente ${id} approvato.`, false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function triggerHeartbeat(id) {
+      try {
+        const res = await orgFetch(`/org/agents/${encodeURIComponent(id)}/heartbeat`, { method: 'POST', body: '{}' });
+        setStatus(`Heartbeat ${id}: ${res.status}`, false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function quickUsage(id) {
+      const costRaw = prompt('Registra spesa USD per test FinOps:', '1.00');
+      if (!costRaw) return;
+      try {
+        await orgFetch(`/org/agents/${encodeURIComponent(id)}/usage`, { method: 'POST', body: JSON.stringify({ tokens_in: 500, tokens_out: 250, cost_usd: Number(costRaw), source: 'manual-ui' }) });
+        setStatus(`Consumo registrato su ${id}.`, false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function createIssue() {
+      try {
+        await orgFetch('/org/issues', { method: 'POST', body: JSON.stringify({
+          title: $('issTitle').value, description: $('issDesc').value,
+          project_id: $('issProj').value || null, assignee_agent_id: $('issAssignee').value || null,
+          priority: Number($('issPriority').value || 2),
+        }) });
+        $('issTitle').value = ''; $('issDesc').value = '';
+        setStatus('Issue aggiunta alla coda.', false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function checkoutIssue(issueId, agentId) {
+      const target = agentId || prompt('Agent ID per il checkout atomico:', '');
+      if (!target) return;
+      try {
+        await orgFetch(`/org/issues/${encodeURIComponent(issueId)}/checkout`, { method: 'POST', body: JSON.stringify({ agent_id: target }) });
+        setStatus(`Lease acquisito su ${issueId} da ${target}.`, false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function releaseIssue(issueId, agentId, status) {
+      try {
+        await orgFetch(`/org/issues/${encodeURIComponent(issueId)}/release`, { method: 'POST', body: JSON.stringify({ agent_id: agentId, status }) });
+        setStatus(`Issue ${issueId} rilasciata (${status}).`, false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function commentIssue(issueId) {
+      const txt = prompt('Commento (puoi usare @agent_id per notificare un agente):', '');
+      if (!txt) return;
+      try {
+        await orgFetch(`/org/issues/${encodeURIComponent(issueId)}/comments`, { method: 'POST', body: JSON.stringify({ author: 'board', text: txt }) });
+        setStatus(`Commento aggiunto a ${issueId}.`, false); await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function exportTemplate() {
+      try {
+        const res = await orgFetch('/org/template');
+        $('tplBox').value = JSON.stringify(res.template, null, 2);
+        setStatus('Blueprint esportato.', false);
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    async function importTemplate() {
+      try {
+        const parsed = JSON.parse($('tplBox').value);
+        const res = await orgFetch('/org/template', { method: 'POST', body: JSON.stringify({ template: parsed }) });
+        setStatus(`Template importato: ${JSON.stringify(res.imported)}`, false);
+        await refreshAll();
+      } catch (e) { setStatus(e.message, true); }
+    }
+
+    refreshAll();
+  </script>
+</body>
+</html>

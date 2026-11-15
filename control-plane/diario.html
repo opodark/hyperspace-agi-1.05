@@ -1,65 +1,64 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Diario dei sogni</title>
+<title>Diario dei sogni — HyperSpace</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/cockpit.css">
 <style>
-  :root { --bg:#0b0e14; --panel:#131720; --border:#232a36; --text:#d7dde6;
-          --muted:#7d8694; --acc:#00f5ff; --ok:#34d399; --warn:#f59e0b;
-          --sogno:#b18cff; --anna:#00f5ff; --aurora:#ff8cd8; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
-         background:var(--bg); color:var(--text); }
-  header { position:sticky; top:0; z-index:2; background:var(--panel);
-           border-bottom:1px solid var(--border); padding:12px 16px;
-           display:flex; align-items:center; gap:12px; }
-  header h1 { font-size:16px; margin:0; }
-  header .dot { width:10px; height:10px; border-radius:50%; background:#22c55e; }
-  header .dot.off { background:#ef4444; }
-  header .count { color:var(--muted); font-size:13px; margin-left:auto; }
-  header a { color:var(--acc); font-size:13px; text-decoration:none; }
-  .wrap { max-width:720px; margin:0 auto; padding:16px; }
-  .voce { background:var(--panel); border:1px solid var(--border);
-          border-radius:12px; padding:14px; margin-bottom:14px; }
-  .meta { display:flex; gap:8px; align-items:center; font-size:12px;
-          color:var(--muted); margin-bottom:10px; flex-wrap:wrap; }
-  .badge { padding:2px 8px; border-radius:6px; background:#1b2430; color:var(--acc);
-           font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:.5px; }
-  .badge.sogno { color:var(--sogno); }
-  .author { font-weight:600; color:var(--text); }
-  .author.anna { color:var(--anna); }
-  .author.aurora { color:var(--aurora); }
-  .ts { margin-left:auto; font-family:ui-monospace,Menlo,monospace; }
-  .testo { font-size:16px; line-height:1.45; margin-bottom:8px; }
-  .prompt { color:var(--muted); font-size:13px; margin-bottom:12px; }
-  .prompt b { color:var(--muted); font-weight:600; }
-  /* L'area dove andra' l'immagine: per ora segnaposto, il collega
-     sostituira' questo blocco con un <img> servito dal control-plane
-     (serve il sync del file dalla macchina che genera). */
-  .immagine { border:1px dashed var(--border); border-radius:10px;
-              min-height:120px; display:flex; align-items:center; justify-content:center;
-              color:var(--muted); font-size:13px; text-align:center; padding:16px;
-              background:#0f141b; }
-  .immagine.vuota { font-style:italic; }
-  .immagine .file { font-family:ui-monospace,Menlo,monospace; font-size:12px;
-                    word-break:break-all; }
-  .immagine img { max-width:100%; max-height:340px; border-radius:8px; }
-  .empty { color:var(--muted); text-align:center; padding:48px 0; }
-  .filtri { display:flex; gap:8px; padding:0 16px; margin-top:12px; }
-  .filtri button { background:var(--panel); color:var(--muted); border:1px solid var(--border);
-                   border-radius:8px; padding:6px 12px; cursor:pointer; font-size:13px; }
-  .filtri button.on { color:var(--text); border-color:var(--acc); }
+  :root { --sogno: #a78bfa; --anna: #10b981; --aurora: #f472b6; }
+  .subbar { max-width: 780px; margin: 16px auto 0; padding: 0 20px; display: flex; align-items: center; gap: 10px; }
+  .subbar h1 { font-size: 1.08rem; font-weight: 600; margin: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .dot.off { background: var(--error); }
+  .count { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.76rem; margin-left: auto; }
+  .filtri { max-width: 780px; margin: 12px auto 0; padding: 0 20px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .filtri button { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 11px; cursor: pointer; font-size: 0.78rem; font-family: var(--font-body); }
+  .filtri button.on { color: var(--text); background: var(--surface3); border-color: var(--border-strong); font-weight: 600; }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 14px 20px 44px; }
+  .voce { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+  .meta { display: flex; gap: 8px; align-items: center; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 10px; flex-wrap: wrap; }
+  .badge { padding: 2px 7px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); color: var(--primary); font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; }
+  .badge.sogno { color: var(--sogno); }
+  .author { font-weight: 600; color: var(--text); }
+  .author.anna { color: var(--anna); }
+  .author.aurora { color: var(--aurora); }
+  .ts { margin-left: auto; font-family: var(--font-mono); font-size: 0.72rem; }
+  .testo { font-size: 0.96rem; line-height: 1.55; margin-bottom: 10px; }
+  .prompt { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px; }
+  .immagine { border: 1px dashed var(--border); border-radius: var(--radius); min-height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 16px; background: var(--bg); }
+  .immagine.vuota { font-style: italic; }
+  .immagine .file { font-family: var(--font-mono); font-size: 0.75rem; word-break: break-all; }
+  .immagine img { max-width: 100%; max-height: 360px; border-radius: var(--radius); }
+  .empty { color: var(--text-faint); text-align: center; padding: 48px 0; font-size: 0.85rem; }
 </style>
 <script defer src="/spider/bootstrap.js"></script>
 </head>
-<body>
-<header>
+<body class="hs-body">
+<header class="hs-shell-bar">
+  <a class="hs-shell-brand" href="/">
+    <svg class="hs-shell-mark" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+    HyperSpace AGI
+    <span class="hs-shell-scope">Diario</span>
+  </a>
+  <nav class="hs-shell-nav" aria-label="Superfici HyperSpace">
+    <a class="hs-shell-link" href="/">Desktop</a>
+    <a class="hs-shell-link" href="/dashboard">Cockpit Mesh</a>
+    <a class="hs-shell-link" href="/company">Company / Org</a>
+    <a class="hs-shell-link" href="/workspace">Workspace</a>
+    <a class="hs-shell-link" href="/activity">Activity</a>
+    <a class="hs-shell-link" href="/conversations">Conversazioni</a>
+    <a class="hs-shell-link active" href="/diario">Diario</a>
+    <a class="hs-shell-link" href="/diario/intimo">Diario Intimo</a>
+    <a class="hs-shell-link" href="/sites">Sites</a>
+  </nav>
+</header>
+<div class="subbar">
   <span class="dot" id="dot"></span>
   <h1>Diario dei sogni</h1>
   <span class="count" id="count"></span>
-  <a href="/dashboard">dashboard</a>
-</header>
+</div>
 <div class="filtri" id="filtri">
   <button data-tipo="tutti" class="on">tutti</button>
   <button data-tipo="post">post</button>

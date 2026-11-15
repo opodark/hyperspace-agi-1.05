@@ -1,54 +1,59 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Conversazioni — diagnostica</title>
+<title>Conversazioni — HyperSpace</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/cockpit.css">
 <style>
-  :root { --bg:#0b0e14; --panel:#131720; --border:#232a36; --text:#d7dde6;
-          --muted:#7d8694; --acc:#00f5ff; --ok:#34d399; --warn:#f59e0b; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
-         background:var(--bg); color:var(--text); }
-  header { position:sticky; top:0; z-index:2; background:var(--panel);
-           border-bottom:1px solid var(--border); padding:12px 16px;
-           display:flex; align-items:center; gap:12px; }
-  header h1 { font-size:16px; margin:0; }
-  header .dot { width:10px; height:10px; border-radius:50%; background:#22c55e; }
-  header .dot.off { background:#ef4444; }
-  header .count { color:var(--muted); font-size:13px; margin-left:auto; }
-  header a { color:var(--acc); font-size:13px; text-decoration:none; }
-  .wrap { max-width:900px; margin:0 auto; padding:16px; }
-  .turn { background:var(--panel); border:1px solid var(--border);
-          border-radius:10px; padding:12px 14px; margin-bottom:12px; }
-  .meta { display:flex; gap:8px; align-items:center; font-size:12px;
-          color:var(--muted); margin-bottom:8px; flex-wrap:wrap; }
-  .badge { padding:2px 8px; border-radius:6px; background:#1b2430; color:var(--acc);
-           font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:.5px; }
-  .msg { background:#0f141b; border-left:2px solid #2a3340; padding:6px 10px;
-         border-radius:6px; margin:6px 0; }
-  .msg .author { color:var(--acc); font-size:12px; font-weight:600; }
-  .msg .txt { font-size:14px; margin-top:2px; white-space:pre-wrap; word-break:break-word; }
-  .reply { margin-top:10px; padding:10px; border-radius:8px; background:#10211f;
-           border:1px solid #1d3a36; }
-  .reply .lbl { font-size:11px; color:var(--ok); text-transform:uppercase;
-                letter-spacing:.5px; margin-bottom:4px; }
-  .reply .txt { font-size:14px; white-space:pre-wrap; word-break:break-word; }
-  .wait { color:var(--warn); font-size:13px; margin-top:8px; }
-  .empty { color:var(--muted); text-align:center; padding:48px 0; }
+  .subbar { max-width: 980px; margin: 16px auto 0; padding: 0 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .subbar h1 { font-size: 1.05rem; font-weight: 600; margin: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .dot.off { background: var(--error); }
+  .count { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.76rem; margin-left: auto; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 14px 20px 44px; }
+  .turn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 12px; }
+  .meta { display: flex; gap: 8px; align-items: center; font-size: 0.74rem; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 8px; flex-wrap: wrap; }
+  .badge { padding: 2px 7px; border-radius: 4px; background: var(--info-bg); color: var(--info); border: 1px solid rgba(56,189,248,.25); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; }
+  .msg { background: var(--surface2); border-left: 2px solid var(--border-strong); padding: 7px 10px; border-radius: 4px; margin: 6px 0; }
+  .msg .author { color: var(--primary); font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; }
+  .msg .txt { font-size: 0.88rem; margin-top: 2px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+  .reply { margin-top: 10px; padding: 10px 12px; border-radius: var(--radius); background: var(--primary-bg); border: 1px solid rgba(16,185,129,.25); }
+  .reply .lbl { font-size: 0.68rem; font-family: var(--font-mono); color: var(--primary); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .reply .txt { font-size: 0.88rem; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+  .wait { color: var(--warning); font-family: var(--font-mono); font-size: 0.78rem; margin-top: 8px; }
+  .empty { color: var(--text-faint); text-align: center; padding: 48px 0; font-size: 0.85rem; }
 </style>
 <script defer src="/spider/bootstrap.js"></script>
 </head>
-<body>
-<header>
+<body class="hs-body">
+<header class="hs-shell-bar">
+  <a class="hs-shell-brand" href="/">
+    <svg class="hs-shell-mark" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+    HyperSpace AGI
+    <span class="hs-shell-scope">Conversazioni</span>
+  </a>
+  <nav class="hs-shell-nav" aria-label="Superfici HyperSpace">
+    <a class="hs-shell-link" href="/">Desktop</a>
+    <a class="hs-shell-link" href="/dashboard">Cockpit Mesh</a>
+    <a class="hs-shell-link" href="/company">Company / Org</a>
+    <a class="hs-shell-link" href="/workspace">Workspace</a>
+    <a class="hs-shell-link" href="/activity">Activity</a>
+    <a class="hs-shell-link active" href="/conversations">Conversazioni</a>
+    <a class="hs-shell-link" href="/diario">Diario</a>
+    <a class="hs-shell-link" href="/sites">Sites</a>
+    <a class="hs-shell-link" href="/p2p-monitor">P2P Sync</a>
+  </nav>
+</header>
+<div class="subbar">
   <span class="dot" id="dot"></span>
   <h1>Conversazioni dei chatbot</h1>
-  <select id="channelFilter" style="background:#1b2430;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;">
+  <select id="channelFilter" class="hs-sel" style="width:auto;min-width:160px">
     <option value="">tutti i canali</option>
   </select>
   <span class="count" id="count"></span>
-  <a href="/dashboard">dashboard</a>
-</header>
+</div>
 <div class="wrap" id="wrap"><div class="empty">Caricamento…</div></div>
 <script>
   const wrap = document.getElementById('wrap');

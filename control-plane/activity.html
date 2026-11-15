@@ -1,37 +1,72 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HyperSpace · Attività Anna Batch</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/cockpit.css">
 <style>
-*{box-sizing:border-box}body{margin:0;padding:24px;background:#0b0e13;color:#e8edf4;font:14px system-ui,-apple-system,sans-serif}
-main{max-width:980px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-h1{font-size:1.45rem;margin:0}a{color:#6ce3d4}p{color:#aab5c4;line-height:1.5;margin:8px 0}
-.status{font:12px ui-monospace,SFMono-Regular,monospace;color:#8fd8cc}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
-section{background:#171d27;border:1px solid #344054;border-radius:12px;padding:16px}h2{font-size:1rem;margin:0 0 10px;color:#b9f7ed}
-.value{font:13px ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
-.jobs{margin-top:12px}.job{border-top:1px solid #344054;padding:8px 0;display:flex;justify-content:space-between;gap:12px;font:12px ui-monospace,SFMono-Regular,monospace}
-.job:first-child{border-top:0}.bad{color:#ff9b9b}.good{color:#84e5b0}.muted{color:#aab5c4}
-button{background:#1f6c66;color:white;border:0;border-radius:7px;padding:8px 12px;cursor:pointer}button:disabled{opacity:.45;cursor:default}.controls{display:flex;gap:8px;margin-top:12px}.stop{background:#8a4242}
-label{display:block;color:#aab5c4;font-size:12px}input{display:block;width:min(330px,100%);background:#10151d;color:#e8edf4;border:1px solid #455268;border-radius:7px;padding:8px;margin-top:4px}
-#terminal{height:260px;overflow:auto;background:#080c11;border:1px solid #344054;border-radius:8px;padding:12px;color:#a6e8c9;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+main{max-width:1100px;margin:0 auto;padding:18px 20px 44px;display:flex;flex-direction:column;gap:14px}
+.page-hdr{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--divider)}
+.page-hdr h1{font-size:1.12rem;font-weight:600;margin:0 0 4px}
+.page-hdr p{color:var(--text-muted);font-size:.78rem;margin:0}
+.status{font:500 .74rem var(--font-mono);color:var(--text-muted);margin-top:6px;text-align:right}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+section.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px}
+h2{font-size:.84rem;font-weight:600;margin:0 0 10px;color:var(--text)}
+.value{font:400 .78rem/1.6 var(--font-mono);font-variant-numeric:tabular-nums;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+.job{border-top:1px solid var(--divider);padding:7px 0;display:flex;justify-content:space-between;gap:12px;font:400 .75rem var(--font-mono)}
+.job:first-child{border-top:0}.bad{color:var(--error)}.good{color:var(--success)}.muted{color:var(--text-muted)}
+.controls{display:flex;gap:8px;margin-top:12px}
+.stop{background:var(--error-bg);border-color:rgba(239,68,68,.3);color:var(--error)}
+label.tok-lbl{display:block;color:var(--text-muted);font-size:.72rem;margin-top:8px}
+label.tok-lbl input{margin-top:4px;width:min(330px,100%)}
+#terminal{height:240px;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;color:var(--primary);font:400 .75rem/1.5 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 <script defer src="/spider/bootstrap.js"></script>
 </head>
-<body><main>
-<header><div><h1>📟 Attività HyperSpace</h1><p>Coda immagini e selezioni Anna. Stop mette in pausa dopo il lavoro già avviato.</p><label>Token WebUI per Start / Stop<input id="token" type="password" autocomplete="off" placeholder="WEBUI_TOOLS_TOKEN"></label></div>
-<div><button id="refresh" type="button">Aggiorna ora</button><div class="status" id="clock">Connessione…</div></div></header>
-<div class="grid">
-  <section><h2>Coda immagini / Anna Batch</h2><div class="value" id="queue">Caricamento…</div><div class="controls"><button data-target="images" data-action="start">Start</button><button class="stop" data-target="images" data-action="stop">Stop</button></div></section>
-  <section><h2>Selezione Anna</h2><div class="value" id="anna">Caricamento…</div><div class="controls"><button data-target="anna" data-action="start">Start</button><button class="stop" data-target="anna" data-action="stop">Stop</button></div></section>
-  <section><h2>Secondo passaggio</h2><div class="value" id="second">Caricamento…</div><div class="controls"><button data-target="anna_second_pass" data-action="start">Start</button><button class="stop" data-target="anna_second_pass" data-action="stop">Stop</button></div></section>
+<body class="hs-body">
+<header class="hs-shell-bar">
+  <a class="hs-shell-brand" href="/">
+    <svg class="hs-shell-mark" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+    HyperSpace AGI
+    <span class="hs-shell-scope">Activity</span>
+  </a>
+  <nav class="hs-shell-nav" aria-label="Superfici HyperSpace">
+    <a class="hs-shell-link" href="/">Desktop</a>
+    <a class="hs-shell-link" href="/dashboard">Cockpit Mesh</a>
+    <a class="hs-shell-link" href="/company">Company / Org</a>
+    <a class="hs-shell-link" href="/workspace">Workspace</a>
+    <a class="hs-shell-link active" href="/activity">Activity</a>
+    <a class="hs-shell-link" href="/conversations">Conversazioni</a>
+    <a class="hs-shell-link" href="/diario">Diario</a>
+    <a class="hs-shell-link" href="/sites">Sites</a>
+    <a class="hs-shell-link" href="/p2p-monitor">P2P Sync</a>
+  </nav>
+</header>
+<main>
+<div class="page-hdr">
+  <div>
+    <h1>Attività HyperSpace</h1>
+    <p>Coda immagini e selezioni Anna. Stop mette in pausa dopo il lavoro già avviato.</p>
+    <label class="tok-lbl">Token WebUI per Start / Stop<input id="token" class="hs-inp hs-inp-mono" type="password" autocomplete="off" placeholder="WEBUI_TOOLS_TOKEN"></label>
+  </div>
+  <div>
+    <button id="refresh" class="hs-btn hs-btn-sm" type="button">&#8635; Aggiorna ora</button>
+    <div class="status" id="clock">Connessione…</div>
+  </div>
 </div>
-<section class="jobs"><h2>Ultimi job</h2><div id="jobs" class="value">Caricamento…</div></section>
-<section class="jobs"><h2>Terminale attività</h2><div id="terminal" role="log" aria-live="polite"></div></section>
-<p>Si aggiorna ogni 3 secondi. Il terminale mostra eventi di stato, non una shell. Il token resta solo nella memoria di questa pagina. I dettagli dei file e degli errori restano nei tool autorizzati di WebUI.</p>
-<p><a href="/">← Desktop HyperSpace</a></p>
-</main><script>
+<div class="grid">
+  <section class="card"><h2>Coda immagini / Anna Batch</h2><div class="value" id="queue">Caricamento…</div><div class="controls"><button class="hs-btn hs-btn-primary hs-btn-sm" data-target="images" data-action="start">Start</button><button class="hs-btn hs-btn-sm stop" data-target="images" data-action="stop">Stop</button></div></section>
+  <section class="card"><h2>Selezione Anna</h2><div class="value" id="anna">Caricamento…</div><div class="controls"><button class="hs-btn hs-btn-primary hs-btn-sm" data-target="anna" data-action="start">Start</button><button class="hs-btn hs-btn-sm stop" data-target="anna" data-action="stop">Stop</button></div></section>
+  <section class="card"><h2>Secondo passaggio</h2><div class="value" id="second">Caricamento…</div><div class="controls"><button class="hs-btn hs-btn-primary hs-btn-sm" data-target="anna_second_pass" data-action="start">Start</button><button class="hs-btn hs-btn-sm stop" data-target="anna_second_pass" data-action="stop">Stop</button></div></section>
+</div>
+<section class="card"><h2>Ultimi job</h2><div id="jobs" class="value">Caricamento…</div></section>
+<section class="card"><h2>Terminale attività</h2><div id="terminal" role="log" aria-live="polite"></div></section>
+<p style="font-size:.75rem;color:var(--text-muted)">Si aggiorna ogni 3 secondi. Il terminale mostra eventi di stato, non una shell. Il token resta solo nella memoria di questa pagina.</p>
+</main>
+<script>
 function selection(x){return `${x.status||'non avviato'}\n${x.processed||0}/${x.total||0} esaminate · ${x.selected||0} selezionate · ${x.to_review||0} da rivedere · ${x.errors||0} errori`}
 const previous=new Map();let refreshing=false;
 function log(message){const box=document.getElementById('terminal');const line=document.createElement('div');line.textContent=`[${new Date().toLocaleTimeString('it-IT')}] ${message}`;box.append(line);while(box.childElementCount>150)box.firstElementChild.remove();box.scrollTop=box.scrollHeight}

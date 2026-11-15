@@ -241,9 +241,18 @@ def cmd_score(args: argparse.Namespace) -> int:
     skipped = sum(1 for r in recs if r.get("note") == "allegato")
     ok = sum(r["correct"] for r in scored)
     print(f"corrette {ok}/{len(scored)}  (allegati saltati: {skipped}, totale righe: {len(recs)})")
+    
+    # Se è fornito il dataset completo (--data), allinea submission.jsonl a tutti i task ufficiali
+    sub_map = {r["task_id"]: r.get("model_answer") or "" for r in recs}
+    data_path = getattr(args, "data", None)
+    if data_path and Path(data_path).exists():
+        all_meta = [json.loads(l) for l in Path(data_path).read_text(encoding="utf-8").splitlines() if l.strip()]
+        sub_rows = [{"task_id": m["task_id"], "model_answer": sub_map.get(m["task_id"], "")} for m in all_meta]
+    else:
+        sub_rows = [{"task_id": r["task_id"], "model_answer": sub_map.get(r["task_id"], "")} for r in recs]
+
     sub = Path(args.out) / "submission.jsonl"
-    sub.write_text("".join(json.dumps({"task_id": r["task_id"], "model_answer": r.get("model_answer") or ""})
-                           + "\n" for r in recs), encoding="utf-8")
+    sub.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in sub_rows), encoding="utf-8")
     return 0
 
 
@@ -268,6 +277,7 @@ def main() -> int:
     r.set_defaults(fn=cmd_run)
     s = sp.add_parser("score")
     s.add_argument("--out", required=True)
+    s.add_argument("--data", help="percorso metadata.jsonl per allineare tutti i 301 task della leaderboard")
     s.set_defaults(fn=cmd_score)
     args = ap.parse_args()
     return args.fn(args)

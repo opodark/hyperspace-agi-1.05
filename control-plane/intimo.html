@@ -1,7 +1,53 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diario intimo · HyperSpace</title><style>
-:root{color-scheme:dark;--bg:#090b10;--panel:#141822;--line:#2a3040;--text:#edf0f7;--muted:#929bad;--accent:#ff7aad;--bad:#ff6b7a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}header,main{max-width:850px;margin:auto;padding:20px}header{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--line)}header h1{font-size:18px;margin:0}header a{margin-left:auto;color:var(--accent)}.auth,.entry{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:18px}.auth{display:flex;gap:8px}.auth input{flex:1}input,button{font:inherit;padding:9px 11px;border-radius:8px}input{background:#0d1119;border:1px solid var(--line);color:var(--text)}button{border:0;background:var(--accent);color:#220914;font-weight:700;cursor:pointer}button.alt{background:#242a38;color:var(--text)}#status{color:var(--muted);margin-top:12px}.meta{color:var(--muted);font-size:12px}.failed{color:var(--bad)}.queued{color:#f6c85f}.delivered{color:#75dfae}.entry p{white-space:pre-wrap}.empty{color:var(--muted);padding:30px 0;text-align:center}
-</style><script defer src="/spider/bootstrap.js"></script>
-</head><body><header><span>🔒</span><h1>Diario intimo</h1><a href="/diario">Diario pubblico</a></header><main><div class="auth"><input id="token" type="password" placeholder="NETWORK_ADMIN_TOKEN"><button id="save">Salva token</button><button id="generate" class="alt">Genera una pagina</button></div><div id="status">Inserisci il token per leggere l’archivio privato.</div><section id="entries"></section></main><script>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diario intimo · HyperSpace</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/cockpit.css">
+<style>
+  main{max-width:850px;margin:0 auto;padding:20px 20px 44px}
+  .page-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .page-top h1{font-size:1.08rem;font-weight:600;margin:0}
+  .auth,.entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-top:14px}
+  .auth{display:flex;gap:8px;flex-wrap:wrap}
+  .auth input{flex:1;min-width:220px}
+  #status{color:var(--text-muted);font-family:var(--font-mono);font-size:.78rem;margin-top:12px}
+  .meta{color:var(--text-muted);font-family:var(--font-mono);font-size:.72rem;margin-bottom:6px}
+  .failed{color:var(--error)}.queued{color:var(--warning)}.delivered{color:var(--success)}
+  .entry p{white-space:pre-wrap;line-height:1.55;font-size:.9rem}
+  .empty{color:var(--text-faint);padding:32px 0;text-align:center;font-size:.84rem}
+</style>
+<script defer src="/spider/bootstrap.js"></script>
+</head>
+<body class="hs-body">
+<header class="hs-shell-bar">
+  <a class="hs-shell-brand" href="/">
+    <svg class="hs-shell-mark" viewBox="0 0 28 28" fill="none"><polygon points="14,2 26,9 26,19 14,26 2,19 2,9" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+    HyperSpace AGI
+    <span class="hs-shell-scope">Diario Intimo</span>
+  </a>
+  <nav class="hs-shell-nav" aria-label="Superfici HyperSpace">
+    <a class="hs-shell-link" href="/">Desktop</a>
+    <a class="hs-shell-link" href="/dashboard">Cockpit Mesh</a>
+    <a class="hs-shell-link" href="/company">Company / Org</a>
+    <a class="hs-shell-link" href="/diario">Diario Pubblico</a>
+    <a class="hs-shell-link active" href="/diario/intimo">Diario Intimo</a>
+  </nav>
+</header>
+<main>
+  <div class="page-top"><h1>Diario intimo (archivio privato)</h1><span class="hs-badge warn">Token Protetto</span></div>
+  <div class="auth">
+    <input id="token" class="hs-inp hs-inp-mono" type="password" placeholder="NETWORK_ADMIN_TOKEN">
+    <button id="save" class="hs-btn hs-btn-primary hs-btn-sm">Salva token</button>
+    <button id="generate" class="hs-btn hs-btn-sm">Genera una pagina</button>
+  </div>
+  <div id="status">Inserisci il token per leggere l’archivio privato.</div>
+  <section id="entries"></section>
+</main>
+<script>
 const $=s=>document.querySelector(s),token=$('#token'),status=$('#status'),entries=$('#entries');token.value=localStorage.getItem('hs-network-token')||'';const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const headers=()=>({'X-Hyperspace-Network-Token':token.value.trim()});$('#save').onclick=()=>{localStorage.setItem('hs-network-token',token.value.trim());load()};async function load(){try{const r=await fetch('/diario/intimo/data',{headers:headers()}),d=await r.json();if(!r.ok)throw Error(d.error||r.status);const rows=d.voci||[];status.textContent=`${rows.length} pagine private`;entries.innerHTML=rows.map(v=>`<article class="entry"><div class="meta ${esc(v.stato)}">${esc(v.stato)} · ${esc(v.ts)} · ${esc(v.destinatario)}</div><p>${esc(v.testo)}</p>${v.errore?`<div class="meta failed">${esc(v.errore)}</div>`:''}</article>`).join('')||'<div class="empty">Nessuna pagina privata ancora.</div>'}catch(e){entries.innerHTML='';status.textContent='Errore: '+e.message}}$('#generate').onclick=async()=>{status.textContent='Generazione e accodamento…';try{const r=await fetch('/diario/intimo/genera',{method:'POST',headers:headers()}),d=await r.json();if(!r.ok)throw Error(d.error||r.status);status.textContent='Pagina accodata; aggiorno lo stato.';await load()}catch(e){status.textContent='Errore: '+e.message}};load();
-</script></body></html>
+</script>
+</body>
+</html>

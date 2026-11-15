@@ -114,7 +114,7 @@ integrations:
     local_bin: ${REA_BIN:-/Users/opo/.npm-global/bin/rea}
     description: Superficie di analisi statica ed esame artefatti binari (Ghidra/Hopper/LLM)
     upstream_url: https://github.com/morluto/rea.git
-    pinned_ref: 6.7.0
+    pinned_ref: 6.9.0
     test_command: .venv/bin/python -m pytest tests/test_rea_surface.py -q
     auto_sync: true
   agency_agents:
@@ -124,7 +124,7 @@ integrations:
     description: Profili specializzati di ingegneria agentica (Architect, Code Reviewer,
       Tech Writer)
     upstream_url: https://github.com/msitarzewski/agency-agents.git
-    pinned_ref: 4e3ac3ca6604c75113f52c695dbddcc7af928b46
+    pinned_ref: 8ae6164602c95ca78828b148b9052460ee426885
     active_branch: main
     test_command: .venv/bin/python -m pytest tests/test_forge_skills.py -k agency
       -q
@@ -135,7 +135,7 @@ integrations:
     local_path: vendor/anydoc
     description: Skill e workflow di conversione documenti d'ufficio in Markdown
     upstream_url: https://github.com/firecrawl/anydoc.git
-    pinned_ref: e7178e099b6bf9171e2c52b832cbdb4134b69112
+    pinned_ref: e56a49bf3062c55e8d258346de4a36f4cfb59f70
     active_branch: main
     test_command: .venv/bin/python -m pytest tests/test_forge_skills.py -k anydoc
       -q
@@ -174,7 +174,8 @@ integrations:
     name: TasteSkill Anti-Slop Frontend Skill
     category: forge_bundle
     local_path: vendor/taste-skill
-    description: Framework e skill anti-slop per costruzione di siti web, art direction da 247 siti Awwwards/OnePageLove, layout unici e regole app screen
+    description: Framework e skill anti-slop per costruzione di siti web, art direction
+      da 247 siti Awwwards/OnePageLove, layout unici e regole app screen
     upstream_url: https://github.com/Leonxlnx/taste-skill.git
     pinned_ref: main
     active_branch: main
@@ -184,7 +185,8 @@ integrations:
     name: Handoff Agent Skill (Matt Pocock)
     category: forge_bundle
     local_path: vendor/handoff-skill
-    description: Skill universale di passaggio di consegne tra agenti (creazione handoff doc in $TMPDIR, suggested skills, redaction segreti)
+    description: Skill universale di passaggio di consegne tra agenti (creazione handoff
+      doc in $TMPDIR, suggested skills, redaction segreti)
     upstream_url: https://github.com/mattpocock/skills.git
     pinned_ref: a496f5513d4a4cf889bc48e189e579f4b0bdf6aa
     active_branch: main
@@ -194,7 +196,8 @@ integrations:
     name: Teach Agent Skill (Matt Pocock)
     category: forge_bundle
     local_path: vendor/teach-skill
-    description: Skill per insegnare un argomento all'utente su piu' sessioni (workspace di lezioni, glossario, record di apprendimento)
+    description: Skill per insegnare un argomento all'utente su piu' sessioni (workspace
+      di lezioni, glossario, record di apprendimento)
     upstream_url: https://github.com/mattpocock/skills.git
     pinned_ref: 5ae481693d13b37d4d2c2c92d0b66d299c93e695
     active_branch: main
@@ -204,7 +207,8 @@ integrations:
     name: Marketing Psychology Skill (Corey Haines)
     category: forge_bundle
     local_path: vendor/marketing-psychology-skill
-    description: Skill di psicologia e mental model applicati al marketing (bias cognitivi, persuasione, decisioni d'acquisto)
+    description: Skill di psicologia e mental model applicati al marketing (bias cognitivi,
+      persuasione, decisioni d'acquisto)
     upstream_url: https://github.com/coreyhaines31/marketingskills.git
     pinned_ref: 88c79f6528a9347420e57ceb1fff9a60de651768
     active_branch: main
@@ -214,7 +218,9 @@ integrations:
     name: Anatomy Agent Skill (wheresryan22)
     category: forge_bundle
     local_path: vendor/anatomy-skill
-    description: Skill per illustrazioni isometriche interattive dettagliate di macchine/sistemi reali (SVG + shader WebGL opzionali); vendorizzati SKILL.md, kit/, references/ e gli script non di test, esclusa la gallery examples/ (~12MB)
+    description: Skill per illustrazioni isometriche interattive dettagliate di macchine/sistemi
+      reali (SVG + shader WebGL opzionali); vendorizzati SKILL.md, kit/, references/
+      e gli script non di test, esclusa la gallery examples/ (~12MB)
     upstream_url: https://github.com/wheresryan22/anatomy.git
     pinned_ref: 1482e8469b0a9e0d8cc18ea2740a01423d29ae80
     active_branch: main
@@ -224,7 +230,11 @@ integrations:
     name: Last30Days Agent Skill (mvanhorn)
     category: forge_bundle
     local_path: vendor/last30days-skill
-    description: Ricerca/intelligence su Reddit, X, YouTube, HN, Polymarket e web con sintesi finale; include scraper per varie piattaforme social e la libreria vendorizzata bird-search (MIT, Peter Steinberger). Vendorizzato integralmente su richiesta esplicita dell'utente, uso previsto research/intelligence non scraping di massa
+    description: Ricerca/intelligence su Reddit, X, YouTube, HN, Polymarket e web
+      con sintesi finale; include scraper per varie piattaforme social e la libreria
+      vendorizzata bird-search (MIT, Peter Steinberger). Vendorizzato integralmente
+      su richiesta esplicita dell'utente, uso previsto research/intelligence non scraping
+      di massa
     upstream_url: https://github.com/mvanhorn/last30days-skill.git
     pinned_ref: 7efc0ef764765ed9ceff5ce1204462b35b89d680
     active_branch: main
@@ -234,7 +244,10 @@ integrations:
     name: AI Chief of Staff template (mimurchison)
     category: client_product_template
     local_path: vendor/claude-chief-of-staff
-    description: Template di assistente personale (goals/task/contatti/comandi gm,triage,my-tasks,enrich) da fornire ai CLIENTI come base del LORO assistente personale; install.sh interattivo scrive in ~/.claude/ della macchina/account del cliente, non e' una skill per i nostri agenti
+    description: Template di assistente personale (goals/task/contatti/comandi gm,triage,my-tasks,enrich)
+      da fornire ai CLIENTI come base del LORO assistente personale; install.sh interattivo
+      scrive in ~/.claude/ della macchina/account del cliente, non e' una skill per
+      i nostri agenti
     upstream_url: https://github.com/mimurchison/claude-chief-of-staff.git
     pinned_ref: 2a10609f6beb295299d6169e3873327178634405
     active_branch: main
@@ -244,7 +257,8 @@ integrations:
     name: Liftli LinkedIn DevPost Generator & Skill
     category: forge_bundle
     local_path: scripts/marketing/linkedin_generator.py
-    description: Generatore e validatore euristico di post LinkedIn per aggiornamenti di sviluppo tecnico e build-in-public (fold-cutoff, readability, CTA)
+    description: Generatore e validatore euristico di post LinkedIn per aggiornamenti
+      di sviluppo tecnico e build-in-public (fold-cutoff, readability, CTA)
     upstream_url: ''
     reference_url: https://liftli.ai/skills/
     pinned_ref: main
@@ -255,7 +269,8 @@ integrations:
     name: CLI-Anything & CLI-Hub (HKUDS)
     category: forge_bundle
     local_path: vendor/cli-anything
-    description: Framework agent-native per rendere qualsiasi software accessibile da CLI con output JSON strutturato e catalogo CLI-Hub
+    description: Framework agent-native per rendere qualsiasi software accessibile
+      da CLI con output JSON strutturato e catalogo CLI-Hub
     upstream_url: https://github.com/HKUDS/CLI-Anything.git
     pinned_ref: 34f519533bc175d2fe287ab8316b0dd99bb9cc43
     active_branch: main
@@ -265,7 +280,9 @@ integrations:
     name: Awesome GameDev Agent Skills (Abhishek Barali)
     category: forge_bundle
     local_path: vendor/gamedev-skills
-    description: Catalogo di 79 skill e router per lo sviluppo di videogiochi (Godot, Unity, Unreal, Bevy, Ebitengine, Phaser, PixiJS, three.js, Defold, LÖVE, pygame, Roblox, AI, shader, fisica, level design, UI/UX)
+    description: "Catalogo di 79 skill e router per lo sviluppo di videogiochi (Godot,\
+      \ Unity, Unreal, Bevy, Ebitengine, Phaser, PixiJS, three.js, Defold, L\xD6VE,\
+      \ pygame, Roblox, AI, shader, fisica, level design, UI/UX)"
     upstream_url: https://github.com/gamedev-skills/awesome-gamedev-agent-skills.git
     pinned_ref: c6ca6c41c839b68319ffc08430b99ab768debc32
     active_branch: main

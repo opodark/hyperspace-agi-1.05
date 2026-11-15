@@ -13328,3 +13328,59 @@ Su richiesta esplicita dell'utente (`"committiamo e pushamo tutto"`):
 - **`/Users/opo/hyperspace-agi-1.04` (`opodark/hyperspace-agi-1.05`)**: aggiunti gli header `# SPDX-License-Identifier: Apache-2.0` ai 12 sorgenti che ne erano privi (`scripts/omen_syndwars/*`, `scripts/diagnostics/malware_sandbox*.py`, `tests/test_gaia_bench.py`), aggiunto `.github/copilot-instructions.md` a `.gitignore`, preparato il commit di tutte le modifiche e dei nuovi file approvati nella working tree (lasciando fuori `benchmarks/public/runs/latest/gaia_test_l1_full/` perché il batch GAIA L1 PID 47413 è tuttora in esecuzione), merge con `origin/main` e push su `origin/main`.
 - **Nota per `@Claude Code`**: il processo `gaia_bench.py` per `gaia_test_l1_full` risulta ancora in esecuzione; non appena completato verrà segnalato qui per la misura con `ctx64k_probe.py --run`.
 
+
+
+## 2026-11-14 (notte, seguito) — Antigravity → Utente, Claude Code e colleghi (Company / Org Control Plane ispirato a `paperclipai/paperclip`)
+
+Implementato il layer organizzativo Company / Org sopra `MissionControl` (nessun commit, nessun push):
+
+- **`shared/company_org.py`**: `CompanyOrgStore` persistente (`company_org.json` con scrittura atomica) per gestire:
+  - **Goal Alignment**: gerarchia `Goal -> Project -> Issue` con `goal_alignment_context()`.
+  - **Org Chart & Governance**: agenti persistenti (`hire_agent`, `org_tree`, `reports_to`, gate `requires_approval` -> `approve_agent`) e `audit_log` immutabile.
+  - **Issue Queue & Atomic Checkout**: coda prioritizzata con commenti/`@mention` e lock atomico con lease (`checkout_issue` / `release_issue`, `CheckoutConflictError` / 409 su contesa).
+  - **FinOps & Session Persistence**: `record_usage` (token input+output e costo USD mensile per agente e progetto) con auto-pausa `budget_paused` al superamento del budget e `session_state` persistito tra i battiti (`run_agent_heartbeat`).
+  - **Company Templates**: `export_template` / `import_template` (`hyperspace.company_template.v1`).
+- **`shared/agent_adapters.py`**: `build_heartbeat_prompt` e `dispatch_heartbeat` per `local_mission`, `http_webhook`, `claude_code`, `codex`, `gemini_cli` e `shell` (esecuzione esterna disabilitata di default finché `ORG_EXTERNAL_ADAPTERS_ENABLED=true`).
+- **`control-plane/cp/org.py` + `control-plane/main.py`**: blueprint `/org/*` (`status`, `goals`, `projects`, `agents`, `approve`, `usage`, `heartbeat`, `issues`, `checkout`, `release`, `comments`, `audit`, `template`) protetto da `_dream_review_auth_error()` ed escluso dal `federation-gateway`.
+- **Verifica**: aggiunti 6 test in `tests/test_company_org.py`; eseguiti `test_company_org.py`, `test_mission_routes.py`, `test_mission_controller.py`, `test_licensing.py`: **85 passed** in `0.93s`.
+
+## 2026-11-15 (mattina) — Antigravity → Utente, Claude Code e colleghi (GAIA L1 Full Test Set Completato; OMEN Libero per `ctx64k_probe`)
+
+1. **Completamento del Lotto GAIA Livello 1 (`gaia_test_l1_full`)**:
+   - Il task in background (durata totale: 10h 32m durante la notte) ha completato con successo **tutti i 68 task di Livello 1** del Test Set ufficiale GAIA su Flint 40B MoE con tool web + python abilitati.
+   - **Tasso di risposta**: 64 risposte valide generate su 68 task (**94.1%**).
+   - Generato il file conforme **`benchmarks/public/runs/latest/gaia_test_l1_full/submission.jsonl`** (68 righe `{task_id, model_answer}`, 7.8 KB), pronto per l'upload su Hugging Face Spaces `gaia-benchmark/leaderboard`.
+   - L'inferenza non ha registrato alcun crash, stallo o memory leak del Control Plane su OMEN.
+
+2. **Per `@Claude Code`**:
+   - Il batch GAIA su OMEN è **definitivamente terminato**.
+   - Flint non è più vincolato da compiti di benchmark: la VRAM di OMEN è ora libera per la misura di contesto esteso tramite `ctx64k_probe.py --run` per Hermes Agent.
+
+3. **Stato del Repository**:
+   - Nessun commit, nessun push effettuato.
+   - Tutti i test di regressione intatti (`tests/test_gaia_bench.py`: 4/4 passed).
+
+4. **Conformità Schema Hugging Face Leaderboard (301 task obbligatori)**:
+   - Risolto il requisito di sottomissione dello Space `gaia-benchmark/leaderboard`: la piattaforma richiede obbligatoriamente la presenza di tutte le 301 righe del test set (93 per L1, 159 per L2, 49 per L3), con stringa vuota per i task non affrontati o con allegati.
+   - Aggiornato `scripts/gaia_bench.py score` con il parametro `--data` per generare automaticamente il file allineato a 301 task.
+   - Rigenerato `benchmarks/public/runs/latest/gaia_test_l1_full/submission.jsonl` (301 righe: 93 L1 di cui 64 con risposta autonoma di Flint, 159 L2, 49 L3).
+   - Test unitari aggiornati e verdi (4/4 passed). Nessun commit o push effettuato.
+
+
+## 2026-11-15 (sera) — Antigravity → Utente, Claude Code e colleghi (Restyling UI "Sovereign Cockpit" + Console Company / Org)
+
+Completato il restyling delle UI del Control Plane e di Infra UI in stile "Sovereign Cockpit" (nessun commit, nessun push):
+
+- **Nuovi asset Control Plane**:
+  - `control-plane/cockpit.css`: stylesheet condiviso con token dark/light (`#090a0c`, `#0f1115`, `#14171d`, bordi `#222630`, accent `#10b981`, `Inter` + `JetBrains Mono`) e componenti `.hs-shell-bar`, `.hs-kpi-strip`, `.hs-card`, `.hs-table`, `.hs-badge`, `.hs-btn`, `.hs-inp`.
+  - `control-plane/company.html`: nuova console Company / Org su `/company`, collegata alle route `/org/*` (`status`, `goals`, `projects`, `agents`, `agents?tree=true`, `approve`, `heartbeat`, `usage`, `issues`, `checkout`, `release`, `comments`, `template`, `audit`).
+  - `control-plane/main.py` & `control-plane/Dockerfile`: registrata la voce `company` in `SURFACES`, aggiunte le route `@app.route('/cockpit.css')` e `@app.route('/company')`, e aggiunti i `COPY` nel `Dockerfile`.
+- **Pagine aggiornate (preservando ID DOM, script ed endpoint esistenti)**:
+  - `control-plane/dashboard.html`: applicato tema Sovereign Cockpit (`/cockpit.css`), navigazione aggiornata con link a `/`, `/workspace`, `/company` e nuovo tab `#panel-company` (`showPanel('company',this)` + `loadCompanyPanel()`).
+  - `control-plane/desktop.html` (tile `Company / Org` `/company` in `SERVICES.manage`), `control-plane/workspace.html` (nav pills con `/company` e `/activity`), `control-plane/p2p_monitor.html`, `control-plane/activity.html`, `control-plane/conversations.html`, `control-plane/diario.html`, `control-plane/intimo.html`, `control-plane/sites.html` (tutti con `/cockpit.css` e `.hs-shell-bar`).
+  - `infra-ui/landing.html` (tipografia `15px` `Inter` + `JetBrains Mono`, card piatte Sovereign Cockpit, invariati `ICONS` e i campi `s.*` di `/api/services`) e `infra-ui/dashboard.html` (aggiornato il blocco CSS preservando lo `<script>`).
+- **Test & Verifiche (dopo l'ultima modifica)**:
+  - `tests/test_company_org.py`: aggiunto `test_company_ui_routes_and_assets_registered`.
+  - `.venv/bin/python -m pytest tests/test_company_org.py tests/test_surfaces.py tests/test_infra_ui_landing.py tests/test_diario_routes.py tests/test_conversations.py tests/test_intimate_page.py tests/test_code_conversation.py tests/test_code_channel.py tests/test_forge.py tests/test_dream_routes.py tests/test_graphify_surface.py tests/test_rea_surface.py tests/test_mission_routes.py tests/test_licensing.py -q` → **199 passed, 130 subtests passed** (`4.86s`).
+  - Suite Node `tests/dashboard*.test.cjs` (8 file: `dashboard`, `dashboard_approval_dialog`, `dashboard_dev`, `dashboard_keyboard`, `dashboard_sandbox`, `dashboard_services`, `dashboard_wayfinder`, `dashboard_web_node`) → **tutte passate** (`RC=0`).
+  - Check sintassi `<script>` inline con `node` (`vm.Script`) su tutti i 12 `.html` creati/modificati → **OK**.

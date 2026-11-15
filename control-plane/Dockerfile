@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY control-plane/main.py .
 COPY control-plane/routing.py .
 COPY control-plane/dashboard.html .
+COPY control-plane/cockpit.css .
+COPY control-plane/company.html .
 COPY control-plane/desktop.html .
 COPY control-plane/workspace.html .
 COPY control-plane/activity.html .
